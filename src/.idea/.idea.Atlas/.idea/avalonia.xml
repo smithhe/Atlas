@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="Atlas.UI/Views/MainWindow.axaml" value="Atlas.UI/Atlas.UI.csproj" />
+        <entry key="Atlas.UI/Views/TasksView.axaml" value="Atlas.UI/Atlas.UI.csproj" />
+      </map>
+    </option>
+  </component>
+</project>
