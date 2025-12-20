@@ -16,11 +16,14 @@ export function TasksView() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId?: string }>()
-  const { tasks, settings, selectedTaskId } = useAppState()
+  const { tasks, settings, selectedTaskId, projects, risks } = useAppState()
   const selected = useSelectedTask()
 
-  const [projectFilter, setProjectFilter] = useState('')
-  const [riskFilter, setRiskFilter] = useState('')
+  const projectOptions = useMemo(() => projects.map((p) => p.name).sort((a, b) => a.localeCompare(b)), [projects])
+  const riskOptions = useMemo(() => risks.map((r) => r.title).sort((a, b) => a.localeCompare(b)), [risks])
+
+  const [projectFilter, setProjectFilter] = useState<'All' | string>('All')
+  const [riskFilter, setRiskFilter] = useState<'All' | string>('All')
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'All'>('All')
 
   useEffect(() => {
@@ -34,10 +37,8 @@ export function TasksView() {
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
       if (priorityFilter !== 'All' && t.priority !== priorityFilter) return false
-      if (projectFilter.trim() && !(t.project ?? '').toLowerCase().includes(projectFilter.trim().toLowerCase()))
-        return false
-      if (riskFilter.trim() && !(t.risk ?? '').toLowerCase().includes(riskFilter.trim().toLowerCase()))
-        return false
+      if (projectFilter !== 'All' && (t.project ?? '') !== projectFilter) return false
+      if (riskFilter !== 'All' && (t.risk ?? '') !== riskFilter) return false
       return true
     })
   }, [priorityFilter, projectFilter, riskFilter, tasks])
@@ -71,11 +72,35 @@ export function TasksView() {
               <div className="fieldGrid">
                 <label className="field">
                   <div className="fieldLabel">Project</div>
-                  <input className="input" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} />
+                  <select
+                    className="select"
+                    value={projectFilter}
+                    onChange={(e) => setProjectFilter(e.target.value)}
+                  >
+                    <option value="All">All</option>
+                    <option value="">(None)</option>
+                    {projectOptions.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="field">
                   <div className="fieldLabel">Risk</div>
-                  <input className="input" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)} />
+                  <select
+                    className="select"
+                    value={riskFilter}
+                    onChange={(e) => setRiskFilter(e.target.value)}
+                  >
+                    <option value="All">All</option>
+                    <option value="">(None)</option>
+                    {riskOptions.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="field">
                   <div className="fieldLabel">Priority</div>
@@ -143,6 +168,8 @@ export function TasksView() {
               isFocusMode={isFocusMode}
               onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
               onExitFocus={() => navigate('/tasks')}
+              projectOptions={projectOptions}
+              riskOptions={riskOptions}
             />
           )}
         </section>
@@ -157,12 +184,16 @@ function TaskDetail({
   isFocusMode,
   onEnterFocus,
   onExitFocus,
+  projectOptions,
+  riskOptions,
 }: {
   task: Task
   staleDays: number
   isFocusMode: boolean
   onEnterFocus: () => void
   onExitFocus: () => void
+  projectOptions: string[]
+  riskOptions: string[]
 }) {
   const dispatch = useAppDispatch()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
@@ -243,12 +274,34 @@ function TaskDetail({
 
         <label className="field">
           <div className="fieldLabel">Project (optional)</div>
-          <input className="input" value={task.project ?? ''} onChange={(e) => update({ project: e.target.value })} />
+          <select
+            className="select"
+            value={task.project ?? ''}
+            onChange={(e) => update({ project: e.target.value || undefined })}
+          >
+            <option value="">(None)</option>
+            {projectOptions.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="field">
           <div className="fieldLabel">Risk (optional)</div>
-          <input className="input" value={task.risk ?? ''} onChange={(e) => update({ risk: e.target.value })} />
+          <select
+            className="select"
+            value={task.risk ?? ''}
+            onChange={(e) => update({ risk: e.target.value || undefined })}
+          >
+            <option value="">(None)</option>
+            {riskOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="field">
