@@ -3,6 +3,7 @@ export type Id = string
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type RiskStatus = 'Open' | 'Watching' | 'Resolved'
 export type NoteTag = 'Blocker' | 'Progress' | 'Concern' | 'Praise' | 'Standup'
+export type Confidence = 'Low' | 'Medium' | 'High'
 
 export interface Task {
   id: Id
@@ -11,8 +12,9 @@ export interface Task {
   project?: string
   risk?: string
   dueDate?: string // ISO date (YYYY-MM-DD)
-  durationDays: number
-  durationHours: number
+  estimatedDurationText: string
+  estimateConfidence: Confidence
+  actualDurationText?: string
   notes: string
   lastTouchedIso: string
 }

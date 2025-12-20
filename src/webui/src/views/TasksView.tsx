@@ -3,13 +3,7 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
 import type { Priority, Task } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
-
-function formatDuration(days: number, hours: number) {
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days}d`)
-  if (hours > 0) parts.push(`${hours}h`)
-  return parts.length ? parts.join(' ') : '—'
-}
+import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 
 function daysSince(iso: string) {
   const a = new Date(iso).getTime()
@@ -126,7 +120,9 @@ export function TasksView() {
                       </div>
                       {notesPreview ? <div className="listMeta listMetaWrap listNotesPreview">{notesPreview}</div> : null}
                     </div>
-                    <div className="pill">{formatDuration(t.durationDays, t.durationHours)}</div>
+                    <div className="pill">
+                      {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
+                    </div>
                   </button>
                 )
               })}
@@ -175,7 +171,10 @@ function TaskDetail({
     dispatch({ type: 'updateTask', task: { ...task, ...patch } })
   }
 
-  const preview = formatDuration(task.durationDays, task.durationHours)
+  const estimateParsed = parseDurationText(task.estimatedDurationText)
+  const estimatePreview = estimateParsed ? formatDurationFromMinutes(estimateParsed.totalMinutes) : 'Invalid'
+  const actualParsed = parseDurationText(task.actualDurationText ?? '')
+  const actualPreview = actualParsed ? formatDurationFromMinutes(actualParsed.totalMinutes) : task.actualDurationText ? 'Invalid' : '—'
 
   return (
     <div className="card pad">
@@ -218,33 +217,29 @@ function TaskDetail({
           </select>
         </label>
 
-        <div className="field">
+        <label className="field">
           <div className="fieldLabel">Estimated Duration (required)</div>
-          <div className="durationRow">
-            <label className="durationField">
-              <span className="mutedSmall">Days</span>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={task.durationDays}
-                onChange={(e) => update({ durationDays: clampInt(e.target.value) })}
-              />
-            </label>
-            <label className="durationField">
-              <span className="mutedSmall">Hours</span>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                max={23}
-                value={task.durationHours}
-                onChange={(e) => update({ durationHours: clampInt(e.target.value, 0, 23) })}
-              />
-            </label>
-          </div>
-          <div className="mutedSmall">Estimated: {preview}</div>
-        </div>
+          <input
+            className="input"
+            placeholder="e.g., 1d, 2h30m"
+            value={task.estimatedDurationText}
+            onChange={(e) => update({ estimatedDurationText: e.target.value })}
+          />
+          <div className={`mutedSmall ${estimateParsed ? '' : 'textBad'}`}>Estimated: {estimatePreview}</div>
+        </label>
+
+        <label className="field">
+          <div className="fieldLabel">Confidence</div>
+          <select
+            className="select"
+            value={task.estimateConfidence}
+            onChange={(e) => update({ estimateConfidence: e.target.value as Task['estimateConfidence'] })}
+          >
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+          </select>
+        </label>
 
         <label className="field">
           <div className="fieldLabel">Project (optional)</div>
@@ -264,6 +259,17 @@ function TaskDetail({
             value={task.dueDate ?? ''}
             onChange={(e) => update({ dueDate: e.target.value || undefined })}
           />
+        </label>
+
+        <label className="field span2">
+          <div className="fieldLabel">Actual Duration (optional)</div>
+          <input
+            className="input"
+            placeholder="e.g., 1d2h, 45m"
+            value={task.actualDurationText ?? ''}
+            onChange={(e) => update({ actualDurationText: e.target.value })}
+          />
+          <div className={`mutedSmall ${task.actualDurationText && !actualParsed ? 'textBad' : ''}`}>Actual: {actualPreview}</div>
         </label>
 
         <div className="field span2">
@@ -289,10 +295,4 @@ function TaskDetail({
   )
 }
 
-function clampInt(value: string, min = 0, max = Number.MAX_SAFE_INTEGER) {
-  const n = Number.parseInt(value, 10)
-  if (Number.isNaN(n)) return 0
-  return Math.max(min, Math.min(max, n))
-}
-
-
+// duration parsing lives in app/duration.ts

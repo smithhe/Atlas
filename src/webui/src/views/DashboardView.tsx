@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppState } from '../app/state/AppState'
+import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 
 function daysBetween(iso: string, nowIso: string) {
   const a = new Date(iso).getTime()
@@ -105,7 +106,7 @@ export function DashboardView() {
                     {t.risk ? ` • Risk: ${t.risk}` : ''}
                   </div>
                 </div>
-                <div className="pill">{formatDuration(t.durationDays, t.durationHours)}</div>
+                <div className="pill">{formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}</div>
               </div>
             ))}
           </div>
@@ -138,11 +139,6 @@ export function DashboardView() {
   )
 }
 
-function formatDuration(days: number, hours: number) {
-  const parts: string[] = []
-  if (days > 0) parts.push(`${days}d`)
-  if (hours > 0) parts.push(`${hours}h`)
-  return parts.length ? parts.join(' ') : '—'
-}
+// duration formatting now lives in app/duration.ts
 
 
