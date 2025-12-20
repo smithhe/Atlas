@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -58,7 +58,7 @@ public sealed class DashboardViewModel : PageViewModel
             new() { Status = "Info", Name = "Evan", Focus = "Bug triage", Note = "Watching incidents" },
         };
 
-        AskAiWhatNextCommand = new RelayCommand(() =>
+        AskAiWhatNextCommand = ReactiveCommand.Create(() =>
         {
             Ai.IsOpen = true;
             Ai.RunPreset("Suggest Next Action");

@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -48,8 +48,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             new NavItemViewModel("Settings", "Settings"),
         });
 
-        ToggleAiCommand = new RelayCommand(() => Ai.IsOpen = !Ai.IsOpen);
-        QuickAddCommand = new RelayCommand(() => Ai.RunPreset("Quick Add (mock)"));
+        ToggleAiCommand = ReactiveCommand.Create(() => Ai.IsOpen = !Ai.IsOpen);
+        QuickAddCommand = ReactiveCommand.Create(() => Ai.RunPreset("Quick Add (mock)"));
 
         _currentView = _pages["Dashboard"];
         SelectedNavItem = NavItems.First(x => x.Key == "Dashboard");
@@ -64,8 +64,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         get => _selectedNavItem;
         set
         {
-            if (!SetProperty(ref _selectedNavItem, value))
+            if (ReferenceEquals(_selectedNavItem, value))
                 return;
+
+            this.RaiseAndSetIfChanged(ref _selectedNavItem, value);
 
             if (value is null)
                 return;
@@ -77,13 +79,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     public PageViewModel CurrentView
     {
         get => _currentView;
-        private set => SetProperty(ref _currentView, value);
+        private set => this.RaiseAndSetIfChanged(ref _currentView, value);
     }
 
     public string SearchText
     {
         get => _searchText;
-        set => SetProperty(ref _searchText, value);
+        set => this.RaiseAndSetIfChanged(ref _searchText, value);
     }
 
     public ICommand ToggleAiCommand { get; }

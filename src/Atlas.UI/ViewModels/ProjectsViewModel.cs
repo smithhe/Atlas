@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using Atlas.UI.Models;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -25,7 +26,7 @@ public sealed class ProjectsViewModel : PageViewModel
     public ProjectItem? SelectedProject
     {
         get => _selectedProject;
-        set => SetProperty(ref _selectedProject, value);
+        set => this.RaiseAndSetIfChanged(ref _selectedProject, value);
     }
 }
 

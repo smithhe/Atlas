@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -21,13 +22,13 @@ public sealed class SettingsViewModel : PageViewModel
     public int StaleThresholdDays
     {
         get => _staleThresholdDays;
-        set => SetProperty(ref _staleThresholdDays, value);
+        set => this.RaiseAndSetIfChanged(ref _staleThresholdDays, value);
     }
 
     public bool AiManualOnly
     {
         get => _aiManualOnly;
-        set => SetProperty(ref _aiManualOnly, value);
+        set => this.RaiseAndSetIfChanged(ref _aiManualOnly, value);
     }
 
     public string ThemeLocked => "Dark (locked)";
@@ -35,7 +36,7 @@ public sealed class SettingsViewModel : PageViewModel
     public string AzureDevOpsBaseUrl
     {
         get => _azureDevOpsBaseUrl;
-        set => SetProperty(ref _azureDevOpsBaseUrl, value);
+        set => this.RaiseAndSetIfChanged(ref _azureDevOpsBaseUrl, value);
     }
 
     public ObservableCollection<string> KeyboardShortcuts { get; }

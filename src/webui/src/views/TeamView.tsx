@@ -1,0 +1,250 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useAi } from '../app/state/AiState'
+import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import type { NoteTag, TeamMember, TeamNote } from '../app/types'
+
+const TAGS: NoteTag[] = ['Blocker', 'Progress', 'Concern', 'Praise', 'Standup']
+
+function newId(prefix: string) {
+  return `${prefix}-${Math.random().toString(16).slice(2)}`
+}
+
+export function TeamView() {
+  const ai = useAi()
+  const dispatch = useAppDispatch()
+  const { team, selectedTeamMemberId } = useAppState()
+  const selected = useSelectedTeamMember()
+
+  useEffect(() => {
+    ai.setContext('Context: Team', [
+      { id: 'summarize-patterns', label: 'Summarize patterns (frequent blockers)' },
+      { id: 'growth-areas', label: 'Highlight growth areas' },
+      { id: 'cite-notes', label: 'Cite specific notes (draft)' },
+    ])
+  }, [ai.setContext])
+
+  return (
+    <div className="page">
+      <h2 className="pageTitle">Team</h2>
+
+      <div className="teamGrid">
+        <section className="pane paneTeamLeft" aria-label="Team member list">
+          <div className="list listCard">
+            {team.map((m) => (
+              <button
+                key={m.id}
+                className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
+                onClick={() => dispatch({ type: 'selectTeamMember', memberId: m.id })}
+              >
+                <div className="avatar" aria-hidden="true" />
+                <div className="listMain">
+                  <div className="listTitle">{m.name}</div>
+                  <div className="listMeta">{m.role ?? '—'}</div>
+                </div>
+                <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-label={`${m.statusDot} status`} />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="pane paneTeamCenter" aria-label="Member detail">
+          {!selected ? (
+            <div className="card pad">
+              <div className="muted">Select a team member.</div>
+            </div>
+          ) : (
+            <MemberDetail member={selected} />
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function MemberDetail({ member }: { member: TeamMember }) {
+  const dispatch = useAppDispatch()
+  const [quickNote, setQuickNote] = useState('')
+  const [tag, setTag] = useState<NoteTag>('Standup')
+  const [structured, setStructured] = useState('')
+  const [selectedAzureId, setSelectedAzureId] = useState<string | undefined>(member.azureItems[0]?.id)
+
+  const selectedAzure = useMemo(
+    () => member.azureItems.find((a) => a.id === selectedAzureId),
+    [member.azureItems, selectedAzureId],
+  )
+
+  function update(patch: Partial<TeamMember>) {
+    dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
+  }
+
+  function addNote(note: TeamNote) {
+    update({ notes: [note, ...member.notes] })
+  }
+
+  return (
+    <div className="card pad">
+      <div className="detailHeader">
+        <div className="detailTitle">{member.name}</div>
+        <div className="mutedSmall">{member.role ?? ''}</div>
+      </div>
+
+      <label className="field">
+        <div className="fieldLabel">Current Focus</div>
+        <input className="input" value={member.currentFocus} onChange={(e) => update({ currentFocus: e.target.value })} />
+      </label>
+
+      <div className="subGrid">
+        <section className="card subtle">
+          <div className="cardHeader">
+            <div className="cardTitle">Performance Notes</div>
+          </div>
+
+          <div className="row">
+            <input
+              className="input"
+              placeholder="Quick note…"
+              value={quickNote}
+              onChange={(e) => setQuickNote(e.target.value)}
+            />
+            <button
+              className="btn btnSecondary"
+              onClick={() => {
+                if (!quickNote.trim()) return
+                addNote({
+                  id: newId('note'),
+                  createdIso: new Date().toISOString(),
+                  tag: 'Standup',
+                  text: quickNote.trim(),
+                })
+                setQuickNote('')
+              }}
+            >
+              Add
+            </button>
+          </div>
+
+          <div className="row">
+            <select className="select" value={tag} onChange={(e) => setTag(e.target.value as NoteTag)}>
+              {TAGS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <textarea
+              className="textarea"
+              placeholder="Structured note…"
+              value={structured}
+              onChange={(e) => setStructured(e.target.value)}
+            />
+            <button
+              className="btn"
+              onClick={() => {
+                if (!structured.trim()) return
+                addNote({
+                  id: newId('note'),
+                  createdIso: new Date().toISOString(),
+                  tag,
+                  text: structured.trim(),
+                  adoWorkItemId: '(placeholder)',
+                  prUrl: '(placeholder)',
+                })
+                setStructured('')
+              }}
+            >
+              Add
+            </button>
+          </div>
+
+          <div className="notesList">
+            {member.notes.length === 0 ? (
+              <div className="muted pad">No notes yet.</div>
+            ) : (
+              member.notes.map((n) => (
+                <div key={n.id} className="noteRow">
+                  <div className="noteMeta">
+                    <span className="chip">{n.tag}</span>
+                    <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
+                    {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
+                    {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
+                  </div>
+                  <div className="noteText">{n.text}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="card subtle">
+          <div className="cardHeader">
+            <div className="cardTitle">Azure DevOps Items</div>
+          </div>
+
+          <div className="azureGrid">
+            <div className="list listCard inner">
+              {member.azureItems.length === 0 ? (
+                <div className="muted pad">No Azure items (mock).</div>
+              ) : (
+                member.azureItems.map((a) => (
+                  <button
+                    key={a.id}
+                    className={`listRow listRowBtn ${a.id === selectedAzureId ? 'listRowActive' : ''}`}
+                    onClick={() => setSelectedAzureId(a.id)}
+                  >
+                    <div className="listMain">
+                      <div className="listTitle">
+                        {a.id} — {a.title}
+                      </div>
+                      <div className="listMeta">
+                        {a.status}
+                        {a.timeTaken ? ` • ${a.timeTaken}` : ''}
+                      </div>
+                    </div>
+                    <div className="rowTiny">
+                      <span className="chip chipGhost">Ticket</span>
+                      <span className="chip chipGhost">PR</span>
+                      <span className="chip chipGhost">Commits</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="card subtle inner">
+              <div className="cardHeader">
+                <div className="cardTitle">Item Detail Peek</div>
+              </div>
+              {!selectedAzure ? (
+                <div className="muted pad">Select an item.</div>
+              ) : (
+                <div className="pad">
+                  <div className="detailTitle">{selectedAzure.title}</div>
+                  <div className="mutedSmall">{selectedAzure.id}</div>
+                  <div className="kv">
+                    <div className="kvRow">
+                      <div className="kvKey">Status</div>
+                      <div className="kvVal">{selectedAzure.status}</div>
+                    </div>
+                    <div className="kvRow">
+                      <div className="kvKey">Time taken</div>
+                      <div className="kvVal">{selectedAzure.timeTaken ?? '—'}</div>
+                    </div>
+                    <div className="kvRow">
+                      <div className="kvKey">Links</div>
+                      <div className="kvVal">Ticket / PR / Git history (placeholders)</div>
+                    </div>
+                  </div>
+                  <button className="btn btnSecondary" onClick={() => {}}>
+                    Open in browser
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+

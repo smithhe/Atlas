@@ -55,25 +55,6 @@ Navigation behavior:
 
 ---
 
-## Dark Theme Guidelines (Apply to all views)
-
-- Backgrounds:
-  - Window bg: #0F1115
-  - Panels/cards: #151922 to #1A1F2B (subtle variation)
-- Borders: #2A2F3A
-- Text:
-  - Primary: #E6EAF2
-  - Secondary: #AAB2C0 (opacity ~0.8)
-- Accent: blue (#3B82F6-ish) for active nav and primary buttons
-- Status dots:
-  - Red (critical)
-  - Yellow/orange (warning)
-  - Green (ok)
-  - Blue (info)
-
-Make the UI readable and consistent but not overly stylized.
-
----
 
 ## Dashboard View
 

@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Input;
 using Atlas.UI.Models;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -17,18 +17,18 @@ public sealed class TaskDetailViewModel : PageViewModel
         _tasksViewModel = tasksViewModel;
         Task = task;
 
-        BackCommand = new RelayCommand(() => _navigation.Navigate(_tasksViewModel));
+        BackCommand = ReactiveCommand.Create(() => _navigation.Navigate(_tasksViewModel));
 
-        TouchCommand = new RelayCommand(() =>
+        TouchCommand = ReactiveCommand.Create(() =>
         {
             Task.LastTouched = DateTimeOffset.Now;
-            RaisePropertyChanged(nameof(Task));
-            RaisePropertyChanged(nameof(EstimatedPreview));
-            RaisePropertyChanged(nameof(LastTouchedDisplay));
-            RaisePropertyChanged(nameof(IsStale));
+            this.RaisePropertyChanged(nameof(Task));
+            this.RaisePropertyChanged(nameof(EstimatedPreview));
+            this.RaisePropertyChanged(nameof(LastTouchedDisplay));
+            this.RaisePropertyChanged(nameof(IsStale));
         });
 
-        SaveCommand = new RelayCommand(() => Ai.RunPreset("Save (mock)"));
+        SaveCommand = ReactiveCommand.Create(() => Ai.RunPreset("Save (mock)"));
     }
 
     public TaskItem Task { get; }

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -25,19 +25,19 @@ public sealed class AiPanelViewModel : ViewModelBase
 
     public AiPanelViewModel()
     {
-        SuggestNextActionCommand = new RelayCommand(() => RunPreset("Suggest Next Action"));
-        SummarizeIncompleteWorkCommand = new RelayCommand(() => RunPreset("Summarize Incomplete Work"));
-        HighlightRisksCommand = new RelayCommand(() => RunPreset("Highlight Risks"));
+        SuggestNextActionCommand = ReactiveCommand.Create(() => RunPreset("Suggest Next Action"));
+        SummarizeIncompleteWorkCommand = ReactiveCommand.Create(() => RunPreset("Summarize Incomplete Work"));
+        HighlightRisksCommand = ReactiveCommand.Create(() => RunPreset("Highlight Risks"));
 
-        InsertDraftCommand = new RelayCommand(() => Output = Output.Length == 0
+        InsertDraftCommand = ReactiveCommand.Create(() => Output = Output.Length == 0
             ? "(Nothing to insert yet.)"
             : $"[Draft inserted into editor]\n\n{Output}");
 
-        CopyCommand = new RelayCommand(() => Output = Output.Length == 0
+        CopyCommand = ReactiveCommand.Create(() => Output = Output.Length == 0
             ? "(Nothing to copy yet.)"
             : $"{Output}\n\n[Copied to clipboard: placeholder]");
 
-        CloseCommand = new RelayCommand(() => IsOpen = false);
+        CloseCommand = ReactiveCommand.Create(() => IsOpen = false);
 
         Actions = new ObservableCollection<AiActionItem>
         {
@@ -50,13 +50,13 @@ public sealed class AiPanelViewModel : ViewModelBase
     public bool IsOpen
     {
         get => _isOpen;
-        set => SetProperty(ref _isOpen, value);
+        set => this.RaiseAndSetIfChanged(ref _isOpen, value);
     }
 
     public string ContextTitle
     {
         get => _contextTitle;
-        set => SetProperty(ref _contextTitle, value);
+        set => this.RaiseAndSetIfChanged(ref _contextTitle, value);
     }
 
     public ObservableCollection<AiActionItem> Actions { get; }
@@ -64,7 +64,7 @@ public sealed class AiPanelViewModel : ViewModelBase
     public string Output
     {
         get => _output;
-        set => SetProperty(ref _output, value);
+        set => this.RaiseAndSetIfChanged(ref _output, value);
     }
 
     public ICommand SuggestNextActionCommand { get; }
@@ -102,7 +102,7 @@ public sealed class AiPanelViewModel : ViewModelBase
                 "Suggest Next Action" => new AiActionItem(title, SuggestNextActionCommand),
                 "Summarize Incomplete Work" => new AiActionItem(title, SummarizeIncompleteWorkCommand),
                 "Highlight Risks" => new AiActionItem(title, HighlightRisksCommand),
-                _ => new AiActionItem(title, new RelayCommand(() => RunPreset(title)))
+                _ => new AiActionItem(title, ReactiveCommand.Create(() => RunPreset(title)))
             });
         }
     }

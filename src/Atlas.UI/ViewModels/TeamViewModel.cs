@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Atlas.UI.Models;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -19,7 +19,7 @@ public sealed class TeamViewModel : PageViewModel
         Members = new ObservableCollection<TeamMember>(SeedMembers());
         SelectedMember = Members.FirstOrDefault();
 
-        AddQuickNoteCommand = new RelayCommand(() =>
+        AddQuickNoteCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedMember is null) return;
             if (string.IsNullOrWhiteSpace(QuickNoteText)) return;
@@ -32,11 +32,11 @@ public sealed class TeamViewModel : PageViewModel
             });
             SelectedMember.LastNoteAt = DateTimeOffset.Now;
             QuickNoteText = "";
-            RaisePropertyChanged(nameof(SelectedMember));
-            RaisePropertyChanged(nameof(SelectedMemberNotes));
+            this.RaisePropertyChanged(nameof(SelectedMember));
+            this.RaisePropertyChanged(nameof(SelectedMemberNotes));
         });
 
-        AddStructuredNoteCommand = new RelayCommand(() =>
+        AddStructuredNoteCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedMember is null) return;
             if (string.IsNullOrWhiteSpace(StructuredNoteText)) return;
@@ -50,8 +50,8 @@ public sealed class TeamViewModel : PageViewModel
             });
             SelectedMember.LastNoteAt = DateTimeOffset.Now;
             StructuredNoteText = "";
-            RaisePropertyChanged(nameof(SelectedMember));
-            RaisePropertyChanged(nameof(SelectedMemberNotes));
+            this.RaisePropertyChanged(nameof(SelectedMember));
+            this.RaisePropertyChanged(nameof(SelectedMemberNotes));
         });
     }
 
@@ -62,30 +62,32 @@ public sealed class TeamViewModel : PageViewModel
         get => _selectedMember;
         set
         {
-            if (!SetProperty(ref _selectedMember, value))
+            if (Equals(_selectedMember, value))
                 return;
 
-            RaisePropertyChanged(nameof(SelectedMemberNotes));
-            RaisePropertyChanged(nameof(SelectedMemberWorkItems));
+            this.RaiseAndSetIfChanged(ref _selectedMember, value);
+
+            this.RaisePropertyChanged(nameof(SelectedMemberNotes));
+            this.RaisePropertyChanged(nameof(SelectedMemberWorkItems));
         }
     }
 
     public string QuickNoteText
     {
         get => _quickNoteText;
-        set => SetProperty(ref _quickNoteText, value);
+        set => this.RaiseAndSetIfChanged(ref _quickNoteText, value);
     }
 
     public NoteTag SelectedTag
     {
         get => _selectedTag;
-        set => SetProperty(ref _selectedTag, value);
+        set => this.RaiseAndSetIfChanged(ref _selectedTag, value);
     }
 
     public string StructuredNoteText
     {
         get => _structuredNoteText;
-        set => SetProperty(ref _structuredNoteText, value);
+        set => this.RaiseAndSetIfChanged(ref _structuredNoteText, value);
     }
 
     public ObservableCollection<PerformanceNote> SelectedMemberNotes

@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Atlas.UI.Models;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -54,7 +54,7 @@ public sealed class RisksViewModel : PageViewModel
 
         SelectedRisk = Risks.FirstOrDefault();
 
-        SaveCommand = new RelayCommand(() => Ai.RunPreset("Save (mock)"));
+        SaveCommand = ReactiveCommand.Create(() => Ai.RunPreset("Save (mock)"));
     }
 
     public ObservableCollection<RiskItem> Risks { get; }
@@ -62,19 +62,19 @@ public sealed class RisksViewModel : PageViewModel
     public RiskItem? SelectedRisk
     {
         get => _selectedRisk;
-        set => SetProperty(ref _selectedRisk, value);
+        set => this.RaiseAndSetIfChanged(ref _selectedRisk, value);
     }
 
     public RiskStatus StatusFilter
     {
         get => _statusFilter;
-        set => SetProperty(ref _statusFilter, value);
+        set => this.RaiseAndSetIfChanged(ref _statusFilter, value);
     }
 
     public string ProjectFilter
     {
         get => _projectFilter;
-        set => SetProperty(ref _projectFilter, value);
+        set => this.RaiseAndSetIfChanged(ref _projectFilter, value);
     }
 
     public ICommand SaveCommand { get; }

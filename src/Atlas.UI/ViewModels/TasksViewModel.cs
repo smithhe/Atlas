@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using Atlas.UI.Models;
-using Atlas.UI.Utils;
+using ReactiveUI;
 
 namespace Atlas.UI.ViewModels;
 
@@ -58,23 +58,23 @@ public sealed class TasksViewModel : PageViewModel
 
         SelectedTask = Tasks.FirstOrDefault();
 
-        OpenTaskCommand = new RelayCommand<TaskItem>(task =>
+        OpenTaskCommand = ReactiveCommand.Create<TaskItem>(task =>
         {
             if (task is null) return;
             SelectedTask = task;
             _navigation.Navigate(new TaskDetailViewModel(Ai, _navigation, this, task));
         });
 
-        TouchCommand = new RelayCommand(() =>
+        TouchCommand = ReactiveCommand.Create(() =>
         {
             if (SelectedTask is null) return;
             SelectedTask.LastTouched = DateTimeOffset.Now;
-            RaisePropertyChanged(nameof(SelectedTask));
-            RaisePropertyChanged(nameof(SelectedTaskLastTouchedDisplay));
-            RaisePropertyChanged(nameof(SelectedTaskIsStale));
+            this.RaisePropertyChanged(nameof(SelectedTask));
+            this.RaisePropertyChanged(nameof(SelectedTaskLastTouchedDisplay));
+            this.RaisePropertyChanged(nameof(SelectedTaskIsStale));
         });
 
-        SaveCommand = new RelayCommand(() => Ai.RunPreset("Save (mock)"));
+        SaveCommand = ReactiveCommand.Create(() => Ai.RunPreset("Save (mock)"));
     }
 
     public ObservableCollection<TaskItem> Tasks { get; }
@@ -84,31 +84,33 @@ public sealed class TasksViewModel : PageViewModel
         get => _selectedTask;
         set
         {
-            if (!SetProperty(ref _selectedTask, value))
+            if (Equals(_selectedTask, value))
                 return;
 
-            RaisePropertyChanged(nameof(SelectedTaskEstimatedPreview));
-            RaisePropertyChanged(nameof(SelectedTaskLastTouchedDisplay));
-            RaisePropertyChanged(nameof(SelectedTaskIsStale));
+            this.RaiseAndSetIfChanged(ref _selectedTask, value);
+
+            this.RaisePropertyChanged(nameof(SelectedTaskEstimatedPreview));
+            this.RaisePropertyChanged(nameof(SelectedTaskLastTouchedDisplay));
+            this.RaisePropertyChanged(nameof(SelectedTaskIsStale));
         }
     }
 
     public string ProjectFilter
     {
         get => _projectFilter;
-        set => SetProperty(ref _projectFilter, value);
+        set => this.RaiseAndSetIfChanged(ref _projectFilter, value);
     }
 
     public string RiskFilter
     {
         get => _riskFilter;
-        set => SetProperty(ref _riskFilter, value);
+        set => this.RaiseAndSetIfChanged(ref _riskFilter, value);
     }
 
     public Priority PriorityFilter
     {
         get => _priorityFilter;
-        set => SetProperty(ref _priorityFilter, value);
+        set => this.RaiseAndSetIfChanged(ref _priorityFilter, value);
     }
 
     public string SelectedTaskEstimatedPreview
