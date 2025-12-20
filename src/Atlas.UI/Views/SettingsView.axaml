@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Atlas.UI.ViewModels"
+             x:Class="Atlas.UI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <Border Classes="card" Padding="12">
+        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+            <TextBlock Text="Settings" FontSize="16" FontWeight="SemiBold"/>
+
+            <Border Grid.Row="1" Classes="card" Background="{DynamicResource AppPanelBackgroundAltBrush}" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Stale threshold (days)" FontWeight="SemiBold"/>
+                    <TextBox Width="120" Text="{Binding StaleThresholdDays}"/>
+                    <TextBlock Classes="secondary" Text="Default 10; used for highlighting stale tasks/risks/notes."/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="2" Classes="card" Background="{DynamicResource AppPanelBackgroundAltBrush}" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="AI behavior" FontWeight="SemiBold"/>
+                    <CheckBox Content="Manual only (AI acts only when invoked)" IsChecked="{Binding AiManualOnly}"/>
+                    <TextBlock Classes="secondary" Text="All outputs are drafts; user decides."/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="3" Classes="card" Background="{DynamicResource AppPanelBackgroundAltBrush}" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Theme" FontWeight="SemiBold"/>
+                    <TextBlock Classes="secondary" Text="{Binding ThemeLocked}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="4" Classes="card" Background="{DynamicResource AppPanelBackgroundAltBrush}" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Azure DevOps base URL" FontWeight="SemiBold"/>
+                    <TextBox Text="{Binding AzureDevOpsBaseUrl}"/>
+                    <TextBlock Text="Keyboard shortcuts (placeholder)" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                    <ItemsControl ItemsSource="{Binding KeyboardShortcuts}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>
+
+

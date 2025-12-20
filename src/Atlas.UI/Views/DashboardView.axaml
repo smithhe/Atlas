@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Atlas.UI.ViewModels"
+             x:Class="Atlas.UI.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <ScrollViewer>
+        <Grid>
+            <StackPanel Spacing="14">
+            <Border Classes="card" Padding="12">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Attention Required" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" Text="⋯" Classes="secondary" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding AttentionRequired}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DashboardAttentionItem">
+                                <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                        <Ellipse Width="10"
+                                                 Height="10"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding Severity, Converter={x:Static vm:StatusDotConverter.Instance}}"/>
+
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <SelectableTextBlock Text="{Binding Title}"/>
+                                            <SelectableTextBlock Text="{Binding Meta}" Classes="secondary" FontSize="12"/>
+                                        </StackPanel>
+
+                                        <SelectableTextBlock Grid.Column="2" Text="{Binding Type}" Classes="secondary" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="12">
+                <Grid RowDefinitions="Auto,* ,Auto" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Today / This Week" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" Text="⋯" Classes="secondary" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding TodayThisWeek}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DashboardTaskItem">
+                                <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <StackPanel Spacing="2">
+                                            <SelectableTextBlock Text="{Binding Title}"/>
+                                            <SelectableTextBlock Text="{Binding Priority}" Classes="secondary" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding Meta}" Classes="secondary" FontSize="12"/>
+                                        </StackPanel>
+                                        <SelectableTextBlock Grid.Column="1" Text="{Binding Estimate}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Grid.Row="2"
+                            HorizontalAlignment="Left"
+                            Classes="subtle"
+                            Padding="14,8"
+                            Content="Ask AI: What should I work on next?  ›"
+                            Command="{Binding AskAiWhatNextCommand}"/>
+                </Grid>
+            </Border>
+
+            <Border Classes="card" Padding="12">
+                <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Team Pulse" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="1" Text="⋯" Classes="secondary" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding TeamPulse}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:TeamPulseItem">
+                                <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                        <Ellipse Width="10"
+                                                 Height="10"
+                                                 VerticalAlignment="Center"
+                                                 Fill="{Binding Status, Converter={x:Static vm:StatusDotConverter.Instance}}"/>
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <SelectableTextBlock Text="{Binding Name}"/>
+                                            <SelectableTextBlock Text="{Binding Focus}" Classes="secondary" FontSize="12"/>
+                                            <SelectableTextBlock Text="{Binding Note}" Classes="secondary" FontSize="12"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
+
+

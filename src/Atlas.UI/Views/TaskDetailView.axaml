@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Atlas.UI.ViewModels"
+             x:Class="Atlas.UI.Views.TaskDetailView"
+             x:DataType="vm:TaskDetailViewModel">
+
+    <Border Classes="card" Padding="12">
+        <ScrollViewer>
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Classes="subtle" Content="← Back" Padding="12,6" Command="{Binding BackCommand}"/>
+                    <TextBlock Text="Task Detail" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <TextBox Watermark="Title" Text="{Binding Task.Title}"/>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <ComboBox Grid.Column="0" SelectedItem="{Binding Task.Priority}">
+                        <ComboBoxItem Content="Low"/>
+                        <ComboBoxItem Content="Medium"/>
+                        <ComboBoxItem Content="High"/>
+                        <ComboBoxItem Content="Critical"/>
+                    </ComboBox>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBox Width="80" Watermark="Days" Text="{Binding Task.EstimatedDays}"/>
+                        <TextBox Width="80" Watermark="Hours" Text="{Binding Task.EstimatedHours}"/>
+                        <TextBlock Classes="secondary" VerticalAlignment="Center" Text="{Binding EstimatedPreview}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <TextBox Grid.Column="0" Watermark="Project (optional)" Text="{Binding Task.Project}"/>
+                    <TextBox Grid.Column="1" Watermark="Risk (optional)" Text="{Binding Task.Risk}"/>
+                </Grid>
+
+                <TextBlock Classes="secondary" Text="{Binding LastTouchedDisplay}"/>
+                <TextBlock IsVisible="{Binding IsStale}" Foreground="{DynamicResource DotYellowBrush}" Text="Stale: > threshold"/>
+
+                <TextBox AcceptsReturn="True" MinHeight="220" Watermark="Notes…" Text="{Binding Task.Notes}"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}"/>
+                    <Button Content="Touch / Update Activity" Command="{Binding TouchCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>
+
+

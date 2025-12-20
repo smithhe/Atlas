@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Atlas.UI.ViewModels"
+             xmlns:models="using:Atlas.UI.Models"
+             x:Class="Atlas.UI.Views.RisksView"
+             x:DataType="vm:RisksViewModel">
+
+    <Grid ColumnDefinitions="360,*" ColumnSpacing="16">
+        <StackPanel Grid.Column="0" Spacing="12">
+            <Border Classes="card" Padding="12">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Filters" FontSize="14" FontWeight="SemiBold"/>
+                    <ComboBox SelectedItem="{Binding StatusFilter}">
+                        <ComboBoxItem Content="Open"/>
+                        <ComboBoxItem Content="Watching"/>
+                        <ComboBoxItem Content="Resolved"/>
+                    </ComboBox>
+                    <TextBox Watermark="Project…" Text="{Binding ProjectFilter}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="12">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Risks" FontSize="14" FontWeight="SemiBold"/>
+                    <ListBox ItemsSource="{Binding Risks}"
+                             SelectedItem="{Binding SelectedRisk}"
+                             Background="Transparent"
+                             BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:RiskItem">
+                                <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{Binding Title}"/>
+                                        <TextBlock Classes="secondary" FontSize="12" Text="{Binding Status}"/>
+                                        <TextBlock Classes="secondary" FontSize="12" Text="{Binding Severity}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <Border Grid.Column="1" Classes="card" Padding="12">
+            <ScrollViewer>
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Risk Detail" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBox Watermark="Title" Text="{Binding SelectedRisk.Title}"/>
+                    <ComboBox SelectedItem="{Binding SelectedRisk.Status}">
+                        <ComboBoxItem Content="Open"/>
+                        <ComboBoxItem Content="Watching"/>
+                        <ComboBoxItem Content="Resolved"/>
+                    </ComboBox>
+
+                    <TextBox AcceptsReturn="True" MinHeight="120" Watermark="Description" Text="{Binding SelectedRisk.Description}"/>
+                    <TextBox AcceptsReturn="True" MinHeight="90" Watermark="Evidence / Examples" Text="{Binding SelectedRisk.Evidence}"/>
+                    <TextBox AcceptsReturn="True" MinHeight="120" Watermark="Notes/History" Text="{Binding SelectedRisk.NotesHistory}"/>
+
+                    <Button Classes="primary" Content="Save" Command="{Binding SaveCommand}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>
+
+
