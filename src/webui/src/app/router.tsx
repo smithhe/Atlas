@@ -15,6 +15,7 @@ const routerRoutes = [
     children: [
       { index: true, element: <DashboardView /> },
       { path: 'tasks', element: <TasksView /> },
+      { path: 'tasks/:taskId', element: <TasksView /> },
       { path: 'team', element: <TeamView /> },
       { path: 'risks', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },

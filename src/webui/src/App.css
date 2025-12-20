@@ -246,12 +246,32 @@
   white-space: nowrap;
 }
 
+.listTitleWrap {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .listMeta {
   color: var(--muted);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.listMetaWrap {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.listNotesPreview {
+  color: var(--muted2);
 }
 
 .pill {
@@ -309,6 +329,22 @@
   min-height: 560px;
 }
 
+.tasksSplit {
+  grid-template-columns: var(--tasksListWidth, 360px) minmax(0, 1fr);
+}
+
+.tasksSplitAiOpen {
+  --tasksListWidth: 280px;
+}
+
+.tasksSplitAiClosed {
+  --tasksListWidth: 420px;
+}
+
+.tasksSplitFocus {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .pane {
   display: flex;
   flex-direction: column;
@@ -324,7 +360,7 @@
 
 .fieldGrid2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 12px;
 }
 

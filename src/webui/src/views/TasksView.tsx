@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
 import type { Priority, Task } from '../app/types'
+import { useNavigate, useParams } from 'react-router-dom'
 
 function formatDuration(days: number, hours: number) {
   const parts: string[] = []
@@ -19,6 +20,8 @@ function daysSince(iso: string) {
 export function TasksView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const { taskId } = useParams<{ taskId?: string }>()
   const { tasks, settings, selectedTaskId } = useAppState()
   const selected = useSelectedTask()
 
@@ -45,64 +48,92 @@ export function TasksView() {
     })
   }, [priorityFilter, projectFilter, riskFilter, tasks])
 
+  const isFocusMode = !!taskId
+
+  useEffect(() => {
+    if (!taskId) return
+    dispatch({ type: 'selectTask', taskId })
+  }, [dispatch, taskId])
+
+  // If we entered focus mode with an unknown ID, fall back to list view.
+  useEffect(() => {
+    if (!taskId) return
+    const exists = tasks.some((t) => t.id === taskId)
+    if (!exists) navigate('/tasks', { replace: true })
+  }, [navigate, taskId, tasks])
+
   return (
     <div className="page">
       <h2 className="pageTitle">Tasks</h2>
 
-      <div className="splitGrid">
-        <section className="pane paneLeft" aria-label="Task list and filters">
-          <div className="card tight">
-            <div className="fieldGrid">
-              <label className="field">
-                <div className="fieldLabel">Project</div>
-                <input className="input" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} />
-              </label>
-              <label className="field">
-                <div className="fieldLabel">Risk</div>
-                <input className="input" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)} />
-              </label>
-              <label className="field">
-                <div className="fieldLabel">Priority</div>
-                <select
-                  className="select"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value as Priority | 'All')}
-                >
-                  <option value="All">All</option>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                  <option value="Critical">Critical</option>
-                </select>
-              </label>
+      <div
+        className={`splitGrid tasksSplit ${ai.state.isOpen ? 'tasksSplitAiOpen' : 'tasksSplitAiClosed'} ${
+          isFocusMode ? 'tasksSplitFocus' : ''
+        }`}
+      >
+        {!isFocusMode ? (
+          <section className="pane paneLeft" aria-label="Task list and filters">
+            <div className="card tight">
+              <div className="fieldGrid">
+                <label className="field">
+                  <div className="fieldLabel">Project</div>
+                  <input className="input" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} />
+                </label>
+                <label className="field">
+                  <div className="fieldLabel">Risk</div>
+                  <input className="input" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)} />
+                </label>
+                <label className="field">
+                  <div className="fieldLabel">Priority</div>
+                  <select
+                    className="select"
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value as Priority | 'All')}
+                  >
+                    <option value="All">All</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                </label>
+              </div>
             </div>
-          </div>
 
-          <div className="list listCard">
-            {filtered.map((t) => {
-              const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
-              return (
-                <button
-                  key={t.id}
-                  className={`listRow listRowBtn ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
-                  onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
-                >
-                  <div className="listMain">
-                    <div className="listTitle">{t.title}</div>
-                    <div className="listMeta">
-                      {t.priority}
-                      {t.project ? ` • ${t.project}` : ''}
-                      {t.risk ? ` • Risk: ${t.risk}` : ''}
-                      {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
+            <div className="list listCard">
+              {filtered.map((t) => {
+                const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
+                const lastTouched = new Date(t.lastTouchedIso).toLocaleDateString()
+                const notesPreview = (t.notes ?? '').trim().replace(/\s+/g, ' ')
+                return (
+                  <button
+                    key={t.id}
+                    className={`listRow listRowBtn ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
+                    onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
+                    onDoubleClick={() => navigate(`/tasks/${t.id}`)}
+                  >
+                    <div className="listMain">
+                      <div className="listTitle listTitleWrap">{t.title}</div>
+                      <div className="listMeta listMetaWrap">
+                        {t.priority}
+                        {t.project ? ` • ${t.project}` : ''}
+                        {t.risk ? ` • Risk: ${t.risk}` : ''}
+                      </div>
+                      <div className="listMeta listMetaWrap">
+                        Last touched {lastTouched}
+                        {t.dueDate ? ` • due ${t.dueDate}` : ''}
+                        {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
+                      </div>
+                      {notesPreview ? <div className="listMeta listMetaWrap listNotesPreview">{notesPreview}</div> : null}
                     </div>
-                  </div>
-                  <div className="pill">{formatDuration(t.durationDays, t.durationHours)}</div>
-                </button>
-              )
-            })}
-            {filtered.length === 0 ? <div className="muted pad">No tasks match your filters.</div> : null}
-          </div>
-        </section>
+                    <div className="pill">{formatDuration(t.durationDays, t.durationHours)}</div>
+                  </button>
+                )
+              })}
+              {filtered.length === 0 ? <div className="muted pad">No tasks match your filters.</div> : null}
+            </div>
+          </section>
+        ) : null}
 
         <section className="pane paneCenter" aria-label="Task detail editor">
           {!selected ? (
@@ -110,7 +141,13 @@ export function TasksView() {
               <div className="muted">Select a task to edit.</div>
             </div>
           ) : (
-            <TaskDetail task={selected} staleDays={settings.staleDays} />
+            <TaskDetail
+              task={selected}
+              staleDays={settings.staleDays}
+              isFocusMode={isFocusMode}
+              onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
+              onExitFocus={() => navigate('/tasks')}
+            />
           )}
         </section>
       </div>
@@ -118,7 +155,19 @@ export function TasksView() {
   )
 }
 
-function TaskDetail({ task, staleDays }: { task: Task; staleDays: number }) {
+function TaskDetail({
+  task,
+  staleDays,
+  isFocusMode,
+  onEnterFocus,
+  onExitFocus,
+}: {
+  task: Task
+  staleDays: number
+  isFocusMode: boolean
+  onEnterFocus: () => void
+  onExitFocus: () => void
+}) {
   const dispatch = useAppDispatch()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
 
@@ -132,9 +181,20 @@ function TaskDetail({ task, staleDays }: { task: Task; staleDays: number }) {
     <div className="card pad">
       <div className="detailHeader">
         <div className="detailTitle">Task Detail</div>
-        <div className="mutedSmall">
-          Last touched: {new Date(task.lastTouchedIso).toLocaleString()}
-          {stale ? ` • stale` : ''}
+        <div className="rowTiny">
+          <div className="mutedSmall">
+            Last touched: {new Date(task.lastTouchedIso).toLocaleString()}
+            {stale ? ` • stale` : ''}
+          </div>
+          {isFocusMode ? (
+            <button className="btn btnGhost" onClick={onExitFocus}>
+              Exit focus
+            </button>
+          ) : (
+            <button className="btn btnGhost" onClick={onEnterFocus}>
+              Focus
+            </button>
+          )}
         </div>
       </div>
 
