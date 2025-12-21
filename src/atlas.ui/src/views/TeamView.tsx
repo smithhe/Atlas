@@ -306,7 +306,7 @@ function MemberDetail({
           <div className="cardHeader">
             <div className="cardTitle">Notes History</div>
           </div>
-          <div className="pad">
+          <div className="pad teamNotesHistoryBody">
             <div className="notesList">
               {member.notes.length === 0 ? (
                 <div className="muted">No notes yet.</div>

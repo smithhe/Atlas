@@ -747,8 +747,14 @@ select option:disabled {
 
 .azureGrid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  /* Keep the ticket list narrow; give the detail pane more room. */
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: 12px;
+}
+
+.teamNotesHistoryBody {
+  max-height: 360px;
+  overflow: auto;
 }
 
 .kv {
