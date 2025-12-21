@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamMember, TeamNote } from '../app/types'
@@ -101,6 +101,9 @@ function MemberDetail({
   const [tag, setTag] = useState<NoteTag>('Standup')
   const [structured, setStructured] = useState('')
   const [selectedAzureId, setSelectedAzureId] = useState<string | undefined>(member.azureItems[0]?.id)
+  const quickNoteRef = useRef<HTMLTextAreaElement | null>(null)
+  const structuredRef = useRef<HTMLTextAreaElement | null>(null)
+  const noteInputMaxHeightPx = 180
 
   const selectedAzure = useMemo(
     () => member.azureItems.find((a) => a.id === selectedAzureId),
@@ -114,6 +117,25 @@ function MemberDetail({
   function addNote(note: TeamNote) {
     update({ notes: [note, ...member.notes] })
   }
+
+  function autoGrow(el: HTMLTextAreaElement | null, capPx: number) {
+    if (!el) return
+
+    // Reset height so scrollHeight reflects the full content.
+    el.style.height = 'auto'
+    const next = Math.min(el.scrollHeight, capPx)
+    el.style.height = `${next}px`
+    el.style.overflowY = el.scrollHeight > capPx ? 'auto' : 'hidden'
+  }
+
+  // Auto-grow note inputs until a cap, then scroll.
+  useLayoutEffect(() => {
+    autoGrow(quickNoteRef.current, noteInputMaxHeightPx)
+  }, [noteInputMaxHeightPx, quickNote])
+
+  useLayoutEffect(() => {
+    autoGrow(structuredRef.current, noteInputMaxHeightPx)
+  }, [noteInputMaxHeightPx, structured])
 
   return (
     <div className="card pad">
@@ -144,79 +166,89 @@ function MemberDetail({
             <div className="cardTitle">Performance Notes</div>
           </div>
 
-          <div className="row">
-            <input
-              className="input"
-              placeholder="Quick note…"
-              value={quickNote}
-              onChange={(e) => setQuickNote(e.target.value)}
-            />
-            <button
-              className="btn btnSecondary"
-              onClick={() => {
-                if (!quickNote.trim()) return
-                addNote({
-                  id: newId('note'),
-                  createdIso: new Date().toISOString(),
-                  tag: 'Standup',
-                  text: quickNote.trim(),
-                })
-                setQuickNote('')
-              }}
-            >
-              Add
-            </button>
-          </div>
+          <div className="pad teamNotesComposer">
+            <div className="field">
+              <div className="fieldLabel">Quick note</div>
+              <textarea
+                ref={quickNoteRef}
+                className="textarea textareaAutoGrow textareaAutoGrowSmall"
+                placeholder="Quick note…"
+                value={quickNote}
+                onChange={(e) => setQuickNote(e.target.value)}
+              />
+              <div className="row">
+                <button
+                  className="btn btnWide"
+                  onClick={() => {
+                    if (!quickNote.trim()) return
+                    addNote({
+                      id: newId('note'),
+                      createdIso: new Date().toISOString(),
+                      tag: 'Standup',
+                      text: quickNote.trim(),
+                    })
+                    setQuickNote('')
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
 
-          <div className="row">
-            <select className="select" value={tag} onChange={(e) => setTag(e.target.value as NoteTag)}>
-              {TAGS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <textarea
-              className="textarea"
-              placeholder="Structured note…"
-              value={structured}
-              onChange={(e) => setStructured(e.target.value)}
-            />
-            <button
-              className="btn"
-              onClick={() => {
-                if (!structured.trim()) return
-                addNote({
-                  id: newId('note'),
-                  createdIso: new Date().toISOString(),
-                  tag,
-                  text: structured.trim(),
-                  adoWorkItemId: '(placeholder)',
-                  prUrl: '(placeholder)',
-                })
-                setStructured('')
-              }}
-            >
-              Add
-            </button>
-          </div>
+            <div className="field teamNotesStructuredField">
+              <div className="fieldLabel">Structured note</div>
+              <textarea
+                ref={structuredRef}
+                className="textarea textareaAutoGrow textareaAutoGrowSmall"
+                placeholder="Structured note…"
+                value={structured}
+                onChange={(e) => setStructured(e.target.value)}
+              />
+              <div className="row">
+                <button
+                  className="btn btnWide"
+                  onClick={() => {
+                    if (!structured.trim()) return
+                    addNote({
+                      id: newId('note'),
+                      createdIso: new Date().toISOString(),
+                      tag,
+                      text: structured.trim(),
+                      adoWorkItemId: '(placeholder)',
+                      prUrl: '(placeholder)',
+                    })
+                    setStructured('')
+                  }}
+                >
+                  Add
+                </button>
+                <select className="select" value={tag} onChange={(e) => setTag(e.target.value as NoteTag)}>
+                  {TAGS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          <div className="notesList">
-            {member.notes.length === 0 ? (
-              <div className="muted pad">No notes yet.</div>
-            ) : (
-              member.notes.map((n) => (
-                <div key={n.id} className="noteRow">
-                  <div className="noteMeta">
-                    <span className="chip">{n.tag}</span>
-                    <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
-                    {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
-                    {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
+            <div className="notesList">
+              {member.notes.length === 0 ? (
+                <div className="muted pad">No notes yet.</div>
+              ) : (
+                member.notes.map((n) => (
+                  <div key={n.id} className="noteRow">
+                    <div className="noteMeta">
+                      <span className="chip">{n.tag}</span>
+                      <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
+                      {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
+                      {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
+                    </div>
+                    <div className="noteText">{n.text}</div>
                   </div>
-                  <div className="noteText">{n.text}</div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
         </section>
 

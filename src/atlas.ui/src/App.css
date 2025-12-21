@@ -137,6 +137,12 @@
   background: rgba(110, 168, 254, 0.28);
 }
 
+.btnWide {
+  min-width: 92px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
 .btnSecondary {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -489,6 +495,20 @@
   color: var(--muted);
 }
 
+.teamNotesComposer .fieldLabel {
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+  letter-spacing: 0.15px;
+}
+
+.teamNotesComposer .row {
+  margin-top: 8px;
+}
+
+.teamNotesStructuredField {
+  margin-top: 18px;
+}
+
 .input,
 .select,
 .textarea {
@@ -521,6 +541,11 @@ select option:disabled {
 .textareaAutoGrow {
   /* JS controls height; keep the UX tidy. */
   resize: none;
+}
+
+.textareaAutoGrowSmall {
+  /* Default textarea min-height is a bit tall for inline note entry. */
+  min-height: 84px;
 }
 
 .span2 {
