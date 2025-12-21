@@ -372,6 +372,8 @@ function TaskDetail({
 }) {
   const dispatch = useAppDispatch()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
+  const notesRef = useRef<HTMLTextAreaElement | null>(null)
+  const notesMaxHeightPx = 280
 
   function update(patch: Partial<Task>) {
     dispatch({ type: 'updateTask', task: { ...task, ...patch } })
@@ -392,6 +394,18 @@ function TaskDetail({
   const estimatePreview = estimateParsed ? formatDurationFromMinutes(estimateParsed.totalMinutes) : 'Invalid'
   const actualParsed = parseDurationText(task.actualDurationText ?? '')
   const actualPreview = actualParsed ? formatDurationFromMinutes(actualParsed.totalMinutes) : task.actualDurationText ? 'Invalid' : '—'
+
+  // Auto-grow notes until a cap, then scroll.
+  useLayoutEffect(() => {
+    const el = notesRef.current
+    if (!el) return
+
+    // Reset height so scrollHeight reflects the full content.
+    el.style.height = 'auto'
+    const next = Math.min(el.scrollHeight, notesMaxHeightPx)
+    el.style.height = `${next}px`
+    el.style.overflowY = el.scrollHeight > notesMaxHeightPx ? 'auto' : 'hidden'
+  }, [notesMaxHeightPx, task.notes])
 
   return (
     <div className="card pad">
@@ -518,7 +532,12 @@ function TaskDetail({
 
         <label className="field span2">
           <div className="fieldLabel">Notes</div>
-          <textarea className="textarea" value={task.notes} onChange={(e) => update({ notes: e.target.value })} />
+          <textarea
+            ref={notesRef}
+            className="textarea textareaAutoGrow"
+            value={task.notes}
+            onChange={(e) => update({ notes: e.target.value })}
+          />
         </label>
       </div>
 
