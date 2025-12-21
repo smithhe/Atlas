@@ -12,11 +12,13 @@ export interface AiState {
   contextTitle: string
   actions: AiAction[]
   output: string
+  panelWidthPx?: number
 }
 
 export interface AiApi {
   state: AiState
   setIsOpen: (isOpen: boolean) => void
+  setPanelWidthPx: (px: number | undefined) => void
   setContext: (contextTitle: string, actions: AiAction[]) => void
   runAction: (actionId: string) => void
   clearOutput: () => void
@@ -30,6 +32,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [contextTitle, setContextTitle] = useState<string>('Context: Dashboard')
   const [actions, setActions] = useState<AiAction[]>([])
   const [output, setOutput] = useState<string>('AI is placeholder-only. Choose an action to generate a draft.\n')
+  const [panelWidthPx, setPanelWidthPx] = useState<number | undefined>(undefined)
 
   // Keep latest values accessible to stable callbacks.
   const actionsRef = useRef<AiAction[]>(actions)
@@ -64,14 +67,15 @@ export function AiProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<AiApi>(
     () => ({
-      state: { isOpen, contextTitle, actions, output },
+      state: { isOpen, contextTitle, actions, output, panelWidthPx },
       setIsOpen,
+      setPanelWidthPx,
       setContext,
       runAction,
       clearOutput,
       appendOutput,
     }),
-    [actions, appendOutput, clearOutput, contextTitle, isOpen, output, runAction, setContext],
+    [actions, appendOutput, clearOutput, contextTitle, isOpen, output, panelWidthPx, runAction, setContext],
   )
 
   return <AiContext.Provider value={api}>{children}</AiContext.Provider>
