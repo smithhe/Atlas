@@ -155,7 +155,7 @@ function MemberDetail({
         )}
       </div>
 
-      <label className="field">
+      <label className="field teamCurrentFocusField">
         <div className="fieldLabel">Current Focus</div>
         <input className="input" value={member.currentFocus} onChange={(e) => update({ currentFocus: e.target.value })} />
       </label>
@@ -259,11 +259,6 @@ function MemberDetail({
                         {a.timeTaken ? ` • ${a.timeTaken}` : ''}
                       </div>
                     </div>
-                    <div className="rowTiny">
-                      <span className="chip chipGhost">Ticket</span>
-                      <span className="chip chipGhost">PR</span>
-                      <span className="chip chipGhost">Commits</span>
-                    </div>
                   </button>
                 ))
               )}
@@ -272,6 +267,9 @@ function MemberDetail({
             <div className="card subtle inner">
               <div className="cardHeader">
                 <div className="cardTitle">Item Detail Peek</div>
+                <button className="btn btnSecondary" onClick={() => {}}>
+                  Open in browser
+                </button>
               </div>
               {!selectedAzure ? (
                 <div className="muted pad">Select an item.</div>
@@ -293,9 +291,6 @@ function MemberDetail({
                       <div className="kvVal">Ticket / PR / Git history (placeholders)</div>
                     </div>
                   </div>
-                  <button className="btn btnSecondary" onClick={() => {}}>
-                    Open in browser
-                  </button>
                 </div>
               )}
             </div>

@@ -501,6 +501,12 @@
   letter-spacing: 0.15px;
 }
 
+.teamCurrentFocusField .fieldLabel {
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+  letter-spacing: 0.15px;
+}
+
 .teamNotesComposer .row {
   margin-top: 8px;
 }
