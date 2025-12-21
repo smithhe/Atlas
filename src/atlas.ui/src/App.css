@@ -713,11 +713,23 @@ select option:disabled {
   .bodyGrid {
     grid-template-columns: 220px 1fr;
   }
+  .bodyGrid.bodyGridAiOpen {
+    /* On narrow widths, don't reserve a permanent AI column; show it as an overlay drawer instead. */
+    grid-template-columns: 220px 1fr;
+  }
   .aiResizer {
     display: none;
   }
   .aiPanel {
-    display: none;
+    /* Keep AI accessible on narrow widths (previously it vanished entirely). */
+    display: block;
+    position: fixed;
+    top: 48px; /* .appShell header row */
+    right: 0;
+    bottom: 0;
+    width: min(420px, 92vw);
+    z-index: 50;
+    box-shadow: -14px 0 44px rgba(0, 0, 0, 0.45);
   }
   .dashboardGrid {
     grid-template-columns: 1fr;

@@ -120,18 +120,28 @@ async function createMainWindow() {
   const devUrl = process.env.ELECTRON_RENDERER_URL
   installCsp(devUrl)
 
-  const minWidth = 1500
-  const minHeight = 820
+  // NOTE:
+  // Avoid huge fixed minimum sizes. On Linux/Windows, window-manager "tile/snap/resize via keyboard"
+  // shortcuts can appear broken if the window refuses to shrink below its min bounds.
+  const primaryWorkArea = screen.getPrimaryDisplay()?.workArea ?? { width: 1920, height: 1080 }
+  // Keep minWidth <= ~half screen so OS left/right snapping still works, but avoid "too narrow" layouts.
+  const halfWidthCap = Math.max(400, Math.floor(primaryWorkArea.width / 2) - 80)
+  const minWidth = Math.min(clamp(Math.floor(primaryWorkArea.width * 0.45), 720, 1200), halfWidthCap)
+  // Keep this low enough to allow vertical tiling (top/bottom half) on shorter screens.
+  const halfHeightCap = Math.max(240, Math.floor(primaryWorkArea.height / 2) - 80)
+  const minHeight = Math.min(
+    clamp(Math.floor(primaryWorkArea.height * 0.35), 320, 720),
+    halfHeightCap,
+  )
 
   const saved = await readWindowState()
   const savedBounds = saved?.bounds ? ensureOnSomeDisplay(saved.bounds) : null
-  const startWidth = savedBounds?.width ?? 1320
-  const startHeight = savedBounds?.height ?? 840
+  const startWidth = clamp(savedBounds?.width ?? 1320, minWidth, primaryWorkArea.width)
+  const startHeight = clamp(savedBounds?.height ?? 840, minHeight, primaryWorkArea.height)
 
   const win = new BrowserWindow({
-    width: Math.max(minWidth, startWidth),
-    height: Math.max(minHeight, startHeight),
-    // Prevent shrinking into a layout where the right-side AI panel is hidden by responsive rules.
+    width: startWidth,
+    height: startHeight,
     minWidth,
     minHeight,
     x: savedBounds?.x,
@@ -163,8 +173,9 @@ async function createMainWindow() {
       bounds: {
         x: bounds.x,
         y: bounds.y,
-        width: Math.max(minWidth, bounds.width),
-        height: Math.max(minHeight, bounds.height),
+        // Store the actual bounds; on restore we clamp to a safe range based on current display.
+        width: Math.max(320, bounds.width),
+        height: Math.max(240, bounds.height),
       },
       savedAtIso: new Date().toISOString(),
     })
