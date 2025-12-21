@@ -118,7 +118,7 @@ export function TasksView() {
               return (
                 <button
                   key={t.id}
-                  className={`listRow listRowBtn ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
+                  className={`listRow listRowBtn tasksTaskRow ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
                   onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
                   onDoubleClick={() => navigate(`/tasks/${t.id}`)}
                 >
@@ -134,14 +134,14 @@ export function TasksView() {
                     </div>
                   </div>
                   <div className="pillRow">
+                    <div className="pill">
+                      {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
+                    </div>
                     <span
                       className={`activityDot activityDot-${activity}`}
                       title={`Activity: ${days}d ago (stale threshold ${settings.staleDays}d)`}
                       aria-label={`Activity: ${days} days ago`}
                     />
-                    <div className="pill">
-                      {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
-                    </div>
                   </div>
                 </button>
               )

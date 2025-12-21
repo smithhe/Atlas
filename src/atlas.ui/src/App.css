@@ -314,6 +314,15 @@
   flex: 0 0 auto;
 }
 
+.tasksTaskRow {
+  align-items: flex-start;
+}
+
+.tasksTaskRow .pillRow {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
 .activityDot {
   width: 10px;
   height: 10px;
