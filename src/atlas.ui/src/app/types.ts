@@ -2,7 +2,7 @@ export type Id = string
 
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type RiskStatus = 'Open' | 'Watching' | 'Resolved'
-export type NoteTag = 'Blocker' | 'Progress' | 'Concern' | 'Praise' | 'Standup'
+export type NoteTag = 'Blocker' | 'Progress' | 'Concern' | 'Praise' | 'Standup' | 'Quick'
 export type Confidence = 'Low' | 'Medium' | 'High'
 
 export interface Task {

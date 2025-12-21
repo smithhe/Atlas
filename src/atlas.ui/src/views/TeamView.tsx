@@ -184,7 +184,7 @@ function MemberDetail({
                     addNote({
                       id: newId('note'),
                       createdIso: new Date().toISOString(),
-                      tag: 'Standup',
+                      tag: 'Quick',
                       text: quickNote.trim(),
                     })
                     setQuickNote('')
@@ -314,7 +314,7 @@ function MemberDetail({
                 member.notes.map((n) => (
                   <div key={n.id} className="noteRow">
                     <div className="noteMeta">
-                      <span className="chip">{n.tag}</span>
+                      <span className={`chip chipTag chipTag-${n.tag.toLowerCase()}`}>{n.tag}</span>
                       <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
                       {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
                       {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
