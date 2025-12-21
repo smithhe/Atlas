@@ -113,7 +113,6 @@ export function TasksView() {
             {filtered.map((t) => {
               const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
               const lastTouched = new Date(t.lastTouchedIso).toLocaleDateString()
-              const notesPreview = (t.notes ?? '').trim().replace(/\s+/g, ' ')
               return (
                 <button
                   key={t.id}
@@ -133,7 +132,6 @@ export function TasksView() {
                       {t.dueDate ? ` • due ${t.dueDate}` : ''}
                       {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
                     </div>
-                    {notesPreview ? <div className="listMeta listMetaWrap listNotesPreview">{notesPreview}</div> : null}
                   </div>
                   <div className="pill">
                     {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
