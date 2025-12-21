@@ -304,6 +304,26 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+## Frontend (Vite/React) + Electron
+dist/
+dist-ssr/
+dist-electron/
+.vite/
+*.tsbuildinfo
+.eslintcache
+*.dmg
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+*.msi
+*.pkg
+
+## JetBrains IDE (Rider/IntelliJ)
+.idea/
+**/.idea/
+
 # Visual Studio 6 build log
 *.plg
 
