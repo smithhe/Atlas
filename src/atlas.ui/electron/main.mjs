@@ -139,6 +139,7 @@ async function createMainWindow() {
     title: 'Atlas',
     backgroundColor: '#0b0f14',
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -146,6 +147,9 @@ async function createMainWindow() {
       sandbox: true,
     },
   })
+
+  // Hide the menu bar on Windows/Linux. (macOS uses the global menu bar.)
+  win.setMenuBarVisibility(false)
 
   win.once('ready-to-show', () => win.show())
   if (saved?.isMaximized) win.maximize()
