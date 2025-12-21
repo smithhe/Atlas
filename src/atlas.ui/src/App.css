@@ -407,7 +407,8 @@
 
 .tasksStack {
   display: grid;
-  grid-template-rows: auto minmax(180px, 280px) minmax(0, 1fr);
+  /* Filters row, then task list (caps itself when >5 items), then detail fills the rest */
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
   min-height: 560px;
 }
@@ -425,10 +426,12 @@
 
 .tasksListRow {
   overflow: auto;
+  min-height: 0;
 }
 
 .tasksDetailRow {
   overflow: auto;
+  min-height: 0;
 }
 
 .pane {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
 import type { Priority, Task } from '../app/types'
@@ -18,6 +18,8 @@ export function TasksView() {
   const { taskId } = useParams<{ taskId?: string }>()
   const { tasks, settings, selectedTaskId, projects, risks } = useAppState()
   const selected = useSelectedTask()
+  const listRef = useRef<HTMLElement | null>(null)
+  const [listMaxHeightPx, setListMaxHeightPx] = useState<number | undefined>(undefined)
 
   const projectOptions = useMemo(() => projects.map((p) => p.name).sort((a, b) => a.localeCompare(b)), [projects])
   const riskOptions = useMemo(() => risks.map((r) => r.title).sort((a, b) => a.localeCompare(b)), [risks])
@@ -56,6 +58,25 @@ export function TasksView() {
     const exists = tasks.some((t) => t.id === taskId)
     if (!exists) navigate('/tasks', { replace: true })
   }, [navigate, taskId, tasks])
+
+  // If there are >5 tasks, cap list height to exactly 5 rows so the 6th+ scrolls (regardless of window size).
+  useLayoutEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    if (isFocusMode) return
+
+    if (filtered.length <= 5) {
+      setListMaxHeightPx(undefined)
+      return
+    }
+
+    const rows = Array.from(el.querySelectorAll<HTMLElement>('.tasksTaskRow')).slice(0, 5)
+    if (rows.length === 0) return
+
+    const sumHeights = rows.reduce((sum, r) => sum + r.getBoundingClientRect().height, 0)
+    // Small padding so borders don't clip.
+    setListMaxHeightPx(Math.ceil(sumHeights + 2))
+  }, [filtered.length, isFocusMode])
 
   return (
     <div className="page">
@@ -109,7 +130,14 @@ export function TasksView() {
         ) : null}
 
         {!isFocusMode ? (
-          <section className="list listCard tasksListRow" aria-label="Task list">
+          <section
+            className="list listCard tasksListRow"
+            aria-label="Task list"
+            ref={(n) => {
+              listRef.current = n
+            }}
+            style={listMaxHeightPx ? { maxHeight: `${listMaxHeightPx}px` } : undefined}
+          >
             {filtered.map((t) => {
               const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
               const days = daysSince(t.lastTouchedIso)

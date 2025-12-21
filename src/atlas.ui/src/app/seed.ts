@@ -54,6 +54,28 @@ export function seedTasks(): Task[] {
       // With staleDays=10, this lands in the "yellow" band (within 2 days of stale).
       lastTouchedIso: isoNowMinusDays(9),
     },
+    {
+      id: 'task-5',
+      title: 'Prep 1:1 agenda for next week',
+      priority: 'Low',
+      estimatedDurationText: '30m',
+      estimateConfidence: 'High',
+      actualDurationText: '',
+      notes: 'Draft topics + collect feedback items.',
+      lastTouchedIso: isoNowMinusDays(2),
+    },
+    {
+      id: 'task-6',
+      title: 'Review risk mitigations backlog',
+      priority: 'Medium',
+      estimatedDurationText: '1h',
+      estimateConfidence: 'Medium',
+      actualDurationText: '',
+      project: 'Core Platform',
+      risk: 'Refactor justification',
+      notes: 'Identify next concrete mitigation steps and owners.',
+      lastTouchedIso: isoNowMinusDays(6),
+    },
   ]
 }
 
