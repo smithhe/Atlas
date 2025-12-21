@@ -369,6 +369,32 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.tasksStack {
+  display: grid;
+  grid-template-rows: auto minmax(180px, 280px) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 560px;
+}
+
+.tasksStackFocus {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.tasksFiltersRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.tasksListRow {
+  overflow: auto;
+}
+
+.tasksDetailRow {
+  overflow: auto;
+}
+
 .pane {
   display: flex;
   flex-direction: column;
@@ -637,6 +663,10 @@ select option:disabled {
     grid-template-columns: 1fr;
   }
   .azureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tasksFiltersRow {
     grid-template-columns: 1fr;
   }
 }

@@ -61,102 +61,91 @@ export function TasksView() {
     <div className="page">
       <h2 className="pageTitle">Tasks</h2>
 
-      <div
-        className={`splitGrid tasksSplit ${ai.state.isOpen ? 'tasksSplitAiOpen' : 'tasksSplitAiClosed'} ${
-          isFocusMode ? 'tasksSplitFocus' : ''
-        }`}
-      >
+      <div className={`tasksStack ${isFocusMode ? 'tasksStackFocus' : ''}`}>
         {!isFocusMode ? (
-          <section className="pane paneLeft" aria-label="Task list and filters">
-            <div className="card tight">
-              <div className="fieldGrid">
-                <label className="field">
-                  <div className="fieldLabel">Project</div>
-                  <select
-                    className="select"
-                    value={projectFilter}
-                    onChange={(e) => setProjectFilter(e.target.value)}
-                  >
-                    <option value="All">All</option>
-                    <option value="">(None)</option>
-                    {projectOptions.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <div className="fieldLabel">Risk</div>
-                  <select
-                    className="select"
-                    value={riskFilter}
-                    onChange={(e) => setRiskFilter(e.target.value)}
-                  >
-                    <option value="All">All</option>
-                    <option value="">(None)</option>
-                    {riskOptions.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <div className="fieldLabel">Priority</div>
-                  <select
-                    className="select"
-                    value={priorityFilter}
-                    onChange={(e) => setPriorityFilter(e.target.value as Priority | 'All')}
-                  >
-                    <option value="All">All</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
-                </label>
-              </div>
-            </div>
+          <section className="card tight tasksFiltersRow" aria-label="Task filters">
+            <label className="field">
+              <div className="fieldLabel">Project</div>
+              <select className="select" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+                <option value="All">All</option>
+                <option value="">(None)</option>
+                {projectOptions.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-            <div className="list listCard">
-              {filtered.map((t) => {
-                const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
-                const lastTouched = new Date(t.lastTouchedIso).toLocaleDateString()
-                const notesPreview = (t.notes ?? '').trim().replace(/\s+/g, ' ')
-                return (
-                  <button
-                    key={t.id}
-                    className={`listRow listRowBtn ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
-                    onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
-                    onDoubleClick={() => navigate(`/tasks/${t.id}`)}
-                  >
-                    <div className="listMain">
-                      <div className="listTitle listTitleWrap">{t.title}</div>
-                      <div className="listMeta listMetaWrap">
-                        {t.priority}
-                        {t.project ? ` • ${t.project}` : ''}
-                        {t.risk ? ` • Risk: ${t.risk}` : ''}
-                      </div>
-                      <div className="listMeta listMetaWrap">
-                        Last touched {lastTouched}
-                        {t.dueDate ? ` • due ${t.dueDate}` : ''}
-                        {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
-                      </div>
-                      {notesPreview ? <div className="listMeta listMetaWrap listNotesPreview">{notesPreview}</div> : null}
-                    </div>
-                    <div className="pill">
-                      {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
-                    </div>
-                  </button>
-                )
-              })}
-              {filtered.length === 0 ? <div className="muted pad">No tasks match your filters.</div> : null}
-            </div>
+            <label className="field">
+              <div className="fieldLabel">Risk</div>
+              <select className="select" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+                <option value="All">All</option>
+                <option value="">(None)</option>
+                {riskOptions.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Priority</div>
+              <select
+                className="select"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as Priority | 'All')}
+              >
+                <option value="All">All</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </label>
+
           </section>
         ) : null}
 
-        <section className="pane paneCenter" aria-label="Task detail editor">
+        {!isFocusMode ? (
+          <section className="list listCard tasksListRow" aria-label="Task list">
+            {filtered.map((t) => {
+              const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
+              const lastTouched = new Date(t.lastTouchedIso).toLocaleDateString()
+              const notesPreview = (t.notes ?? '').trim().replace(/\s+/g, ' ')
+              return (
+                <button
+                  key={t.id}
+                  className={`listRow listRowBtn ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
+                  onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
+                  onDoubleClick={() => navigate(`/tasks/${t.id}`)}
+                >
+                  <div className="listMain">
+                    <div className="listTitle listTitleWrap">{t.title}</div>
+                    <div className="listMeta listMetaWrap">
+                      {t.priority}
+                      {t.project ? ` • ${t.project}` : ''}
+                      {t.risk ? ` • Risk: ${t.risk}` : ''}
+                    </div>
+                    <div className="listMeta listMetaWrap">
+                      Last touched {lastTouched}
+                      {t.dueDate ? ` • due ${t.dueDate}` : ''}
+                      {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
+                    </div>
+                    {notesPreview ? <div className="listMeta listMetaWrap listNotesPreview">{notesPreview}</div> : null}
+                  </div>
+                  <div className="pill">
+                    {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
+                  </div>
+                </button>
+              )
+            })}
+            {filtered.length === 0 ? <div className="muted pad">No tasks match your filters.</div> : null}
+          </section>
+        ) : null}
+
+        <section className="tasksDetailRow" aria-label="Task detail editor">
           {!selected ? (
             <div className="card pad">
               <div className="muted">Select a task to edit.</div>
