@@ -10,6 +10,34 @@ function newId(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2)}`
 }
 
+function startOfDay(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function isBusinessDay(d: Date) {
+  const day = d.getDay()
+  return day !== 0 && day !== 6
+}
+
+// 0 = today (if business day), 1 = previous business day, etc.
+function businessDaysAgo(iso: string) {
+  const noteDay = startOfDay(new Date(iso))
+  let cursor = startOfDay(new Date())
+  if (noteDay.getTime() > cursor.getTime()) return 0
+
+  let count = 0
+  while (cursor.getTime() > noteDay.getTime()) {
+    cursor.setDate(cursor.getDate() - 1)
+    if (isBusinessDay(cursor)) count++
+  }
+  return count
+}
+
+function isCurrentTicketStatus(status: string) {
+  const s = status.toLowerCase()
+  return s.includes('in progress') || s.includes('blocked') || s.includes('code review') || s.includes('in review')
+}
+
 export function TeamView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
@@ -96,19 +124,23 @@ function MemberDetail({
   onEnterFocus: () => void
   onExitFocus: () => void
 }) {
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const [quickNote, setQuickNote] = useState('')
   const [tag, setTag] = useState<NoteTag>('Standup')
   const [structured, setStructured] = useState('')
-  const [selectedAzureId, setSelectedAzureId] = useState<string | undefined>(member.azureItems[0]?.id)
+  const currentTickets = useMemo(() => member.azureItems.filter((a) => isCurrentTicketStatus(a.status)), [member.azureItems])
+  const recentNotes = useMemo(() => member.notes.filter((n) => businessDaysAgo(n.createdIso) < 5), [member.notes])
+  const [selectedAzureId, setSelectedAzureId] = useState<string | undefined>(currentTickets[0]?.id)
   const quickNoteRef = useRef<HTMLTextAreaElement | null>(null)
   const structuredRef = useRef<HTMLTextAreaElement | null>(null)
   const noteInputMaxHeightPx = 180
 
-  const selectedAzure = useMemo(
-    () => member.azureItems.find((a) => a.id === selectedAzureId),
-    [member.azureItems, selectedAzureId],
-  )
+  useEffect(() => {
+    setSelectedAzureId(currentTickets[0]?.id)
+  }, [member.id, currentTickets])
+
+  const selectedAzure = useMemo(() => currentTickets.find((a) => a.id === selectedAzureId), [currentTickets, selectedAzureId])
 
   function update(patch: Partial<TeamMember>) {
     dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
@@ -236,15 +268,18 @@ function MemberDetail({
 
         <section className="card subtle span2">
           <div className="cardHeader">
-            <div className="cardTitle">Azure DevOps Items</div>
+            <div className="cardTitle">Current Tickets</div>
+            <button className="btn btnGhost" onClick={() => navigate(`/team/${member.id}/tickets`)}>
+              View all tickets
+            </button>
           </div>
 
           <div className="azureGrid">
             <div className="list listCard inner">
-              {member.azureItems.length === 0 ? (
-                <div className="muted pad">No Azure items (mock).</div>
+              {currentTickets.length === 0 ? (
+                <div className="muted pad">No current tickets.</div>
               ) : (
-                member.azureItems.map((a) => (
+                currentTickets.map((a) => (
                   <button
                     key={a.id}
                     className={`listRow listRowBtn ${a.id === selectedAzureId ? 'listRowActive' : ''}`}
@@ -297,16 +332,19 @@ function MemberDetail({
           </div>
         </section>
 
-        <section className="card subtle span2" aria-label="Notes history">
+        <section className="card subtle span2" aria-label="Recent notes">
           <div className="cardHeader">
-            <div className="cardTitle">Notes History</div>
+            <div className="cardTitle">Recent Notes</div>
+            <button className="btn btnGhost" onClick={() => navigate(`/team/${member.id}/notes`)}>
+              View all notes
+            </button>
           </div>
           <div className="pad teamNotesHistoryBody">
             <div className="notesList">
-              {member.notes.length === 0 ? (
-                <div className="muted">No notes yet.</div>
+              {recentNotes.length === 0 ? (
+                <div className="muted">No notes in the last 5 business days.</div>
               ) : (
-                member.notes.map((n) => (
+                recentNotes.map((n) => (
                   <div key={n.id} className="noteRow">
                     <div className="noteMeta">
                       <span className={`chip chipTag chipTag-${n.tag.toLowerCase()}`}>{n.tag}</span>

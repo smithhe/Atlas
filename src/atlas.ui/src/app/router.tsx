@@ -3,6 +3,8 @@ import { ShellLayout } from '../components/ShellLayout'
 import { DashboardView } from '../views/DashboardView'
 import { TasksView } from '../views/TasksView'
 import { TeamView } from '../views/TeamView'
+import { TeamNotesView } from '../views/TeamNotesView'
+import { TeamTicketsView } from '../views/TeamTicketsView'
 import { RisksView } from '../views/RisksView'
 import { ProjectsView } from '../views/ProjectsView'
 import { SettingsView } from '../views/SettingsView'
@@ -18,6 +20,8 @@ const routerRoutes = [
       { path: 'tasks/:taskId', element: <TasksView /> },
       { path: 'team', element: <TeamView /> },
       { path: 'team/:memberId', element: <TeamView /> },
+      { path: 'team/:memberId/notes', element: <TeamNotesView /> },
+      { path: 'team/:memberId/tickets', element: <TeamTicketsView /> },
       { path: 'risks', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },
