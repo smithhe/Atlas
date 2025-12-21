@@ -17,6 +17,7 @@ const routerRoutes = [
       { path: 'tasks', element: <TasksView /> },
       { path: 'tasks/:taskId', element: <TasksView /> },
       { path: 'team', element: <TeamView /> },
+      { path: 'team/:memberId', element: <TeamView /> },
       { path: 'risks', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },

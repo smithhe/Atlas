@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamMember, TeamNote } from '../app/types'
+import { useNavigate, useParams } from 'react-router-dom'
 
 const TAGS: NoteTag[] = ['Blocker', 'Progress', 'Concern', 'Praise', 'Standup']
 
@@ -12,8 +13,11 @@ function newId(prefix: string) {
 export function TeamView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const { memberId } = useParams<{ memberId?: string }>()
   const { team, selectedTeamMemberId } = useAppState()
   const selected = useSelectedTeamMember()
+  const isFocusMode = !!memberId
 
   useEffect(() => {
     ai.setContext('Context: Team', [
@@ -23,29 +27,44 @@ export function TeamView() {
     ])
   }, [ai.setContext])
 
+  useEffect(() => {
+    if (!memberId) return
+    dispatch({ type: 'selectTeamMember', memberId })
+  }, [dispatch, memberId])
+
+  // If we entered focus mode with an unknown ID, fall back to list view.
+  useEffect(() => {
+    if (!memberId) return
+    const exists = team.some((m) => m.id === memberId)
+    if (!exists) navigate('/team', { replace: true })
+  }, [memberId, navigate, team])
+
   return (
     <div className="page">
       <h2 className="pageTitle">Team</h2>
 
-      <div className="teamGrid">
-        <section className="pane paneTeamLeft" aria-label="Team member list">
-          <div className="list listCard">
-            {team.map((m) => (
-              <button
-                key={m.id}
-                className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
-                onClick={() => dispatch({ type: 'selectTeamMember', memberId: m.id })}
-              >
-                <div className="avatar" aria-hidden="true" />
-                <div className="listMain">
-                  <div className="listTitle">{m.name}</div>
-                  <div className="listMeta">{m.role ?? '—'}</div>
-                </div>
-                <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-label={`${m.statusDot} status`} />
-              </button>
-            ))}
-          </div>
-        </section>
+      <div className={`teamGrid ${isFocusMode ? 'teamGridFocus' : ''}`}>
+        {!isFocusMode ? (
+          <section className="pane paneTeamLeft" aria-label="Team member list">
+            <div className="list listCard">
+              {team.map((m) => (
+                <button
+                  key={m.id}
+                  className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
+                  onClick={() => dispatch({ type: 'selectTeamMember', memberId: m.id })}
+                  onDoubleClick={() => navigate(`/team/${m.id}`)}
+                >
+                  <div className="avatar" aria-hidden="true" />
+                  <div className="listMain">
+                    <div className="listTitle">{m.name}</div>
+                    <div className="listMeta">{m.role ?? '—'}</div>
+                  </div>
+                  <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-label={`${m.statusDot} status`} />
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="pane paneTeamCenter" aria-label="Member detail">
           {!selected ? (
@@ -53,7 +72,12 @@ export function TeamView() {
               <div className="muted">Select a team member.</div>
             </div>
           ) : (
-            <MemberDetail member={selected} />
+            <MemberDetail
+              member={selected}
+              isFocusMode={isFocusMode}
+              onEnterFocus={() => navigate(`/team/${selected.id}`)}
+              onExitFocus={() => navigate('/team')}
+            />
           )}
         </section>
       </div>
@@ -61,7 +85,17 @@ export function TeamView() {
   )
 }
 
-function MemberDetail({ member }: { member: TeamMember }) {
+function MemberDetail({
+  member,
+  isFocusMode,
+  onEnterFocus,
+  onExitFocus,
+}: {
+  member: TeamMember
+  isFocusMode: boolean
+  onEnterFocus: () => void
+  onExitFocus: () => void
+}) {
   const dispatch = useAppDispatch()
   const [quickNote, setQuickNote] = useState('')
   const [tag, setTag] = useState<NoteTag>('Standup')
@@ -84,8 +118,19 @@ function MemberDetail({ member }: { member: TeamMember }) {
   return (
     <div className="card pad">
       <div className="detailHeader">
-        <div className="detailTitle">{member.name}</div>
-        <div className="mutedSmall">{member.role ?? ''}</div>
+        <div>
+          <div className="detailTitle">{member.name}</div>
+          <div className="mutedSmall">{member.role ?? ''}</div>
+        </div>
+        {isFocusMode ? (
+          <button className="btn btnGhost" onClick={onExitFocus}>
+            Exit focus
+          </button>
+        ) : (
+          <button className="btn btnGhost" onClick={onEnterFocus}>
+            Focus
+          </button>
+        )}
       </div>
 
       <label className="field">

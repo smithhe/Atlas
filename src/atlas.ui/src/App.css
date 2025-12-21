@@ -630,6 +630,10 @@ select option:disabled {
   min-height: 560px;
 }
 
+.teamGridFocus {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .avatar {
   width: 28px;
   height: 28px;
