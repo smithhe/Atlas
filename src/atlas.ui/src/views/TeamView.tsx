@@ -231,24 +231,6 @@ function MemberDetail({
                 </select>
               </div>
             </div>
-
-            <div className="notesList">
-              {member.notes.length === 0 ? (
-                <div className="muted pad">No notes yet.</div>
-              ) : (
-                member.notes.map((n) => (
-                  <div key={n.id} className="noteRow">
-                    <div className="noteMeta">
-                      <span className="chip">{n.tag}</span>
-                      <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
-                      {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
-                      {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
-                    </div>
-                    <div className="noteText">{n.text}</div>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
         </section>
 
@@ -315,6 +297,31 @@ function MemberDetail({
                     Open in browser
                   </button>
                 </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="card subtle span2" aria-label="Notes history">
+          <div className="cardHeader">
+            <div className="cardTitle">Notes History</div>
+          </div>
+          <div className="pad">
+            <div className="notesList">
+              {member.notes.length === 0 ? (
+                <div className="muted">No notes yet.</div>
+              ) : (
+                member.notes.map((n) => (
+                  <div key={n.id} className="noteRow">
+                    <div className="noteMeta">
+                      <span className="chip">{n.tag}</span>
+                      <span className="mutedSmall">{new Date(n.createdIso).toLocaleDateString()}</span>
+                      {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
+                      {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
+                    </div>
+                    <div className="noteText">{n.text}</div>
+                  </div>
+                ))
               )}
             </div>
           </div>

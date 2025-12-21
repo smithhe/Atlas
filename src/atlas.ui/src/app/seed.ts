@@ -89,6 +89,64 @@ export function seedTeam(): TeamMember[] {
       currentFocus: 'Checkout flow performance',
       notes: [
         {
+          id: 'note-a7',
+          createdIso: isoNowMinusDays(0),
+          tag: 'Standup',
+          text:
+            'Today: validate p95 improvement after the query batching change.\n' +
+            'Next: re-run load test with realistic cart sizes and confirm we did not regress error rates.\n' +
+            'Watchouts: cache invalidation + retry storms if downstream starts timing out.',
+        },
+        {
+          id: 'note-a6',
+          createdIso: isoNowMinusDays(1),
+          tag: 'Concern',
+          text:
+            'We still see sporadic spikes in checkout latency when inventory calls are slow.\n' +
+            'Hypothesis: fallback path is doing extra DB reads + serializing large payloads.\n' +
+            'Action: capture a trace sample set and compare "fast" vs "slow" requests.',
+          adoWorkItemId: '12345',
+        },
+        {
+          id: 'note-a5',
+          createdIso: isoNowMinusDays(3),
+          tag: 'Praise',
+          text:
+            'Excellent collaboration with QA on reproducing the worst-case cart scenario.\n' +
+            'The repro doc is clear and should help future on-calls.\n' +
+            'Keep doing write-ups like this — they scale.',
+        },
+        {
+          id: 'note-a4',
+          createdIso: isoNowMinusDays(5),
+          tag: 'Progress',
+          text:
+            'Identified top contributors to checkout time:\n' +
+            '- redundant product lookups per line item\n' +
+            '- N+1 tax calculation calls\n' +
+            '- serialization overhead in the response builder\n' +
+            'Next step: land batching behind a feature flag and monitor.',
+          adoWorkItemId: '12345',
+        },
+        {
+          id: 'note-a3',
+          createdIso: isoNowMinusDays(7),
+          tag: 'Standup',
+          text:
+            'Blocked briefly by flaky perf env; workaround was to pin the dataset snapshot.\n' +
+            'Follow-up: we should automate dataset refresh + pinning so perf runs are reproducible.',
+        },
+        {
+          id: 'note-a2',
+          createdIso: isoNowMinusDays(9),
+          tag: 'Blocker',
+          text:
+            'Load test run failed due to intermittent 502s from the gateway.\n' +
+            'Need infra assist to confirm whether this is rate limiting or an upstream timeout.\n' +
+            'In the meantime: run smaller-scale tests locally and capture traces.',
+          prUrl: '(placeholder)',
+        },
+        {
           id: 'note-a1',
           createdIso: isoNowMinusDays(2),
           tag: 'Progress',
