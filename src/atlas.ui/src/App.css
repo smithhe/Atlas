@@ -275,6 +275,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 
@@ -291,6 +292,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 
@@ -419,9 +421,31 @@
 
 .tasksFiltersRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   align-items: end;
+}
+
+.fieldInline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.selectCompact {
+  padding: 6px 8px;
+  font-size: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.btnIcon {
+  padding: 6px 8px;
+  min-width: 34px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .tasksListRow {
