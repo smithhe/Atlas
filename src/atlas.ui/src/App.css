@@ -307,6 +307,33 @@
   flex: 0 0 auto;
 }
 
+.pillRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.activityDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.activityDot-green {
+  background: var(--good);
+}
+
+.activityDot-yellow {
+  background: var(--warn);
+}
+
+.activityDot-red {
+  background: var(--bad);
+}
+
 .dot {
   width: 10px;
   height: 10px;

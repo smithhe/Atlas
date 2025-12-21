@@ -42,6 +42,18 @@ export function seedTasks(): Task[] {
       notes: 'Batch reviews. Leave clear next steps for each PR.',
       lastTouchedIso: isoNowMinusDays(0),
     },
+    {
+      id: 'task-4',
+      title: 'Triage flaky test failure',
+      priority: 'Low',
+      estimatedDurationText: '45m',
+      estimateConfidence: 'Medium',
+      actualDurationText: '',
+      project: 'DevEx',
+      notes: 'Quick repro + isolate recent changes. Capture next steps.',
+      // With staleDays=10, this lands in the "yellow" band (within 2 days of stale).
+      lastTouchedIso: isoNowMinusDays(9),
+    },
   ]
 }
 

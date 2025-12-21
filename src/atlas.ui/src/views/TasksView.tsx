@@ -112,7 +112,9 @@ export function TasksView() {
           <section className="list listCard tasksListRow" aria-label="Task list">
             {filtered.map((t) => {
               const stale = daysSince(t.lastTouchedIso) >= settings.staleDays
-              const lastTouched = new Date(t.lastTouchedIso).toLocaleDateString()
+              const days = daysSince(t.lastTouchedIso)
+              const activity =
+                days >= settings.staleDays ? 'red' : days >= Math.max(1, settings.staleDays - 2) ? 'yellow' : 'green'
               return (
                 <button
                   key={t.id}
@@ -128,13 +130,18 @@ export function TasksView() {
                       {t.risk ? ` • Risk: ${t.risk}` : ''}
                     </div>
                     <div className="listMeta listMetaWrap">
-                      Last touched {lastTouched}
-                      {t.dueDate ? ` • due ${t.dueDate}` : ''}
-                      {stale ? ` • stale ${daysSince(t.lastTouchedIso)}d` : ''}
+                      {t.dueDate ? `Due ${t.dueDate}` : ' '}
                     </div>
                   </div>
-                  <div className="pill">
-                    {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
+                  <div className="pillRow">
+                    <span
+                      className={`activityDot activityDot-${activity}`}
+                      title={`Activity: ${days}d ago (stale threshold ${settings.staleDays}d)`}
+                      aria-label={`Activity: ${days} days ago`}
+                    />
+                    <div className="pill">
+                      {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
+                    </div>
                   </div>
                 </button>
               )
