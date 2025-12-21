@@ -161,7 +161,7 @@ function MemberDetail({
       </label>
 
       <div className="subGrid">
-        <section className="card subtle">
+        <section className="card subtle span2">
           <div className="cardHeader">
             <div className="cardTitle">Performance Notes</div>
           </div>
@@ -234,7 +234,7 @@ function MemberDetail({
           </div>
         </section>
 
-        <section className="card subtle">
+        <section className="card subtle span2">
           <div className="cardHeader">
             <div className="cardTitle">Azure DevOps Items</div>
           </div>
