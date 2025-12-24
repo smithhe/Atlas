@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
@@ -11,6 +11,12 @@ export function TeamTicketsView() {
   const { memberId } = useParams<{ memberId: string }>()
   const { team } = useAppState()
   const member = useSelectedTeamMember()
+
+  // Ensure we land at the top when entering the tickets view.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+    document.querySelector<HTMLElement>('.mainContent')?.scrollTo({ top: 0 })
+  }, [])
 
   useEffect(() => {
     ai.setContext('Context: Team Tickets', [

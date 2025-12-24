@@ -1,14 +1,10 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
-import type { NoteTag, TeamMember, TeamNote } from '../app/types'
+import type { NoteTag, TeamMember } from '../app/types'
 
-const TAGS: NoteTag[] = ['Blocker', 'Progress', 'Concern', 'Praise', 'Standup']
-
-function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(16).slice(2)}`
-}
+const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
 export function TeamNotesView() {
   const ai = useAi()
@@ -17,6 +13,12 @@ export function TeamNotesView() {
   const { memberId } = useParams<{ memberId: string }>()
   const { team } = useAppState()
   const member = useSelectedTeamMember()
+
+  // Ensure we land at the top when entering the history view.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+    document.querySelector<HTMLElement>('.mainContent')?.scrollTo({ top: 0 })
+  }, [])
 
   useEffect(() => {
     ai.setContext('Context: Team Notes', [
@@ -61,123 +63,87 @@ export function TeamNotesView() {
 }
 
 function NotesPanel({ member }: { member: TeamMember }) {
-  const dispatch = useAppDispatch()
-  const [quickNote, setQuickNote] = useState('')
-  const [tag, setTag] = useState<NoteTag>('Standup')
-  const [structured, setStructured] = useState('')
-  const quickNoteRef = useRef<HTMLTextAreaElement | null>(null)
-  const structuredRef = useRef<HTMLTextAreaElement | null>(null)
-  const noteInputMaxHeightPx = 220
+  const [query, setQuery] = useState('')
+  const [tagFilter, setTagFilter] = useState<NoteTag | 'All'>('All')
+  const [sortBy, setSortBy] = useState<'Newest' | 'Oldest'>('Newest')
 
-  function update(patch: Partial<TeamMember>) {
-    dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
-  }
+  const filteredSorted = useMemo(() => {
+    const q = query.trim().toLowerCase()
 
-  function addNote(note: TeamNote) {
-    update({ notes: [note, ...member.notes] })
-  }
+    function matchesText(n: TeamMember['notes'][number]) {
+      if (!q) return true
+      const hay = [
+        n.tag,
+        n.text,
+        n.adoWorkItemId ?? '',
+        n.prUrl ?? '',
+        new Date(n.createdIso).toLocaleDateString(),
+      ]
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    }
 
-  function autoGrow(el: HTMLTextAreaElement | null, capPx: number) {
-    if (!el) return
-    el.style.height = 'auto'
-    const next = Math.min(el.scrollHeight, capPx)
-    el.style.height = `${next}px`
-    el.style.overflowY = el.scrollHeight > capPx ? 'auto' : 'hidden'
-  }
+    function matchesTag(n: TeamMember['notes'][number]) {
+      if (tagFilter === 'All') return true
+      return n.tag === tagFilter
+    }
 
-  useLayoutEffect(() => {
-    autoGrow(quickNoteRef.current, noteInputMaxHeightPx)
-  }, [noteInputMaxHeightPx, quickNote])
+    const sorted = member.notes
+      .filter((n) => matchesTag(n) && matchesText(n))
+      .slice()
+      .sort((a, b) => {
+        const at = new Date(a.createdIso).getTime()
+        const bt = new Date(b.createdIso).getTime()
+        return sortBy === 'Newest' ? bt - at : at - bt
+      })
 
-  useLayoutEffect(() => {
-    autoGrow(structuredRef.current, noteInputMaxHeightPx)
-  }, [noteInputMaxHeightPx, structured])
+    return sorted
+  }, [member.notes, query, sortBy, tagFilter])
 
   return (
     <>
-      <section className="card subtle">
+      <section className="card subtle" aria-label="All notes history">
         <div className="cardHeader">
-          <div className="cardTitle">Add Note</div>
+          <div className="cardTitle">Notes History</div>
         </div>
+        <div className="pad">
+          <div className="tasksFiltersRow" aria-label="Notes filters">
+            <label className="field">
+              <div className="fieldLabel">Search</div>
+              <input
+                className="input"
+                placeholder="Search tag, text, ADO id, date…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
 
-        <div className="pad teamNotesComposer">
-          <div className="field">
-            <div className="fieldLabel">Quick note</div>
-            <textarea
-              ref={quickNoteRef}
-              className="textarea textareaAutoGrow textareaAutoGrowSmall"
-              placeholder="Quick note…"
-              value={quickNote}
-              onChange={(e) => setQuickNote(e.target.value)}
-            />
-            <div className="row">
-              <button
-                className="btn btnWide"
-                onClick={() => {
-                  if (!quickNote.trim()) return
-                  addNote({
-                    id: newId('note'),
-                    createdIso: new Date().toISOString(),
-                    tag: 'Quick',
-                    text: quickNote.trim(),
-                  })
-                  setQuickNote('')
-                }}
-              >
-                Add
-              </button>
-            </div>
-          </div>
-
-          <div className="field teamNotesStructuredField">
-            <div className="fieldLabel">Structured note</div>
-            <textarea
-              ref={structuredRef}
-              className="textarea textareaAutoGrow textareaAutoGrowSmall"
-              placeholder="Structured note…"
-              value={structured}
-              onChange={(e) => setStructured(e.target.value)}
-            />
-            <div className="row">
-              <button
-                className="btn btnWide"
-                onClick={() => {
-                  if (!structured.trim()) return
-                  addNote({
-                    id: newId('note'),
-                    createdIso: new Date().toISOString(),
-                    tag,
-                    text: structured.trim(),
-                    adoWorkItemId: '(placeholder)',
-                    prUrl: '(placeholder)',
-                  })
-                  setStructured('')
-                }}
-              >
-                Add
-              </button>
-              <select className="select" value={tag} onChange={(e) => setTag(e.target.value as NoteTag)}>
-                {TAGS.map((t) => (
+            <label className="field">
+              <div className="fieldLabel">Tag</div>
+              <select className="select" value={tagFilter} onChange={(e) => setTagFilter(e.target.value as any)}>
+                {FILTER_TAGS.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-        </div>
-      </section>
+            </label>
 
-      <section className="card subtle" aria-label="All notes history">
-        <div className="cardHeader">
-          <div className="cardTitle">All Notes</div>
-        </div>
-        <div className="pad">
+            <label className="field">
+              <div className="fieldLabel">Sort</div>
+              <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+                <option value="Newest">Newest first</option>
+                <option value="Oldest">Oldest first</option>
+              </select>
+            </label>
+          </div>
+
           <div className="notesList">
-            {member.notes.length === 0 ? (
+            {filteredSorted.length === 0 ? (
               <div className="muted">No notes yet.</div>
             ) : (
-              member.notes.map((n) => (
+              filteredSorted.map((n) => (
                 <div key={n.id} className="noteRow">
                   <div className="noteMeta">
                     <span className={`chip chipTag chipTag-${n.tag.toLowerCase()}`}>{n.tag}</span>
