@@ -89,6 +89,33 @@ export function seedTeam(): TeamMember[] {
       currentFocus: 'Checkout flow performance',
       notes: [
         {
+          id: 'note-a0-markdown',
+          createdIso: isoNowMinusDays(0),
+          tag: 'Quick',
+          text:
+            '# Markdown demo\n' +
+            '\n' +
+            'This note supports **bold**, _italic_, and `inline code`.\n' +
+            '\n' +
+            '## Lists\n' +
+            '- Bullet one\n' +
+            '- Bullet two\n' +
+            '  - Nested bullet\n' +
+            '\n' +
+            '## Task list (GFM)\n' +
+            '- [x] Shipped initial Markdown rendering\n' +
+            '- [ ] Add editor preview toggle (later)\n' +
+            '\n' +
+            '## Code block\n' +
+            '```ts\n' +
+            'function greet(name: string) {\n' +
+            "  return `Hello, ${name}!`\n" +
+            '}\n' +
+            '```\n' +
+            '\n' +
+            'Link: [React Markdown](https://github.com/remarkjs/react-markdown)\n',
+        },
+        {
           id: 'note-a7',
           createdIso: isoNowMinusDays(0),
           tag: 'Standup',

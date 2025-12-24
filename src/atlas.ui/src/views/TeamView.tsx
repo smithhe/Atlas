@@ -3,6 +3,7 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamMember, TeamNote } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Markdown } from '../components/Markdown'
 
 const TAGS: NoteTag[] = ['Blocker', 'Progress', 'Concern', 'Praise', 'Standup']
 
@@ -22,7 +23,7 @@ function isBusinessDay(d: Date) {
 // 0 = today (if business day), 1 = previous business day, etc.
 function businessDaysAgo(iso: string) {
   const noteDay = startOfDay(new Date(iso))
-  let cursor = startOfDay(new Date())
+  const cursor = startOfDay(new Date())
   if (noteDay.getTime() > cursor.getTime()) return 0
 
   let count = 0
@@ -136,11 +137,15 @@ function MemberDetail({
   const structuredRef = useRef<HTMLTextAreaElement | null>(null)
   const noteInputMaxHeightPx = 180
 
-  useEffect(() => {
-    setSelectedAzureId(currentTickets[0]?.id)
-  }, [member.id, currentTickets])
+  const effectiveSelectedAzureId = useMemo(() => {
+    if (selectedAzureId && currentTickets.some((t) => t.id === selectedAzureId)) return selectedAzureId
+    return currentTickets[0]?.id
+  }, [currentTickets, selectedAzureId])
 
-  const selectedAzure = useMemo(() => currentTickets.find((a) => a.id === selectedAzureId), [currentTickets, selectedAzureId])
+  const selectedAzure = useMemo(
+    () => currentTickets.find((a) => a.id === effectiveSelectedAzureId),
+    [currentTickets, effectiveSelectedAzureId],
+  )
 
   function update(patch: Partial<TeamMember>) {
     dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
@@ -282,7 +287,7 @@ function MemberDetail({
                 currentTickets.map((a) => (
                   <button
                     key={a.id}
-                    className={`listRow listRowBtn ${a.id === selectedAzureId ? 'listRowActive' : ''}`}
+                    className={`listRow listRowBtn ${a.id === effectiveSelectedAzureId ? 'listRowActive' : ''}`}
                     onClick={() => setSelectedAzureId(a.id)}
                   >
                     <div className="listMain">
@@ -352,7 +357,9 @@ function MemberDetail({
                       {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
                       {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
                     </div>
-                    <div className="noteText">{n.text}</div>
+                    <div className="noteText">
+                      <Markdown text={n.text} />
+                    </div>
                   </div>
                 ))
               )}

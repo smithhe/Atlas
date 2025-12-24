@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamMember } from '../app/types'
+import { Markdown } from '../components/Markdown'
 
 const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -121,7 +122,11 @@ function NotesPanel({ member }: { member: TeamMember }) {
 
             <label className="field">
               <div className="fieldLabel">Tag</div>
-              <select className="select" value={tagFilter} onChange={(e) => setTagFilter(e.target.value as any)}>
+              <select
+                className="select"
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value as NoteTag | 'All')}
+              >
                 {FILTER_TAGS.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -132,7 +137,11 @@ function NotesPanel({ member }: { member: TeamMember }) {
 
             <label className="field">
               <div className="fieldLabel">Sort</div>
-              <select className="select" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+              <select
+                className="select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'Newest' | 'Oldest')}
+              >
                 <option value="Newest">Newest first</option>
                 <option value="Oldest">Oldest first</option>
               </select>
@@ -151,7 +160,9 @@ function NotesPanel({ member }: { member: TeamMember }) {
                     {n.adoWorkItemId ? <span className="chip chipGhost">ADO: {n.adoWorkItemId}</span> : null}
                     {n.prUrl ? <span className="chip chipGhost">PR</span> : null}
                   </div>
-                  <div className="noteText">{n.text}</div>
+                  <div className="noteText">
+                    <Markdown text={n.text} />
+                  </div>
                 </div>
               ))
             )}
