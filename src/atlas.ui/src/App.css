@@ -702,6 +702,31 @@ select option:disabled {
   margin-bottom: 6px;
 }
 
+.noteActions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.noteEdit {
+  margin-top: 8px;
+}
+
+.noteEditTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.noteEditTabActive {
+  border-color: rgba(110, 168, 254, 0.55);
+}
+
+.noteEditTextarea {
+  width: 100%;
+  min-height: 140px;
+}
+
 .noteText {
   color: var(--text);
   white-space: pre-wrap;
