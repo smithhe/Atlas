@@ -530,13 +530,13 @@ function MemberDetail({
                             onChange={(e) => setDraftText(e.target.value)}
                           />
                         ) : (
-                          <div className="noteText">
+                          <div className="noteText noteBody">
                             <Markdown text={draftText} />
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="noteText">
+                      <div className="noteText noteBody">
                         <Markdown text={n.text} />
                       </div>
                     )}

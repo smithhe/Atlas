@@ -732,6 +732,13 @@ select option:disabled {
   white-space: pre-wrap;
 }
 
+/* Keep note body height consistent between view + edit (auto-grow caps at ~360px). */
+.noteBody {
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 6px; /* keep text from sitting under scrollbar */
+}
+
 /* Markdown rendering inside notes */
 .markdown {
   /* Let markdown elements manage whitespace; keep note container styling unchanged. */
