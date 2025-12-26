@@ -739,6 +739,122 @@ select option:disabled {
   padding-right: 6px; /* keep text from sitting under scrollbar */
 }
 
+/* Tabs (Team Member view) */
+.tabsBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  margin: 10px 0 6px 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.tabBtn:hover {
+  background: rgba(110, 168, 254, 0.10);
+  border-color: rgba(110, 168, 254, 0.22);
+}
+
+.tabBtnActive {
+  background: rgba(110, 168, 254, 0.18);
+  border-color: rgba(110, 168, 254, 0.42);
+}
+
+/* Notes quick filter chips */
+.chipRow {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chipBtn {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chipBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chipBtnActive {
+  background: rgba(110, 168, 254, 0.18);
+  border-color: rgba(110, 168, 254, 0.42);
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalPanel {
+  width: min(980px, 96vw);
+  max-height: min(86vh, 820px);
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(17, 27, 40, 0.96), rgba(15, 22, 33, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.modalPanel:focus-visible {
+  outline: 2px solid rgba(110, 168, 254, 0.75);
+  outline-offset: -2px;
+}
+
+.modalHeader {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modalTitle {
+  font-weight: 700;
+}
+
+.modalBody {
+  padding: 12px 14px;
+  overflow: auto;
+}
+
+.modalFooter {
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* Markdown rendering inside notes */
 .markdown {
   /* Let markdown elements manage whitespace; keep note container styling unchanged. */
