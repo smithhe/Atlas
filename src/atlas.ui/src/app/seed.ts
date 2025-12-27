@@ -87,6 +87,26 @@ export function seedTeam(): TeamMember[] {
       role: 'Senior Engineer',
       statusDot: 'Green',
       currentFocus: 'Checkout flow performance',
+      profile: {
+        timeZone: 'PT',
+        typicalHours: '9–5',
+      },
+      signals: {
+        load: 'Heavy',
+        delivery: 'OnTrack',
+        supportNeeded: 'Low',
+      },
+      pinnedNoteIds: ['note-a7', 'note-a6', 'note-a5', 'note-a4', 'note-a2'],
+      activitySnapshot: {
+        bullets: [
+          'Key wins / impact: checkout p95 improvements trending in the right direction after batching work.',
+          'Repeated friction: intermittent gateway 502s make perf testing unreliable.',
+          'Collaboration patterns: strong QA partnership on repro + docs.',
+          'Trends to track: inventory latency spikes and retry storms.',
+        ],
+        lastUpdatedIso: isoNowMinusDays(1),
+        quickTags: ['Perf', 'Reliability'],
+      },
       notes: [
         {
           id: 'note-a0-markdown',
@@ -191,6 +211,15 @@ export function seedTeam(): TeamMember[] {
           prUrl: '(placeholder)',
           commitsUrl: '(placeholder)',
         },
+        {
+          id: 'ado-13002',
+          title: 'Inventory service timeouts during checkout (investigate + mitigate)',
+          status: 'Blocked',
+          timeTaken: '1d (so far)',
+          ticketUrl: '(placeholder)',
+          prUrl: '(placeholder)',
+          commitsUrl: '(placeholder)',
+        },
       ],
     },
     {
@@ -199,6 +228,21 @@ export function seedTeam(): TeamMember[] {
       role: 'Engineer',
       statusDot: 'Yellow',
       currentFocus: 'Refactor proposal review + instrumentation',
+      profile: {
+        timeZone: 'ET',
+        typicalHours: '10–6',
+      },
+      signals: {
+        load: 'Normal',
+        delivery: 'OnTrack',
+        supportNeeded: 'Medium',
+      },
+      pinnedNoteIds: ['note-b1'],
+      activitySnapshot: {
+        bullets: ['Focus: clarify success metrics for the refactor proposal before execution.'],
+        lastUpdatedIso: isoNowMinusDays(3),
+        quickTags: ['Planning'],
+      },
       notes: [
         {
           id: 'note-b1',
@@ -225,6 +269,21 @@ export function seedTeam(): TeamMember[] {
       role: 'Engineer',
       statusDot: 'Green',
       currentFocus: 'On-call stability',
+      profile: {
+        timeZone: 'CT',
+        typicalHours: '9–5',
+      },
+      signals: {
+        load: 'Light',
+        delivery: 'OnTrack',
+        supportNeeded: 'Low',
+      },
+      pinnedNoteIds: [],
+      activitySnapshot: {
+        bullets: ['Keeping services stable during on-call; no major incidents in the last month.'],
+        lastUpdatedIso: isoNowMinusDays(5),
+        quickTags: ['OnCall'],
+      },
       notes: [],
       azureItems: [],
     },
@@ -234,6 +293,21 @@ export function seedTeam(): TeamMember[] {
       role: 'Tech Lead',
       statusDot: 'Green',
       currentFocus: 'Project planning + dependencies',
+      profile: {
+        timeZone: 'PT',
+        typicalHours: '8–4',
+      },
+      signals: {
+        load: 'Heavy',
+        delivery: 'AtRisk',
+        supportNeeded: 'Medium',
+      },
+      pinnedNoteIds: ['note-d1'],
+      activitySnapshot: {
+        bullets: ['Raised cross-team dependency risk; scheduled alignment to unblock.'],
+        lastUpdatedIso: isoNowMinusDays(1),
+        quickTags: ['Roadmap', 'Deps'],
+      },
       notes: [
         {
           id: 'note-d1',
@@ -259,6 +333,21 @@ export function seedTeam(): TeamMember[] {
       role: 'Engineer',
       statusDot: 'Red',
       currentFocus: 'Blocked on environment flakiness',
+      profile: {
+        timeZone: 'ET',
+        typicalHours: '9–5',
+      },
+      signals: {
+        load: 'Heavy',
+        delivery: 'Blocked',
+        supportNeeded: 'High',
+      },
+      pinnedNoteIds: ['note-e1'],
+      activitySnapshot: {
+        bullets: ['Repeated friction: CI flakiness on integration tests is blocking progress.'],
+        lastUpdatedIso: isoNowMinusDays(2),
+        quickTags: ['CI', 'FlakyTests'],
+      },
       notes: [
         {
           id: 'note-e1',

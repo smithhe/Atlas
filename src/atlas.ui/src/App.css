@@ -680,6 +680,220 @@ select option:disabled {
   margin-top: 12px;
 }
 
+/* Team Member — Overview (rev3) */
+.memberOverviewGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.memberOverviewKv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memberOverviewKvRow {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.memberOverviewKvKey {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memberOverviewKvVal {
+  color: var(--text);
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.signalPillsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.memberOverviewFocus {
+  /* Place Focus in the right column and let it consume the empty vertical space. */
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.memberOverviewFocusBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pillBtn {
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+.pillBtn:hover {
+  background: rgba(110, 168, 254, 0.10);
+  border-color: rgba(110, 168, 254, 0.22);
+}
+
+.toneNeutral {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+}
+
+.toneGood {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.36);
+  color: rgba(220, 255, 235, 0.96);
+}
+
+.toneWarn {
+  background: rgba(241, 196, 15, 0.14);
+  border-color: rgba(241, 196, 15, 0.36);
+  color: rgba(255, 246, 205, 0.96);
+}
+
+.toneBad {
+  background: rgba(255, 107, 107, 0.14);
+  border-color: rgba(255, 107, 107, 0.40);
+  color: rgba(255, 222, 222, 0.96);
+}
+
+.focusTicketsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  padding-right: 6px; /* keep text from sitting under scrollbar */
+  flex: 1;
+  min-height: 0;
+}
+
+.focusTicketRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 0; /* enables ellipsis in nested flex/grid children */
+}
+
+.focusTicketRowBtn,
+.noteRowBtn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.focusTicketRowBtn {
+  background: inherit;
+}
+
+.noteRowBtn {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.noteRowBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.focusTicketRow.toneNeutral {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.focusTicketRow.toneGood {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.30);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.14) inset;
+  color: var(--text);
+}
+
+.focusTicketRow.toneWarn {
+  background: rgba(241, 196, 15, 0.08);
+  border-color: rgba(241, 196, 15, 0.34);
+  box-shadow: 0 0 0 1px rgba(241, 196, 15, 0.16) inset;
+  color: var(--text);
+}
+
+.focusTicketRow.toneBad {
+  background: rgba(255, 107, 107, 0.09);
+  border-color: rgba(255, 107, 107, 0.40);
+  box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.18) inset;
+  color: var(--text);
+}
+
+.focusTicketRowBtn:hover {
+  filter: brightness(1.08);
+}
+
+.focusTicketRowBtn.toneNeutral:hover {
+  border-color: rgba(110, 168, 254, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(110, 168, 254, 0.22) inset,
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.focusTicketRowBtn.toneGood:hover {
+  border-color: rgba(34, 197, 94, 0.44);
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.22) inset,
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.focusTicketRowBtn.toneWarn:hover {
+  border-color: rgba(241, 196, 15, 0.48);
+  box-shadow:
+    0 0 0 1px rgba(241, 196, 15, 0.24) inset,
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.focusTicketRowBtn.toneBad:hover {
+  border-color: rgba(255, 107, 107, 0.58);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 107, 0.26) inset,
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.pinnedNotesPreview {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.memberOverviewBullets {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.memberOverviewBullets li {
+  margin: 4px 0;
+}
+
+.memberOverviewFooterRow {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .notesList {
   margin-top: 12px;
   display: flex;
@@ -769,6 +983,7 @@ select option:disabled {
 .tabBtn:hover {
   background: rgba(110, 168, 254, 0.10);
   border-color: rgba(110, 168, 254, 0.22);
+  text-decoration: none; /* override global a:hover underline for NavLink tabs */
 }
 
 .tabBtnActive {
@@ -1016,6 +1231,14 @@ select option:disabled {
   }
   .subGrid {
     grid-template-columns: 1fr;
+  }
+
+  .memberOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .memberOverviewFocus {
+    grid-row: auto;
   }
   .azureGrid {
     grid-template-columns: 1fr;

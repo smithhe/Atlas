@@ -5,6 +5,10 @@ export type RiskStatus = 'Open' | 'Watching' | 'Resolved'
 export type NoteTag = 'Blocker' | 'Progress' | 'Concern' | 'Praise' | 'Standup' | 'Quick'
 export type Confidence = 'Low' | 'Medium' | 'High'
 
+export type LoadSignal = 'Light' | 'Normal' | 'Heavy'
+export type DeliverySignal = 'AtRisk' | 'OnTrack' | 'Blocked'
+export type SupportNeededSignal = 'Low' | 'Medium' | 'High'
+
 export interface Task {
   id: Id
   title: string
@@ -46,6 +50,22 @@ export interface TeamMember {
   currentFocus: string
   notes: TeamNote[]
   azureItems: AzureItem[]
+
+  profile: {
+    timeZone?: string
+    typicalHours?: string
+  }
+  signals: {
+    load: LoadSignal
+    delivery: DeliverySignal
+    supportNeeded: SupportNeededSignal
+  }
+  pinnedNoteIds: Id[]
+  activitySnapshot: {
+    bullets: string[]
+    lastUpdatedIso?: string
+    quickTags?: string[]
+  }
 }
 
 export interface Risk {
