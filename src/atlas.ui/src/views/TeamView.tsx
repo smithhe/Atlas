@@ -530,6 +530,9 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                 onClick={() => {
                   setExpandedNoteId((prev) => (prev === n.id ? undefined : n.id))
                 }}
+                onDoubleClick={() => {
+                  navigate(`/team/${member.id}/notes/${n.id}`)
+                }}
                 onKeyDown={(e) => {
                   if (e.key !== 'Enter' && e.key !== ' ') return
                   e.preventDefault()
@@ -560,6 +563,17 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                         title="Open note"
                       >
                         {n.tag}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btnGhost btnIcon"
+                        title="Open full page"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/team/${member.id}/notes/${n.id}`)
+                        }}
+                      >
+                        ↗
                       </button>
                       <button
                         type="button"
@@ -610,7 +624,10 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                   <button
                     className="btn btnSecondary"
                     onClick={() => {
-                      const nextNotes = member.notes.map((x) => (x.id === selectedNote.id ? { ...x, text: draftText } : x))
+                      const nowIso = new Date().toISOString()
+                      const nextNotes = member.notes.map((x) =>
+                        x.id === selectedNote.id ? { ...x, text: draftText, lastModifiedIso: nowIso } : x,
+                      )
                       updateNotes(nextNotes)
                       setIsEditOpen(false)
                     }}
@@ -732,6 +749,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                 const next: TeamNote = {
                   id: newId('note'),
                   createdIso: new Date().toISOString(),
+                  lastModifiedIso: new Date().toISOString(),
                   tag: newTag,
                   title: title || undefined,
                   text: newText.trim(),

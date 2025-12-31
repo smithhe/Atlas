@@ -164,7 +164,8 @@ function NotesPanel({ member }: { member: TeamMember }) {
   }
 
   function saveEdit(noteId: string) {
-    const nextNotes = member.notes.map((n) => (n.id === noteId ? { ...n, text: draftText } : n))
+    const nowIso = new Date().toISOString()
+    const nextNotes = member.notes.map((n) => (n.id === noteId ? { ...n, text: draftText, lastModifiedIso: nowIso } : n))
     dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
     setEditingNoteId(undefined)
     setDraftText('')

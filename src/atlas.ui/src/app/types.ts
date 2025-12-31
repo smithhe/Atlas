@@ -26,6 +26,7 @@ export interface Task {
 export interface TeamNote {
   id: Id
   createdIso: string
+  lastModifiedIso?: string
   tag: NoteTag
   title?: string
   text: string

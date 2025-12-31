@@ -124,6 +124,84 @@
   gap: 12px;
 }
 
+.pageFill {
+  height: 100%;
+  min-height: 0;
+}
+
+.noteDetailCard {
+  /* Let the note body fill the remaining vertical space under header + fields. */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.noteDetailFields {
+  margin-top: 10px;
+}
+
+.noteDetailReadonly {
+  min-height: 38px; /* roughly matches .input height */
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(232, 241, 255, 0.92);
+}
+
+.noteDetailBody {
+  flex: 1;
+  min-height: 0;
+  /* Override the generic .noteBody cap (360px) for the full-page detail view. */
+  max-height: none;
+  overflow: auto;
+  /* Make the full-page note readable as a "document" surface. */
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 14px 14px;
+  padding-right: 18px; /* keep text off the scrollbar */
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.noteDetailTextarea {
+  flex: 1;
+  min-height: 0;
+  margin-top: 12px;
+  width: 100%;
+  resize: none;
+  max-height: none;
+  overflow: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.noteDetailLastUpdated {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.noteDetailLastUpdatedLabel {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.noteDetailLastUpdatedValue {
+  font-size: 12px;
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+}
+
 .btn {
   background: rgba(110, 168, 254, 0.2);
   border: 1px solid rgba(110, 168, 254, 0.4);
@@ -1095,6 +1173,14 @@ select option:disabled {
   padding-right: 6px; /* keep text from sitting under scrollbar */
 }
 
+/* Note detail view: the body should fill remaining space (override the generic 360px cap). */
+.noteDetailBody.noteBody {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+}
+
 /* Tabs (Team Member view) */
 .tabsBar {
   display: flex;
@@ -1223,6 +1309,35 @@ select option:disabled {
   white-space: normal;
 }
 
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 12px 0 8px 0;
+  line-height: 1.2;
+  letter-spacing: 0.1px;
+}
+
+.markdown h1 {
+  font-size: 20px;
+}
+
+.markdown h2 {
+  font-size: 18px;
+}
+
+.markdown h3 {
+  font-size: 16px;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 14px;
+}
+
 .markdown > :first-child {
   margin-top: 0;
 }
@@ -1266,6 +1381,37 @@ select option:disabled {
   background: transparent;
   border: none;
   padding: 0;
+}
+
+.markdown blockquote {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 3px solid rgba(110, 168, 254, 0.38);
+  background: rgba(110, 168, 254, 0.06);
+  border-radius: 10px;
+  color: rgba(232, 241, 255, 0.86);
+}
+
+.markdown hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+  margin: 14px 0;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.markdown th,
+.markdown td {
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  padding: 6px 8px;
+}
+
+.markdown th {
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
 }
 
 .markdown a {
