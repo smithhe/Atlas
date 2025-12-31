@@ -27,6 +27,7 @@ export interface TeamNote {
   id: Id
   createdIso: string
   tag: NoteTag
+  title?: string
   text: string
   adoWorkItemId?: string
   prUrl?: string

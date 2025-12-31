@@ -250,14 +250,18 @@ function stripMarkdownHeadings(line: string) {
 }
 
 function getDerivedTitle(note: TeamNote) {
+  const explicit = note.title?.trim()
+  if (explicit) return explicit
   const firstNonEmpty = note.text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '(untitled)'
   return stripMarkdownHeadings(firstNonEmpty)
 }
 
 function getPreview(note: TeamNote) {
   const text = note.text.replace(/\s+/g, ' ').trim()
-  if (text.length <= 180) return text
-  return text.slice(0, 180).trim() + '…'
+  // Keep previews readable in the list without forcing users to open every note.
+  // The UI also line-clamps, so a slightly longer preview helps fill 3 lines.
+  if (text.length <= 320) return text
+  return text.slice(0, 320).trim() + '…'
 }
 
 function isActionItemNote(note: TeamNote) {
@@ -284,9 +288,11 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
   const [sortBy, setSortBy] = useState<'Newest' | 'Oldest'>('Newest')
   const [quickFilter, setQuickFilter] = useState<'All' | 'ThisWeek' | 'ActionItems' | 'OneOnOne' | 'Risks'>('All')
 
+  const [expandedNoteId, setExpandedNoteId] = useState<string | undefined>(undefined)
   const [selectedNoteId, setSelectedNoteId] = useState<string | undefined>(undefined)
   const [isNewOpen, setIsNewOpen] = useState(false)
   const [newTag, setNewTag] = useState<NoteTag>('Quick')
+  const [newTitle, setNewTitle] = useState('')
   const [newText, setNewText] = useState('')
 
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -393,6 +399,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
       if (!q) return true
       const hay = [
         n.tag,
+        n.title ?? '',
         getDerivedTitle(n),
         n.text,
         n.adoWorkItemId ?? '',
@@ -438,6 +445,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
             onClick={() => {
               setIsNewOpen(true)
               setNewTag('Quick')
+              setNewTitle('')
               setNewText('')
             }}
           >
@@ -478,7 +486,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
           </label>
         </div>
 
-        <div className="chipRow" aria-label="Notes quick filters">
+        <div className="chipRow memberNotesQuickFilters" aria-label="Notes quick filters">
           <button className={`chipBtn ${quickFilter === 'All' ? 'chipBtnActive' : ''}`} onClick={() => setQuickFilter('All')}>
             All
           </button>
@@ -508,30 +516,78 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
           </button>
         </div>
 
-        <div className="list listCard">
+        <div className="list listCard memberNotesList">
           {filteredSorted.length === 0 ? (
             <div className="muted pad">No notes match your filters.</div>
           ) : (
             filteredSorted.map((n) => (
-              <button
+              <div
                 key={n.id}
-                className="listRow listRowBtn"
+                className={`listRow memberNotesRow memberNotesRowBtn ${expandedNoteId === n.id ? 'memberNotesRowExpanded' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-expanded={expandedNoteId === n.id}
                 onClick={() => {
-                  setSelectedNoteId(n.id)
-                  setIsEditOpen(false)
-                  setDraftText('')
-                  setEditTab('Write')
+                  setExpandedNoteId((prev) => (prev === n.id ? undefined : n.id))
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return
+                  e.preventDefault()
+                  setExpandedNoteId((prev) => (prev === n.id ? undefined : n.id))
                 }}
               >
                 <div className="listMain">
-                  <div className="listTitle">{getDerivedTitle(n)}</div>
-                  <div className="listMeta">
-                    {new Date(n.createdIso).toLocaleDateString()} • {n.tag}
-                    {n.adoWorkItemId ? ` • ADO: ${n.adoWorkItemId}` : ''}
+                  <div className="memberNotesHeaderRow">
+                    <div className="memberNotesHeaderLeft">
+                      <div className="listTitle memberNotesTitle">{getDerivedTitle(n)}</div>
+                      <div className="listMeta memberNotesMeta">
+                        {new Date(n.createdIso).toLocaleDateString()}
+                        {n.adoWorkItemId ? ` • ADO: ${n.adoWorkItemId}` : ''}
+                      </div>
+                    </div>
+
+                    <div className="memberNotesRowActions">
+                      <button
+                        type="button"
+                        className={`chip chipTag chipTag-${n.tag.toLowerCase()} memberNotesTagPill`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedNoteId(n.id)
+                          setIsEditOpen(false)
+                          setDraftText('')
+                          setEditTab('Write')
+                        }}
+                        title="Open note"
+                      >
+                        {n.tag}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btnGhost btnIcon"
+                        title={expandedNoteId === n.id ? 'Collapse' : 'Expand'}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setExpandedNoteId((prev) => (prev === n.id ? undefined : n.id))
+                        }}
+                      >
+                        {expandedNoteId === n.id ? '▾' : '▸'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="listMeta listMetaWrap listNotesPreview">{getPreview(n)}</div>
+
+                  {expandedNoteId === n.id ? (
+                    <div className="memberNotesExpandedBody">
+                      <div className="noteText noteBody memberNotesExpandedMarkdown">
+                        <Markdown text={n.text} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="memberNotesCollapsedMarkdown">
+                      <Markdown text={n.text} />
+                    </div>
+                  )}
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>
@@ -663,6 +719,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
         isOpen={isNewOpen}
         onClose={() => {
           setIsNewOpen(false)
+          setNewTitle('')
           setNewText('')
         }}
         footer={
@@ -671,14 +728,17 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
               className="btn btnSecondary"
               onClick={() => {
                 if (!newText.trim()) return
+                const title = newTitle.trim()
                 const next: TeamNote = {
                   id: newId('note'),
                   createdIso: new Date().toISOString(),
                   tag: newTag,
+                  title: title || undefined,
                   text: newText.trim(),
                 }
                 updateNotes([next, ...member.notes])
                 setIsNewOpen(false)
+                setNewTitle('')
                 setNewText('')
               }}
             >
@@ -688,6 +748,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
               className="btn btnGhost"
               onClick={() => {
                 setIsNewOpen(false)
+                setNewTitle('')
                 setNewText('')
               }}
             >
@@ -706,6 +767,15 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                 </option>
               ))}
             </select>
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Title (optional)</div>
+            <input
+              className="input"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="e.g., 1:1 follow-ups, Standup recap…"
+            />
           </label>
           <label className="field">
             <div className="fieldLabel">Note</div>

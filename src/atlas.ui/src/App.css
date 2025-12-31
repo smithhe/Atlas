@@ -306,6 +306,148 @@
   color: var(--muted2);
 }
 
+.memberNotesList {
+  /* Notes tab: keep the list visually attached to the chips spacing below. */
+  margin-top: 0;
+  background: transparent;
+  border: none;
+  overflow: visible;
+  gap: 10px;
+}
+
+.memberNotesRow {
+  /* Notes tab: make rows taller + easier to scan. */
+  padding: 14px 14px;
+  align-items: flex-start;
+  gap: 12px;
+  /* Make row boundaries obvious (markdown previews removed the old "thin divider" clarity). */
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+  /* Remove the generic .listRow divider line; we draw a full border instead. */
+  border-top: none;
+}
+
+.memberNotesRowBtn {
+  cursor: pointer;
+}
+
+.memberNotesRowBtn:hover {
+  border-color: rgba(110, 168, 254, 0.24);
+  box-shadow:
+    0 0 0 1px rgba(110, 168, 254, 0.14) inset,
+    0 10px 26px rgba(0, 0, 0, 0.20);
+}
+
+.memberNotesRowBtn:focus-visible {
+  outline: 2px solid rgba(110, 168, 254, 0.75);
+  outline-offset: 2px;
+}
+
+.memberNotesHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.memberNotesHeaderLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberNotesMeta {
+  /* With titles removed, keep the meta line compact. */
+  line-height: 1.2;
+}
+
+.memberNotesRowActions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.memberNotesTagPill {
+  cursor: pointer;
+}
+
+.memberNotesTagPill:hover {
+  filter: brightness(1.06);
+}
+
+.memberNotesRowExpanded {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.memberNotesTitle {
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  line-height: 1.25;
+}
+
+.memberNotesPreview {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  /* Requested: make the note text easier to read. */
+  color: rgba(232, 241, 255, 0.88);
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-clamp: 4;
+  -webkit-line-clamp: 4;
+}
+
+.memberNotesCollapsedMarkdown {
+  margin-top: 10px;
+  color: rgba(232, 241, 255, 0.88);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Markdown preview mode (collapsed list view) */
+.memberNotesCollapsedMarkdown .markdown {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-clamp: 4;
+  -webkit-line-clamp: 4;
+}
+
+.memberNotesCollapsedMarkdown .markdown p,
+.memberNotesCollapsedMarkdown .markdown ul,
+.memberNotesCollapsedMarkdown .markdown ol,
+.memberNotesCollapsedMarkdown .markdown pre {
+  /* Keep preview compact; avoid large block spacing. */
+  margin: 0;
+}
+
+.memberNotesCollapsedMarkdown .markdown ul,
+.memberNotesCollapsedMarkdown .markdown ol {
+  padding-left: 18px; /* keep bullets readable */
+}
+
+.memberNotesCollapsedMarkdown .markdown pre {
+  /* Code blocks can be huge; keep them visually calm in preview. */
+  padding: 8px;
+}
+
+.memberNotesExpandedBody {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.memberNotesExpandedMarkdown {
+  /* Allow expanded notes to show the whole content inline (still scrollable due to .noteBody cap). */
+  color: rgba(232, 241, 255, 0.92);
+}
+
 .pill {
   font-size: 12px;
   padding: 4px 8px;
@@ -997,6 +1139,11 @@ select option:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.memberNotesQuickFilters {
+  /* Requested: space between quick-filter chips and the notes list. */
+  margin-bottom: 14px;
 }
 
 .chipBtn {

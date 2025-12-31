@@ -23,6 +23,8 @@ function stripMarkdownHeadings(line: string) {
 }
 
 function getDerivedTitle(note: TeamNote) {
+  const explicit = note.title?.trim()
+  if (explicit) return explicit
   const firstNonEmpty = note.text
     .split('\n')
     .map((l) => l.trim())

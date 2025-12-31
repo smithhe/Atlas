@@ -178,6 +178,7 @@ function NotesPanel({ member }: { member: TeamMember }) {
       if (!q) return true
       const hay = [
         n.tag,
+        n.title ?? '',
         n.text,
         n.adoWorkItemId ?? '',
         n.prUrl ?? '',

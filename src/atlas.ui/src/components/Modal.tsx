@@ -17,6 +17,12 @@ export function Modal({
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement | null>(null)
   const lastActiveRef = useRef<HTMLElement | null>(null)
+  const onCloseRef = useRef(onClose)
+
+  // Keep the latest onClose callback without re-running the "open" effect on every render.
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
 
   useEffect(() => {
     if (!isOpen) return
@@ -26,7 +32,7 @@ export function Modal({
     document.body.style.overflow = 'hidden'
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
     }
 
     document.addEventListener('keydown', onKeyDown)
@@ -39,7 +45,7 @@ export function Modal({
       document.body.style.overflow = prevOverflow
       lastActiveRef.current?.focus()
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   if (!isOpen) return null
 
