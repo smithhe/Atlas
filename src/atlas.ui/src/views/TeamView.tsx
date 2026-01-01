@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, Risk, TeamMember, TeamNote } from '../app/types'
+import { isCurrentTicketStatus } from '../app/team'
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
@@ -254,14 +255,6 @@ function getDerivedTitle(note: TeamNote) {
   if (explicit) return explicit
   const firstNonEmpty = note.text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '(untitled)'
   return stripMarkdownHeadings(firstNonEmpty)
-}
-
-function getPreview(note: TeamNote) {
-  const text = note.text.replace(/\s+/g, ' ').trim()
-  // Keep previews readable in the list without forcing users to open every note.
-  // The UI also line-clamps, so a slightly longer preview helps fill 3 lines.
-  if (text.length <= 320) return text
-  return text.slice(0, 320).trim() + '…'
 }
 
 function isActionItemNote(note: TeamNote) {
@@ -808,15 +801,44 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
 function MemberWorkItemsTab({ member }: { member: TeamMember }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined)
+  const [quickFilter, setQuickFilter] = useState<'All' | 'Current' | 'Blocked' | 'InReview'>('All')
+  const [statusFilter, setStatusFilter] = useState<string>('All')
+
+  function ticketAttentionTone(status: string) {
+    const s = status.toLowerCase()
+    if (s.includes('blocked')) return 'toneBad'
+    if (s.includes('code review') || s.includes('in review') || s.includes('review')) return 'toneWarn'
+    return 'toneNeutral'
+  }
+
+  const statusOptions = useMemo(() => {
+    const uniq = Array.from(new Set(member.azureItems.map((a) => a.status).filter(Boolean)))
+    uniq.sort((a, b) => a.localeCompare(b))
+    return ['All', ...uniq]
+  }, [member.azureItems])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return member.azureItems
-    return member.azureItems.filter((a) => `${a.id} ${a.title} ${a.status}`.toLowerCase().includes(q))
-  }, [member.azureItems, query])
+    let items = member.azureItems
 
-  const selected = useMemo(() => member.azureItems.find((a) => a.id === selectedId), [member.azureItems, selectedId])
+    if (quickFilter === 'Current') {
+      items = items.filter((a) => isCurrentTicketStatus(a.status))
+    } else if (quickFilter === 'Blocked') {
+      items = items.filter((a) => a.status.toLowerCase().includes('blocked'))
+    } else if (quickFilter === 'InReview') {
+      items = items.filter((a) => {
+        const s = a.status.toLowerCase()
+        return s.includes('code review') || s.includes('in review') || s.includes('review')
+      })
+    }
+
+    if (statusFilter !== 'All') {
+      items = items.filter((a) => a.status === statusFilter)
+    }
+
+    if (!q) return items
+    return items.filter((a) => `${a.id} ${a.title} ${a.status}`.toLowerCase().includes(q))
+  }, [member.azureItems, query, quickFilter, statusFilter])
 
   return (
     <section className="card subtle" aria-label="Work items tab">
@@ -835,18 +857,61 @@ function MemberWorkItemsTab({ member }: { member: TeamMember }) {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+          <label className="field">
+            <div className="fieldLabel">Status</div>
+            <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              {statusOptions.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        <div className="list listCard">
+        <div className="chipRow memberWorkItemsQuickFilters" aria-label="Work items quick filters">
+          <button
+            type="button"
+            className={`chipBtn ${quickFilter === 'All' ? 'chipBtnActive' : ''}`}
+            onClick={() => setQuickFilter('All')}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            className={`chipBtn ${quickFilter === 'Current' ? 'chipBtnActive' : ''}`}
+            onClick={() => setQuickFilter('Current')}
+            title="In progress, blocked, or in review"
+          >
+            Current
+          </button>
+          <button
+            type="button"
+            className={`chipBtn ${quickFilter === 'InReview' ? 'chipBtnActive' : ''}`}
+            onClick={() => setQuickFilter('InReview')}
+          >
+            In Review
+          </button>
+          <button
+            type="button"
+            className={`chipBtn ${quickFilter === 'Blocked' ? 'chipBtnActive' : ''}`}
+            onClick={() => setQuickFilter('Blocked')}
+          >
+            Blocked
+          </button>
+        </div>
+
+        <div className="focusTicketsList" role="list">
           {filtered.length === 0 ? (
             <div className="muted pad">No work items match your search.</div>
           ) : (
             filtered.map((a) => (
               <button
                 key={a.id}
-                className="listRow listRowBtn"
+                type="button"
+                className={`focusTicketRow focusTicketRowBtn ${ticketAttentionTone(a.status)}`}
                 onClick={() => {
-                  setSelectedId(a.id)
+                  navigate(`/team/${member.id}/work-items/${a.id}`)
                 }}
               >
                 <div className="listMain">
@@ -863,66 +928,6 @@ function MemberWorkItemsTab({ member }: { member: TeamMember }) {
           )}
         </div>
       </div>
-
-      <Modal
-        title={selected ? `${selected.id} — ${selected.title}` : 'Work item'}
-        isOpen={!!selected}
-        onClose={() => setSelectedId(undefined)}
-        footer={
-          selected ? (
-            <div className="row" style={{ marginTop: 0 }}>
-              <button className="btn btnGhost" onClick={() => navigate(`/team/${member.id}/work-items/${selected.id}`)}>
-                Open full page
-              </button>
-            </div>
-          ) : null
-        }
-      >
-        {!selected ? null : (
-          <div className="kv">
-            <div className="kvRow">
-              <div className="kvKey">Status</div>
-              <div className="kvVal">{selected.status}</div>
-            </div>
-            <div className="kvRow">
-              <div className="kvKey">Time taken</div>
-              <div className="kvVal">{selected.timeTaken ?? '—'}</div>
-            </div>
-            <div className="kvRow">
-              <div className="kvKey">Links</div>
-              <div className="kvVal">
-                {(selected.ticketUrl ?? selected.prUrl ?? selected.commitsUrl) ? (
-                  <>
-                    {selected.ticketUrl ? (
-                      <div>
-                        <a href={selected.ticketUrl} target="_blank" rel="noreferrer">
-                          Ticket
-                        </a>
-                      </div>
-                    ) : null}
-                    {selected.prUrl ? (
-                      <div>
-                        <a href={selected.prUrl} target="_blank" rel="noreferrer">
-                          PR
-                        </a>
-                      </div>
-                    ) : null}
-                    {selected.commitsUrl ? (
-                      <div>
-                        <a href={selected.commitsUrl} target="_blank" rel="noreferrer">
-                          Commits
-                        </a>
-                      </div>
-                    ) : null}
-                  </>
-                ) : (
-                  '—'
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
     </section>
   )
 }

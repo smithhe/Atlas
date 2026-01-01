@@ -40,8 +40,34 @@ export interface AzureItem {
   status: string
   timeTaken?: string
   ticketUrl?: string
-  prUrl?: string
+  prUrls?: string[]
   commitsUrl?: string
+
+  /**
+   * Local-only fields (not sourced from Azure DevOps sync; safe to keep even after sync exists).
+   */
+  assignedTo?: string
+  startDateIso?: string // ISO date (YYYY-MM-DD)
+  projectId?: Id
+  localNotes?: WorkItemNote[]
+
+  /**
+   * Sync-owned history (imported from Azure DevOps). Local edits should NOT append to this.
+   */
+  history?: WorkItemHistoryEntry[]
+}
+
+export interface WorkItemNote {
+  id: Id
+  createdIso: string
+  text: string
+}
+
+export interface WorkItemHistoryEntry {
+  id: Id
+  createdIso: string
+  kind: 'StateChanged' | 'AssignedToChanged' | 'CommentAdded' | 'PullRequestLinked' | 'Other'
+  summary: string
 }
 
 export interface TeamMember {

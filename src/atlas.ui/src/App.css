@@ -1232,6 +1232,11 @@ select option:disabled {
   margin-bottom: 14px;
 }
 
+.memberWorkItemsQuickFilters {
+  /* Match notes quick filters spacing for the Work Items tab. */
+  margin-bottom: 14px;
+}
+
 .chipBtn {
   font-size: 12px;
   padding: 6px 10px;
@@ -1497,6 +1502,42 @@ select option:disabled {
   color: var(--text);
 }
 
+.workItemDetailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.workItemField {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 14px;
+  padding: 8px 0;
+  align-items: baseline;
+}
+
+.workItemFieldKey {
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+  letter-spacing: 0.15px;
+}
+
+.workItemFieldVal {
+  color: rgba(232, 241, 255, 0.92);
+}
+
+.workItemLinkPill {
+  padding: 8px 12px;
+  min-width: 56px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.workItemLinkPill:hover {
+  text-decoration: none;
+}
+
 @media (max-width: 1100px) {
   .bodyGrid {
     grid-template-columns: 220px 1fr;
@@ -1538,6 +1579,10 @@ select option:disabled {
   }
 
   .tasksFiltersRow {
+    grid-template-columns: 1fr;
+  }
+
+  .workItemDetailsGrid {
     grid-template-columns: 1fr;
   }
 }
