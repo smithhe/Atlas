@@ -139,6 +139,7 @@ export function TasksView() {
   }, [filtered, settings.staleDays, sortBy, sortDir])
 
   const isFocusMode = !!taskId
+  const showDetail = isFocusMode || !!selected
 
   useEffect(() => {
     if (!taskId) return
@@ -157,6 +158,11 @@ export function TasksView() {
     const el = listRef.current
     if (!el) return
     if (isFocusMode) return
+    if (!showDetail) {
+      // When the detail pane is hidden, let the list expand to fill available space.
+      setListMaxHeightPx(undefined)
+      return
+    }
 
     if (filteredSorted.length <= 5) {
       setListMaxHeightPx(undefined)
@@ -167,15 +173,22 @@ export function TasksView() {
     if (rows.length === 0) return
 
     const sumHeights = rows.reduce((sum, r) => sum + r.getBoundingClientRect().height, 0)
+    // Include list padding + gaps between rows so the cap is visually correct.
+    const style = getComputedStyle(el)
+    const paddingTop = Number.parseFloat(style.paddingTop || '0') || 0
+    const paddingBottom = Number.parseFloat(style.paddingBottom || '0') || 0
+    const rowGap = Number.parseFloat(style.rowGap || style.gap || '0') || 0
+    const gaps = rowGap * Math.max(0, rows.length - 1)
+
     // Small padding so borders don't clip.
-    setListMaxHeightPx(Math.ceil(sumHeights + 2))
-  }, [filteredSorted.length, isFocusMode])
+    setListMaxHeightPx(Math.ceil(sumHeights + gaps + paddingTop + paddingBottom + 2))
+  }, [filteredSorted.length, isFocusMode, showDetail])
 
   return (
-    <div className="page">
+    <div className="page pageFill">
       <h2 className="pageTitle">Tasks</h2>
 
-      <div className={`tasksStack ${isFocusMode ? 'tasksStackFocus' : ''}`}>
+      <div className={`tasksStack ${isFocusMode ? 'tasksStackFocus' : ''} ${!showDetail ? 'tasksStackNoDetail' : ''}`}>
         {!isFocusMode ? (
           <section className="card tight tasksFiltersRow" aria-label="Task filters">
             <label className="field">
@@ -331,23 +344,26 @@ export function TasksView() {
           </section>
         ) : null}
 
-        <section className="tasksDetailRow" aria-label="Task detail editor">
-          {!selected ? (
-            <div className="card pad">
-              <div className="muted">Select a task to edit.</div>
-            </div>
-          ) : (
-            <TaskDetail
-              task={selected}
-              staleDays={settings.staleDays}
-              isFocusMode={isFocusMode}
-              onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
-              onExitFocus={() => navigate('/tasks')}
-              projectOptions={projectOptions}
-              riskOptions={riskOptions}
-            />
-          )}
-        </section>
+        {showDetail ? (
+          <section className="tasksDetailRow" aria-label="Task detail editor">
+            {selected ? (
+              <TaskDetail
+                task={selected}
+                staleDays={settings.staleDays}
+                isFocusMode={isFocusMode}
+                onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
+                onExitFocus={() => navigate('/tasks')}
+                onClose={() => dispatch({ type: 'selectTask', taskId: undefined })}
+                projectOptions={projectOptions}
+                riskOptions={riskOptions}
+              />
+            ) : (
+              <div className="card pad">
+                <div className="muted">Task not found.</div>
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
     </div>
   )
@@ -359,6 +375,7 @@ function TaskDetail({
   isFocusMode,
   onEnterFocus,
   onExitFocus,
+  onClose,
   projectOptions,
   riskOptions,
 }: {
@@ -367,6 +384,7 @@ function TaskDetail({
   isFocusMode: boolean
   onEnterFocus: () => void
   onExitFocus: () => void
+  onClose: () => void
   projectOptions: string[]
   riskOptions: string[]
 }) {
@@ -417,15 +435,22 @@ function TaskDetail({
             {stale ? ` • stale` : ''}
           </div>
         </div>
-        {isFocusMode ? (
-          <button className="btn btnGhost" onClick={onExitFocus}>
-            Exit focus
-          </button>
-        ) : (
-          <button className="btn btnGhost" onClick={onEnterFocus}>
-            Focus
-          </button>
-        )}
+        <div className="rowTiny">
+          {isFocusMode ? (
+            <button className="btn btnGhost" onClick={onExitFocus}>
+              Exit focus
+            </button>
+          ) : (
+            <>
+              <button className="btn btnGhost" onClick={onClose}>
+                Close
+              </button>
+              <button className="btn btnGhost" onClick={onEnterFocus}>
+                Focus
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="fieldGrid2">

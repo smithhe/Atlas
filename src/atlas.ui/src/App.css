@@ -544,11 +544,43 @@
 
 .tasksTaskRow {
   align-items: flex-start;
+  /* Border around each task row (both compact + expanded states). */
+  border-top: none; /* override the generic .listRow divider */
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+}
+
+.tasksListRow .tasksTaskRow:first-child {
+  /* Override `.listRow:first-child { border-top: none; }` so the top border doesn't disappear. */
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 .tasksTaskRow .pillRow {
   align-self: flex-start;
   margin-top: 2px;
+}
+
+.tasksStackNoDetail .tasksTaskRow {
+  /* Expanded rows (when detail pane is hidden), but keep the compact list styling (panel bg + dividers). */
+  padding: 14px 12px;
+  gap: 12px;
+}
+
+.tasksStackNoDetail .tasksTaskRow .listTitle {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.tasksStackNoDetail .tasksTaskRow .listTitle + .listMeta {
+  margin-top: 6px;
+}
+
+.tasksStackNoDetail .tasksTaskRow .listMeta + .listMeta {
+  margin-top: 4px;
+}
+
+.tasksStackNoDetail .tasksTaskRow .listMeta {
+  font-size: 13px;
 }
 
 .activityDot {
@@ -638,7 +670,14 @@
   /* Filters row, then task list (caps itself when >5 items), then detail fills the rest */
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
-  min-height: 560px;
+  /* Fill available vertical space in the main content area. */
+  flex: 1;
+  min-height: 0;
+}
+
+.tasksStackNoDetail {
+  /* When no task is selected, let the list fill the remaining space under filters. */
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .tasksStackFocus {
@@ -675,6 +714,9 @@
 }
 
 .tasksListRow {
+  /* Add spacing so per-row borders read as individual items. */
+  gap: 8px;
+  padding: 8px;
   overflow: auto;
   min-height: 0;
 }
