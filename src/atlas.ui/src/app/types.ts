@@ -159,7 +159,10 @@ export interface Settings {
   azureDevOpsBaseUrl?: string
 }
 
-export type GrowthGoalStatus = 'OnTrack' | 'NeedsAttention'
+export type GrowthGoalStatus = 'OnTrack' | 'NeedsAttention' | 'Completed'
+
+export type GrowthGoalActionState = 'Planned' | 'InProgress' | 'Complete'
+export type GrowthGoalCheckInSignal = 'Positive' | 'Mixed' | 'Concern'
 
 /**
  * Growth is tracked per team member. This is the top-level record we can expand over time
@@ -187,6 +190,22 @@ export interface GrowthGoal {
   title: string
   description: string
   status: GrowthGoalStatus
+
+  category?: string
+  priority?: Priority
+
+  /**
+   * Detail view fields
+   */
+  startDateIso?: string // ISO date (YYYY-MM-DD)
+  targetDateIso?: string // ISO date (YYYY-MM-DD)
+  lastUpdatedIso?: string // ISO datetime
+  progressPercent?: number // 0-100
+  summary?: string
+  successCriteria?: string[] // bullets
+
+  actions: GrowthGoalAction[]
+  checkIns: GrowthGoalCheckIn[]
 }
 
 export interface GrowthFeedbackTheme {
@@ -194,6 +213,23 @@ export interface GrowthFeedbackTheme {
   title: string
   description: string
   observedSinceLabel?: string
+}
+
+export interface GrowthGoalAction {
+  id: Id
+  title: string
+  dueDateIso?: string // ISO date (YYYY-MM-DD)
+  state: GrowthGoalActionState
+  priority?: Priority
+  notes?: string
+  links?: string[]
+}
+
+export interface GrowthGoalCheckIn {
+  id: Id
+  dateIso: string // ISO date (YYYY-MM-DD)
+  signal: GrowthGoalCheckInSignal
+  note: string
 }
 
 

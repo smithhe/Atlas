@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamNote } from '../app/types'
@@ -36,6 +36,9 @@ export function TeamNoteDetailView() {
   const { memberId, noteId } = useParams<{ memberId: string; noteId: string }>()
   const { team } = useAppState()
   const member = useSelectedTeamMember()
+  const memberName = useMemo(() => {
+    return member?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
+  }, [member?.name, memberId, team])
 
   useEffect(() => {
     ai.setContext('Context: Team Note Detail', [{ id: 'summarize-note', label: 'Summarize this note' }])
@@ -108,6 +111,28 @@ export function TeamNoteDetailView() {
 
   return (
     <div className="page pageFill">
+      <nav className="pageBreadcrumbs" aria-label="Breadcrumbs">
+        <Link className="crumbLink" to="/team">
+          Team
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <Link className="crumbLink" to={`/team/${memberId}`}>
+          {memberName}
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <Link className="crumbLink" to={`/team/${memberId}/notes`}>
+          Notes
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <span className="crumbCurrent">Note</span>
+      </nav>
+
       <div className="detailHeader">
         <div>
           <div className="detailTitle">Note</div>

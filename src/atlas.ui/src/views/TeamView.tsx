@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
-import type { NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
+import type { GrowthGoalStatus, NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
-import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
@@ -51,6 +51,10 @@ export function TeamView() {
   const routeTab = useMemo(() => getActiveTab(location.pathname), [location.pathname])
   const [localTab, setLocalTab] = useState<MemberTab>('overview')
   const activeTab = isFocusMode ? routeTab : localTab
+  const memberName = useMemo(() => {
+    if (!memberId) return undefined
+    return selected?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
+  }, [memberId, selected?.name, team])
 
   useEffect(() => {
     ai.setContext('Context: Team', [
@@ -74,6 +78,42 @@ export function TeamView() {
 
   return (
     <div className="page">
+      {isFocusMode && memberId ? (
+        <nav className="pageBreadcrumbs" aria-label="Breadcrumbs">
+          <Link className="crumbLink" to="/team">
+            Team
+          </Link>
+          <span className="crumbSep" aria-hidden="true">
+            /
+          </span>
+          {activeTab === 'overview' ? (
+            <span className="crumbCurrent">{memberName ?? memberId}</span>
+          ) : (
+            <Link className="crumbLink" to={`/team/${memberId}`}>
+              {memberName ?? memberId}
+            </Link>
+          )}
+          {activeTab !== 'overview' ? (
+            <>
+              <span className="crumbSep" aria-hidden="true">
+                /
+              </span>
+              <span className="crumbCurrent">
+                {activeTab === 'work-items'
+                  ? 'Work Items'
+                  : activeTab === 'notes'
+                    ? 'Notes'
+                    : activeTab === 'risks'
+                      ? 'Risks'
+                      : activeTab === 'growth'
+                        ? 'Growth'
+                        : 'Overview'}
+              </span>
+            </>
+          ) : null}
+        </nav>
+      ) : null}
+
       <h2 className="pageTitle">Team</h2>
 
       <div className={`teamGrid ${isFocusMode ? 'teamGridFocus' : ''}`}>
@@ -1025,6 +1065,7 @@ function MemberRisksTab({
 
 function MemberGrowthTab({ member }: { member: TeamMember }) {
   const growth = useGrowthForMember(member.id)
+  const navigate = useNavigate()
 
   const derivedFromNotes = useMemo(() => {
     const praise = member.notes.filter((n) => n.tag === 'Praise').slice(0, 4)
@@ -1037,11 +1078,13 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
   const themes = growth?.feedbackThemes ?? []
   const focusAreas = growth?.focusAreas ?? []
 
-  function statusPillTone(status: 'OnTrack' | 'NeedsAttention') {
+  function statusPillTone(status: GrowthGoalStatus) {
+    if (status === 'Completed') return 'toneGood'
     return status === 'OnTrack' ? 'toneGood' : 'toneWarn'
   }
 
-  function statusLabel(status: 'OnTrack' | 'NeedsAttention') {
+  function statusLabel(status: GrowthGoalStatus) {
+    if (status === 'Completed') return 'Completed'
     return status === 'OnTrack' ? 'On Track' : 'Needs Attention'
   }
 
@@ -1058,7 +1101,12 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
         ) : (
           <div className="growthGoalsGrid">
             {activeGoals.map((g) => (
-              <div key={g.id} className="card subtle growthGoalCard">
+              <button
+                key={g.id}
+                className="card subtle growthGoalCard growthGoalCardBtn"
+                onClick={() => navigate(`/team/${member.id}/growth/goals/${g.id}`)}
+                type="button"
+              >
                 <div className="pad">
                   <div className="growthGoalTop">
                     <div className="growthGoalTitle">{g.title}</div>
@@ -1066,7 +1114,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
                   </div>
                   <div className="growthGoalDesc">{g.description}</div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}

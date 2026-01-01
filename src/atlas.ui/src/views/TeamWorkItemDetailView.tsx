@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, useNavigate, useParams } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { AzureItem } from '../app/types'
@@ -24,6 +24,9 @@ export function TeamWorkItemDetailView() {
   const { memberId, workItemId } = useParams<{ memberId: string; workItemId: string }>()
   const { team, projects } = useAppState()
   const member = useSelectedTeamMember()
+  const memberName = useMemo(() => {
+    return member?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
+  }, [member?.name, memberId, team])
   const [newNoteText, setNewNoteText] = useState('')
 
   useEffect(() => {
@@ -76,6 +79,28 @@ export function TeamWorkItemDetailView() {
 
   return (
     <div className="page">
+      <nav className="pageBreadcrumbs" aria-label="Breadcrumbs">
+        <Link className="crumbLink" to="/team">
+          Team
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <Link className="crumbLink" to={`/team/${memberId}`}>
+          {memberName}
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <Link className="crumbLink" to={`/team/${memberId}/work-items`}>
+          Work Items
+        </Link>
+        <span className="crumbSep" aria-hidden="true">
+          /
+        </span>
+        <span className="crumbCurrent">Work Item</span>
+      </nav>
+
       <div className="detailHeader">
         <div>
           <div className="detailTitle">Work Item</div>

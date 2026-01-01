@@ -6,6 +6,7 @@ import { TeamView } from '../views/TeamView'
 import { TeamNoteDetailView } from '../views/TeamNoteDetailView'
 import { TeamWorkItemDetailView } from '../views/TeamWorkItemDetailView'
 import { TeamMemberRiskDetailView } from '../views/TeamMemberRiskDetailView'
+import { GrowthGoalDetailView } from '../views/GrowthGoalDetailView'
 import { RisksView } from '../views/RisksView'
 import { ProjectsView } from '../views/ProjectsView'
 import { SettingsView } from '../views/SettingsView'
@@ -28,6 +29,7 @@ const routerRoutes = [
       { path: 'team/:memberId/risks', element: <TeamView /> },
       { path: 'team/:memberId/risks/:teamMemberRiskId', element: <TeamMemberRiskDetailView /> },
       { path: 'team/:memberId/growth', element: <TeamView /> },
+      { path: 'team/:memberId/growth/goals/:goalId', element: <GrowthGoalDetailView /> },
       { path: 'risks', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },
