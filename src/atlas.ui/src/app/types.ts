@@ -9,6 +9,10 @@ export type LoadSignal = 'Light' | 'Normal' | 'Heavy'
 export type DeliverySignal = 'AtRisk' | 'OnTrack' | 'Blocked'
 export type SupportNeededSignal = 'Low' | 'Medium' | 'High'
 
+export type TeamMemberRiskSeverity = 'Low' | 'Medium' | 'High'
+export type TeamMemberRiskStatus = 'Open' | 'Mitigating' | 'Resolved'
+export type TeamMemberRiskTrend = 'Improving' | 'Stable' | 'Worsening'
+
 export interface Task {
   id: Id
   title: string
@@ -108,6 +112,35 @@ export interface Risk {
   linkedTeamMemberIds: Id[]
   history: { id: Id; createdIso: string; text: string }[]
   lastUpdatedIso: string
+}
+
+export interface TeamMemberRisk {
+  id: Id
+  memberId: Id
+
+  title: string
+
+  severity: TeamMemberRiskSeverity
+  riskType: string
+  status: TeamMemberRiskStatus
+  trend: TeamMemberRiskTrend
+
+  /**
+   * ISO date (YYYY-MM-DD)
+   */
+  firstNoticedDateIso: string
+  impactArea: string
+
+  description: string
+  currentAction: string
+
+  lastReviewedIso?: string
+
+  /**
+   * Optional reference to a global Risk (Risks & Mitigation tab).
+   * This is a loose link only: the TeamMemberRisk remains its own independent record.
+   */
+  linkedRiskId?: Id
 }
 
 export interface Project {

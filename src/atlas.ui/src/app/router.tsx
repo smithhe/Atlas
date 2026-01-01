@@ -5,6 +5,7 @@ import { TasksView } from '../views/TasksView'
 import { TeamView } from '../views/TeamView'
 import { TeamNoteDetailView } from '../views/TeamNoteDetailView'
 import { TeamWorkItemDetailView } from '../views/TeamWorkItemDetailView'
+import { TeamMemberRiskDetailView } from '../views/TeamMemberRiskDetailView'
 import { RisksView } from '../views/RisksView'
 import { ProjectsView } from '../views/ProjectsView'
 import { SettingsView } from '../views/SettingsView'
@@ -25,6 +26,7 @@ const routerRoutes = [
       { path: 'team/:memberId/work-items', element: <TeamView /> },
       { path: 'team/:memberId/work-items/:workItemId', element: <TeamWorkItemDetailView /> },
       { path: 'team/:memberId/risks', element: <TeamView /> },
+      { path: 'team/:memberId/risks/:teamMemberRiskId', element: <TeamMemberRiskDetailView /> },
       { path: 'team/:memberId/growth', element: <TeamView /> },
       { path: 'risks', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },

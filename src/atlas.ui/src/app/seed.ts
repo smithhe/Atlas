@@ -1,9 +1,13 @@
-import type { Project, Risk, Settings, Task, TeamMember } from './types'
+import type { Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from './types'
 
 function isoNowMinusDays(days: number) {
   const d = new Date()
   d.setDate(d.getDate() - days)
   return d.toISOString()
+}
+
+function isoDateNowMinusDays(days: number) {
+  return isoNowMinusDays(days).slice(0, 10)
 }
 
 export function seedTasks(): Task[] {
@@ -432,6 +436,78 @@ export function seedRisks(): Risk[] {
         },
       ],
       lastUpdatedIso: isoNowMinusDays(11),
+    },
+    {
+      id: 'risk-3',
+      title: 'Sustained over-capacity across multiple streams',
+      status: 'Watching',
+      severity: 'High',
+      project: 'Core Platform',
+      description: 'Capacity constraints may create delivery risk and increase burnout probability if left unaddressed.',
+      evidence: 'PR cycle time increasing; missed follow-ups due to context switching; rising WIP.',
+      linkedTaskIds: [],
+      linkedTeamMemberIds: [],
+      history: [
+        {
+          id: 'rh-3',
+          createdIso: isoNowMinusDays(4),
+          text: 'Added as a global risk to track mitigation experiments (ownership + load balancing).',
+        },
+      ],
+      lastUpdatedIso: isoNowMinusDays(3),
+    },
+  ]
+}
+
+export function seedTeamMemberRisks(): TeamMemberRisk[] {
+  return [
+    {
+      id: 'tmrisk-1',
+      memberId: 'tm-bob',
+      title: 'Sustained Over-Capacity Across Multiple Streams',
+      severity: 'High',
+      riskType: 'Workload / Capacity',
+      status: 'Mitigating',
+      trend: 'Worsening',
+      firstNoticedDateIso: isoDateNowMinusDays(21),
+      impactArea: 'Delivery & Sustainability',
+      description:
+        'Engineer is currently owning three parallel initiatives across two teams. PR turnaround time has increased and context switching is causing missed follow-ups. Risk of burnout if load remains unchanged.',
+      currentAction:
+        'Reduced active work-in-progress to one primary feature. Secondary work deferred or reassigned. Weekly check-in added to reassess capacity.',
+      lastReviewedIso: isoNowMinusDays(3),
+      linkedRiskId: 'risk-3',
+    },
+    {
+      id: 'tmrisk-2',
+      memberId: 'tm-alice',
+      title: 'Perf testing blocked by intermittent gateway errors',
+      severity: 'Medium',
+      riskType: 'Environment / Reliability',
+      status: 'Open',
+      trend: 'Stable',
+      firstNoticedDateIso: isoDateNowMinusDays(14),
+      impactArea: 'Delivery',
+      description:
+        'Intermittent gateway 502s are making performance test runs unreliable, slowing iteration and increasing the chance we ship without confidence in impact.',
+      currentAction: 'Collect trace samples; coordinate with infra for rate limiting/timeouts; run smaller-scale tests locally as a stopgap.',
+      lastReviewedIso: isoNowMinusDays(2),
+      linkedRiskId: 'risk-1',
+    },
+    {
+      id: 'tmrisk-3',
+      memberId: 'tm-evan',
+      title: 'Sustained blocking due to CI flakiness',
+      severity: 'High',
+      riskType: 'Tooling / CI',
+      status: 'Mitigating',
+      trend: 'Stable',
+      firstNoticedDateIso: isoDateNowMinusDays(35),
+      impactArea: 'Delivery & Sustainability',
+      description: 'CI instability on integration tests is blocking progress and increasing frustration/interrupt load.',
+      currentAction: 'Triage top flaky suites; isolate recent changes; schedule a dedicated stabilization sprint slice; add ownership rotation.',
+      lastReviewedIso: isoNowMinusDays(1),
+      linkedRiskId: 'risk-2',
     },
   ]
 }

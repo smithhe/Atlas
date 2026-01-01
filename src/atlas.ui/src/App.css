@@ -1538,6 +1538,190 @@ select option:disabled {
   text-decoration: none;
 }
 
+/* Team Member Risk Detail */
+.tmRiskCard {
+  overflow: hidden;
+}
+
+.tmRiskTopRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.tmRiskTitleBlock {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tmRiskTitle {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  line-height: 1.15;
+}
+
+.tmRiskTitleInput {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  line-height: 1.15;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+.tmRiskSubtitle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tmRiskSubtitleEditRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tmRiskSubtitleSep {
+  color: var(--muted2);
+}
+
+.inputInline {
+  padding: 6px 8px;
+  font-size: 12px;
+  min-height: 0;
+}
+
+.tmRiskTopActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tmRiskSeverityPill {
+  flex: 0 0 auto;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(232, 241, 255, 0.92);
+}
+
+.tmRiskSeverity-low {
+  border-color: rgba(110, 168, 254, 0.45);
+  background: rgba(110, 168, 254, 0.14);
+}
+
+.tmRiskSeverity-medium {
+  border-color: rgba(241, 196, 15, 0.48);
+  background: rgba(241, 196, 15, 0.12);
+}
+
+.tmRiskSeverity-high {
+  border-color: rgba(255, 107, 107, 0.55);
+  background: rgba(255, 107, 107, 0.12);
+}
+
+.tmRiskSummaryGrid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.tmRiskMetricCard {
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.tmRiskMetricLabel {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted2);
+}
+
+.tmRiskMetricValue {
+  margin-top: 6px;
+  font-weight: 650;
+  color: rgba(232, 241, 255, 0.94);
+}
+
+.tmRiskBody {
+  margin-top: 16px;
+}
+
+.tmRiskSectionTitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.tmRiskSectionBody {
+  color: rgba(232, 241, 255, 0.90);
+  line-height: 1.5;
+}
+
+.tmRiskFooter {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tmRiskFooterRight {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tmRiskFooterControls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tmRiskLastReviewedLabel {
+  font-size: 12px;
+  color: rgba(232, 241, 255, 0.86);
+  font-weight: 650;
+}
+
+.tmRiskLastReviewedValue {
+  font-size: 12px;
+  color: rgba(232, 241, 255, 0.94);
+  font-weight: 750;
+}
+
+.tmRiskLastReviewedText {
+  color: rgba(232, 241, 255, 0.92);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.tmRiskEditForm {
+  margin-top: 16px;
+}
+
+.tmRiskLinkField {
+  min-width: min(420px, 92vw);
+}
+
 @media (max-width: 1100px) {
   .bodyGrid {
     grid-template-columns: 220px 1fr;

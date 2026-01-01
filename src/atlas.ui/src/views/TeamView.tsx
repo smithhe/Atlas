@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
-import type { NoteTag, Risk, TeamMember, TeamNote } from '../app/types'
+import type { NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
@@ -142,7 +142,7 @@ function MemberDetail({
 }) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const { risks } = useAppState()
+  const { risks, teamMemberRisks } = useAppState()
 
   function update(patch: Partial<TeamMember>) {
     dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
@@ -240,7 +240,7 @@ function MemberDetail({
 
       {activeTab === 'notes' ? <MemberNotesTab member={member} tags={FILTER_TAGS} /> : null}
       {activeTab === 'work-items' ? <MemberWorkItemsTab member={member} /> : null}
-      {activeTab === 'risks' ? <MemberRisksTab memberId={member.id} risks={risks} /> : null}
+      {activeTab === 'risks' ? <MemberRisksTab memberId={member.id} teamMemberRisks={teamMemberRisks} risks={risks} /> : null}
       {activeTab === 'growth' ? <MemberGrowthTab member={member} /> : null}
     </div>
   )
@@ -932,41 +932,90 @@ function MemberWorkItemsTab({ member }: { member: TeamMember }) {
   )
 }
 
-function MemberRisksTab({ memberId, risks }: { memberId: string; risks: Risk[] }) {
-  const dispatch = useAppDispatch()
+function MemberRisksTab({
+  memberId,
+  teamMemberRisks,
+  risks,
+}: {
+  memberId: string
+  teamMemberRisks: TeamMemberRisk[]
+  risks: Risk[]
+}) {
   const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<TeamMemberRisk['status'] | 'All'>('All')
 
-  const linked = useMemo(() => risks.filter((r) => r.linkedTeamMemberIds.includes(memberId)), [memberId, risks])
+  const memberRisks = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return teamMemberRisks
+      .filter((r) => r.memberId === memberId)
+      .filter((r) => (statusFilter === 'All' ? true : r.status === statusFilter))
+      .filter((r) => {
+        if (!q) return true
+        const hay = [r.title, r.riskType, r.impactArea, r.description, r.currentAction].join(' ').toLowerCase()
+        return hay.includes(q)
+      })
+  }, [memberId, query, statusFilter, teamMemberRisks])
 
   return (
     <section className="card subtle" aria-label="Risks tab">
       <div className="cardHeader">
         <div className="cardTitle">Risks</div>
-        <button className="btn btnGhost" onClick={() => navigate('/risks')}>
-          View all risks
-        </button>
       </div>
       <div className="pad">
-        {linked.length === 0 ? (
-          <div className="muted">No linked risks yet.</div>
+        <div
+          className="tasksFiltersRow"
+          aria-label="Risks filters"
+          style={{ gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)', marginBottom: 12 }}
+        >
+          <label className="field">
+            <div className="fieldLabel">Search</div>
+            <input
+              className="input"
+              placeholder="Search by title, type, impact area, or text…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Status</div>
+            <select
+              className="select"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as TeamMemberRisk['status'] | 'All')}
+            >
+              <option value="All">All</option>
+              <option value="Open">Open</option>
+              <option value="Mitigating">Mitigating</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </label>
+        </div>
+
+        {memberRisks.length === 0 ? (
+          <div className="muted">No member risks match your filters.</div>
         ) : (
           <div className="list listCard">
-            {linked.map((r) => (
+            {memberRisks.map((r) => {
+              const linkedGlobal = r.linkedRiskId ? risks.find((x) => x.id === r.linkedRiskId) : undefined
+              return (
               <button
                 key={r.id}
                 className="listRow listRowBtn"
                 onClick={() => {
-                  dispatch({ type: 'selectRisk', riskId: r.id })
-                  navigate('/risks')
+                  navigate(`/team/${memberId}/risks/${r.id}`)
                 }}
               >
                 <span className={`dot dot-${r.severity.toLowerCase()}`} aria-hidden="true" />
                 <div className="listMain">
                   <div className="listTitle">{r.title}</div>
-                  <div className="listMeta">{r.status}</div>
+                  <div className="listMeta">
+                    {r.status} • {r.trend}
+                    {linkedGlobal ? ` • linked: ${linkedGlobal.title}` : ''}
+                  </div>
                 </div>
               </button>
-            ))}
+            )})}
           </div>
         )}
       </div>

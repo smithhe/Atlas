@@ -1,17 +1,19 @@
 import { createContext, useContext, useMemo, useReducer } from 'react'
 import type { Dispatch, ReactNode } from 'react'
-import type { Project, Risk, Settings, Task, TeamMember } from '../types'
-import { seedProjects, seedRisks, seedSettings, seedTasks, seedTeam } from '../seed'
+import type { Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
+import { seedProjects, seedRisks, seedSettings, seedTasks, seedTeam, seedTeamMemberRisks } from '../seed'
 
 export interface AppState {
   tasks: Task[]
   risks: Risk[]
+  teamMemberRisks: TeamMemberRisk[]
   team: TeamMember[]
   projects: Project[]
   settings: Settings
 
   selectedTaskId?: string
   selectedRiskId?: string
+  selectedTeamMemberRiskId?: string
   selectedTeamMemberId?: string
   selectedProjectId?: string
 }
@@ -19,11 +21,13 @@ export interface AppState {
 type Action =
   | { type: 'selectTask'; taskId?: string }
   | { type: 'selectRisk'; riskId?: string }
+  | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
   | { type: 'selectTeamMember'; memberId?: string }
   | { type: 'selectProject'; projectId?: string }
   | { type: 'updateTask'; task: Task }
   | { type: 'touchTask'; taskId: string; touchedIso: string }
   | { type: 'updateRisk'; risk: Risk }
+  | { type: 'updateTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
   | { type: 'updateSettings'; settings: Settings }
   | { type: 'updateTeamMember'; member: TeamMember }
 
@@ -33,6 +37,8 @@ function reduce(state: AppState, action: Action): AppState {
       return { ...state, selectedTaskId: action.taskId }
     case 'selectRisk':
       return { ...state, selectedRiskId: action.riskId }
+    case 'selectTeamMemberRisk':
+      return { ...state, selectedTeamMemberRiskId: action.teamMemberRiskId }
     case 'selectTeamMember':
       return { ...state, selectedTeamMemberId: action.memberId }
     case 'selectProject':
@@ -48,6 +54,11 @@ function reduce(state: AppState, action: Action): AppState {
       }
     case 'updateRisk':
       return { ...state, risks: state.risks.map((r) => (r.id === action.risk.id ? action.risk : r)) }
+    case 'updateTeamMemberRisk':
+      return {
+        ...state,
+        teamMemberRisks: state.teamMemberRisks.map((r) => (r.id === action.teamMemberRisk.id ? action.teamMemberRisk : r)),
+      }
     case 'updateSettings':
       return { ...state, settings: action.settings }
     case 'updateTeamMember':
@@ -63,6 +74,7 @@ function reduce(state: AppState, action: Action): AppState {
 function initialState(): AppState {
   const tasks = seedTasks()
   const risks = seedRisks()
+  const teamMemberRisks = seedTeamMemberRisks()
   const team = seedTeam()
   const projects = seedProjects()
   const settings = seedSettings()
@@ -70,11 +82,13 @@ function initialState(): AppState {
   return {
     tasks,
     risks,
+    teamMemberRisks,
     team,
     projects,
     settings,
     selectedTaskId: tasks[0]?.id,
     selectedRiskId: risks[0]?.id,
+    selectedTeamMemberRiskId: teamMemberRisks[0]?.id,
     selectedTeamMemberId: team[0]?.id,
     selectedProjectId: projects[0]?.id,
   }
@@ -113,6 +127,14 @@ export function useSelectedTask(): Task | undefined {
 export function useSelectedRisk(): Risk | undefined {
   const { risks, selectedRiskId } = useAppState()
   return useMemo(() => risks.find((r) => r.id === selectedRiskId), [risks, selectedRiskId])
+}
+
+export function useSelectedTeamMemberRisk(): TeamMemberRisk | undefined {
+  const { teamMemberRisks, selectedTeamMemberRiskId } = useAppState()
+  return useMemo(
+    () => teamMemberRisks.find((r) => r.id === selectedTeamMemberRiskId),
+    [teamMemberRisks, selectedTeamMemberRiskId],
+  )
 }
 
 export function useSelectedTeamMember(): TeamMember | undefined {
