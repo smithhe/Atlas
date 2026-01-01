@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -1024,38 +1024,127 @@ function MemberRisksTab({
 }
 
 function MemberGrowthTab({ member }: { member: TeamMember }) {
-  const praise = useMemo(() => member.notes.filter((n) => n.tag === 'Praise').slice(0, 5), [member.notes])
-  const concerns = useMemo(
-    () => member.notes.filter((n) => n.tag === 'Concern' || n.tag === 'Blocker').slice(0, 5),
-    [member.notes],
-  )
+  const growth = useGrowthForMember(member.id)
+
+  const derivedFromNotes = useMemo(() => {
+    const praise = member.notes.filter((n) => n.tag === 'Praise').slice(0, 4)
+    const concerns = member.notes.filter((n) => n.tag === 'Concern' || n.tag === 'Blocker').slice(0, 4)
+    return { praise, concerns }
+  }, [member.notes])
+
+  const activeGoals = growth?.goals ?? []
+  const skills = growth?.skillsInProgress ?? []
+  const themes = growth?.feedbackThemes ?? []
+  const focusAreas = growth?.focusAreas ?? []
+
+  function statusPillTone(status: 'OnTrack' | 'NeedsAttention') {
+    return status === 'OnTrack' ? 'toneGood' : 'toneWarn'
+  }
+
+  function statusLabel(status: 'OnTrack' | 'NeedsAttention') {
+    return status === 'OnTrack' ? 'On Track' : 'Needs Attention'
+  }
 
   return (
-    <section className="card subtle" aria-label="Growth tab">
-      <div className="cardHeader">
-        <div className="cardTitle">Growth (draft)</div>
+    <section className="growthShell" aria-label="Growth tab">
+      <div className="growthTitle">Growth Overview</div>
+
+      <div className="growthSection">
+        <div className="growthSectionTitle">Active Growth Goals</div>
+        {activeGoals.length === 0 ? (
+          <div className="card subtle">
+            <div className="pad muted">No growth goals yet. We’ll add goals next.</div>
+          </div>
+        ) : (
+          <div className="growthGoalsGrid">
+            {activeGoals.map((g) => (
+              <div key={g.id} className="card subtle growthGoalCard">
+                <div className="pad">
+                  <div className="growthGoalTop">
+                    <div className="growthGoalTitle">{g.title}</div>
+                    <span className={`pill ${statusPillTone(g.status)}`}>{statusLabel(g.status)}</span>
+                  </div>
+                  <div className="growthGoalDesc">{g.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="pad">
-        <div className="fieldGrid2">
-          <div className="field">
-            <div className="fieldLabel">Strengths / praise signals</div>
-            <div className="placeholderBox">
-              {praise.length === 0 ? 'No praise notes yet.' : praise.map((n) => `• ${new Date(n.createdIso).toLocaleDateString()}: ${getDerivedTitle(n)}`).join('\n')}
+
+      <div className="growthSection">
+        <div className="growthSectionTitle">Skills in Progress</div>
+        {skills.length === 0 ? (
+          <div className="card subtle">
+            <div className="pad muted">No skills tracked yet.</div>
+          </div>
+        ) : (
+          <div className="card subtle">
+            <div className="pad">
+              <div className="growthChipsRow" aria-label="Skills in progress">
+                {skills.map((s) => (
+                  <span key={s} className="pill toneNeutral">
+                    {s}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="field">
-            <div className="fieldLabel">Risks / friction signals</div>
-            <div className="placeholderBox">
-              {concerns.length === 0
-                ? 'No concern/blocker notes yet.'
-                : concerns.map((n) => `• ${new Date(n.createdIso).toLocaleDateString()}: ${getDerivedTitle(n)}`).join('\n')}
+        )}
+      </div>
+
+      <div className="growthSection">
+        <div className="growthSectionTitle">Active Feedback Themes</div>
+        {themes.length === 0 ? (
+          <div className="card subtle">
+            <div className="pad muted">
+              No feedback themes yet.
+              <div className="mutedSmall" style={{ marginTop: 6 }}>
+                Recent note signals:{' '}
+                {[...derivedFromNotes.praise, ...derivedFromNotes.concerns].length === 0
+                  ? 'none'
+                  : [...derivedFromNotes.praise, ...derivedFromNotes.concerns]
+                      .map((n) => `${new Date(n.createdIso).toLocaleDateString()}: ${getDerivedTitle(n)}`)
+                      .join(' • ')}
+              </div>
             </div>
           </div>
-          <div className="field span2">
-            <div className="fieldLabel">Growth plan / experiments (draft)</div>
-            <div className="placeholderBox">Add a lightweight plan here later (e.g. goals, experiments, check-ins).</div>
+        ) : (
+          <div className="card subtle">
+            <div className="growthList">
+              {themes.map((t) => (
+                <div key={t.id} className="growthListRow">
+                  <div className="growthListMain">
+                    <div className="growthListTitle">{t.title}</div>
+                    <div className="growthListDesc">{t.description}</div>
+                  </div>
+                  {t.observedSinceLabel ? <div className="growthListMeta">{t.observedSinceLabel}</div> : null}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+      </div>
+
+      <div className="growthSection">
+        <div className="growthSectionTitle">Current Focus Areas</div>
+        {focusAreas.length === 0 ? (
+          <div className="card subtle">
+            <div className="pad muted">No focus areas tracked yet.</div>
+          </div>
+        ) : (
+          <div className="card subtle">
+            <div className="growthList">
+              {focusAreas.map((f) => (
+                <div key={f} className="growthListRow">
+                  <div className="growthListMain">
+                    <div className="growthListTitle">{f}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

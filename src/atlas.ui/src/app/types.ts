@@ -159,4 +159,41 @@ export interface Settings {
   azureDevOpsBaseUrl?: string
 }
 
+export type GrowthGoalStatus = 'OnTrack' | 'NeedsAttention'
+
+/**
+ * Growth is tracked per team member. This is the top-level record we can expand over time
+ * (sub-entities like goals, check-ins, experiments, etc.).
+ */
+export interface Growth {
+  id: Id
+  memberId: Id
+
+  /**
+   * Sub-entities (we'll expand these next).
+   */
+  goals: GrowthGoal[]
+
+  /**
+   * Lightweight summary surfaces.
+   */
+  skillsInProgress: string[]
+  feedbackThemes: GrowthFeedbackTheme[]
+  focusAreas: string[]
+}
+
+export interface GrowthGoal {
+  id: Id
+  title: string
+  description: string
+  status: GrowthGoalStatus
+}
+
+export interface GrowthFeedbackTheme {
+  id: Id
+  title: string
+  description: string
+  observedSinceLabel?: string
+}
+
 

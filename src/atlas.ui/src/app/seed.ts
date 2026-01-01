@@ -1,4 +1,4 @@
-import type { Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from './types'
+import type { Growth, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from './types'
 
 function isoNowMinusDays(days: number) {
   const d = new Date()
@@ -392,6 +392,53 @@ export function seedTeam(): TeamMember[] {
           prUrls: ['(placeholder)'],
           commitsUrl: '(placeholder)',
         },
+      ],
+    },
+  ]
+}
+
+export function seedGrowth(): Growth[] {
+  return [
+    {
+      id: 'growth-alice',
+      memberId: 'tm-alice',
+      goals: [
+        {
+          id: 'growth-goal-alice-1',
+          title: 'Move toward Technical Lead responsibilities',
+          description: 'Increasing architectural ownership and supporting teammates during implementation.',
+          status: 'OnTrack',
+        },
+        {
+          id: 'growth-goal-alice-2',
+          title: 'Improve cross-team communication',
+          description: 'Sharing risks and decisions earlier with stakeholders and peers.',
+          status: 'NeedsAttention',
+        },
+      ],
+      skillsInProgress: [
+        'System Design: Intermediate \u2192 Advanced',
+        'Technical Communication: Developing \u2192 Solid',
+        'Delegation: Early \u2192 Developing',
+      ],
+      feedbackThemes: [
+        {
+          id: 'growth-theme-alice-1',
+          title: 'Strong execution, emerging leadership',
+          description: 'Consistently delivers quality work and is beginning to unblock others.',
+          observedSinceLabel: 'Observed since Jan',
+        },
+        {
+          id: 'growth-theme-alice-2',
+          title: 'Late risk communication',
+          description: 'Risks are usually handled well, but surfacing them earlier would improve planning.',
+          observedSinceLabel: 'Observed since Feb',
+        },
+      ],
+      focusAreas: [
+        'Practicing earlier communication of technical risks during sprint execution',
+        'Stepping into design discussions when ambiguity is high',
+        'Delegating tasks during high workload instead of absorbing work',
       ],
     },
   ]

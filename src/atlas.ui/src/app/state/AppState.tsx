@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useReducer } from 'react'
 import type { Dispatch, ReactNode } from 'react'
-import type { Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
-import { seedProjects, seedRisks, seedSettings, seedTasks, seedTeam, seedTeamMemberRisks } from '../seed'
+import type { Growth, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
+import { seedGrowth, seedProjects, seedRisks, seedSettings, seedTasks, seedTeam, seedTeamMemberRisks } from '../seed'
 
 export interface AppState {
   tasks: Task[]
@@ -9,6 +9,7 @@ export interface AppState {
   teamMemberRisks: TeamMemberRisk[]
   team: TeamMember[]
   projects: Project[]
+  growth: Growth[]
   settings: Settings
 
   selectedTaskId?: string
@@ -28,6 +29,7 @@ type Action =
   | { type: 'touchTask'; taskId: string; touchedIso: string }
   | { type: 'updateRisk'; risk: Risk }
   | { type: 'updateTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
+  | { type: 'updateGrowth'; growth: Growth }
   | { type: 'updateSettings'; settings: Settings }
   | { type: 'updateTeamMember'; member: TeamMember }
 
@@ -59,6 +61,13 @@ function reduce(state: AppState, action: Action): AppState {
         ...state,
         teamMemberRisks: state.teamMemberRisks.map((r) => (r.id === action.teamMemberRisk.id ? action.teamMemberRisk : r)),
       }
+    case 'updateGrowth':
+      return {
+        ...state,
+        growth: state.growth.some((g) => g.id === action.growth.id)
+          ? state.growth.map((g) => (g.id === action.growth.id ? action.growth : g))
+          : [...state.growth, action.growth],
+      }
     case 'updateSettings':
       return { ...state, settings: action.settings }
     case 'updateTeamMember':
@@ -77,6 +86,7 @@ function initialState(): AppState {
   const teamMemberRisks = seedTeamMemberRisks()
   const team = seedTeam()
   const projects = seedProjects()
+  const growth = seedGrowth()
   const settings = seedSettings()
 
   return {
@@ -85,6 +95,7 @@ function initialState(): AppState {
     teamMemberRisks,
     team,
     projects,
+    growth,
     settings,
     selectedTaskId: tasks[0]?.id,
     selectedRiskId: risks[0]?.id,
@@ -140,6 +151,11 @@ export function useSelectedTeamMemberRisk(): TeamMemberRisk | undefined {
 export function useSelectedTeamMember(): TeamMember | undefined {
   const { team, selectedTeamMemberId } = useAppState()
   return useMemo(() => team.find((m) => m.id === selectedTeamMemberId), [team, selectedTeamMemberId])
+}
+
+export function useGrowthForMember(memberId?: string): Growth | undefined {
+  const { growth } = useAppState()
+  return useMemo(() => (memberId ? growth.find((g) => g.memberId === memberId) : undefined), [growth, memberId])
 }
 
 export function useSelectedProject(): Project | undefined {

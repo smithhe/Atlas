@@ -1468,6 +1468,127 @@ select option:disabled {
   color: var(--muted);
 }
 
+/* Team Member — Growth */
+.growthShell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.growthTitle {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  margin: 0;
+}
+
+.growthSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.growthSectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.growthGoalsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.growthGoalCard {
+  min-width: 0;
+}
+
+.growthGoalTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.growthGoalTitle {
+  font-weight: 700;
+  min-width: 0;
+}
+
+.growthGoalDesc {
+  margin-top: 6px;
+  color: rgba(232, 241, 255, 0.88);
+  line-height: 1.45;
+}
+
+.growthChipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.growthChipsRow .pill {
+  /* Make growth skill pills stand out more than generic pills elsewhere. */
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+  color: rgba(232, 241, 255, 0.96);
+  background: rgba(110, 168, 254, 0.12);
+  border-color: rgba(110, 168, 254, 0.30);
+  box-shadow: 0 0 0 1px rgba(110, 168, 254, 0.10) inset;
+}
+
+.growthChipsRow .pill:hover {
+  background: rgba(110, 168, 254, 0.16);
+  border-color: rgba(110, 168, 254, 0.44);
+  box-shadow:
+    0 0 0 1px rgba(110, 168, 254, 0.14) inset,
+    0 10px 26px rgba(0, 0, 0, 0.18);
+}
+
+.growthList {
+  display: flex;
+  flex-direction: column;
+}
+
+.growthListRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.growthListRow:first-child {
+  border-top: none;
+}
+
+.growthListMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.growthListTitle {
+  font-weight: 650;
+  color: rgba(232, 241, 255, 0.96);
+}
+
+.growthListDesc {
+  margin-top: 4px;
+  color: rgba(232, 241, 255, 0.84);
+  line-height: 1.45;
+}
+
+.growthListMeta {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
 .azureGrid {
   display: grid;
   /* Keep the ticket list narrow; give the detail pane more room. */
@@ -1767,6 +1888,10 @@ select option:disabled {
   }
 
   .workItemDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .growthGoalsGrid {
     grid-template-columns: 1fr;
   }
 }
