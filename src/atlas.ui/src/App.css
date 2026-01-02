@@ -726,6 +726,100 @@
   min-height: 0;
 }
 
+.risksStack {
+  display: grid;
+  /* Filters row, then risk list (caps itself when >5 items), then detail fills the rest */
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  /* Fill available vertical space in the main content area. */
+  flex: 1;
+  min-height: 0;
+}
+
+.risksStackNoDetail {
+  /* When no risk is selected, let the list fill the remaining space under filters. */
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.risksStackFocus {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.risksFiltersRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.risksListRow {
+  /* Add spacing so per-row borders read as individual items. */
+  gap: 8px;
+  padding: 8px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.risksRiskRow {
+  align-items: flex-start;
+  /* Border around each risk row. */
+  border-top: none; /* override the generic .listRow divider */
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+}
+
+.risksRiskRow > .dot {
+  /* Keep severity dot centered even when the row is top-aligned for multi-line text. */
+  align-self: center;
+}
+
+.risksListRow .risksRiskRow:first-child {
+  /* Override `.listRow:first-child { border-top: none; }` so the top border doesn't disappear. */
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.risksStackNoDetail .risksRiskRow {
+  /* Expanded rows (when detail pane is hidden), but keep the compact list styling (panel bg + dividers). */
+  padding: 14px 12px;
+  gap: 12px;
+}
+
+.risksStackNoDetail .risksRiskRow .listTitle {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.risksStackNoDetail .risksRiskRow .listTitle + .listMeta {
+  margin-top: 6px;
+}
+
+.risksStackNoDetail .risksRiskRow .listMeta {
+  font-size: 13px;
+}
+
+.risksDetailRow {
+  overflow: auto;
+  min-height: 0;
+}
+
+.risksLinkedGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding-top: 8px; /* space above the linked section titles */
+}
+
+.risksLinkedListCard {
+  width: 100%;
+}
+
+@media (max-width: 1100px) {
+  .risksLinkedGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pane {
   display: flex;
   flex-direction: column;
@@ -838,6 +932,72 @@ select option:disabled {
 
 .detailTitle {
   font-weight: 700;
+}
+
+.riskDetailHeader {
+  margin-bottom: 10px;
+}
+
+.riskDetailHeaderTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.riskDetailTitle {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.riskDetailHeaderRight {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.riskDetailMarkdown {
+  color: rgba(232, 241, 255, 0.90);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.riskDetailMarkdownBlock {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid rgba(110, 168, 254, 0.35);
+}
+
+.riskDetailCard .fieldLabel {
+  /* Make field titles stand out more (scoped to Risk Detail). */
+  color: rgba(232, 241, 255, 0.88);
+  font-weight: 750;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.riskDetailDescriptionBlock {
+  /* Uses .riskDetailMarkdownBlock; keep this for any future per-section tweaks. */
+}
+
+.riskDetailSectionDivider {
+  margin-top: 8px;
+  margin-bottom: 10px; /* padding between the Evidence title and the value */
+  border-top: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.riskDetailEvidenceBlock {
+  /* Uses .riskDetailMarkdownBlock; keep this for any future per-section tweaks. */
 }
 
 .row {

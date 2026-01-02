@@ -31,6 +31,7 @@ const routerRoutes = [
       { path: 'team/:memberId/growth', element: <TeamView /> },
       { path: 'team/:memberId/growth/goals/:goalId', element: <GrowthGoalDetailView /> },
       { path: 'risks', element: <RisksView /> },
+      { path: 'risks/:riskId', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },
       { path: '*', element: <NotFoundView /> },

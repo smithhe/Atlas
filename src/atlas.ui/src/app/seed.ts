@@ -606,8 +606,30 @@ export function seedRisks(): Risk[] {
       status: 'Open',
       severity: 'High',
       project: 'Core Platform',
-      description: 'We may spend multiple sprints refactoring without clear ROI or success metrics.',
-      evidence: 'Prior refactors expanded scope; uncertain perf wins; unclear deprecation plan.',
+      description:
+        '## Summary\n' +
+        '\n' +
+        'We may spend multiple sprints refactoring without clear ROI or success metrics.\n' +
+        '\n' +
+        '### What we need before starting\n' +
+        '- Define **success metrics** (e.g. p95 latency, error rate, cost).\n' +
+        '- Agree on **scope boundaries** (what is explicitly *out of scope*).\n' +
+        '- Write a short plan for **migration/deprecation**.\n' +
+        '\n' +
+        '> Suggestion: treat this like a product bet — make the hypothesis testable.\n',
+      evidence:
+        '### Signals we’ve seen\n' +
+        '- Prior refactors expanded scope.\n' +
+        '- Uncertain performance wins.\n' +
+        '- Unclear deprecation plan.\n' +
+        '\n' +
+        '### Useful references\n' +
+        '- [Refactor checklist](https://example.com) (placeholder)\n' +
+        '\n' +
+        '### Example acceptance criteria\n' +
+        '```text\n' +
+        'p95 checkout latency improves by 15% with no increase in error rate.\n' +
+        '```',
       linkedTaskIds: ['task-1'],
       linkedTeamMemberIds: ['tm-bob', 'tm-dana'],
       history: [

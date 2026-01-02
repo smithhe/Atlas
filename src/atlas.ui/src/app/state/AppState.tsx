@@ -99,7 +99,8 @@ function initialState(): AppState {
     settings,
     // Start with no task selected so the Tasks page can start "closed".
     selectedTaskId: undefined,
-    selectedRiskId: risks[0]?.id,
+    // Start with no risk selected so the Risks page can start "closed".
+    selectedRiskId: undefined,
     selectedTeamMemberRiskId: teamMemberRisks[0]?.id,
     selectedTeamMemberId: team[0]?.id,
     selectedProjectId: projects[0]?.id,
