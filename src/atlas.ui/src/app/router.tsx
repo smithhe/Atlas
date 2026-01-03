@@ -33,6 +33,7 @@ const routerRoutes = [
       { path: 'risks', element: <RisksView /> },
       { path: 'risks/:riskId', element: <RisksView /> },
       { path: 'projects', element: <ProjectsView /> },
+      { path: 'projects/:projectId', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },
       { path: '*', element: <NotFoundView /> },
     ],

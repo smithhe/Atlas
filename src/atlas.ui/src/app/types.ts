@@ -13,10 +13,18 @@ export type TeamMemberRiskSeverity = 'Low' | 'Medium' | 'High'
 export type TeamMemberRiskStatus = 'Open' | 'Mitigating' | 'Resolved'
 export type TeamMemberRiskTrend = 'Improving' | 'Stable' | 'Worsening'
 
+export type ProjectStatus = 'Active' | 'Paused' | 'Completed'
+export type HealthSignal = 'Green' | 'Yellow' | 'Red'
+
+export type TaskStatus = 'Not Started' | 'In Progress' | 'Blocked' | 'Done'
+
 export interface Task {
   id: Id
   title: string
   priority: Priority
+  status?: TaskStatus
+  assigneeId?: Id
+  summary?: string
   project?: string
   risk?: string
   dueDate?: string // ISO date (YYYY-MM-DD)
@@ -106,6 +114,8 @@ export interface Risk {
   status: RiskStatus
   severity: 'Low' | 'Medium' | 'High'
   project?: string
+  mitigation?: string
+  ownerId?: Id
   description: string
   evidence: string
   linkedTaskIds: Id[]
@@ -147,6 +157,16 @@ export interface Project {
   id: Id
   name: string
   summary: string
+  description?: string
+  status?: ProjectStatus
+  health?: HealthSignal
+  targetDateIso?: string // ISO date (YYYY-MM-DD)
+  priority?: Priority
+  productOwnerId?: Id
+  tags?: string[]
+  links?: { label: string; url: string }[]
+  lastUpdatedIso?: string // ISO datetime
+  latestCheckIn?: { dateIso: string; note: string }
   linkedTaskIds: Id[]
   linkedRiskIds: Id[]
   teamMemberIds: Id[]

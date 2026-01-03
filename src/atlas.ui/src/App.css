@@ -649,6 +649,16 @@
   min-height: 560px;
 }
 
+.splitGridFill {
+  /* Allow the grid to fill the remaining viewport height under the page title. */
+  flex: 1;
+  min-height: 0;
+}
+
+.projectsSplitFocus {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tasksSplit {
   grid-template-columns: var(--tasksListWidth, 360px) minmax(0, 1fr);
 }
@@ -824,6 +834,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -1100,6 +1111,235 @@ select option:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 12px;
+}
+
+.projectDetailSections {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.projectTopGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.projectTasksGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+.projectLinkedItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+  min-width: 0;
+}
+
+.projectDetailCard {
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.projectDetailScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 6px; /* keep content off the scrollbar */
+}
+
+.projectHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.projectHeaderLeft {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.projectHeaderRight {
+  flex: 0 0 auto;
+}
+
+.projectHeaderActions {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.projectTitle {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  line-height: 1.15;
+}
+
+.projectHeaderPills .pill {
+  white-space: nowrap;
+}
+
+.projectTabsBar {
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.projectOverviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.projectOverviewGridEditing {
+  grid-template-columns: 1fr;
+}
+
+.projectOverviewSection {
+  overflow: hidden;
+}
+
+.projectOverviewBody {
+  color: rgba(232, 241, 255, 0.90);
+  line-height: 1.5;
+}
+
+.projectDetailsKv {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.projectDetailsRow {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.projectDetailsKey {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.projectDetailsVal {
+  color: rgba(232, 241, 255, 0.92);
+  min-width: 0;
+  text-align: right;
+}
+
+.projectTabBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.projectTabSection {
+  overflow: hidden;
+}
+
+.projectFiltersRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.projectFiltersRowRisks {
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.projectTable {
+  display: flex;
+  flex-direction: column;
+}
+
+.projectTableHeader,
+.projectTableRow {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 2fr) 120px 160px 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.projectTableHeader {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.10);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.projectTableRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.projectTableRowBtn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.projectTableRowBtn:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.projectTableRowBtn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.projectCellTitle {
+  font-weight: 650;
+  color: rgba(232, 241, 255, 0.96);
+  line-height: 1.25;
+}
+
+.projectRisksHeader,
+.projectRisksRow {
+  grid-template-columns: 140px minmax(0, 2fr) minmax(0, 1.4fr) 180px;
+}
+
+@media (max-width: 1100px) {
+  .projectOverviewGrid {
+    grid-template-columns: 1fr;
+  }
+  .projectFiltersRow,
+  .projectFiltersRowRisks {
+    grid-template-columns: 1fr;
+  }
+  .projectTableHeader,
+  .projectTableRow,
+  .projectRisksHeader,
+  .projectRisksRow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .projectDetailsRow {
+    grid-template-columns: 1fr;
+  }
+  .projectDetailsVal {
+    text-align: left;
+  }
 }
 
 /* Team Member — Overview (rev3) */
@@ -2477,6 +2717,14 @@ select option:disabled {
     grid-template-columns: 1fr;
   }
   .subGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectTasksGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .projectTopGrid {
     grid-template-columns: 1fr;
   }
 

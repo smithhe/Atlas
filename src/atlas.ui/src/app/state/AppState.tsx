@@ -32,6 +32,7 @@ type Action =
   | { type: 'updateGrowth'; growth: Growth }
   | { type: 'updateSettings'; settings: Settings }
   | { type: 'updateTeamMember'; member: TeamMember }
+  | { type: 'updateProject'; project: Project }
 
 function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -72,6 +73,8 @@ function reduce(state: AppState, action: Action): AppState {
       return { ...state, settings: action.settings }
     case 'updateTeamMember':
       return { ...state, team: state.team.map((m) => (m.id === action.member.id ? action.member : m)) }
+    case 'updateProject':
+      return { ...state, projects: state.projects.map((p) => (p.id === action.project.id ? action.project : p)) }
     default: {
       const _exhaustive: never = action
       void _exhaustive
