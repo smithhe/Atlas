@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
-import type { Priority, Task } from '../app/types'
+import type { Priority, Task, TaskStatus } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 
@@ -9,6 +9,13 @@ function daysSince(iso: string) {
   const a = new Date(iso).getTime()
   const b = Date.now()
   return Math.floor((b - a) / (1000 * 60 * 60 * 24))
+}
+
+function taskStatusTone(s?: TaskStatus) {
+  if (s === 'Done') return 'toneGood'
+  if (s === 'Blocked') return 'toneBad'
+  if (s === 'In Progress') return 'toneGood'
+  return 'toneNeutral'
 }
 
 export function TasksView() {
@@ -27,6 +34,7 @@ export function TasksView() {
 
   const [projectFilter, setProjectFilter] = useState<'All' | string>('All')
   const [riskFilter, setRiskFilter] = useState<'All' | string>('All')
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'All'>('All')
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'All'>('All')
   const [stalenessFilter, setStalenessFilter] = useState<'All' | 'Fresh' | 'Warning' | 'Stale'>('All')
   const [durationFilter, setDurationFilter] =
@@ -65,6 +73,7 @@ export function TasksView() {
     const warnStart = Math.max(1, staleDays - 2)
 
     return tasks.filter((t) => {
+      if (statusFilter !== 'All' && (t.status ?? 'Not Started') !== statusFilter) return false
       if (priorityFilter !== 'All' && t.priority !== priorityFilter) return false
       if (projectFilter !== 'All' && (t.project ?? '') !== projectFilter) return false
       if (riskFilter !== 'All' && (t.risk ?? '') !== riskFilter) return false
@@ -87,7 +96,7 @@ export function TasksView() {
 
       return true
     })
-  }, [durationFilter, priorityFilter, projectFilter, riskFilter, settings.staleDays, stalenessFilter, tasks])
+  }, [durationFilter, priorityFilter, projectFilter, riskFilter, settings.staleDays, stalenessFilter, statusFilter, tasks])
 
   const filteredSorted = useMemo(() => {
     const staleDays = settings.staleDays
@@ -249,6 +258,19 @@ export function TasksView() {
             </label>
 
             <label className="field">
+              <div className="fieldLabel">Status</div>
+              <div className="fieldInline">
+                <select className="select selectCompact" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as TaskStatus | 'All')}>
+                  <option value="All">All</option>
+                  <option value="Not Started">Not Started</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Blocked">Blocked</option>
+                  <option value="Done">Done</option>
+                </select>
+              </div>
+            </label>
+
+            <label className="field">
               <div className="fieldLabel">Staleness</div>
               <div className="fieldInline">
                 <select
@@ -311,6 +333,7 @@ export function TasksView() {
               const activity =
                 days >= settings.staleDays ? 'red' : days >= Math.max(1, settings.staleDays - 2) ? 'yellow' : 'green'
               const depCount = (t.dependencyTaskIds ?? []).filter((id) => taskById.get(id)?.status !== 'Done').length
+              const statusLabel = t.status ?? 'Not Started'
               return (
                 <button
                   key={t.id}
@@ -334,6 +357,7 @@ export function TasksView() {
                     <div className="pill">
                       {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
                     </div>
+                    <div className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</div>
                     <span
                       className={`activityDot activityDot-${activity}`}
                       title={`Activity: ${days}d ago (stale threshold ${settings.staleDays}d)`}
@@ -392,8 +416,9 @@ function TaskDetail({
   riskOptions: string[]
 }) {
   const dispatch = useAppDispatch()
-  const { tasks } = useAppState()
+  const { tasks, team } = useAppState()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
+  const [isEditing, setIsEditing] = useState(false)
   const notesRef = useRef<HTMLTextAreaElement | null>(null)
   const notesMaxHeightPx = 280
   const [addBlockerText, setAddBlockerText] = useState<string>('')
@@ -401,6 +426,12 @@ function TaskDetail({
   function update(patch: Partial<Task>) {
     dispatch({ type: 'updateTask', task: { ...task, ...patch } })
   }
+
+  useEffect(() => {
+    // Switching selection should default back to view mode (prevents "sticky edit" across tasks).
+    setIsEditing(false)
+    setAddBlockerText('')
+  }, [task.id])
 
   function formatLastTouched(iso: string) {
     const d = new Date(iso)
@@ -411,6 +442,13 @@ function TaskDetail({
       hour: 'numeric',
       minute: '2-digit',
     })
+  }
+
+  function taskStatusTone(s?: TaskStatus) {
+    if (s === 'Done') return 'toneGood'
+    if (s === 'Blocked') return 'toneBad'
+    if (s === 'In Progress') return 'toneGood'
+    return 'toneNeutral'
   }
 
   const estimateParsed = parseDurationText(task.estimatedDurationText)
@@ -425,6 +463,12 @@ function TaskDetail({
   }, [task.id, tasks])
 
   const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t] as const)), [tasks])
+  const memberById = useMemo(() => new Map(team.map((m) => [m.id, m] as const)), [team])
+  const assigneeOptions = useMemo(() => [...team].sort((a, b) => a.name.localeCompare(b.name)), [team])
+  const assigneeName = useMemo(() => {
+    if (!task.assigneeId) return undefined
+    return memberById.get(task.assigneeId)?.name ?? task.assigneeId
+  }, [memberById, task.assigneeId])
 
   // Prevent dependency cycles: you can't depend on a task that (directly or transitively) depends on you.
   const tasksThatDependOnMe = useMemo(() => {
@@ -500,6 +544,8 @@ function TaskDetail({
     el.style.overflowY = el.scrollHeight > notesMaxHeightPx ? 'auto' : 'hidden'
   }, [notesMaxHeightPx, task.notes])
 
+  const statusLabel = task.status ?? 'Not Started'
+
   return (
     <div className="card pad">
       <div className="detailHeader">
@@ -511,6 +557,16 @@ function TaskDetail({
           </div>
         </div>
         <div className="rowTiny">
+          {!isEditing ? (
+            <div className="pillRow">
+              <span className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</span>
+              <span className="pill toneNeutral">{task.priority}</span>
+              <span className="pill toneNeutral">{assigneeName ? `Assignee: ${assigneeName}` : 'Unassigned'}</span>
+            </div>
+          ) : null}
+          <button className="btn btnGhost" type="button" onClick={() => setIsEditing((e) => !e)}>
+            {isEditing ? 'Done' : 'Edit'}
+          </button>
           {isFocusMode ? (
             <button className="btn btnGhost" onClick={onExitFocus}>
               Exit focus
@@ -529,135 +585,204 @@ function TaskDetail({
       </div>
 
       <div className="fieldGrid2">
-        <label className="field span2">
-          <div className="fieldLabel">Title</div>
-          <input className="input" value={task.title} onChange={(e) => update({ title: e.target.value })} />
-        </label>
+        {isEditing ? (
+          <label className="field span2">
+            <div className="fieldLabel">Title</div>
+            <input className="input" value={task.title} onChange={(e) => update({ title: e.target.value })} />
+          </label>
+        ) : (
+          <div className="field span2">
+            <div className="fieldLabel">Title</div>
+            <div className="noteDetailReadonly">{task.title || '—'}</div>
+          </div>
+        )}
 
-        <label className="field">
+        <div className="field">
+          <div className="fieldLabel">Status</div>
+          {isEditing ? (
+            <select className="select" value={statusLabel} onChange={(e) => update({ status: e.target.value as TaskStatus })}>
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Done">Done</option>
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">
+              <span className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="field">
           <div className="fieldLabel">Priority (required)</div>
-          <select
-            className="select"
-            value={task.priority}
-            onChange={(e) => update({ priority: e.target.value as Priority })}
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-            <option value="Critical">Critical</option>
-          </select>
-        </label>
+          {isEditing ? (
+            <select className="select" value={task.priority} onChange={(e) => update({ priority: e.target.value as Priority })}>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">{task.priority}</div>
+          )}
+        </div>
 
-        <label className="field">
+        <div className="field">
+          <div className="fieldLabel">Assignee (optional)</div>
+          {isEditing ? (
+            <select
+              className="select"
+              value={task.assigneeId ?? ''}
+              onChange={(e) => update({ assigneeId: e.target.value || undefined })}
+            >
+              <option value="">(None)</option>
+              {assigneeOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+              {task.assigneeId && !memberById.has(task.assigneeId) ? (
+                <option value={task.assigneeId}>{task.assigneeId} (unknown)</option>
+              ) : null}
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">{assigneeName ?? '—'}</div>
+          )}
+        </div>
+
+        <div className="field">
           <div className="fieldLabel">Estimated Duration (required)</div>
-          <input
-            className="input"
-            placeholder="e.g., 1d, 2h30m"
-            value={task.estimatedDurationText}
-            onChange={(e) => update({ estimatedDurationText: e.target.value })}
-          />
-          <div className={`mutedSmall ${estimateParsed ? '' : 'textBad'}`}>Estimated: {estimatePreview}</div>
-        </label>
+          {isEditing ? (
+            <>
+              <input
+                className="input"
+                placeholder="e.g., 1d, 2h30m"
+                value={task.estimatedDurationText}
+                onChange={(e) => update({ estimatedDurationText: e.target.value })}
+              />
+              <div className={`mutedSmall ${estimateParsed ? '' : 'textBad'}`}>Estimated: {estimatePreview}</div>
+            </>
+          ) : (
+            <>
+              <div className="noteDetailReadonly">{task.estimatedDurationText || '—'}</div>
+              <div className={`mutedSmall ${estimateParsed ? '' : 'textBad'}`}>Estimated: {estimatePreview}</div>
+            </>
+          )}
+        </div>
 
-        <label className="field">
+        <div className="field">
           <div className="fieldLabel">Confidence</div>
-          <select
-            className="select"
-            value={task.estimateConfidence}
-            onChange={(e) => update({ estimateConfidence: e.target.value as Task['estimateConfidence'] })}
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select>
-        </label>
+          {isEditing ? (
+            <select
+              className="select"
+              value={task.estimateConfidence}
+              onChange={(e) => update({ estimateConfidence: e.target.value as Task['estimateConfidence'] })}
+            >
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">{task.estimateConfidence}</div>
+          )}
+        </div>
 
-        <label className="field">
+        <div className="field">
           <div className="fieldLabel">Project (optional)</div>
-          <select
-            className="select"
-            value={task.project ?? ''}
-            onChange={(e) => update({ project: e.target.value || undefined })}
-          >
-            <option value="">(None)</option>
-            {projectOptions.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </label>
+          {isEditing ? (
+            <select className="select" value={task.project ?? ''} onChange={(e) => update({ project: e.target.value || undefined })}>
+              <option value="">(None)</option>
+              {projectOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">{task.project || '—'}</div>
+          )}
+        </div>
 
-        <label className="field">
+        <div className="field">
           <div className="fieldLabel">Risk (optional)</div>
-          <select
-            className="select"
-            value={task.risk ?? ''}
-            onChange={(e) => update({ risk: e.target.value || undefined })}
-          >
-            <option value="">(None)</option>
-            {riskOptions.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
+          {isEditing ? (
+            <select className="select" value={task.risk ?? ''} onChange={(e) => update({ risk: e.target.value || undefined })}>
+              <option value="">(None)</option>
+              {riskOptions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="noteDetailReadonly">{task.risk || '—'}</div>
+          )}
+        </div>
 
-        <label className="field">
+        <div className="field">
           <div className="fieldLabel">Due date (optional)</div>
-          <input
-            className="input"
-            type="date"
-            value={task.dueDate ?? ''}
-            onChange={(e) => update({ dueDate: e.target.value || undefined })}
-          />
-        </label>
+          {isEditing ? (
+            <input className="input" type="date" value={task.dueDate ?? ''} onChange={(e) => update({ dueDate: e.target.value || undefined })} />
+          ) : (
+            <div className="noteDetailReadonly">{task.dueDate || '—'}</div>
+          )}
+        </div>
 
-        <label className="field span2">
+        <div className="field span2">
           <div className="fieldLabel">Actual Duration (optional)</div>
-          <input
-            className="input"
-            placeholder="e.g., 1d2h, 45m"
-            value={task.actualDurationText ?? ''}
-            onChange={(e) => update({ actualDurationText: e.target.value })}
-          />
-          <div className={`mutedSmall ${task.actualDurationText && !actualParsed ? 'textBad' : ''}`}>Actual: {actualPreview}</div>
-        </label>
+          {isEditing ? (
+            <>
+              <input
+                className="input"
+                placeholder="e.g., 1d2h, 45m"
+                value={task.actualDurationText ?? ''}
+                onChange={(e) => update({ actualDurationText: e.target.value })}
+              />
+              <div className={`mutedSmall ${task.actualDurationText && !actualParsed ? 'textBad' : ''}`}>Actual: {actualPreview}</div>
+            </>
+          ) : (
+            <>
+              <div className="noteDetailReadonly">{task.actualDurationText?.trim() ? task.actualDurationText : '—'}</div>
+              <div className={`mutedSmall ${task.actualDurationText && !actualParsed ? 'textBad' : ''}`}>Actual: {actualPreview}</div>
+            </>
+          )}
+        </div>
 
         <div className="field span2">
           <div className="fieldLabel">Blockers (optional)</div>
           <div className="card tight blockersCard">
-            <div className="blockersAddRow">
-              <input
-                className="input blockersAddSelect"
-                list="blockerCandidatesList"
-                placeholder="Add blocker…"
-                value={addBlockerText}
-                onChange={(e) => setAddBlockerText(e.target.value)}
-              />
-              <datalist id="blockerCandidatesList">
-                {blockerCandidates.map((t) => {
-                  const disabled = tasksThatDependOnMe.has(t.id)
-                  const label = `${t.title}${t.project ? ` • ${t.project}` : ''}${disabled ? ' • (would create cycle)' : ''} [${t.id}]`
-                  return <option key={t.id} value={label} />
-                })}
-              </datalist>
-              <button
-                type="button"
-                className="btn btnSecondary"
-                disabled={!resolveBlockerIdFromInput(addBlockerText) || tasksThatDependOnMe.has(resolveBlockerIdFromInput(addBlockerText) ?? '')}
-                onClick={() => {
-                  const id = resolveBlockerIdFromInput(addBlockerText)
-                  if (!id) return
-                  if (tasksThatDependOnMe.has(id)) return
-                  update({ dependencyTaskIds: Array.from(new Set([...dependencyIds, id])) })
-                  setAddBlockerText('')
-                }}
-              >
-                Add
-              </button>
-            </div>
+            {isEditing ? (
+              <div className="blockersAddRow">
+                <input
+                  className="input blockersAddSelect"
+                  list="blockerCandidatesList"
+                  placeholder="Add blocker…"
+                  value={addBlockerText}
+                  onChange={(e) => setAddBlockerText(e.target.value)}
+                />
+                <datalist id="blockerCandidatesList">
+                  {blockerCandidates.map((t) => {
+                    const disabled = tasksThatDependOnMe.has(t.id)
+                    const label = `${t.title}${t.project ? ` • ${t.project}` : ''}${disabled ? ' • (would create cycle)' : ''} [${t.id}]`
+                    return <option key={t.id} value={label} />
+                  })}
+                </datalist>
+                <button
+                  type="button"
+                  className="btn btnSecondary"
+                  disabled={!resolveBlockerIdFromInput(addBlockerText) || tasksThatDependOnMe.has(resolveBlockerIdFromInput(addBlockerText) ?? '')}
+                  onClick={() => {
+                    const id = resolveBlockerIdFromInput(addBlockerText)
+                    if (!id) return
+                    if (tasksThatDependOnMe.has(id)) return
+                    update({ dependencyTaskIds: Array.from(new Set([...dependencyIds, id])) })
+                    setAddBlockerText('')
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            ) : null}
 
             <div className="blockersList" role="list" aria-label="Blockers">
               {visibleBlockers.length === 0 ? <div className="mutedSmall">No active blockers.</div> : null}
@@ -672,14 +797,16 @@ function TaskDetail({
                     </div>
                     <div className="blockersItemRight">
                       <span className="pill blockersStatus">{statusLabel}</span>
-                      <button
-                        type="button"
-                        className="btn btnGhost blockersRemoveBtn"
-                        onClick={() => update({ dependencyTaskIds: dependencyIds.filter((id) => id !== t.id) })}
-                        title="Remove blocker"
-                      >
-                        Remove
-                      </button>
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          className="btn btnGhost blockersRemoveBtn"
+                          onClick={() => update({ dependencyTaskIds: dependencyIds.filter((id) => id !== t.id) })}
+                          title="Remove blocker"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 )
@@ -689,7 +816,7 @@ function TaskDetail({
           {dependencyIds.some((id) => tasksThatDependOnMe.has(id)) ? (
             <div className="mutedSmall textBad">One or more selected dependencies would create a cycle; please remove them.</div>
           ) : null}
-          {dependencyIds.length ? (
+          {isEditing && dependencyIds.length ? (
             <div className="rowTiny">
               <button type="button" className="btn btnGhost" onClick={() => update({ dependencyTaskIds: [] })}>
                 Clear dependencies
@@ -698,21 +825,24 @@ function TaskDetail({
           ) : null}
         </div>
 
-        <label className="field span2">
+        <div className="field span2">
           <div className="fieldLabel">Notes</div>
-          <textarea
-            ref={notesRef}
-            className="textarea textareaAutoGrow"
-            value={task.notes}
-            onChange={(e) => update({ notes: e.target.value })}
-          />
-        </label>
+          {isEditing ? (
+            <textarea
+              ref={notesRef}
+              className="textarea textareaAutoGrow"
+              value={task.notes}
+              onChange={(e) => update({ notes: e.target.value })}
+            />
+          ) : (
+            <div className="noteDetailReadonly" style={{ whiteSpace: 'pre-wrap' }}>
+              {task.notes?.trim() ? task.notes : '—'}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="row">
-        <button className="btn btnSecondary" onClick={() => update({})}>
-          Save (mock)
-        </button>
         <button className="btn" onClick={() => dispatch({ type: 'touchTask', taskId: task.id, touchedIso: new Date().toISOString() })}>
           Touch / Update Activity
         </button>
