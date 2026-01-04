@@ -297,8 +297,79 @@
   gap: 12px;
 }
 
-.dashboardGrid .card:last-child {
-  grid-column: 1 / -1;
+/* Dashboard is a true 2x2 decision-surface grid (no implicit spanning cards). */
+
+.dashboardGroup {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.dashboardGroup:first-child {
+  margin-top: 0;
+}
+
+.dashboardGroupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dashboardGroupTitle {
+  font-size: 12px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 750;
+  color: rgba(232, 241, 255, 0.88);
+}
+
+.dashboardEmpty {
+  padding: 10px 12px;
+  color: var(--muted2);
+  font-size: 12px;
+}
+
+.dashboardDriftList {
+  /* Keep drift intentionally subtle and compact. */
+}
+
+.dashboardDriftRow .listTitle {
+  font-weight: 600;
+  color: rgba(232, 241, 255, 0.88);
+}
+
+.dashboardDriftRow .listMeta {
+  color: rgba(232, 241, 255, 0.55);
+}
+
+.pillTag {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.10);
+  color: rgba(232, 241, 255, 0.70);
+}
+
+.pillToneOk {
+  border-color: rgba(34, 197, 94, 0.32);
+  background: rgba(34, 197, 94, 0.10);
+  color: rgba(220, 255, 235, 0.92);
+}
+
+.pillToneWarn {
+  border-color: rgba(241, 196, 15, 0.34);
+  background: rgba(241, 196, 15, 0.10);
+  color: rgba(255, 246, 205, 0.92);
+}
+
+.pillToneBad {
+  border-color: rgba(255, 107, 107, 0.40);
+  background: rgba(255, 107, 107, 0.10);
+  color: rgba(255, 222, 222, 0.94);
 }
 
 .list {
@@ -907,6 +978,9 @@ select option:disabled {
 }
 
 .textarea {
+  width: 100%;
+  max-width: 100%;
+  display: block;
   min-height: 120px;
   resize: vertical;
 }

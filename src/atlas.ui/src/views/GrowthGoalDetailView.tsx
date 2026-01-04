@@ -281,9 +281,6 @@ export function GrowthGoalDetailView() {
               <span className="pill toneNeutral">{priorityLabel(goalSafe.priority ?? 'Medium')}</span>
               <span className="pill toneNeutral">{`Category: ${goalSafe.category ?? '—'}`}</span>
             </div>
-            <div className="growthGoalHeaderSubtle">
-              Personal tracking as team lead • Click rows on the left to edit details on the right
-            </div>
           </div>
 
           <div className="growthGoalHeaderActions">
