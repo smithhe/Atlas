@@ -3,9 +3,10 @@ using Atlas.Domain.Enums;
 
 namespace Atlas.Domain.Entities;
 
-public sealed class TeamMemberRisk : AggregateRoot
+public sealed class TeamMemberRisk : Entity
 {
-    public Guid MemberId { get; set; }
+    public Guid TeamMemberId { get; set; }
+    public TeamMember? TeamMember { get; set; }
 
     public string Title { get; set; } = string.Empty;
 
@@ -26,5 +27,6 @@ public sealed class TeamMemberRisk : AggregateRoot
     /// Link to a non-team-member-specific risk.
     /// </summary>
     public Guid? LinkedGlobalRiskId { get; set; }
+    public Risk? LinkedGlobalRisk { get; set; }
 }
 

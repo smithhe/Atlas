@@ -17,15 +17,27 @@ public sealed class Project : AggregateRoot
     public Priority? Priority { get; set; }
 
     public Guid? ProductOwnerId { get; set; }
+    public ProductOwner? ProductOwner { get; set; }
 
-    public List<string> Tags { get; set; } = [];
-    public List<ProjectLink> Links { get; set; } = [];
+    public List<ProjectTag> Tags { get; set; } = [];
+    public List<ProjectLinkItem> Links { get; set; } = [];
 
     public DateTimeOffset? LastUpdatedAt { get; set; }
     public ProjectCheckIn? LatestCheckIn { get; set; }
 
-    public List<Guid> LinkedTaskIds { get; set; } = [];
-    public List<Guid> LinkedRiskIds { get; set; } = [];
-    public List<Guid> TeamMemberIds { get; set; } = [];
+    /// <summary>
+    /// Tasks associated with this project.
+    /// </summary>
+    public List<TaskItem> Tasks { get; set; } = [];
+
+    /// <summary>
+    /// Risks associated with this project.
+    /// </summary>
+    public List<Risk> Risks { get; set; } = [];
+
+    /// <summary>
+    /// Team membership for this project (explicit many-to-many join).
+    /// </summary>
+    public List<ProjectTeamMember> TeamMembers { get; set; } = [];
 }
 

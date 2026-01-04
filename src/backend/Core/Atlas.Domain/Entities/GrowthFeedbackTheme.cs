@@ -4,6 +4,8 @@ namespace Atlas.Domain.Entities;
 
 public sealed class GrowthFeedbackTheme : Entity
 {
+    public Guid GrowthId { get; set; }
+
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? ObservedSinceLabel { get; set; }

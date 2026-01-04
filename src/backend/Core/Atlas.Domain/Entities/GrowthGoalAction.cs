@@ -5,6 +5,8 @@ namespace Atlas.Domain.Entities;
 
 public sealed class GrowthGoalAction : Entity
 {
+    public Guid GrowthGoalId { get; set; }
+
     public string Title { get; set; } = string.Empty;
     public DateOnly? DueDate { get; set; }
     public GrowthGoalActionState State { get; set; }

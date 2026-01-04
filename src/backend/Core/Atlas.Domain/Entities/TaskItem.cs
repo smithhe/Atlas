@@ -13,7 +13,9 @@ public sealed class TaskItem : AggregateRoot
     public string? Summary { get; set; }
 
     public Guid? ProjectId { get; set; }
+    public Project? Project { get; set; }
     public Guid? RiskId { get; set; }
+    public Risk? Risk { get; set; }
 
     public DateOnly? DueDate { get; set; }
 

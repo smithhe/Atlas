@@ -8,7 +8,7 @@ public sealed class Growth : AggregateRoot
 
     public List<GrowthGoal> Goals { get; set; } = [];
 
-    public List<string> SkillsInProgress { get; set; } = [];
+    public List<GrowthSkillInProgress> SkillsInProgress { get; set; } = [];
     public List<GrowthFeedbackTheme> FeedbackThemes { get; set; } = [];
 
     public string FocusAreasMarkdown { get; set; } = string.Empty;
