@@ -1936,6 +1936,13 @@ select option:disabled {
   letter-spacing: 0.1px;
 }
 
+.growthSectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .growthGoalsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2024,6 +2031,24 @@ select option:disabled {
 
 .growthListRow:first-child {
   border-top: none;
+}
+
+.growthListRowBtn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.growthListRowBtn:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.growthListRowBtn:focus-visible {
+  outline: 2px solid rgba(110, 168, 254, 0.75);
+  outline-offset: 2px;
 }
 
 .growthListMain {

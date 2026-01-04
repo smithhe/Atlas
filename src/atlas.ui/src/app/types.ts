@@ -202,7 +202,11 @@ export interface Growth {
    */
   skillsInProgress: string[]
   feedbackThemes: GrowthFeedbackTheme[]
-  focusAreas: string[]
+  /**
+   * Freeform markdown field for current focus areas.
+   * (Allows short bullets, headings, links, etc.)
+   */
+  focusAreasMarkdown: string
 }
 
 export interface GrowthGoal {

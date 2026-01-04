@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
-import type { GrowthGoalStatus, NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
+import type { Growth, GrowthFeedbackTheme, GrowthGoalStatus, NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
@@ -1064,8 +1064,192 @@ function MemberRisksTab({
 }
 
 function MemberGrowthTab({ member }: { member: TeamMember }) {
+  const dispatch = useAppDispatch()
   const growth = useGrowthForMember(member.id)
   const navigate = useNavigate()
+
+  const SKILL_LEVEL_OPTIONS = ['Awareness', 'Beginner', 'Developing', 'Intermediate', 'Advanced', 'Expert'] as const
+
+  const [skillModalOpen, setSkillModalOpen] = useState(false)
+  const [skillModalIndex, setSkillModalIndex] = useState<number | null>(null)
+  const [skillDraft, setSkillDraft] = useState<{ label: string; from: string; to: string }>({ label: '', from: '', to: '' })
+
+  const [themeModalOpen, setThemeModalOpen] = useState(false)
+  const [themeDraft, setThemeDraft] = useState<GrowthFeedbackTheme | null>(null)
+  const [themeIsNew, setThemeIsNew] = useState(false)
+
+  const [focusModalOpen, setFocusModalOpen] = useState(false)
+  const [focusDraftText, setFocusDraftText] = useState('')
+
+  function baseGrowth(): Growth {
+    const g =
+      growth ?? {
+        id: newId('growth'),
+        memberId: member.id,
+        goals: [],
+        skillsInProgress: [],
+        feedbackThemes: [],
+        focusAreasMarkdown: '',
+      }
+    return {
+      ...g,
+      memberId: member.id,
+      goals: g.goals ?? [],
+      skillsInProgress: g.skillsInProgress ?? [],
+      feedbackThemes: g.feedbackThemes ?? [],
+      focusAreasMarkdown: g.focusAreasMarkdown ?? '',
+    }
+  }
+
+  function normalizeLines(items: string[]) {
+    const cleaned = items.map((x) => x.trim()).filter(Boolean)
+    // Keep order but remove duplicates.
+    return Array.from(new Set(cleaned))
+  }
+
+  function parseSkillText(input: string) {
+    const raw = input.trim()
+    if (!raw) return { label: '', from: '', to: '' }
+
+    const arrow = '→'
+    const hasArrow = raw.includes(arrow)
+    const [leftRaw, rightRaw] = hasArrow ? raw.split(arrow, 2) : [raw, '']
+    const left = (leftRaw ?? '').trim()
+    const to = (rightRaw ?? '').trim()
+
+    const colonIdx = left.indexOf(':')
+    if (colonIdx >= 0) {
+      const label = left.slice(0, colonIdx).trim()
+      const from = left.slice(colonIdx + 1).trim()
+      return { label, from, to }
+    }
+
+    // Fallback: treat the whole left side as the label.
+    return { label: left, from: '', to }
+  }
+
+  function formatSkillText(skill: { label: string; from: string; to: string }) {
+    const label = skill.label.trim()
+    const from = skill.from.trim()
+    const to = skill.to.trim()
+
+    if (!label) return ''
+    if (from && to) return `${label}: ${from} → ${to}`
+    if (from) return `${label}: ${from}`
+    if (to) return `${label} → ${to}`
+    return label
+  }
+
+  function commitGrowth(patch: Partial<Growth>) {
+    const g = baseGrowth()
+    dispatch({
+      type: 'updateGrowth',
+      growth: {
+        ...g,
+        ...patch,
+        memberId: member.id,
+        goals: patch.goals ?? g.goals,
+        skillsInProgress: patch.skillsInProgress ?? g.skillsInProgress,
+        feedbackThemes: patch.feedbackThemes ?? g.feedbackThemes,
+        focusAreasMarkdown: patch.focusAreasMarkdown ?? g.focusAreasMarkdown,
+      },
+    })
+  }
+
+  function openEditSkill(idx: number) {
+    const g = baseGrowth()
+    const text = g.skillsInProgress[idx] ?? ''
+    setSkillModalIndex(idx)
+    setSkillDraft(parseSkillText(text))
+    setSkillModalOpen(true)
+  }
+
+  function openAddSkill() {
+    setSkillModalIndex(null)
+    setSkillDraft({ label: '', from: '', to: '' })
+    setSkillModalOpen(true)
+  }
+
+  function saveSkill() {
+    const nextText = formatSkillText(skillDraft)
+    if (!nextText) return
+    const g = baseGrowth()
+    const skills = [...g.skillsInProgress]
+    if (skillModalIndex === null) {
+      skills.push(nextText)
+    } else {
+      skills[skillModalIndex] = nextText
+    }
+    commitGrowth({ skillsInProgress: normalizeLines(skills) })
+    setSkillModalOpen(false)
+  }
+
+  function deleteSkill() {
+    if (skillModalIndex === null) return
+    const g = baseGrowth()
+    const skills = g.skillsInProgress.filter((_, i) => i !== skillModalIndex)
+    commitGrowth({ skillsInProgress: normalizeLines(skills) })
+    setSkillModalOpen(false)
+  }
+
+  function openAddTheme() {
+    setThemeIsNew(true)
+    setThemeDraft({ id: newId('growth-theme'), title: '', description: '', observedSinceLabel: undefined })
+    setThemeModalOpen(true)
+  }
+
+  function openEditTheme(themeId: string) {
+    const g = baseGrowth()
+    const t = g.feedbackThemes.find((x) => x.id === themeId)
+    if (!t) return
+    setThemeIsNew(false)
+    setThemeDraft({ ...t })
+    setThemeModalOpen(true)
+  }
+
+  function saveTheme() {
+    if (!themeDraft) return
+    const title = themeDraft.title.trim()
+    const description = themeDraft.description.trim()
+    const observedSinceLabel = (themeDraft.observedSinceLabel ?? '').trim() || undefined
+
+    // If user left it blank, treat as cancel (new) or delete (existing).
+    if (!title && !description) {
+      if (themeIsNew) {
+        setThemeModalOpen(false)
+        return
+      }
+      deleteTheme(themeDraft.id)
+      return
+    }
+
+    const next: GrowthFeedbackTheme = { ...themeDraft, title, description, observedSinceLabel }
+    const g = baseGrowth()
+    const existing = g.feedbackThemes
+    const themes = themeIsNew
+      ? [...existing, next]
+      : existing.map((t) => (t.id === next.id ? next : t))
+
+    commitGrowth({ feedbackThemes: themes })
+    setThemeModalOpen(false)
+  }
+
+  function deleteTheme(themeId: string) {
+    const g = baseGrowth()
+    commitGrowth({ feedbackThemes: g.feedbackThemes.filter((t) => t.id !== themeId) })
+    setThemeModalOpen(false)
+  }
+
+  function openEditFocusAreas() {
+    const g = baseGrowth()
+    setFocusDraftText(g.focusAreasMarkdown ?? '')
+    setFocusModalOpen(true)
+  }
+
+  function saveFocusAreas() {
+    commitGrowth({ focusAreasMarkdown: focusDraftText })
+    setFocusModalOpen(false)
+  }
 
   const derivedFromNotes = useMemo(() => {
     const praise = member.notes.filter((n) => n.tag === 'Praise').slice(0, 4)
@@ -1076,7 +1260,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
   const activeGoals = growth?.goals ?? []
   const skills = growth?.skillsInProgress ?? []
   const themes = growth?.feedbackThemes ?? []
-  const focusAreas = growth?.focusAreas ?? []
+  const focusAreasMarkdown = growth?.focusAreasMarkdown ?? ''
 
   function statusPillTone(status: GrowthGoalStatus) {
     if (status === 'Completed') return 'toneGood'
@@ -1121,7 +1305,12 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       </div>
 
       <div className="growthSection">
-        <div className="growthSectionTitle">Skills in Progress</div>
+        <div className="growthSectionTitleRow">
+          <div className="growthSectionTitle">Skills in Progress</div>
+          <button className="btn btnGhost btnIcon" type="button" title="Add skill" onClick={openAddSkill}>
+            +
+          </button>
+        </div>
         {skills.length === 0 ? (
           <div className="card subtle">
             <div className="pad muted">No skills tracked yet.</div>
@@ -1130,10 +1319,10 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
           <div className="card subtle">
             <div className="pad">
               <div className="growthChipsRow" aria-label="Skills in progress">
-                {skills.map((s) => (
-                  <span key={s} className="pill toneNeutral">
+                {skills.map((s, idx) => (
+                  <button key={`${s}-${idx}`} className="pill toneNeutral pillBtn" type="button" onClick={() => openEditSkill(idx)}>
                     {s}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1142,7 +1331,12 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       </div>
 
       <div className="growthSection">
-        <div className="growthSectionTitle">Active Feedback Themes</div>
+        <div className="growthSectionTitleRow">
+          <div className="growthSectionTitle">Active Feedback Themes</div>
+          <button className="btn btnGhost btnIcon" type="button" title="Add theme" onClick={openAddTheme}>
+            +
+          </button>
+        </div>
         {themes.length === 0 ? (
           <div className="card subtle">
             <div className="pad muted">
@@ -1161,13 +1355,19 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
           <div className="card subtle">
             <div className="growthList">
               {themes.map((t) => (
-                <div key={t.id} className="growthListRow">
+                <button
+                  key={t.id}
+                  className="growthListRow growthListRowBtn"
+                  type="button"
+                  title="Edit theme"
+                  onClick={() => openEditTheme(t.id)}
+                >
                   <div className="growthListMain">
                     <div className="growthListTitle">{t.title}</div>
                     <div className="growthListDesc">{t.description}</div>
                   </div>
                   {t.observedSinceLabel ? <div className="growthListMeta">{t.observedSinceLabel}</div> : null}
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -1175,25 +1375,168 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       </div>
 
       <div className="growthSection">
-        <div className="growthSectionTitle">Current Focus Areas</div>
-        {focusAreas.length === 0 ? (
-          <div className="card subtle">
-            <div className="pad muted">No focus areas tracked yet.</div>
+        <div className="growthSectionTitleRow">
+          <div className="growthSectionTitle">Current Focus Areas</div>
+          <button className="btn btnGhost" type="button" onClick={openEditFocusAreas}>
+            Edit
+          </button>
+        </div>
+        <div className="card subtle">
+          <div className="pad">
+            {focusAreasMarkdown.trim() ? (
+              <div className="noteText noteBody">
+                <Markdown text={focusAreasMarkdown} />
+              </div>
+            ) : (
+              <div className="muted">No focus areas tracked yet.</div>
+            )}
           </div>
-        ) : (
-          <div className="card subtle">
-            <div className="growthList">
-              {focusAreas.map((f) => (
-                <div key={f} className="growthListRow">
-                  <div className="growthListMain">
-                    <div className="growthListTitle">{f}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
+
+      <Modal
+        title={skillModalIndex === null ? 'Add Skill' : 'Edit Skill'}
+        isOpen={skillModalOpen}
+        onClose={() => {
+          setSkillModalOpen(false)
+          setSkillModalIndex(null)
+          setSkillDraft({ label: '', from: '', to: '' })
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveSkill}>
+              Save
+            </button>
+            {skillModalIndex !== null ? (
+              <button className="btn btnGhost" type="button" onClick={deleteSkill} title="Remove skill">
+                Delete
+              </button>
+            ) : null}
+          </div>
+        }
+      >
+        <div className="fieldGrid2">
+          <label className="field span2">
+            <div className="fieldLabel">Skill</div>
+            <input
+              className="input"
+              value={skillDraft.label}
+              onChange={(e) => setSkillDraft((d) => ({ ...d, label: e.target.value }))}
+              placeholder="e.g., System Design"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Current level</div>
+            <select
+              className="select"
+              value={skillDraft.from}
+              onChange={(e) => setSkillDraft((d) => ({ ...d, from: e.target.value }))}
+            >
+              <option value="">(Select)</option>
+              {SKILL_LEVEL_OPTIONS.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Target level</div>
+            <select
+              className="select"
+              value={skillDraft.to}
+              onChange={(e) => setSkillDraft((d) => ({ ...d, to: e.target.value }))}
+            >
+              <option value="">(Select)</option>
+              {SKILL_LEVEL_OPTIONS.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        title={themeIsNew ? 'Add Feedback Theme' : 'Edit Feedback Theme'}
+        isOpen={themeModalOpen}
+        onClose={() => {
+          setThemeModalOpen(false)
+          setThemeDraft(null)
+          setThemeIsNew(false)
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveTheme}>
+              Save
+            </button>
+            {!themeIsNew && themeDraft ? (
+              <button className="btn btnGhost" type="button" onClick={() => deleteTheme(themeDraft.id)}>
+                Delete
+              </button>
+            ) : null}
+          </div>
+        }
+      >
+        <div className="fieldGrid2">
+          <label className="field span2">
+            <div className="fieldLabel">Title</div>
+            <input
+              className="input"
+              value={themeDraft?.title ?? ''}
+              onChange={(e) => setThemeDraft((d) => (d ? { ...d, title: e.target.value } : d))}
+              placeholder="Short label"
+            />
+          </label>
+          <label className="field span2">
+            <div className="fieldLabel">Description</div>
+            <textarea
+              className="textarea"
+              value={themeDraft?.description ?? ''}
+              onChange={(e) => setThemeDraft((d) => (d ? { ...d, description: e.target.value } : d))}
+              placeholder="What’s the repeated pattern?"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Observed since (optional)</div>
+            <input
+              className="input"
+              value={themeDraft?.observedSinceLabel ?? ''}
+              onChange={(e) => setThemeDraft((d) => (d ? { ...d, observedSinceLabel: e.target.value || undefined } : d))}
+              placeholder="e.g., Q4"
+            />
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Edit Focus Areas"
+        isOpen={focusModalOpen}
+        onClose={() => {
+          setFocusModalOpen(false)
+          setFocusDraftText('')
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveFocusAreas}>
+              Save
+            </button>
+          </div>
+        }
+      >
+        <div className="fieldGrid">
+          <label className="field">
+            <div className="fieldLabel">Markdown</div>
+            <textarea
+              className="textarea"
+              value={focusDraftText}
+              onChange={(e) => setFocusDraftText(e.target.value)}
+              placeholder={'Example:\n- Reduce surprises by raising risks earlier\n- Focus on leading design discussions\n- Delegate WIP'}
+            />
+          </label>
+        </div>
+      </Modal>
     </section>
   )
 }

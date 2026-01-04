@@ -589,11 +589,10 @@ export function seedGrowth(): Growth[] {
           observedSinceLabel: 'Observed since Feb',
         },
       ],
-      focusAreas: [
-        'Practicing earlier communication of technical risks during sprint execution',
-        'Stepping into design discussions when ambiguity is high',
-        'Delegating tasks during high workload instead of absorbing work',
-      ],
+      focusAreasMarkdown:
+        '- Practicing earlier communication of technical risks during sprint execution\n' +
+        '- Stepping into design discussions when ambiguity is high\n' +
+        '- Delegating tasks during high workload instead of absorbing work\n',
     },
   ]
 }
