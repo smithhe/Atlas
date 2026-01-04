@@ -253,7 +253,7 @@ function ProjectDetail({
   function taskStatusTone(s?: TaskStatus) {
     if (s === 'Done') return 'toneGood'
     if (s === 'Blocked') return 'toneBad'
-    if (s === 'In Progress') return 'toneGood'
+    if (s === 'In Progress') return 'toneInfo'
     return 'toneNeutral'
   }
 

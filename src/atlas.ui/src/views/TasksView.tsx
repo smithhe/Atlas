@@ -14,8 +14,15 @@ function daysSince(iso: string) {
 function taskStatusTone(s?: TaskStatus) {
   if (s === 'Done') return 'toneGood'
   if (s === 'Blocked') return 'toneBad'
-  if (s === 'In Progress') return 'toneGood'
+  if (s === 'In Progress') return 'toneInfo'
   return 'toneNeutral'
+}
+
+function priorityTone(p: Priority) {
+  if (p === 'Low') return 'toneNeutral'
+  if (p === 'Medium') return 'toneWarn'
+  // High + Critical
+  return 'toneBad'
 }
 
 export function TasksView() {
@@ -168,8 +175,35 @@ export function TasksView() {
     const el = listRef.current
     if (!el) return
     if (isFocusMode) return
+
+    // Measure pill column widths (duration/status/priority) so pills align across rows
+    // without hardcoding widths larger than needed.
+    const pillRows = Array.from(el.querySelectorAll<HTMLElement>('.tasksTaskRowPills'))
+    if (pillRows.length === 0) {
+      el.style.removeProperty('--tasksPillColDuration')
+      el.style.removeProperty('--tasksPillColStatus')
+      el.style.removeProperty('--tasksPillColPriority')
+    } else {
+      let maxDuration = 0
+      let maxStatus = 0
+      let maxPriority = 0
+      for (const pr of pillRows) {
+        const pills = Array.from(pr.querySelectorAll<HTMLElement>('.pill'))
+        const duration = pills[0]
+        const status = pills[1]
+        const priority = pills[2]
+        if (duration) maxDuration = Math.max(maxDuration, duration.getBoundingClientRect().width)
+        if (status) maxStatus = Math.max(maxStatus, status.getBoundingClientRect().width)
+        if (priority) maxPriority = Math.max(maxPriority, priority.getBoundingClientRect().width)
+      }
+      // Add a tiny buffer so borders don't jitter on subpixel rounding.
+      el.style.setProperty('--tasksPillColDuration', `${Math.ceil(maxDuration + 1)}px`)
+      el.style.setProperty('--tasksPillColStatus', `${Math.ceil(maxStatus + 1)}px`)
+      el.style.setProperty('--tasksPillColPriority', `${Math.ceil(maxPriority + 1)}px`)
+    }
+
+    // When the detail pane is hidden, let the list expand to fill available space.
     if (!showDetail) {
-      // When the detail pane is hidden, let the list expand to fill available space.
       setListMaxHeightPx(undefined)
       return
     }
@@ -192,7 +226,7 @@ export function TasksView() {
 
     // Small padding so borders don't clip.
     setListMaxHeightPx(Math.ceil(sumHeights + gaps + paddingTop + paddingBottom + 2))
-  }, [filteredSorted.length, isFocusMode, showDetail])
+  }, [filteredSorted, isFocusMode, showDetail])
 
   return (
     <div className="page pageFill">
@@ -344,7 +378,6 @@ export function TasksView() {
                   <div className="listMain">
                     <div className="listTitle listTitleWrap">{t.title}</div>
                     <div className="listMeta listMetaWrap">
-                      {t.priority}
                       {t.project ? ` • ${t.project}` : ''}
                       {t.risk ? ` • Risk: ${t.risk}` : ''}
                       {depCount ? ` • Blocked by ${depCount}` : ''}
@@ -353,11 +386,12 @@ export function TasksView() {
                       {t.dueDate ? `Due ${t.dueDate}` : ' '}
                     </div>
                   </div>
-                  <div className="pillRow">
+                  <div className="pillRow tasksTaskRowPills">
                     <div className="pill">
                       {formatDurationFromMinutes(parseDurationText(t.estimatedDurationText)?.totalMinutes ?? 0)}
                     </div>
                     <div className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</div>
+                    <div className={`pill ${priorityTone(t.priority)}`}>{t.priority}</div>
                     <span
                       className={`activityDot activityDot-${activity}`}
                       title={`Activity: ${days}d ago (stale threshold ${settings.staleDays}d)`}
@@ -447,7 +481,7 @@ function TaskDetail({
   function taskStatusTone(s?: TaskStatus) {
     if (s === 'Done') return 'toneGood'
     if (s === 'Blocked') return 'toneBad'
-    if (s === 'In Progress') return 'toneGood'
+    if (s === 'In Progress') return 'toneInfo'
     return 'toneNeutral'
   }
 
@@ -560,8 +594,8 @@ function TaskDetail({
           {!isEditing ? (
             <div className="pillRow">
               <span className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</span>
-              <span className="pill toneNeutral">{task.priority}</span>
-              <span className="pill toneNeutral">{assigneeName ? `Assignee: ${assigneeName}` : 'Unassigned'}</span>
+              <span className={`pill ${priorityTone(task.priority)}`}>{task.priority}</span>
+              {assigneeName ? <span className="pill toneNeutral">{`Assignee: ${assigneeName}`}</span> : null}
             </div>
           ) : null}
           <button className="btn btnGhost" type="button" onClick={() => setIsEditing((e) => !e)}>
@@ -796,7 +830,7 @@ function TaskDetail({
                       <div className="blockersItemMeta">{suffix}</div>
                     </div>
                     <div className="blockersItemRight">
-                      <span className="pill blockersStatus">{statusLabel}</span>
+                      <span className={`pill ${taskStatusTone(statusLabel)}`}>{statusLabel}</span>
                       {isEditing ? (
                         <button
                           type="button"

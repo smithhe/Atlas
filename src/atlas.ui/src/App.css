@@ -631,6 +631,31 @@
   margin-top: 2px;
 }
 
+.tasksTaskRowPills {
+  /* Keep Duration / Status / Priority aligned as columns across rows.
+     Column widths are set dynamically via CSS vars on the list container so they stay
+     as narrow as needed for current content. */
+  display: grid;
+  grid-template-columns:
+    var(--tasksPillColDuration, max-content)
+    var(--tasksPillColStatus, max-content)
+    var(--tasksPillColPriority, max-content)
+    12px;
+  gap: 8px;
+  align-items: center;
+  justify-items: start;
+}
+
+.tasksTaskRowPills > .pill {
+  text-align: center;
+  white-space: nowrap;
+  justify-self: stretch;
+}
+
+.tasksTaskRowPills > .activityDot {
+  justify-self: end;
+}
+
 .tasksStackNoDetail .tasksTaskRow {
   /* Expanded rows (when detail pane is hidden), but keep the compact list styling (panel bg + dividers). */
   padding: 14px 12px;
@@ -1611,6 +1636,13 @@ select option:disabled {
   background: rgba(255, 255, 255, 0.02);
   border-color: rgba(255, 255, 255, 0.12);
   color: var(--muted);
+}
+
+.toneInfo {
+  /* Accent/Info tone (used for "In Progress" so it doesn't collide with "Done"). */
+  background: rgba(110, 168, 254, 0.16);
+  border-color: rgba(110, 168, 254, 0.42);
+  color: rgba(232, 241, 255, 0.96);
 }
 
 .toneGood {
