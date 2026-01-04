@@ -11,7 +11,6 @@ public sealed class Risk : AggregateRoot
     public SeverityLevel Severity { get; set; }
 
     public Guid? ProjectId { get; set; }
-    public string? Mitigation { get; set; }
 
     public string Description { get; set; } = string.Empty;
     public string Evidence { get; set; } = string.Empty;

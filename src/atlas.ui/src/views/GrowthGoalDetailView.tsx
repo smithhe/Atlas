@@ -50,13 +50,6 @@ function goalStatusTone(status: GrowthGoal['status']) {
   }
 }
 
-function formatLastUpdated(iso?: string) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString()
-}
-
 function formatShortDate(iso?: string) {
   if (!iso) return '—'
   const d = new Date(`${iso}T00:00:00`)
@@ -120,6 +113,8 @@ export function GrowthGoalDetailView() {
   const [edit, setEdit] = useState({
     timeframe: false,
     status: false,
+    category: false,
+    priority: false,
     summary: false,
     successCriteria: false,
   })
@@ -303,7 +298,12 @@ export function GrowthGoalDetailView() {
           <section className="card subtle" aria-label="Goal overview">
             <div className="cardHeader">
               <div className="cardTitle">GOAL OVERVIEW</div>
-              <div className="mutedSmall">Editable: dates, status, summary, success criteria</div>
+              <div className="ggOverviewLastUpdated" title={goalSafe.lastUpdatedIso ? `Last updated: ${goalSafe.lastUpdatedIso}` : undefined}>
+                <span className="ggOverviewLastUpdatedLabel">Last updated</span>
+                <span className="ggOverviewLastUpdatedValue">
+                  {goalSafe.lastUpdatedIso ? formatLongDate(goalSafe.lastUpdatedIso.slice(0, 10)) : '—'}
+                </span>
+              </div>
             </div>
             <div className="pad">
               <div className="ggMiniGrid">
@@ -376,15 +376,57 @@ export function GrowthGoalDetailView() {
 
                 <div className="ggMiniCard">
                   <div className="ggMiniHeader">
-                    <div className="ggMiniLabel">Last Updated</div>
-                    <button className="linkBtn" onClick={() => commitGoal((g) => ({ ...g }))} type="button">
-                      Quick update
+                    <div className="ggMiniLabel">Priority</div>
+                    <button className="linkBtn" onClick={() => setEdit((e) => ({ ...e, priority: !e.priority }))} type="button">
+                      {edit.priority ? 'Done' : 'Edit'}
                     </button>
                   </div>
-                  <div className="ggMiniValue">
-                    <strong>{goalSafe.lastUpdatedIso ? formatLongDate(goalSafe.lastUpdatedIso.slice(0, 10)) : '—'}</strong>
-                  </div>
+                  {!edit.priority ? (
+                    <div className="ggMiniValue">
+                      <strong>{goalSafe.priority ?? 'Medium'}</strong>
+                    </div>
+                  ) : (
+                    <label className="field">
+                      <div className="fieldLabel">Priority</div>
+                      <select
+                        className="select"
+                        value={goalSafe.priority ?? 'Medium'}
+                        onChange={(e) => commitGoal((g) => ({ ...g, priority: e.target.value as Priority }))}
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
+
+                <div className="ggMiniCard">
+                  <div className="ggMiniHeader">
+                    <div className="ggMiniLabel">Category</div>
+                    <button className="linkBtn" onClick={() => setEdit((e) => ({ ...e, category: !e.category }))} type="button">
+                      {edit.category ? 'Done' : 'Edit'}
+                    </button>
+                  </div>
+                  {!edit.category ? (
+                    <div className="ggMiniValue">{goalSafe.category?.trim() ? <strong>{goalSafe.category}</strong> : <span className="muted">—</span>}</div>
+                  ) : (
+                    <label className="field">
+                      <div className="fieldLabel">Category</div>
+                      <input
+                        className="input"
+                        value={goalSafe.category ?? ''}
+                        placeholder="e.g. Leadership"
+                        onChange={(e) => {
+                          const v = e.target.value.trim()
+                          commitGoal((g) => ({ ...g, category: v ? e.target.value : undefined }))
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+
               </div>
 
               <div className="ggBlock">

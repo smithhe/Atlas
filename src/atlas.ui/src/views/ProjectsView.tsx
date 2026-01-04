@@ -303,7 +303,7 @@ function ProjectDetail({
       if (riskSeverityFilter !== 'All' && r.severity !== riskSeverityFilter) return false
       if (riskOwnerFilter !== 'All' && (r.ownerId ?? '') !== riskOwnerFilter) return false
       if (q) {
-        const hay = `${r.title} ${r.description ?? ''} ${r.mitigation ?? ''}`.toLowerCase()
+        const hay = `${r.title} ${r.description ?? ''}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
@@ -843,9 +843,6 @@ function ProjectDetail({
                   Risk
                 </div>
                 <div className="projectTh" role="columnheader">
-                  Mitigation
-                </div>
-                <div className="projectTh" role="columnheader">
                   Owner
                 </div>
               </div>
@@ -865,9 +862,6 @@ function ProjectDetail({
                     <div className="projectTd" role="cell">
                       <div className="projectCellTitle">{r.title}</div>
                       <div className="mutedSmall">{r.description}</div>
-                    </div>
-                    <div className="projectTd" role="cell">
-                      {r.mitigation ?? '—'}
                     </div>
                     <div className="projectTd" role="cell">
                       {r.ownerId ? memberById.get(r.ownerId)?.name ?? r.ownerId : '—'}

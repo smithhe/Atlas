@@ -1,6 +1,6 @@
 namespace Atlas.Domain.Enums;
 
-public enum NoteTag
+public enum NoteType
 {
     Blocker = 0,
     Progress = 1,

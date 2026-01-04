@@ -23,6 +23,7 @@ export function TasksView() {
 
   const projectOptions = useMemo(() => projects.map((p) => p.name).sort((a, b) => a.localeCompare(b)), [projects])
   const riskOptions = useMemo(() => risks.map((r) => r.title).sort((a, b) => a.localeCompare(b)), [risks])
+  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t] as const)), [tasks])
 
   const [projectFilter, setProjectFilter] = useState<'All' | string>('All')
   const [riskFilter, setRiskFilter] = useState<'All' | string>('All')
@@ -309,6 +310,7 @@ export function TasksView() {
               const days = daysSince(t.lastTouchedIso)
               const activity =
                 days >= settings.staleDays ? 'red' : days >= Math.max(1, settings.staleDays - 2) ? 'yellow' : 'green'
+              const depCount = (t.dependencyTaskIds ?? []).filter((id) => taskById.get(id)?.status !== 'Done').length
               return (
                 <button
                   key={t.id}
@@ -322,6 +324,7 @@ export function TasksView() {
                       {t.priority}
                       {t.project ? ` • ${t.project}` : ''}
                       {t.risk ? ` • Risk: ${t.risk}` : ''}
+                      {depCount ? ` • Blocked by ${depCount}` : ''}
                     </div>
                     <div className="listMeta listMetaWrap">
                       {t.dueDate ? `Due ${t.dueDate}` : ' '}
@@ -389,9 +392,11 @@ function TaskDetail({
   riskOptions: string[]
 }) {
   const dispatch = useAppDispatch()
+  const { tasks } = useAppState()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
   const notesRef = useRef<HTMLTextAreaElement | null>(null)
   const notesMaxHeightPx = 280
+  const [addBlockerText, setAddBlockerText] = useState<string>('')
 
   function update(patch: Partial<Task>) {
     dispatch({ type: 'updateTask', task: { ...task, ...patch } })
@@ -412,6 +417,76 @@ function TaskDetail({
   const estimatePreview = estimateParsed ? formatDurationFromMinutes(estimateParsed.totalMinutes) : 'Invalid'
   const actualParsed = parseDurationText(task.actualDurationText ?? '')
   const actualPreview = actualParsed ? formatDurationFromMinutes(actualParsed.totalMinutes) : task.actualDurationText ? 'Invalid' : '—'
+
+  const dependencyOptions = useMemo(() => {
+    return [...tasks]
+      .filter((t) => t.id !== task.id)
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }, [task.id, tasks])
+
+  const taskById = useMemo(() => new Map(tasks.map((t) => [t.id, t] as const)), [tasks])
+
+  // Prevent dependency cycles: you can't depend on a task that (directly or transitively) depends on you.
+  const tasksThatDependOnMe = useMemo(() => {
+    const dependentsById = new Map<string, string[]>()
+    for (const t of tasks) {
+      for (const dep of t.dependencyTaskIds ?? []) {
+        const arr = dependentsById.get(dep) ?? []
+        arr.push(t.id)
+        dependentsById.set(dep, arr)
+      }
+    }
+
+    const seen = new Set<string>()
+    const queue: string[] = [task.id]
+    while (queue.length) {
+      const cur = queue.shift()!
+      const deps = dependentsById.get(cur) ?? []
+      for (const next of deps) {
+        if (next === task.id) continue
+        if (seen.has(next)) continue
+        seen.add(next)
+        queue.push(next)
+      }
+    }
+    return seen
+  }, [task.id, tasks])
+
+  const dependencyIds = task.dependencyTaskIds ?? []
+
+  const visibleBlockers = useMemo(() => {
+    return dependencyIds
+      .map((id) => taskById.get(id))
+      .filter((t): t is NonNullable<typeof t> => Boolean(t))
+      // Only show blockers that are not completed.
+      .filter((t) => t.status !== 'Done')
+  }, [dependencyIds, taskById])
+
+  const blockerCandidates = useMemo(() => {
+    const chosen = new Set(dependencyIds)
+    return dependencyOptions
+      // Keep the add list focused on "active" tasks only.
+      .filter((t) => t.status !== 'Done')
+      // Don't offer already-selected blockers.
+      .filter((t) => !chosen.has(t.id))
+  }, [dependencyIds, dependencyOptions])
+
+  function resolveBlockerIdFromInput(inputRaw: string): string | undefined {
+    const input = inputRaw.trim()
+    if (!input) return undefined
+
+    // Preferred format from the datalist: "Title [task-id]"
+    const m = /\[([^\]]+)\]\s*$/.exec(input)
+    if (m?.[1]) return m[1].trim()
+
+    // Allow direct ID entry as a fallback.
+    const byId = blockerCandidates.find((t) => t.id === input)
+    if (byId) return byId.id
+
+    // As a last resort, accept exact title match (may be ambiguous if titles duplicate).
+    const exactTitle = blockerCandidates.find((t) => t.title === input)
+    return exactTitle?.id
+  }
 
   // Auto-grow notes until a cap, then scroll.
   useLayoutEffect(() => {
@@ -551,8 +626,76 @@ function TaskDetail({
         </label>
 
         <div className="field span2">
-          <div className="fieldLabel">Dependencies (optional)</div>
-          <div className="placeholderBox">Add dependencies…</div>
+          <div className="fieldLabel">Blockers (optional)</div>
+          <div className="card tight blockersCard">
+            <div className="blockersAddRow">
+              <input
+                className="input blockersAddSelect"
+                list="blockerCandidatesList"
+                placeholder="Add blocker…"
+                value={addBlockerText}
+                onChange={(e) => setAddBlockerText(e.target.value)}
+              />
+              <datalist id="blockerCandidatesList">
+                {blockerCandidates.map((t) => {
+                  const disabled = tasksThatDependOnMe.has(t.id)
+                  const label = `${t.title}${t.project ? ` • ${t.project}` : ''}${disabled ? ' • (would create cycle)' : ''} [${t.id}]`
+                  return <option key={t.id} value={label} />
+                })}
+              </datalist>
+              <button
+                type="button"
+                className="btn btnSecondary"
+                disabled={!resolveBlockerIdFromInput(addBlockerText) || tasksThatDependOnMe.has(resolveBlockerIdFromInput(addBlockerText) ?? '')}
+                onClick={() => {
+                  const id = resolveBlockerIdFromInput(addBlockerText)
+                  if (!id) return
+                  if (tasksThatDependOnMe.has(id)) return
+                  update({ dependencyTaskIds: Array.from(new Set([...dependencyIds, id])) })
+                  setAddBlockerText('')
+                }}
+              >
+                Add
+              </button>
+            </div>
+
+            <div className="blockersList" role="list" aria-label="Blockers">
+              {visibleBlockers.length === 0 ? <div className="mutedSmall">No active blockers.</div> : null}
+              {visibleBlockers.map((t) => {
+                const suffix = `${t.project ? ` • ${t.project}` : ''}${t.risk ? ` • Risk: ${t.risk}` : ''}`
+                const statusLabel = t.status ?? 'Not Started'
+                return (
+                  <div key={t.id} className="blockersItem" role="listitem">
+                    <div className="blockersItemText">
+                      <div className="blockersItemTitle">{t.title}</div>
+                      <div className="blockersItemMeta">{suffix}</div>
+                    </div>
+                    <div className="blockersItemRight">
+                      <span className="pill blockersStatus">{statusLabel}</span>
+                      <button
+                        type="button"
+                        className="btn btnGhost blockersRemoveBtn"
+                        onClick={() => update({ dependencyTaskIds: dependencyIds.filter((id) => id !== t.id) })}
+                        title="Remove blocker"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          {dependencyIds.some((id) => tasksThatDependOnMe.has(id)) ? (
+            <div className="mutedSmall textBad">One or more selected dependencies would create a cycle; please remove them.</div>
+          ) : null}
+          {dependencyIds.length ? (
+            <div className="rowTiny">
+              <button type="button" className="btn btnGhost" onClick={() => update({ dependencyTaskIds: [] })}>
+                Clear dependencies
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <label className="field span2">

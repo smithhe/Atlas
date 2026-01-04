@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { TeamMember, TeamNote } from '../../app/types'
 import { isCurrentTicketStatus } from '../../app/team'
+import { Modal } from '../../components/Modal'
 
 const US_TIMEZONE_OPTIONS = [
   { value: 'PT', label: 'Pacific (PT)' },
@@ -82,49 +83,93 @@ export function MemberOverviewTab({
   const deliveryOptions = ['AtRisk', 'OnTrack', 'Blocked'] as const
   const supportNeededOptions = ['Low', 'Medium', 'High'] as const
 
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [profileDraft, setProfileDraft] = useState<{ name: string; role: string; timeZone: string; typicalHours: string }>({
+    name: '',
+    role: '',
+    timeZone: '',
+    typicalHours: '',
+  })
+
+  const [signalsModalOpen, setSignalsModalOpen] = useState(false)
+  const [signalsDraft, setSignalsDraft] = useState<{
+    load: (typeof loadOptions)[number]
+    delivery: (typeof deliveryOptions)[number]
+    supportNeeded: (typeof supportNeededOptions)[number]
+  }>({
+    load: member.signals.load,
+    delivery: member.signals.delivery,
+    supportNeeded: member.signals.supportNeeded,
+  })
+
+  function openProfileModal() {
+    setProfileDraft({
+      name: member.name ?? '',
+      role: member.role ?? '',
+      timeZone: member.profile.timeZone ?? '',
+      typicalHours: member.profile.typicalHours ?? '',
+    })
+    setProfileModalOpen(true)
+  }
+
+  function saveProfileModal() {
+    onUpdate({
+      name: profileDraft.name.trim() || member.name,
+      role: profileDraft.role.trim() || undefined,
+      profile: {
+        ...member.profile,
+        timeZone: profileDraft.timeZone.trim() || undefined,
+        typicalHours: profileDraft.typicalHours.trim() || undefined,
+      },
+    })
+    setProfileModalOpen(false)
+  }
+
+  function openSignalsModal() {
+    setSignalsDraft({
+      load: member.signals.load,
+      delivery: member.signals.delivery,
+      supportNeeded: member.signals.supportNeeded,
+    })
+    setSignalsModalOpen(true)
+  }
+
+  function saveSignalsModal() {
+    onUpdate({
+      signals: {
+        ...member.signals,
+        load: signalsDraft.load,
+        delivery: signalsDraft.delivery,
+        supportNeeded: signalsDraft.supportNeeded,
+      },
+    })
+    setSignalsModalOpen(false)
+  }
+
   return (
     <div className="memberOverviewGrid" aria-label="Team member overview">
       <section className="card subtle" aria-label="Profile">
         <div className="cardHeader">
           <div className="cardTitle">Profile</div>
+          <button className="btn btnGhost" type="button" onClick={openProfileModal}>
+            Edit
+          </button>
         </div>
         <div className="pad">
-          <div className="memberOverviewKv">
-            <div className="memberOverviewKvRow">
-              <div className="memberOverviewKvKey">Name</div>
-              <div className="memberOverviewKvVal">{member.name}</div>
-            </div>
-            <div className="memberOverviewKvRow">
-              <div className="memberOverviewKvKey">Role / Level</div>
-              <div className="memberOverviewKvVal">{member.role ?? '—'}</div>
-            </div>
+          <div className="memberProfileSummary">
+            <div className="memberProfileName">{member.name}</div>
+            <div className="memberProfileRole">{member.role ?? '—'}</div>
           </div>
 
-          <div className="fieldGrid" style={{ marginTop: 12 }}>
-            <label className="field">
-              <div className="fieldLabel">Time zone</div>
-              <select
-                className="select"
-                value={member.profile.timeZone ?? ''}
-                onChange={(e) => onUpdate({ profile: { ...member.profile, timeZone: e.target.value || undefined } })}
-              >
-                <option value="">(Select)</option>
-                {US_TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <div className="fieldLabel">Typical hours</div>
-              <input
-                className="input"
-                placeholder="e.g., 9–5"
-                value={member.profile.typicalHours ?? ''}
-                onChange={(e) => onUpdate({ profile: { ...member.profile, typicalHours: e.target.value || undefined } })}
-              />
-            </label>
+          <div className="memberProfileMetaGrid" aria-label="Profile details">
+            <div className="memberProfileMetaItem">
+              <div className="memberProfileMetaLabel">Time zone</div>
+              <div className="memberProfileMetaValue">{member.profile.timeZone ?? '—'}</div>
+            </div>
+            <div className="memberProfileMetaItem">
+              <div className="memberProfileMetaLabel">Typical hours</div>
+              <div className="memberProfileMetaValue">{member.profile.typicalHours ?? '—'}</div>
+            </div>
           </div>
         </div>
       </section>
@@ -162,6 +207,9 @@ export function MemberOverviewTab({
       <section className="card subtle" aria-label="At-a-glance signals">
         <div className="cardHeader">
           <div className="cardTitle">At-a-glance Signals</div>
+          <button className="btn btnGhost" type="button" onClick={openSignalsModal}>
+            Edit
+          </button>
         </div>
         <div className="pad">
           <div className="signalPillsRow" aria-label="Signals">
@@ -260,6 +308,144 @@ export function MemberOverviewTab({
           </div>
         </div>
       </section>
+
+      <Modal
+        title="Edit profile"
+        isOpen={profileModalOpen}
+        onClose={() => {
+          setProfileModalOpen(false)
+          setProfileDraft({ name: '', role: '', timeZone: '', typicalHours: '' })
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveProfileModal}>
+              Save
+            </button>
+            <button
+              className="btn btnGhost"
+              type="button"
+              onClick={() => {
+                setProfileModalOpen(false)
+                setProfileDraft({ name: '', role: '', timeZone: '', typicalHours: '' })
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        <div className="fieldGrid">
+          <label className="field">
+            <div className="fieldLabel">Name</div>
+            <input
+              className="input"
+              value={profileDraft.name}
+              onChange={(e) => setProfileDraft((d) => ({ ...d, name: e.target.value }))}
+              placeholder="Full name"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Role / Level</div>
+            <input
+              className="input"
+              value={profileDraft.role}
+              onChange={(e) => setProfileDraft((d) => ({ ...d, role: e.target.value }))}
+              placeholder="e.g., Senior Engineer"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Time zone</div>
+            <select
+              className="select"
+              value={profileDraft.timeZone}
+              onChange={(e) => setProfileDraft((d) => ({ ...d, timeZone: e.target.value }))}
+            >
+              <option value="">(Select)</option>
+              {US_TIMEZONE_OPTIONS.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Typical hours</div>
+            <input
+              className="input"
+              placeholder="e.g., 9–5"
+              value={profileDraft.typicalHours}
+              onChange={(e) => setProfileDraft((d) => ({ ...d, typicalHours: e.target.value }))}
+            />
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Edit signals"
+        isOpen={signalsModalOpen}
+        onClose={() => {
+          setSignalsModalOpen(false)
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveSignalsModal}>
+              Save
+            </button>
+            <button className="btn btnGhost" type="button" onClick={() => setSignalsModalOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        <div className="fieldGrid">
+          <label className="field">
+            <div className="fieldLabel">Load</div>
+            <select
+              className="select"
+              value={signalsDraft.load}
+              onChange={(e) => setSignalsDraft((d) => ({ ...d, load: e.target.value as (typeof loadOptions)[number] }))}
+            >
+              {loadOptions.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Delivery</div>
+            <select
+              className="select"
+              value={signalsDraft.delivery}
+              onChange={(e) =>
+                setSignalsDraft((d) => ({ ...d, delivery: e.target.value as (typeof deliveryOptions)[number] }))
+              }
+            >
+              {deliveryOptions.map((x) => (
+                <option key={x} value={x}>
+                  {x === 'OnTrack' ? 'On Track' : x === 'AtRisk' ? 'At Risk' : x}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <div className="fieldLabel">Support needed</div>
+            <select
+              className="select"
+              value={signalsDraft.supportNeeded}
+              onChange={(e) =>
+                setSignalsDraft((d) => ({ ...d, supportNeeded: e.target.value as (typeof supportNeededOptions)[number] }))
+              }
+            >
+              {supportNeededOptions.map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </Modal>
     </div>
   )
 }

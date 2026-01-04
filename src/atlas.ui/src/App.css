@@ -967,6 +967,84 @@
   color-scheme: dark;
 }
 
+.selectMulti {
+  min-height: 120px;
+}
+
+.blockersCard {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.blockersAddRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.blockersAddSelect {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.blockersList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockersItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.10);
+}
+
+.blockersItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(110, 168, 254, 0.22);
+}
+
+.blockersItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.blockersItemTitle {
+  font-size: 13px;
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.blockersItemMeta {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.blockersItemRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.blockersStatus {
+  color: rgba(232, 241, 255, 0.86);
+}
+
+.blockersRemoveBtn {
+  padding: 6px 10px;
+}
+
 select option,
 select optgroup {
   background-color: var(--panel2);
@@ -1390,7 +1468,8 @@ select option:disabled {
 
 .projectRisksHeader,
 .projectRisksRow {
-  grid-template-columns: 140px minmax(0, 2fr) minmax(0, 1.4fr) 180px;
+  /* Risk column intentionally gets the space previously reserved for Mitigation. */
+  grid-template-columns: 140px minmax(0, 1fr) 180px;
 }
 
 @media (max-width: 1100px) {
@@ -1422,6 +1501,53 @@ select option:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 12px;
+}
+
+.memberProfileSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.memberProfileName {
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: 0.1px;
+  line-height: 1.2;
+}
+
+.memberProfileRole {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.memberProfileMetaGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.memberProfileMetaItem {
+  padding: 10px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.memberProfileMetaLabel {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memberProfileMetaValue {
+  margin-top: 4px;
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 650;
+  line-height: 1.2;
+  /* Allow real wrapping for readability (avoid ellipsis). */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .memberOverviewKv {
@@ -2155,6 +2281,29 @@ select option:disabled {
   gap: 10px;
 }
 
+.ggOverviewLastUpdated {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(232, 241, 255, 0.92);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.ggOverviewLastUpdatedLabel {
+  color: var(--muted2);
+  font-weight: 650;
+}
+
+.ggOverviewLastUpdatedValue {
+  color: rgba(232, 241, 255, 0.96);
+  font-weight: 750;
+}
+
 .growthGoalBreadcrumbs,
 .pageBreadcrumbs {
   color: var(--muted2);
@@ -2315,7 +2464,7 @@ select option:disabled {
 
 .ggMiniGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
@@ -2833,6 +2982,10 @@ select option:disabled {
 
   .memberOverviewFocus {
     grid-row: auto;
+  }
+
+  .memberProfileMetaGrid {
+    grid-template-columns: 1fr;
   }
   .azureGrid {
     grid-template-columns: 1fr;

@@ -4,7 +4,7 @@ namespace Atlas.Domain.Entities;
 
 public sealed class Growth : AggregateRoot
 {
-    public Guid MemberId { get; set; }
+    public Guid TeamMemberId { get; set; }
 
     public List<GrowthGoal> Goals { get; set; } = [];
 

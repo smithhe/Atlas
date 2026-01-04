@@ -7,7 +7,7 @@ namespace Atlas.Domain.Entities;
 public sealed class TeamMember : AggregateRoot
 {
     public string Name { get; set; } = string.Empty;
-    public string? Role { get; set; }
+    public string Role { get; set; } = string.Empty;
 
     public StatusDot StatusDot { get; set; }
     public string CurrentFocus { get; set; } = string.Empty;
@@ -16,9 +16,9 @@ public sealed class TeamMember : AggregateRoot
     public TeamMemberSignals Signals { get; set; } = new();
 
     public List<Guid> PinnedNoteIds { get; set; } = [];
-    public TeamMemberActivitySnapshot ActivitySnapshot { get; set; } = new();
 
     public List<TeamNote> Notes { get; set; } = [];
+    public List<TeamMemberRisk> Risks { get; set; } = [];
 
     // Azure DevOps/work item shapes intentionally deferred to a later layer.
 }

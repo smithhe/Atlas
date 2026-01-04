@@ -23,5 +23,10 @@ public sealed class TaskItem : AggregateRoot
 
     public string Notes { get; set; } = string.Empty;
     public DateTimeOffset LastTouchedAt { get; set; }
+
+    /// <summary>
+    /// Tasks this task is blocked by (i.e., dependencies that must complete first).
+    /// </summary>
+    public List<TaskDependency> BlockedBy { get; set; } = [];
 }
 

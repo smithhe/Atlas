@@ -22,6 +22,9 @@ public sealed class TeamMemberRisk : AggregateRoot
 
     public DateTimeOffset? LastReviewedAt { get; set; }
 
-    public Guid? LinkedRiskId { get; set; }
+    /// <summary>
+    /// Link to a non-team-member-specific risk.
+    /// </summary>
+    public Guid? LinkedGlobalRiskId { get; set; }
 }
 

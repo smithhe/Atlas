@@ -6,8 +6,12 @@ namespace Atlas.Domain.Entities;
 public sealed class GrowthGoal : Entity
 {
     public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
     public GrowthGoalStatus Status { get; set; }
+    
+    /// <summary>
+    /// Description shown in the growth overview
+    /// </summary>
+    public string Description { get; set; } = string.Empty;
 
     public string? Category { get; set; }
     public Priority? Priority { get; set; }

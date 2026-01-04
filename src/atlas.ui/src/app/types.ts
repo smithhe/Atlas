@@ -28,6 +28,10 @@ export interface Task {
   project?: string
   risk?: string
   dueDate?: string // ISO date (YYYY-MM-DD)
+  /**
+   * IDs of tasks this task is blocked by (i.e., dependencies that must be completed first).
+   */
+  dependencyTaskIds: Id[]
   estimatedDurationText: string
   estimateConfidence: Confidence
   actualDurationText?: string
@@ -42,8 +46,6 @@ export interface TeamNote {
   tag: NoteTag
   title?: string
   text: string
-  adoWorkItemId?: string
-  prUrl?: string
 }
 
 export interface AzureItem {
@@ -114,7 +116,6 @@ export interface Risk {
   status: RiskStatus
   severity: 'Low' | 'Medium' | 'High'
   project?: string
-  mitigation?: string
   ownerId?: Id
   description: string
   evidence: string

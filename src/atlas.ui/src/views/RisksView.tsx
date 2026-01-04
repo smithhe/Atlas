@@ -20,7 +20,6 @@ function applyTabIndentation(params: {
   const tab = '  '
 
   const before = value.slice(0, selectionStart)
-  const selected = value.slice(selectionStart, selectionEnd)
   const after = value.slice(selectionEnd)
 
   // Find start of the first selected line.
@@ -290,7 +289,6 @@ function RiskDetail({
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNoteText, setNewNoteText] = useState('')
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | undefined>(undefined)
-  const [isHistoryEditOpen, setIsHistoryEditOpen] = useState(false)
   const [historyDraftText, setHistoryDraftText] = useState('')
   const [historyEditTab, setHistoryEditTab] = useState<'Write' | 'Preview'>('Write')
   const historyTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -345,7 +343,6 @@ function RiskDetail({
     setIsAddingNote(false)
     setNewNoteText('')
     setSelectedHistoryId(undefined)
-    setIsHistoryEditOpen(false)
     setHistoryDraftText('')
     setHistoryEditTab('Write')
   }, [risk.id])
@@ -579,8 +576,6 @@ function RiskDetail({
                     className="listRow listRowBtn"
                     onClick={() => {
                       setSelectedHistoryId(h.id)
-                      // Open modal directly in edit mode.
-                      setIsHistoryEditOpen(true)
                       setHistoryDraftText(h.text)
                       setHistoryEditTab('Write')
                       requestAnimationFrame(() => historyTextareaRef.current?.focus())
@@ -605,7 +600,6 @@ function RiskDetail({
         isOpen={!!selectedHistory}
         onClose={() => {
           setSelectedHistoryId(undefined)
-          setIsHistoryEditOpen(false)
           setHistoryDraftText('')
           setHistoryEditTab('Write')
         }}
@@ -619,7 +613,6 @@ function RiskDetail({
                   if (!text) return
                   updateHistoryItem(selectedHistory.id, { text })
                   setSelectedHistoryId(undefined)
-                  setIsHistoryEditOpen(false)
                   setHistoryDraftText('')
                   setHistoryEditTab('Write')
                 }}
@@ -630,7 +623,6 @@ function RiskDetail({
                 className="btn btnGhost"
                 onClick={() => {
                   setSelectedHistoryId(undefined)
-                  setIsHistoryEditOpen(false)
                   setHistoryDraftText('')
                   setHistoryEditTab('Write')
                 }}
