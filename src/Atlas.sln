@@ -4,6 +4,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{860D4AE2-1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Atlas.Domain", "backend\Core\Atlas.Domain\Atlas.Domain.csproj", "{97ACAF91-CEEE-4E53-9677-2A6EA5BC6E88}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{CA826D93-4212-4B2D-A90B-2AFA3E36828E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Atlas.Persistence", "backend\Infrastructure\Atlas.Persistence\Atlas.Persistence.csproj", "{579A5C81-14F2-4847-938E-568E9A502092}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,8 +18,13 @@ Global
 		{97ACAF91-CEEE-4E53-9677-2A6EA5BC6E88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97ACAF91-CEEE-4E53-9677-2A6EA5BC6E88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97ACAF91-CEEE-4E53-9677-2A6EA5BC6E88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{579A5C81-14F2-4847-938E-568E9A502092}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{579A5C81-14F2-4847-938E-568E9A502092}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{579A5C81-14F2-4847-938E-568E9A502092}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{579A5C81-14F2-4847-938E-568E9A502092}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{97ACAF91-CEEE-4E53-9677-2A6EA5BC6E88} = {860D4AE2-17BB-49A5-977E-F651878B5FBC}
+		{579A5C81-14F2-4847-938E-568E9A502092} = {CA826D93-4212-4B2D-A90B-2AFA3E36828E}
 	EndGlobalSection
 EndGlobal
