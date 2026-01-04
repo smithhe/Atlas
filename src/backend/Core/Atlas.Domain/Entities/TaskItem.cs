@@ -10,7 +10,6 @@ public sealed class TaskItem : AggregateRoot
     public TaskStatus Status { get; set; }
 
     public Guid? AssigneeId { get; set; }
-    public string? Summary { get; set; }
 
     public Guid? ProjectId { get; set; }
     public Project? Project { get; set; }

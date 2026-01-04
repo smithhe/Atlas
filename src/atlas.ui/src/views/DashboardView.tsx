@@ -91,8 +91,6 @@ export function DashboardView() {
     }
 
     function taskWhy(t: (typeof tasks)[number]) {
-      const summary = (t.summary ?? '').trim()
-      if (summary) return summary
       const parts: string[] = []
       if (t.risk) parts.push(`Risk: ${t.risk}`)
       if (t.project) parts.push(t.project)
@@ -244,7 +242,7 @@ export function DashboardView() {
     for (const t of tasks) {
       const ageDays = daysBetween(t.lastTouchedIso, nowIso)
       if (ageDays >= staleDays) {
-        const textForDocs = `${t.title} ${(t.summary ?? '')} ${(t.project ?? '')}`
+        const textForDocs = `${t.title} ${(t.project ?? '')}`
         const tag: DriftTag = includesDocsKeyword(textForDocs) ? 'Docs' : 'Project'
         drift.push({
           key: `drift-task-stale-${t.id}`,

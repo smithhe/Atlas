@@ -290,7 +290,7 @@ function ProjectDetail({
       if (taskAssigneeFilter !== 'All' && (t.assigneeId ?? '') !== taskAssigneeFilter) return false
       if (taskDueFilter !== 'All' && dueBucket(t.dueDate) !== taskDueFilter) return false
       if (q) {
-        const hay = `${t.title} ${t.summary ?? ''}`.toLowerCase()
+        const hay = `${t.title}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
@@ -774,7 +774,7 @@ function ProjectDetail({
                     </div>
                     <div className="projectTd" role="cell">
                       <div className="projectCellTitle">{t.title}</div>
-                      <div className="mutedSmall">{t.summary ?? ''}</div>
+                      {/* summary removed from Task; details live in notes */}
                     </div>
                     <div className="projectTd" role="cell">
                       {t.priority}

@@ -24,7 +24,6 @@ export interface Task {
   priority: Priority
   status?: TaskStatus
   assigneeId?: Id
-  summary?: string
   project?: string
   risk?: string
   dueDate?: string // ISO date (YYYY-MM-DD)

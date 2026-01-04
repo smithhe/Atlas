@@ -10,7 +10,6 @@ public sealed class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Title).IsRequired();
-        builder.Property(x => x.Summary);
         builder.Property(x => x.Notes).IsRequired();
         builder.Property(x => x.LastTouchedAt).IsRequired();
 
