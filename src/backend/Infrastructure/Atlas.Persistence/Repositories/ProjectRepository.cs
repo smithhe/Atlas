@@ -29,6 +29,13 @@ public sealed class ProjectRepository : IProjectRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Project>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.Projects
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Project project, CancellationToken cancellationToken = default)
     {
         await _db.Projects.AddAsync(project, cancellationToken);
