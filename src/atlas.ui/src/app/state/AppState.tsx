@@ -28,6 +28,7 @@ type Action =
   | { type: 'updateTask'; task: Task }
   | { type: 'touchTask'; taskId: string; touchedIso: string }
   | { type: 'updateRisk'; risk: Risk }
+  | { type: 'addTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
   | { type: 'updateTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
   | { type: 'updateGrowth'; growth: Growth }
   | { type: 'updateSettings'; settings: Settings }
@@ -57,6 +58,12 @@ function reduce(state: AppState, action: Action): AppState {
       }
     case 'updateRisk':
       return { ...state, risks: state.risks.map((r) => (r.id === action.risk.id ? action.risk : r)) }
+    case 'addTeamMemberRisk':
+      return {
+        ...state,
+        selectedTeamMemberRiskId: action.teamMemberRisk.id,
+        teamMemberRisks: [action.teamMemberRisk, ...state.teamMemberRisks],
+      }
     case 'updateTeamMemberRisk':
       return {
         ...state,

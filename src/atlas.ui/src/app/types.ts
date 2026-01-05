@@ -45,6 +45,15 @@ export interface TeamNote {
   tag: NoteTag
   title?: string
   text: string
+  /**
+   * Optional Azure DevOps work item reference for quick cross-linking from notes.
+   * (Local-only for now; safe to keep even after sync exists.)
+   */
+  adoWorkItemId?: Id
+  /**
+   * Optional pull request URL reference for quick cross-linking from notes.
+   */
+  prUrl?: string
 }
 
 export interface AzureItem {

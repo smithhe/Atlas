@@ -981,9 +981,70 @@ function MemberRisksTab({
   teamMemberRisks: TeamMemberRisk[]
   risks: Risk[]
 }) {
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<TeamMemberRisk['status'] | 'All'>('All')
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createDraft, setCreateDraft] = useState<TeamMemberRisk | null>(null)
+
+  const severityOptions: TeamMemberRisk['severity'][] = ['Low', 'Medium', 'High']
+  const trendOptions: TeamMemberRisk['trend'][] = ['Improving', 'Stable', 'Worsening']
+  const statusOptions: TeamMemberRisk['status'][] = ['Open', 'Mitigating', 'Resolved']
+
+  function todayIsoDate() {
+    // ISO date (YYYY-MM-DD) in local time.
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
+
+  function openCreateModal() {
+    setCreateDraft({
+      id: newId('tmr'),
+      memberId,
+      title: '',
+      severity: 'Medium',
+      riskType: '',
+      status: 'Open',
+      trend: 'Stable',
+      firstNoticedDateIso: todayIsoDate(),
+      impactArea: '',
+      description: '',
+      currentAction: '',
+      linkedRiskId: undefined,
+      lastReviewedIso: undefined,
+    })
+    setCreateModalOpen(true)
+  }
+
+  function closeCreateModal() {
+    setCreateModalOpen(false)
+    setCreateDraft(null)
+  }
+
+  function saveCreateModal() {
+    if (!createDraft) return
+    const title = createDraft.title.trim()
+    if (!title) return
+
+    const next: TeamMemberRisk = {
+      ...createDraft,
+      title,
+      riskType: createDraft.riskType.trim(),
+      impactArea: createDraft.impactArea.trim(),
+      description: createDraft.description.trim(),
+      currentAction: createDraft.currentAction.trim(),
+      memberId,
+      linkedRiskId: createDraft.linkedRiskId || undefined,
+    }
+
+    dispatch({ type: 'addTeamMemberRisk', teamMemberRisk: next })
+    closeCreateModal()
+    navigate(`/team/${memberId}/risks/${next.id}`)
+  }
 
   const memberRisks = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -1001,6 +1062,9 @@ function MemberRisksTab({
     <section className="card subtle" aria-label="Risks tab">
       <div className="cardHeader">
         <div className="cardTitle">Risks</div>
+        <button className="btn btnGhost" type="button" onClick={openCreateModal}>
+          Add risk
+        </button>
       </div>
       <div className="pad">
         <div
@@ -1059,6 +1123,149 @@ function MemberRisksTab({
           </div>
         )}
       </div>
+
+      <Modal
+        title="Add team member risk"
+        isOpen={createModalOpen}
+        onClose={closeCreateModal}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveCreateModal} disabled={!createDraft?.title.trim()}>
+              Add
+            </button>
+            <button className="btn btnGhost" type="button" onClick={closeCreateModal}>
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        {!createDraft ? null : (
+          <div className="fieldGrid">
+            <label className="field" style={{ gridColumn: '1 / -1' }}>
+              <div className="fieldLabel">Title</div>
+              <input
+                className="input"
+                value={createDraft.title}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, title: e.target.value } : d))}
+                placeholder="What could go wrong?"
+              />
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Severity</div>
+              <select
+                className="select"
+                value={createDraft.severity}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, severity: e.target.value as TeamMemberRisk['severity'] } : d))}
+              >
+                {severityOptions.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Status</div>
+              <select
+                className="select"
+                value={createDraft.status}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, status: e.target.value as TeamMemberRisk['status'] } : d))}
+              >
+                {statusOptions.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Trend</div>
+              <select
+                className="select"
+                value={createDraft.trend}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, trend: e.target.value as TeamMemberRisk['trend'] } : d))}
+              >
+                {trendOptions.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">First noticed</div>
+              <input
+                className="input"
+                type="date"
+                value={createDraft.firstNoticedDateIso}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, firstNoticedDateIso: e.target.value } : d))}
+              />
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Type</div>
+              <input
+                className="input"
+                value={createDraft.riskType}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, riskType: e.target.value } : d))}
+                placeholder="e.g., Burnout, Delivery, Role clarity"
+              />
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Impact area</div>
+              <input
+                className="input"
+                value={createDraft.impactArea}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, impactArea: e.target.value } : d))}
+                placeholder="e.g., Quality, Schedule, Team health"
+              />
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">Link to global risk (optional)</div>
+              <select
+                className="select"
+                value={createDraft.linkedRiskId ?? ''}
+                onChange={(e) =>
+                  setCreateDraft((d) => (d ? { ...d, linkedRiskId: e.target.value ? e.target.value : undefined } : d))
+                }
+              >
+                <option value="">(None)</option>
+                {risks.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field" style={{ gridColumn: '1 / -1' }}>
+              <div className="fieldLabel">Description</div>
+              <textarea
+                className="textarea"
+                value={createDraft.description}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, description: e.target.value } : d))}
+                placeholder="What are you observing? What evidence supports it?"
+              />
+            </label>
+
+            <label className="field" style={{ gridColumn: '1 / -1' }}>
+              <div className="fieldLabel">Current action</div>
+              <textarea
+                className="textarea"
+                value={createDraft.currentAction}
+                onChange={(e) => setCreateDraft((d) => (d ? { ...d, currentAction: e.target.value } : d))}
+                placeholder="What are you doing next to mitigate?"
+              />
+            </label>
+          </div>
+        )}
+      </Modal>
     </section>
   )
 }
