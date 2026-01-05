@@ -2536,6 +2536,17 @@ select option:disabled {
   gap: 4px;
 }
 
+.ggTimeframeLines > div {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ggTimeframeLines > div strong {
+  margin-left: auto;
+  text-align: right;
+}
+
 .ggTimeframeKey {
   color: var(--muted);
   font-size: 12px;
@@ -2596,6 +2607,10 @@ select option:disabled {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.10);
   overflow: hidden;
+}
+
+.ggProgressText + .ggProgressBar {
+  margin-top: 8px;
 }
 
 .ggProgressFill {

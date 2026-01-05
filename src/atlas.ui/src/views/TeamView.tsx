@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
-import type { Growth, GrowthFeedbackTheme, GrowthGoalStatus, NoteTag, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
+import type { Growth, GrowthFeedbackTheme, GrowthGoal, GrowthGoalStatus, NoteTag, Priority, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
@@ -1276,10 +1276,31 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
   const navigate = useNavigate()
 
   const SKILL_LEVEL_OPTIONS = ['Awareness', 'Beginner', 'Developing', 'Intermediate', 'Advanced', 'Expert'] as const
+  const PRIORITY_OPTIONS: Priority[] = ['Low', 'Medium', 'High', 'Critical']
+  const GOAL_STATUS_OPTIONS: GrowthGoalStatus[] = ['OnTrack', 'NeedsAttention', 'Completed']
 
   const [skillModalOpen, setSkillModalOpen] = useState(false)
   const [skillModalIndex, setSkillModalIndex] = useState<number | null>(null)
   const [skillDraft, setSkillDraft] = useState<{ label: string; from: string; to: string }>({ label: '', from: '', to: '' })
+
+  const [goalModalOpen, setGoalModalOpen] = useState(false)
+  const [goalDraft, setGoalDraft] = useState<{
+    title: string
+    description: string
+    status: GrowthGoalStatus
+    category: string
+    priority: Priority | ''
+    startDateIso: string
+    targetDateIso: string
+  }>({
+    title: '',
+    description: '',
+    status: 'OnTrack',
+    category: '',
+    priority: '',
+    startDateIso: '',
+    targetDateIso: '',
+  })
 
   const [themeModalOpen, setThemeModalOpen] = useState(false)
   const [themeDraft, setThemeDraft] = useState<GrowthFeedbackTheme | null>(null)
@@ -1287,6 +1308,15 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
 
   const [focusModalOpen, setFocusModalOpen] = useState(false)
   const [focusDraftText, setFocusDraftText] = useState('')
+
+  function isoDateTodayLocal() {
+    // ISO date (YYYY-MM-DD) in local time.
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }
 
   function baseGrowth(): Growth {
     const g =
@@ -1375,6 +1405,58 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     setSkillModalIndex(null)
     setSkillDraft({ label: '', from: '', to: '' })
     setSkillModalOpen(true)
+  }
+
+  function openAddGoal() {
+    setGoalDraft({
+      title: '',
+      description: '',
+      status: 'OnTrack',
+      category: '',
+      priority: '',
+      startDateIso: isoDateTodayLocal(),
+      targetDateIso: '',
+    })
+    setGoalModalOpen(true)
+  }
+
+  function closeGoalModal() {
+    setGoalModalOpen(false)
+    setGoalDraft({
+      title: '',
+      description: '',
+      status: 'OnTrack',
+      category: '',
+      priority: '',
+      startDateIso: '',
+      targetDateIso: '',
+    })
+  }
+
+  function saveGoal() {
+    const title = goalDraft.title.trim()
+    if (!title) return
+
+    const g = baseGrowth()
+    const nowIso = new Date().toISOString()
+    const nextGoal: GrowthGoal = {
+      id: newId('growth-goal'),
+      title,
+      description: goalDraft.description.trim(),
+      status: goalDraft.status,
+      category: goalDraft.category.trim() || undefined,
+      priority: goalDraft.priority || undefined,
+      startDateIso: goalDraft.startDateIso.trim() || undefined,
+      targetDateIso: goalDraft.targetDateIso.trim() || undefined,
+      lastUpdatedIso: nowIso,
+      actions: [],
+      checkIns: [],
+      successCriteria: [],
+    }
+
+    commitGrowth({ goals: [nextGoal, ...(g.goals ?? [])] })
+    closeGoalModal()
+    navigate(`/team/${member.id}/growth/goals/${nextGoal.id}`)
   }
 
   function saveSkill() {
@@ -1484,7 +1566,12 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       <div className="growthTitle">Growth Overview</div>
 
       <div className="growthSection">
-        <div className="growthSectionTitle">Active Growth Goals</div>
+        <div className="growthSectionTitleRow">
+          <div className="growthSectionTitle">Active Growth Goals</div>
+          <button className="btn btnGhost btnIcon" type="button" title="Add goal" onClick={openAddGoal}>
+            +
+          </button>
+        </div>
         {activeGoals.length === 0 ? (
           <div className="card subtle">
             <div className="pad muted">No growth goals yet. We’ll add goals next.</div>
@@ -1510,6 +1597,105 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
           </div>
         )}
       </div>
+
+      <Modal
+        title="Add growth goal"
+        isOpen={goalModalOpen}
+        onClose={closeGoalModal}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveGoal} disabled={!goalDraft.title.trim()}>
+              Add
+            </button>
+            <button className="btn btnGhost" type="button" onClick={closeGoalModal}>
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        <div className="fieldGrid">
+          <label className="field" style={{ gridColumn: '1 / -1' }}>
+            <div className="fieldLabel">Title</div>
+            <input
+              className="input"
+              value={goalDraft.title}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, title: e.target.value }))}
+              placeholder="What are they working to improve?"
+            />
+          </label>
+
+          <label className="field" style={{ gridColumn: '1 / -1' }}>
+            <div className="fieldLabel">Description</div>
+            <textarea
+              className="textarea"
+              value={goalDraft.description}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, description: e.target.value }))}
+              placeholder="Context, why it matters, what ‘good’ looks like…"
+            />
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Status</div>
+            <select
+              className="select"
+              value={goalDraft.status}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, status: e.target.value as GrowthGoalStatus }))}
+            >
+              {GOAL_STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s === 'OnTrack' ? 'On Track' : s === 'NeedsAttention' ? 'Needs Attention' : 'Completed'}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Priority</div>
+            <select
+              className="select"
+              value={goalDraft.priority}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, priority: e.target.value as Priority | '' }))}
+            >
+              <option value="">(None)</option>
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Category</div>
+            <input
+              className="input"
+              value={goalDraft.category}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, category: e.target.value }))}
+              placeholder="e.g., Tech, Leadership"
+            />
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Start date</div>
+            <input
+              className="input"
+              type="date"
+              value={goalDraft.startDateIso}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, startDateIso: e.target.value }))}
+            />
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Target date</div>
+            <input
+              className="input"
+              type="date"
+              value={goalDraft.targetDateIso}
+              onChange={(e) => setGoalDraft((d) => ({ ...d, targetDateIso: e.target.value }))}
+            />
+          </label>
+        </div>
+      </Modal>
 
       <div className="growthSection">
         <div className="growthSectionTitleRow">
