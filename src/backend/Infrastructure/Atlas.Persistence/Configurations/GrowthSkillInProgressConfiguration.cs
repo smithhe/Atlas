@@ -11,7 +11,11 @@ public sealed class GrowthSkillInProgressConfiguration : IEntityTypeConfiguratio
         // Clean SQL primary key: one skill value per growth plan.
         builder.HasKey(x => new { x.GrowthId, x.Value });
 
+        builder.Property(x => x.SortOrder).IsRequired();
         builder.Property(x => x.Value).IsRequired();
+
+        // Supports stable ordering queries per growth plan.
+        builder.HasIndex(x => new { x.GrowthId, x.SortOrder });
 
         builder.HasOne(x => x.Growth)
             .WithMany(x => x.SkillsInProgress)

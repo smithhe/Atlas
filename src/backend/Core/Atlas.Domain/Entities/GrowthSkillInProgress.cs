@@ -8,6 +8,11 @@ public sealed class GrowthSkillInProgress
     public Guid GrowthId { get; set; }
     public Growth? Growth { get; set; }
 
+    /// <summary>
+    /// UI-driven ordering (0-based). The UI edits skills as an ordered list.
+    /// </summary>
+    public int SortOrder { get; set; }
+
     public string Value { get; set; } = string.Empty;
 }
 
