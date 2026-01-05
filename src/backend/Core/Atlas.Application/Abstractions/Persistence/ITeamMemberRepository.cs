@@ -6,6 +6,7 @@ public interface ITeamMemberRepository
 {
     Task<TeamMember?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<TeamMember?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<TeamMember>> ListAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(TeamMember member, CancellationToken cancellationToken = default);
     void Remove(TeamMember member);

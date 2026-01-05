@@ -27,6 +27,13 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<TeamMember>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.TeamMembers
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(TeamMember member, CancellationToken cancellationToken = default)
     {
         await _db.TeamMembers.AddAsync(member, cancellationToken);
