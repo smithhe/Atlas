@@ -6,6 +6,7 @@ public interface IRiskRepository
 {
     Task<Risk?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Risk?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Risk>> ListAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(Risk risk, CancellationToken cancellationToken = default);
     void Remove(Risk risk);

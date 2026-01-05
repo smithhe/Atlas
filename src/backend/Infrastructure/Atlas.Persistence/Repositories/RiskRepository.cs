@@ -27,6 +27,13 @@ public sealed class RiskRepository : IRiskRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Risk>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.Risks
+            .OrderByDescending(x => x.LastUpdatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(Risk risk, CancellationToken cancellationToken = default)
     {
         await _db.Risks.AddAsync(risk, cancellationToken);
