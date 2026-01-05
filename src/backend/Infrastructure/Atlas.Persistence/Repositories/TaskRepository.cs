@@ -33,6 +33,19 @@ public sealed class TaskRepository : ITaskRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _db.Tasks.AnyAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetDirectBlockerIdsAsync(Guid taskId, CancellationToken cancellationToken = default)
+    {
+        return await _db.TaskDependencies
+            .Where(d => d.DependentTaskId == taskId)
+            .Select(d => d.BlockerTaskId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(TaskItem task, CancellationToken cancellationToken = default)
     {
         await _db.Tasks.AddAsync(task, cancellationToken);

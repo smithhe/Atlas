@@ -40,6 +40,15 @@ public sealed class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand
             .Distinct()
             .ToList();
 
+        foreach (var blockerId in blockerIds)
+        {
+            var exists = await _tasks.ExistsAsync(blockerId, cancellationToken);
+            if (!exists)
+            {
+                throw new InvalidOperationException($"Blocked-by task '{blockerId}' was not found.");
+            }
+        }
+
         task.BlockedBy.AddRange(blockerIds.Select(id => new TaskDependency
         {
             Id = Guid.NewGuid(),

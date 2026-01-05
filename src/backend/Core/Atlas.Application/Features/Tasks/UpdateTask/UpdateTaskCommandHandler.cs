@@ -42,6 +42,61 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
             .Distinct()
             .ToHashSet();
 
+        foreach (var blockerId in desiredBlockerIds)
+        {
+            var exists = await _tasks.ExistsAsync(blockerId, cancellationToken);
+            if (!exists)
+            {
+                throw new InvalidOperationException($"Blocked-by task '{blockerId}' was not found.");
+            }
+        }
+
+        // Cycle detection: ensure none of the desired blockers (directly or indirectly) depends on this task.
+        // This prevents introducing cycles like A blocked by B when B is (transitively) blocked by A.
+        foreach (var blockerId in desiredBlockerIds)
+        {
+            var visited = new HashSet<Guid> { task.Id };
+            var stack = new Stack<Guid>();
+            stack.Push(blockerId);
+
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                if (!visited.Add(current))
+                {
+                    continue;
+                }
+
+                if (current == task.Id)
+                {
+                    throw new InvalidOperationException("Task dependency cycle detected.");
+                }
+
+                var directBlockers = await _tasks.GetDirectBlockerIdsAsync(current, cancellationToken);
+                foreach (var next in directBlockers)
+                {
+                    if (next == Guid.Empty)
+                    {
+                        continue;
+                    }
+
+                    // If any chain reaches task.Id, it's a cycle.
+                    if (next == task.Id)
+                    {
+                        throw new InvalidOperationException("Task dependency cycle detected.");
+                    }
+
+                    stack.Push(next);
+                }
+
+                // Safety guard against pathological graphs (shouldn't happen in practice).
+                if (visited.Count > 10_000)
+                {
+                    throw new InvalidOperationException("Task dependency graph is too large to validate.");
+                }
+            }
+        }
+
         task.BlockedBy.RemoveAll(d => !desiredBlockerIds.Contains(d.BlockerTaskId));
         foreach (var blockerId in desiredBlockerIds)
         {
