@@ -26,9 +26,19 @@ public sealed class TaskRepository : ITaskRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<TaskItem>> ListAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TaskItem>> ListAsync(IReadOnlyList<Guid>? ids = null, CancellationToken cancellationToken = default)
     {
-        return await _db.Tasks
+        var query = _db.Tasks.AsQueryable();
+
+        if (ids is { Count: > 0 })
+        {
+            query = query.Where(x => ids.Contains(x.Id));
+        }
+
+        return await query
+            .Include(x => x.Project)
+            .Include(x => x.Risk)
+            .Include(x => x.BlockedBy)
             .OrderByDescending(x => x.LastTouchedAt)
             .ToListAsync(cancellationToken);
     }

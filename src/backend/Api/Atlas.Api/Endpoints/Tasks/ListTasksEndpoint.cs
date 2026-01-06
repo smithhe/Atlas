@@ -25,7 +25,7 @@ public sealed class ListTasksEndpoint : Endpoint<ListTasksRequest, IReadOnlyList
 
     public override async Task HandleAsync(ListTasksRequest req, CancellationToken ct)
     {
-        var tasks = await _mediator.Send(new ListTasksQuery(), ct);
+        var tasks = await _mediator.Send(new ListTasksQuery(req.Ids), ct);
         var dtos = tasks.Select(TaskMapper.ToDto).ToList();
         await Send.OkAsync(dtos, ct);
     }

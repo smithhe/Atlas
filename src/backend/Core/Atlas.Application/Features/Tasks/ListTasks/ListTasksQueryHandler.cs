@@ -14,7 +14,7 @@ public sealed class ListTasksQueryHandler : IRequestHandler<ListTasksQuery, IRea
 
     public Task<IReadOnlyList<TaskItem>> Handle(ListTasksQuery request, CancellationToken cancellationToken)
     {
-        return _tasks.ListAsync(cancellationToken);
+        return _tasks.ListAsync(request.Ids, cancellationToken);
     }
 }
 
