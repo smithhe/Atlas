@@ -28,9 +28,9 @@ public sealed class SetGrowthSkillsInProgressCommandHandler : IRequestHandler<Se
         // Match UI semantics:
         // - trim + drop blanks
         // - keep order
-        // - remove duplicates (case-sensitive, first occurrence wins)
+         // - remove duplicates (case-insensitive, first occurrence wins)
         var next = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in request.SkillsInProgress)
         {
             var value = (raw ?? string.Empty).Trim();
@@ -39,26 +39,37 @@ public sealed class SetGrowthSkillsInProgressCommandHandler : IRequestHandler<Se
             next.Add(value);
         }
 
-        // Remove rows that are no longer present (by exact value).
-        plan.SkillsInProgress.RemoveAll(x => !next.Contains(x.Value, StringComparer.Ordinal));
+         // Remove rows that are no longer present (case-insensitive).
+         plan.SkillsInProgress.RemoveAll(x => !next.Any(v => string.Equals(v, x.Value, StringComparison.OrdinalIgnoreCase)));
 
-        // Add missing rows and update sort order for kept rows.
+         // Add missing rows, de-dupe any existing casing-variants, and update sort order.
         for (var i = 0; i < next.Count; i++)
         {
             var value = next[i];
-            var existing = plan.SkillsInProgress.FirstOrDefault(x => string.Equals(x.Value, value, StringComparison.Ordinal));
-            if (existing is null)
-            {
-                plan.SkillsInProgress.Add(new GrowthSkillInProgress
-                {
-                    GrowthId = plan.Id,
-                    Value = value,
-                    SortOrder = i
-                });
-                continue;
-            }
+             var matches = plan.SkillsInProgress
+                 .Where(x => string.Equals(x.Value, value, StringComparison.OrdinalIgnoreCase))
+                 .ToList();
 
-            existing.SortOrder = i;
+             if (matches.Count == 0)
+             {
+                 plan.SkillsInProgress.Add(new GrowthSkillInProgress
+                 {
+                     GrowthId = plan.Id,
+                     Value = value,
+                     SortOrder = i
+                 });
+                 continue;
+             }
+
+             var keep = matches[0];
+             keep.SortOrder = i;
+
+             // If we somehow had duplicates with different casing (e.g., case-insensitive DB collation),
+             // keep the first and remove the rest.
+             for (var m = 1; m < matches.Count; m++)
+             {
+                 plan.SkillsInProgress.Remove(matches[m]);
+             }
         }
 
         // Keep in-memory order stable after mutation.
