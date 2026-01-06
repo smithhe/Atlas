@@ -12,10 +12,11 @@ public sealed class GrowthSkillInProgressConfiguration : IEntityTypeConfiguratio
         builder.HasKey(x => new { x.GrowthId, x.Value });
 
         builder.Property(x => x.SortOrder).IsRequired();
-        builder.Property(x => x.Value).IsRequired();
+        builder.Property(x => x.Value).IsRequired().HasMaxLength(200);
 
         // Supports stable ordering queries per growth plan.
-        builder.HasIndex(x => new { x.GrowthId, x.SortOrder });
+        // Also prevents duplicate sort positions (ambiguous ordering) within a growth plan.
+        builder.HasIndex(x => new { x.GrowthId, x.SortOrder }).IsUnique();
 
         builder.HasOne(x => x.Growth)
             .WithMany(x => x.SkillsInProgress)
