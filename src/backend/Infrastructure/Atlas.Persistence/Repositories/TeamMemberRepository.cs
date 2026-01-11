@@ -34,6 +34,11 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
             .ToListAsync(cancellationToken);
     }
 
+    public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return _db.TeamMembers.AnyAsync(x => x.Id == id, cancellationToken);
+    }
+
     public async Task AddAsync(TeamMember member, CancellationToken cancellationToken = default)
     {
         await _db.TeamMembers.AddAsync(member, cancellationToken);
