@@ -183,9 +183,14 @@ export interface Project {
 
 export interface Settings {
   staleDays: number
-  defaultAiManualOnly: true
-  theme: 'Dark'
+  defaultAiManualOnly: boolean
+  theme: 'Dark' | 'Light'
   azureDevOpsBaseUrl?: string
+}
+
+export interface ProductOwner {
+  id: Id
+  name: string
 }
 
 export type GrowthGoalStatus = 'OnTrack' | 'NeedsAttention' | 'Completed'

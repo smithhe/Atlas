@@ -1,7 +1,7 @@
-import { createContext, useContext, useMemo, useReducer } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { Dispatch, ReactNode } from 'react'
-import type { Growth, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
-import { seedGrowth, seedProjects, seedRisks, seedSettings, seedTasks, seedTeam, seedTeamMemberRisks } from '../seed'
+import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
+import { loadInitialState } from '../api/loadInitialState'
 
 export interface AppState {
   tasks: Task[]
@@ -9,6 +9,7 @@ export interface AppState {
   teamMemberRisks: TeamMemberRisk[]
   team: TeamMember[]
   projects: Project[]
+  productOwners: ProductOwner[]
   growth: Growth[]
   settings: Settings
 
@@ -20,6 +21,7 @@ export interface AppState {
 }
 
 type Action =
+  | { type: 'hydrate'; state: AppState }
   | { type: 'selectTask'; taskId?: string }
   | { type: 'selectRisk'; riskId?: string }
   | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
@@ -37,6 +39,8 @@ type Action =
 
 function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'hydrate':
+      return action.state
     case 'selectTask':
       return { ...state, selectedTaskId: action.taskId }
     case 'selectRisk':
@@ -91,29 +95,27 @@ function reduce(state: AppState, action: Action): AppState {
 }
 
 function initialState(): AppState {
-  const tasks = seedTasks()
-  const risks = seedRisks()
-  const teamMemberRisks = seedTeamMemberRisks()
-  const team = seedTeam()
-  const projects = seedProjects()
-  const growth = seedGrowth()
-  const settings = seedSettings()
-
   return {
-    tasks,
-    risks,
-    teamMemberRisks,
-    team,
-    projects,
-    growth,
-    settings,
+    tasks: [],
+    risks: [],
+    teamMemberRisks: [],
+    team: [],
+    projects: [],
+    productOwners: [],
+    growth: [],
+    settings: {
+      staleDays: 10,
+      defaultAiManualOnly: true,
+      theme: 'Dark',
+      azureDevOpsBaseUrl: undefined,
+    },
+
     // Start with no task selected so the Tasks page can start "closed".
     selectedTaskId: undefined,
-    // Start with no risk selected so the Risks page can start "closed".
     selectedRiskId: undefined,
-    selectedTeamMemberRiskId: teamMemberRisks[0]?.id,
-    selectedTeamMemberId: team[0]?.id,
-    selectedProjectId: projects[0]?.id,
+    selectedTeamMemberRiskId: undefined,
+    selectedTeamMemberId: undefined,
+    selectedProjectId: undefined,
   }
 }
 
@@ -122,6 +124,20 @@ const AppDispatchContext = createContext<Dispatch<Action> | undefined>(undefined
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reduce, undefined, initialState)
+  const didLoadRef = useRef(false)
+
+  useEffect(() => {
+    if (didLoadRef.current) return
+    didLoadRef.current = true
+
+    loadInitialState()
+      .then((loaded) => dispatch({ type: 'hydrate', state: loaded }))
+      .catch((err) => {
+        // If the API isn't running yet, keep the app usable (empty state) but log for debugging.
+        // (A future enhancement could show a non-blocking banner.)
+        console.error('Failed to load initial state from API', err)
+      })
+  }, [])
 
   return (
     <AppStateContext.Provider value={state}>

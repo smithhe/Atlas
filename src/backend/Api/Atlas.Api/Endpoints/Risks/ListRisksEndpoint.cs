@@ -4,7 +4,7 @@ using Atlas.Application.Features.Risks.ListRisks;
 
 namespace Atlas.Api.Endpoints.Risks;
 
-public sealed class ListRisksEndpoint : Endpoint<ListRisksRequest, IReadOnlyList<RiskListItemDto>>
+public sealed class ListRisksEndpoint : EndpointWithoutRequest<IReadOnlyList<RiskListItemDto>>
 {
     private readonly IMediator _mediator;
 
@@ -20,7 +20,7 @@ public sealed class ListRisksEndpoint : Endpoint<ListRisksRequest, IReadOnlyList
         Summary(s => { s.Summary = "List risks"; });
     }
 
-    public override async Task HandleAsync(ListRisksRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var risks = await _mediator.Send(new ListRisksQuery(), ct);
         var dtos = risks.Select(RiskMapper.ToListItemDto).ToList();

@@ -4,7 +4,7 @@ using Atlas.Application.Features.Growth.GetGrowth;
 
 namespace Atlas.Api.Endpoints.Growth;
 
-public sealed class GetGrowthEndpoint : Endpoint<GetGrowthByIdRequest, GrowthDto>
+public sealed class GetGrowthEndpoint : EndpointWithoutRequest<GrowthDto>
 {
     private readonly IMediator _mediator;
 
@@ -20,7 +20,7 @@ public sealed class GetGrowthEndpoint : Endpoint<GetGrowthByIdRequest, GrowthDto
         Summary(s => { s.Summary = "Get a growth plan by id"; });
     }
 
-    public override async Task HandleAsync(GetGrowthByIdRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var growthId = Route<Guid>("growthId");
         var growth = await _mediator.Send(new GetGrowthByIdQuery(growthId), ct);

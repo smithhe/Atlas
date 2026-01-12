@@ -4,7 +4,7 @@ using Atlas.Application.Features.Settings.GetSettings;
 
 namespace Atlas.Api.Endpoints.Settings;
 
-public sealed class GetSettingsEndpoint : Endpoint<GetSettingsRequest, SettingsDto>
+public sealed class GetSettingsEndpoint : EndpointWithoutRequest<SettingsDto>
 {
     private readonly IMediator _mediator;
 
@@ -20,7 +20,7 @@ public sealed class GetSettingsEndpoint : Endpoint<GetSettingsRequest, SettingsD
         Summary(s => { s.Summary = "Get application settings (singleton)"; });
     }
 
-    public override async Task HandleAsync(GetSettingsRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var settings = await _mediator.Send(new GetSettingsQuery(), ct);
         await Send.OkAsync(SettingsMapper.ToDto(settings), ct);

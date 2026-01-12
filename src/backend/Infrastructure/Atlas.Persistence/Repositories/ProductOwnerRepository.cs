@@ -17,6 +17,13 @@ public sealed class ProductOwnerRepository : IProductOwnerRepository
         return _db.ProductOwners.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ProductOwner>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.ProductOwners
+            .OrderBy(x => x.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(ProductOwner owner, CancellationToken cancellationToken = default)
     {
         await _db.ProductOwners.AddAsync(owner, cancellationToken);

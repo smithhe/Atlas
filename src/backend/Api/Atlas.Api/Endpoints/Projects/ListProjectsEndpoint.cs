@@ -4,7 +4,7 @@ using Atlas.Application.Features.Projects.ListProjects;
 
 namespace Atlas.Api.Endpoints.Projects;
 
-public sealed class ListProjectsEndpoint : Endpoint<ListProjectsRequest, IReadOnlyList<ProjectListItemDto>>
+public sealed class ListProjectsEndpoint : EndpointWithoutRequest<IReadOnlyList<ProjectListItemDto>>
 {
     private readonly IMediator _mediator;
 
@@ -20,7 +20,7 @@ public sealed class ListProjectsEndpoint : Endpoint<ListProjectsRequest, IReadOn
         Summary(s => { s.Summary = "List projects"; });
     }
 
-    public override async Task HandleAsync(ListProjectsRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         var projects = await _mediator.Send(new ListProjectsQuery(), ct);
         var dtos = projects.Select(ProjectMapper.ToListItemDto).ToList();

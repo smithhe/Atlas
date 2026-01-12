@@ -6,7 +6,7 @@ import {
   useAppState,
   useSelectedProject,
 } from '../app/state/AppState'
-import type { HealthSignal, Priority, Project, ProjectStatus, Risk, TaskStatus } from '../app/types'
+import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, Risk, TaskStatus } from '../app/types'
 
 export function ProjectsView() {
   const ai = useAi()
@@ -93,7 +93,7 @@ function ProjectDetail({
 }) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const { tasks, risks, team } = useAppState()
+  const { tasks, risks, team, productOwners } = useAppState()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = (searchParams.get('tab') ?? 'overview').toLowerCase()
   const tab: 'overview' | 'tasks' | 'risks' = tabParam === 'tasks' ? 'tasks' : tabParam === 'risks' ? 'risks' : 'overview'
@@ -126,11 +126,13 @@ function ProjectDetail({
     [project.teamMemberIds, team],
   )
 
-  const memberById = useMemo(() => new Map(team.map((m) => [m.id, m])), [team])
-  const productOwner = useMemo(() => (project.productOwnerId ? memberById.get(project.productOwnerId) : undefined), [
-    memberById,
-    project.productOwnerId,
-  ])
+  const memberById = useMemo(() => new Map(team.map((m) => [m.id, m] as const)), [team])
+
+  const productOwnerById = useMemo(() => new Map(productOwners.map((po) => [po.id, po] as const)), [productOwners])
+  const productOwner = useMemo<ProductOwner | undefined>(
+    () => (project.productOwnerId ? productOwnerById.get(project.productOwnerId) : undefined),
+    [productOwnerById, project.productOwnerId],
+  )
 
   const currentSearch = useMemo(() => {
     const qs = searchParams.toString()
@@ -329,9 +331,9 @@ function ProjectDetail({
     }
   }, [linkedRisks, linkedTasks])
 
-  const allMemberOptions = useMemo(() => {
-    return [...team].sort((a, b) => a.name.localeCompare(b.name))
-  }, [team])
+  const productOwnerOptions = useMemo(() => {
+    return [...productOwners].sort((a, b) => a.name.localeCompare(b.name))
+  }, [productOwners])
 
   const statusOptions: ProjectStatus[] = ['Active', 'Paused', 'Completed']
   const healthOptions: HealthSignal[] = ['Green', 'Yellow', 'Red']
@@ -465,9 +467,9 @@ function ProjectDetail({
                       onChange={(e) => updateDraft({ productOwnerId: e.target.value || undefined })}
                     >
                       <option value="">(None)</option>
-                      {allMemberOptions.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
+                      {productOwnerOptions.map((po) => (
+                        <option key={po.id} value={po.id}>
+                          {po.name}
                         </option>
                       ))}
                     </select>

@@ -1,3 +1,6 @@
+using Microsoft.Data.Sqlite;
+using Atlas.Persistence.Seeding;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<JsonOptions>(options =>
@@ -28,18 +31,45 @@ builder.Services.AddValidatorsFromAssemblyContaining<Atlas.Application.Features.
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 // Persistence (SQLite for now; swap to Postgres later).
-var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
-if (string.IsNullOrWhiteSpace(connectionString))
-{
-    connectionString = "Data Source=atlas-dev.db";
-}
+// Development default: in-memory SQLite (relational behavior, no on-disk db file).
+var useInMemorySqlite = builder.Environment.IsDevelopment() &&
+                        builder.Configuration.GetValue("UseInMemorySqlite", true);
 
-builder.Services.AddDbContext<AtlasDbContext>(options =>
-    options.UseSqlite(connectionString));
+if (useInMemorySqlite)
+{
+    // Keep the connection open for the life of the app; otherwise the in-memory database is lost.
+    var keepAliveConnection = new SqliteConnection("Data Source=:memory:;Cache=Shared");
+    keepAliveConnection.Open();
+    builder.Services.AddSingleton(keepAliveConnection);
+
+    builder.Services.AddDbContext<AtlasDbContext>((sp, options) =>
+        options.UseSqlite(sp.GetRequiredService<SqliteConnection>()));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = "Data Source=atlas-dev.db";
+    }
+
+    builder.Services.AddDbContext<AtlasDbContext>(options =>
+        options.UseSqlite(connectionString));
+}
 
 builder.Services.AddAtlasPersistence();
 
 var app = builder.Build();
+
+// Dispose the keep-alive SQLite connection on shutdown.
+if (useInMemorySqlite)
+{
+    var conn = app.Services.GetRequiredService<SqliteConnection>();
+    app.Lifetime.ApplicationStopping.Register(() => conn.Dispose());
+}
+
+
+app.UseCors("DevCors");
 
 if (app.Environment.IsDevelopment())
 {
@@ -49,11 +79,13 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
     db.Database.EnsureCreated();
+
+    await DevDatabaseSeeder.SeedAsync(db);
+}
+else {
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
-app.UseCors("DevCors");
 
 app.UseFastEndpoints();
 
