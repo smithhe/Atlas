@@ -1,0 +1,31 @@
+meta {
+  name: WorkItem Get
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/Dev/_apis/wit/workitems/35588?api-version=7.1
+  body: none
+  auth: bearer
+}
+
+params:query {
+  api-version: 7.1
+}
+
+auth:bearer {
+  token: {{AzureDevopsPAT}}
+}
+
+body:json {
+  {
+    "query": "SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.AreaPath] UNDER 'Dev\\Structural Legends' ORDER BY [System.Id] DESC"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
