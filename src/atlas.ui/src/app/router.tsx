@@ -10,6 +10,7 @@ import { GrowthGoalDetailView } from '../views/GrowthGoalDetailView'
 import { RisksView } from '../views/RisksView'
 import { ProjectsView } from '../views/ProjectsView'
 import { SettingsView } from '../views/SettingsView'
+import { AzureImportView } from '../views/AzureImportView'
 import { NotFoundView } from '../views/NotFoundView'
 
 const routerRoutes = [
@@ -35,6 +36,7 @@ const routerRoutes = [
       { path: 'projects', element: <ProjectsView /> },
       { path: 'projects/:projectId', element: <ProjectsView /> },
       { path: 'settings', element: <SettingsView /> },
+      { path: 'settings/azure-import', element: <AzureImportView /> },
       { path: '*', element: <NotFoundView /> },
     ],
   },

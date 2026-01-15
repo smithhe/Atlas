@@ -20,6 +20,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Core\Atlas.Application\Atlas.Application.csproj" />
         <ProjectReference Include="..\..\Infrastructure\Atlas.Persistence\Atlas.Persistence.csproj" />
+        <ProjectReference Include="..\..\Infrastructure\Atlas.AzureDevOps\Atlas.AzureDevOps.csproj" />
     </ItemGroup>
 
 </Project>

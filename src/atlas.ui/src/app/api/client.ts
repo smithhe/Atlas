@@ -33,3 +33,35 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T
 }
 
+async function sendJson<T>(path: string, method: 'POST' | 'PUT', body: unknown, init?: RequestInit): Promise<T> {
+  const url = `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+  const res = await fetch(url, {
+    ...init,
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    throw new HttpError({ status: res.status, url })
+  }
+
+  if (res.status === 204) {
+    return undefined as T
+  }
+
+  return (await res.json()) as T
+}
+
+export function postJson<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return sendJson<T>(path, 'POST', body, init)
+}
+
+export function putJson<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return sendJson<T>(path, 'PUT', body, init)
+}
+

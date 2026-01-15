@@ -13,6 +13,12 @@ public static class DependencyInjection
     public static IServiceCollection AddAtlasPersistence(this IServiceCollection services)
     {
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IAzureConnectionRepository, AzureConnectionRepository>();
+        services.AddScoped<IAzureSyncStateRepository, AzureSyncStateRepository>();
+        services.AddScoped<IAzureWorkItemRepository, AzureWorkItemRepository>();
+        services.AddScoped<IAzureUserRepository, AzureUserRepository>();
+        services.AddScoped<IAzureUserMappingRepository, AzureUserMappingRepository>();
+        services.AddScoped<IAzureWorkItemLinkRepository, AzureWorkItemLinkRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IRiskRepository, RiskRepository>();
         services.AddScoped<ITaskRepository, TaskRepository>();

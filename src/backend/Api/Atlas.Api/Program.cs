@@ -1,5 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Atlas.Persistence.Seeding;
+using Atlas.AzureDevOps;
+using Atlas.Api.Time;
+using Atlas.Application.Abstractions.Time;
+using Atlas.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +62,9 @@ else
 }
 
 builder.Services.AddAtlasPersistence();
+builder.Services.AddAzureDevOps();
+builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
+builder.Services.AddHostedService<AzureDevOpsNightlySyncService>();
 
 var app = builder.Build();
 

@@ -24,6 +24,13 @@ public sealed class AtlasDbContext : DbContext
     public DbSet<TeamNote> TeamNotes => Set<TeamNote>();
     public DbSet<TeamMemberRisk> TeamMemberRisks => Set<TeamMemberRisk>();
 
+    public DbSet<AzureConnection> AzureConnections => Set<AzureConnection>();
+    public DbSet<AzureSyncState> AzureSyncStates => Set<AzureSyncState>();
+    public DbSet<AzureWorkItem> AzureWorkItems => Set<AzureWorkItem>();
+    public DbSet<AzureUser> AzureUsers => Set<AzureUser>();
+    public DbSet<AzureUserMapping> AzureUserMappings => Set<AzureUserMapping>();
+    public DbSet<AzureWorkItemLink> AzureWorkItemLinks => Set<AzureWorkItemLink>();
+
     public DbSet<Growth> GrowthPlans => Set<Growth>();
     public DbSet<GrowthGoal> GrowthGoals => Set<GrowthGoal>();
     public DbSet<GrowthGoalAction> GrowthGoalActions => Set<GrowthGoalAction>();
