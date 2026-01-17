@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{atlasApiBaseUrl}}/azure-devops/users
+  url: {{atlasApiBaseUrl}}/azure-devops/users?Organization={{azureOrganization}}
   body: none
   auth: none
 }
 
 params:query {
-  organization: {{azureOrganization}}
+  Organization: {{azureOrganization}}
 }
 
 settings {
