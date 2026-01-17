@@ -21,7 +21,7 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
     public AzureDevOpsClient(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        var pat = configuration["AzureDevOps:Pat"];
+        var pat = configuration["AzureDevopsToken"];
         if (string.IsNullOrWhiteSpace(pat))
         {
             throw new InvalidOperationException("Azure DevOps PAT is not configured. Set AzureDevOps:Pat in user-secrets.");
