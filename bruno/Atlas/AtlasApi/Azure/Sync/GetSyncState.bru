@@ -1,0 +1,16 @@
+meta {
+  name: GetSyncState
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/azure-devops/sync-state
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

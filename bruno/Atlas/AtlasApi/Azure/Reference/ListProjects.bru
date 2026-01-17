@@ -1,0 +1,20 @@
+meta {
+  name: ListProjects
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/azure-devops/projects
+  body: none
+  auth: none
+}
+
+params:query {
+  organization: {{azureOrganization}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

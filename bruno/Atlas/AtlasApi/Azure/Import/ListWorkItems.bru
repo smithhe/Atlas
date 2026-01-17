@@ -1,0 +1,16 @@
+meta {
+  name: ListWorkItems
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/azure-devops/import/work-items
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,26 @@
+meta {
+  name: LinkWorkItems
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/azure-devops/import/link
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "azureWorkItemIds": [
+      "00000000-0000-0000-0000-000000000000"
+    ],
+    "projectId": "00000000-0000-0000-0000-000000000000",
+    "teamMemberId": null
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

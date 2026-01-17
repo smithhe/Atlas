@@ -1,0 +1,26 @@
+meta {
+  name: UpdateConnection
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/azure-devops/connection
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "organization": "{{azureOrganization}}",
+    "project": "Dev",
+    "areaPath": "Dev\\Structural Legends",
+    "teamName": "",
+    "isEnabled": true
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

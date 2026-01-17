@@ -1,0 +1,20 @@
+meta {
+  name: ListUsers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/azure-devops/users
+  body: none
+  auth: none
+}
+
+params:query {
+  organization: {{azureOrganization}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

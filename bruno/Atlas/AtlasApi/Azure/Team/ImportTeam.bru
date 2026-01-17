@@ -1,0 +1,28 @@
+meta {
+  name: ImportTeam
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/azure-devops/team/import
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "users": [
+      {
+        "displayName": "Example User",
+        "uniqueName": "example@company.com",
+        "descriptor": null
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
