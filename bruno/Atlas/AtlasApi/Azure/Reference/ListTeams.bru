@@ -1,11 +1,11 @@
 meta {
-  name: ListUsers
+  name: ListTeams
   type: http
-  seq: 3
+  seq: 2
 }
 
 get {
-  url: {{atlasApiBaseUrl}}/azure-devops/users?organization={{azureOrganization}}&projectId={{ProjectId}}&teamId={{TeamId}}
+  url: {{atlasApiBaseUrl}}/azure-devops/teams?organization={{azureOrganization}}&projectId={{ProjectId}}
   body: none
   auth: none
 }
@@ -13,7 +13,6 @@ get {
 params:query {
   organization: {{azureOrganization}}
   projectId: {{ProjectId}}
-  teamId: {{TeamId}}
 }
 
 settings {

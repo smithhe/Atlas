@@ -44,17 +44,32 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
             .ToList() ?? [];
     }
 
-    public async Task<IReadOnlyList<AzureUserSummary>> ListUsersAsync(string baseUrl, string organization, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AzureTeamSummary>> ListTeamsAsync(string baseUrl, string organization, string projectId, CancellationToken cancellationToken = default)
     {
-        var graphBaseUrl = BuildGraphBaseUrl(baseUrl);
-        var url = $"{graphBaseUrl}/{organization}/_apis/graph/users?api-version=7.1-preview.1";
+        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/projects/{projectId}/teams?api-version=7.1";
         using var req = CreateRequest(HttpMethod.Get, url);
         using var res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<GraphUserListResponse>(_jsonOptions, cancellationToken);
+        var payload = await res.Content.ReadFromJsonAsync<TeamListResponse>(_jsonOptions, cancellationToken);
         return payload?.Value?
-            .Select(u => new AzureUserSummary(u.DisplayName ?? u.PrincipalName ?? string.Empty, u.PrincipalName ?? string.Empty, u.Descriptor))
+            .Select(t => new AzureTeamSummary(t.Id, t.Name))
+            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+    }
+
+    public async Task<IReadOnlyList<AzureUserSummary>> ListUsersAsync(string baseUrl, string organization, string projectId, string teamId, CancellationToken cancellationToken = default)
+    {
+        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/projects/{projectId}/teams/{teamId}/members?api-version=7.1";
+        using var req = CreateRequest(HttpMethod.Get, url);
+        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        res.EnsureSuccessStatusCode();
+
+        var payload = await res.Content.ReadFromJsonAsync<TeamMembersResponse>(_jsonOptions, cancellationToken);
+        return payload?.Value?
+            .Select(m => m.Identity)
+            .Where(i => i is not null)
+            .Select(i => new AzureUserSummary(i!.DisplayName ?? i.UniqueName ?? string.Empty, i.UniqueName ?? string.Empty, i.Descriptor))
             .Where(u => !string.IsNullOrWhiteSpace(u.UniqueName))
             .OrderBy(u => u.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList() ?? [];
@@ -124,17 +139,6 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
 
     private static string NormalizeBaseUrl(string baseUrl) => baseUrl.TrimEnd('/');
 
-    private static string BuildGraphBaseUrl(string baseUrl)
-    {
-        var normalized = NormalizeBaseUrl(baseUrl);
-        if (normalized.Contains("dev.azure.com", StringComparison.OrdinalIgnoreCase))
-        {
-            return "https://vssps.dev.azure.com";
-        }
-
-        return normalized;
-    }
-
     private static string GetString(Dictionary<string, JsonElement> fields, string key)
     {
         return fields.TryGetValue(key, out var value) && value.ValueKind == JsonValueKind.String
@@ -165,10 +169,14 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
     private sealed record ProjectListResponse([property: JsonPropertyName("value")] List<ProjectItem> Value);
     private sealed record ProjectItem([property: JsonPropertyName("id")] string Id, [property: JsonPropertyName("name")] string Name);
 
-    private sealed record GraphUserListResponse([property: JsonPropertyName("value")] List<GraphUser> Value);
-    private sealed record GraphUser(
+    private sealed record TeamListResponse([property: JsonPropertyName("value")] List<TeamListItem> Value);
+    private sealed record TeamListItem([property: JsonPropertyName("id")] string Id, [property: JsonPropertyName("name")] string Name);
+
+    private sealed record TeamMembersResponse([property: JsonPropertyName("value")] List<TeamMemberItem> Value);
+    private sealed record TeamMemberItem([property: JsonPropertyName("identity")] TeamMemberIdentity? Identity);
+    private sealed record TeamMemberIdentity(
         [property: JsonPropertyName("displayName")] string? DisplayName,
-        [property: JsonPropertyName("principalName")] string? PrincipalName,
+        [property: JsonPropertyName("uniqueName")] string? UniqueName,
         [property: JsonPropertyName("descriptor")] string? Descriptor);
 
     private sealed record WiqlResponse([property: JsonPropertyName("workItems")] List<WiqlWorkItem> WorkItems);

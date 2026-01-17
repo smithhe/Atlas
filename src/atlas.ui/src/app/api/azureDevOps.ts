@@ -9,6 +9,7 @@ export type AzureConnectionDto = {
 }
 
 export type AzureProjectDto = { id: string; name: string }
+export type AzureTeamDto = { id: string; name: string }
 export type AzureUserDto = { displayName: string; uniqueName: string; descriptor?: string | null }
 
 export type AzureSyncStateDto = {
@@ -60,8 +61,16 @@ export function listAzureProjects(organization: string): Promise<AzureProjectDto
   return getJson<AzureProjectDto[]>(`/azure-devops/projects?organization=${encodeURIComponent(organization)}`)
 }
 
-export function listAzureUsers(organization: string): Promise<AzureUserDto[]> {
-  return getJson<AzureUserDto[]>(`/azure-devops/users?organization=${encodeURIComponent(organization)}`)
+export function listAzureTeams(organization: string, projectId: string): Promise<AzureTeamDto[]> {
+  return getJson<AzureTeamDto[]>(
+    `/azure-devops/teams?organization=${encodeURIComponent(organization)}&projectId=${encodeURIComponent(projectId)}`,
+  )
+}
+
+export function listAzureUsers(organization: string, projectId: string, teamId: string): Promise<AzureUserDto[]> {
+  return getJson<AzureUserDto[]>(
+    `/azure-devops/users?organization=${encodeURIComponent(organization)}&projectId=${encodeURIComponent(projectId)}&teamId=${encodeURIComponent(teamId)}`,
+  )
 }
 
 export function importAzureTeam(users: AzureUserDto[]): Promise<void> {

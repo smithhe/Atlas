@@ -4,15 +4,20 @@ import {
   getAzureConnection,
   importAzureTeam,
   listAzureImportWorkItems,
+  listAzureProjects,
+  listAzureTeams,
   listAzureUsers,
   linkAzureWorkItems,
 } from '../app/api/azureDevOps'
-import type { AzureConnectionDto, AzureImportWorkItemDto, AzureUserDto } from '../app/api/azureDevOps'
+import type { AzureConnectionDto, AzureImportWorkItemDto, AzureTeamDto, AzureUserDto } from '../app/api/azureDevOps'
 import { useAppState } from '../app/state/AppState'
 
 export function AzureImportView() {
   const { projects, team } = useAppState()
   const [connection, setConnection] = useState<AzureConnectionDto | null>(null)
+  const [azureProjectId, setAzureProjectId] = useState<string | null>(null)
+  const [teams, setTeams] = useState<AzureTeamDto[]>([])
+  const [selectedTeamId, setSelectedTeamId] = useState('')
   const [users, setUsers] = useState<AzureUserDto[]>([])
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
   const [importWorkItems, setImportWorkItems] = useState<AzureImportWorkItemDto[]>([])
@@ -31,11 +36,30 @@ export function AzureImportView() {
       .then((conn) => {
         if (!mounted) return
         setConnection(conn)
-        if (conn?.organization) {
-          return listAzureUsers(conn.organization).then((list) => {
-            if (mounted) setUsers(list)
+        if (!conn?.organization || !conn.project) return
+
+        return listAzureProjects(conn.organization).then((projectsList) => {
+          if (!mounted) return
+          const match = projectsList.find((p) => p.name === conn.project)
+          if (!match) {
+            setError('Azure project not found. Check the project name in Settings.')
+            return
+          }
+          setAzureProjectId(match.id)
+          return listAzureTeams(conn.organization, match.id).then((teamsList) => {
+            if (!mounted) return
+            setTeams(teamsList)
+            const preferred = conn.teamName
+              ? teamsList.find((t) => t.name === conn.teamName)?.id
+              : teamsList[0]?.id
+            if (preferred) {
+              setSelectedTeamId(preferred)
+              return listAzureUsers(conn.organization, match.id, preferred).then((list) => {
+                if (mounted) setUsers(list)
+              })
+            }
           })
-        }
+        })
       })
       .then(() => listAzureImportWorkItems())
       .then((items) => {
@@ -61,6 +85,18 @@ export function AzureImportView() {
       setSelectedUsers(new Set())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import team members')
+    }
+  }
+
+  async function onTeamChange(nextTeamId: string) {
+    if (!connection?.organization || !azureProjectId) return
+    setSelectedTeamId(nextTeamId)
+    setError(null)
+    try {
+      const list = await listAzureUsers(connection.organization, azureProjectId, nextTeamId)
+      setUsers(list)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load team members')
     }
   }
 
@@ -93,6 +129,18 @@ export function AzureImportView() {
         ) : null}
 
         {loading ? <div className="muted">Loading…</div> : null}
+
+        {teams.length > 0 ? (
+          <div className="row" style={{ marginTop: 12 }}>
+            <select className="input" value={selectedTeamId} onChange={(e) => onTeamChange(e.target.value)}>
+              {teams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         {users.length > 0 ? (
           <div className="fieldGrid2" style={{ marginTop: 12 }}>
