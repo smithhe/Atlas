@@ -6,6 +6,8 @@ export type AzureConnectionDto = {
   areaPath: string
   teamName?: string | null
   isEnabled: boolean
+  projectId: string
+  teamId: string
 }
 
 export type AzureProjectDto = { id: string; name: string }

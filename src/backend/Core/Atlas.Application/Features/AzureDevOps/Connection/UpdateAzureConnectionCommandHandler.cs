@@ -27,8 +27,10 @@ public sealed class UpdateAzureConnectionCommandHandler : IRequestHandler<Update
 
         existing.Organization = request.Organization.Trim();
         existing.Project = request.Project.Trim();
+        existing.ProjectId = request.ProjectId.Trim();
         existing.AreaPath = request.AreaPath.Trim();
         existing.TeamName = string.IsNullOrWhiteSpace(request.TeamName) ? null : request.TeamName.Trim();
+        existing.TeamId = request.TeamId.Trim();
         existing.IsEnabled = request.IsEnabled;
 
         await _uow.SaveChangesAsync(cancellationToken);

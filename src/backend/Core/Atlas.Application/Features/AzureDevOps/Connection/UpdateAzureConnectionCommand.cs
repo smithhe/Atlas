@@ -5,4 +5,6 @@ public sealed record UpdateAzureConnectionCommand(
     string Project,
     string AreaPath,
     string? TeamName,
-    bool IsEnabled) : IRequest<bool>;
+    bool IsEnabled,
+    string ProjectId,
+    string TeamId) : IRequest<bool>;

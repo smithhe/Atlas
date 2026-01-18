@@ -33,7 +33,9 @@ public sealed class GetAzureConnectionEndpoint : EndpointWithoutRequest<AzureCon
             connection.Project,
             connection.AreaPath,
             connection.TeamName,
-            connection.IsEnabled);
+            connection.IsEnabled,
+            connection.ProjectId,
+            connection.TeamId);
 
         await Send.OkAsync(dto, ct);
     }

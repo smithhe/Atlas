@@ -6,7 +6,9 @@ public sealed class AzureConnection : AggregateRoot
 {
     public string Organization { get; set; } = string.Empty;
     public string Project { get; set; } = string.Empty;
+    public string ProjectId { get; set; } = string.Empty;
     public string AreaPath { get; set; } = string.Empty;
     public string? TeamName { get; set; }
+    public string TeamId { get; set; } = string.Empty;
     public bool IsEnabled { get; set; } = true;
 }

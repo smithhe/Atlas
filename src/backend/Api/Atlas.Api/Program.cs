@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using Atlas.Persistence.Seeding;
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
@@ -86,8 +85,6 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
     db.Database.EnsureCreated();
-
-    await DevDatabaseSeeder.SeedAsync(db);
 }
 else {
     app.UseHttpsRedirection();

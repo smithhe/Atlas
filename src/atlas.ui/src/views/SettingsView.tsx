@@ -19,6 +19,8 @@ export function SettingsView() {
     areaPath: '',
     teamName: '',
     isEnabled: true,
+    projectId: '',
+    teamId: '',
   })
   const [azureLoaded, setAzureLoaded] = useState(false)
   const [azureError, setAzureError] = useState<string | null>(null)
@@ -192,6 +194,24 @@ export function SettingsView() {
               className="input"
               value={azureConnection.teamName ?? ''}
               onChange={(e) => setAzureConnection({ ...azureConnection, teamName: e.target.value })}
+            />
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Project ID</div>
+            <input
+              className="input"
+              value={azureConnection.projectId ?? ''}
+              onChange={(e) => setAzureConnection({ ...azureConnection, projectId: e.target.value })}
+            />
+          </label>
+
+          <label className="field">
+            <div className="fieldLabel">Team ID</div>
+            <input
+              className="input"
+              value={azureConnection.teamId ?? ''}
+              onChange={(e) => setAzureConnection({ ...azureConnection, teamId: e.target.value })}
             />
           </label>
 
