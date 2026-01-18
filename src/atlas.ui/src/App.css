@@ -124,6 +124,96 @@
   gap: 12px;
 }
 
+.entryShell {
+  min-height: 100%;
+}
+
+.entryHeader {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: linear-gradient(180deg, rgba(17, 27, 40, 0.98), rgba(11, 15, 20, 0.98));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.entryHeaderInner {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 20px 14px 20px;
+}
+
+.entryPage {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 20px 28px 20px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pageHeaderLeft {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.pageHeaderTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: 0.15px;
+  line-height: 1.15;
+}
+
+.pageHeaderSubtitle {
+  margin-top: 6px;
+  color: var(--muted2);
+  font-size: 12px;
+  line-height: 1.35;
+  max-width: 72ch;
+}
+
+.pageHeaderRight {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fieldLabel.setupOrgLabel {
+  color: rgba(232, 241, 255, 0.92);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.input.inputReadonly {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  color: rgba(232, 241, 255, 0.88);
+  caret-color: transparent;
+}
+
+.scrollCard {
+  scroll-margin-top: 120px; /* header + comfortable gap for anchors */
+}
+
+@media (max-width: 700px) {
+  .entryHeaderInner {
+    padding: 14px 12px 12px 12px;
+  }
+  .entryPage {
+    padding: 14px 12px 22px 12px;
+  }
+}
+
 .pageFill {
   height: 100%;
   min-height: 0;

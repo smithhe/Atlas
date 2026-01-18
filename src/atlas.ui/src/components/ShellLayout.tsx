@@ -6,7 +6,7 @@ import { useAi } from '../app/state/AiState'
 type NavItem = { to: string; label: string }
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Dashboard' },
+  { to: '/dashboard', label: 'Dashboard' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/team', label: 'Team' },
   { to: '/risks', label: 'Risks & Mitigation' },
@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
 ]
 
 function routeToContextTitle(pathname: string) {
+  if (pathname.startsWith('/dashboard')) return 'Context: Dashboard'
   if (pathname.startsWith('/tasks')) return 'Context: Tasks'
   if (pathname.startsWith('/team')) return 'Context: Team'
   if (pathname.startsWith('/risks')) return 'Context: Risks'

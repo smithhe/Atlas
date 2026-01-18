@@ -14,6 +14,9 @@ export type AzureProjectDto = { id: string; name: string }
 export type AzureTeamDto = { id: string; name: string }
 export type AzureUserDto = { displayName: string; uniqueName: string; descriptor?: string | null }
 
+export type AzureTeamAreaPathDto = { value: string; includeChildren: boolean }
+export type AzureTeamAreaPathsDto = { defaultValue?: string | null; values: AzureTeamAreaPathDto[] }
+
 export type AzureSyncStateDto = {
   lastSuccessfulChangedUtc?: string | null
   lastSuccessfulWorkItemId?: number | null
@@ -72,6 +75,12 @@ export function listAzureTeams(organization: string, projectId: string): Promise
 export function listAzureUsers(organization: string, projectId: string, teamId: string): Promise<AzureUserDto[]> {
   return getJson<AzureUserDto[]>(
     `/azure-devops/users?organization=${encodeURIComponent(organization)}&projectId=${encodeURIComponent(projectId)}&teamId=${encodeURIComponent(teamId)}`,
+  )
+}
+
+export function getAzureTeamAreaPaths(organization: string, projectId: string, teamName: string): Promise<AzureTeamAreaPathsDto> {
+  return getJson<AzureTeamAreaPathsDto>(
+    `/azure-devops/team-area-paths?organization=${encodeURIComponent(organization)}&projectId=${encodeURIComponent(projectId)}&teamName=${encodeURIComponent(teamName)}`,
   )
 }
 

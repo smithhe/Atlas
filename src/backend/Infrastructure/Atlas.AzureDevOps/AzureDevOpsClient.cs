@@ -75,6 +75,27 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
             .ToList() ?? [];
     }
 
+    public async Task<AzureTeamAreaPaths> GetTeamAreaPathsAsync(string baseUrl, string organization, string projectId, string teamName, CancellationToken cancellationToken = default)
+    {
+        // Team Settings -> Team field values (Area Path) for a specific team.
+        // Docs: https://learn.microsoft.com/en-us/rest/api/azure/devops/work/teamsettings/get-team-field-values
+        var team = Uri.EscapeDataString(teamName);
+        var url =
+            $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectId}/{team}/_apis/work/teamsettings/teamfieldvalues?api-version=7.1";
+        using var req = CreateRequest(HttpMethod.Get, url);
+        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        res.EnsureSuccessStatusCode();
+
+        var payload = await res.Content.ReadFromJsonAsync<TeamFieldValuesResponse>(_jsonOptions, cancellationToken);
+        var values = payload?.Values?
+            .Where(v => !string.IsNullOrWhiteSpace(v.Value))
+            .Select(v => new AzureTeamAreaPath(v.Value!, v.IncludeChildren))
+            .OrderBy(v => v.Value, StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+
+        return new AzureTeamAreaPaths(payload?.DefaultValue, values);
+    }
+
     public async Task<IReadOnlyList<int>> QueryWorkItemIdsAsync(string baseUrl, string organization, string wiql, CancellationToken cancellationToken = default)
     {
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/wit/wiql?api-version=7.1";
@@ -178,6 +199,14 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         [property: JsonPropertyName("displayName")] string? DisplayName,
         [property: JsonPropertyName("uniqueName")] string? UniqueName,
         [property: JsonPropertyName("descriptor")] string? Descriptor);
+
+    private sealed record TeamFieldValuesResponse(
+        [property: JsonPropertyName("defaultValue")] string? DefaultValue,
+        [property: JsonPropertyName("values")] List<TeamFieldValueItem>? Values);
+
+    private sealed record TeamFieldValueItem(
+        [property: JsonPropertyName("value")] string? Value,
+        [property: JsonPropertyName("includeChildren")] bool IncludeChildren);
 
     private sealed record WiqlResponse([property: JsonPropertyName("workItems")] List<WiqlWorkItem> WorkItems);
     private sealed record WiqlWorkItem([property: JsonPropertyName("id")] int Id);

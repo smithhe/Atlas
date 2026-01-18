@@ -1,0 +1,23 @@
+meta {
+  name: ListTeamAreaPaths
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/azure-devops/team-area-paths?organization={{azureOrganization}}&projectId={{ProjectId}}&teamName={{TeamName}}
+  body: none
+  auth: none
+}
+
+params:query {
+  organization: {{azureOrganization}}
+  projectId: {{ProjectId}}
+  teamName: {{TeamName}}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
+

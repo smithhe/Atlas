@@ -1,4 +1,4 @@
-import { createHashRouter } from 'react-router-dom'
+import { createHashRouter, Outlet } from 'react-router-dom'
 import { ShellLayout } from '../components/ShellLayout'
 import { DashboardView } from '../views/DashboardView'
 import { TasksView } from '../views/TasksView'
@@ -11,32 +11,48 @@ import { RisksView } from '../views/RisksView'
 import { ProjectsView } from '../views/ProjectsView'
 import { SettingsView } from '../views/SettingsView'
 import { AzureImportView } from '../views/AzureImportView'
+import { AzureSetupView } from '../views/AzureSetupView'
+import { LoginView } from '../views/LoginView'
 import { NotFoundView } from '../views/NotFoundView'
+
+function AppEntryLayout() {
+  return <Outlet />
+}
 
 const routerRoutes = [
   {
     path: '/',
-    element: <ShellLayout />,
+    element: <AppEntryLayout />,
     children: [
-      { index: true, element: <DashboardView /> },
-      { path: 'tasks', element: <TasksView /> },
-      { path: 'tasks/:taskId', element: <TasksView /> },
-      { path: 'team', element: <TeamView /> },
-      { path: 'team/:memberId', element: <TeamView /> },
-      { path: 'team/:memberId/notes', element: <TeamView /> },
-      { path: 'team/:memberId/notes/:noteId', element: <TeamNoteDetailView /> },
-      { path: 'team/:memberId/work-items', element: <TeamView /> },
-      { path: 'team/:memberId/work-items/:workItemId', element: <TeamWorkItemDetailView /> },
-      { path: 'team/:memberId/risks', element: <TeamView /> },
-      { path: 'team/:memberId/risks/:teamMemberRiskId', element: <TeamMemberRiskDetailView /> },
-      { path: 'team/:memberId/growth', element: <TeamView /> },
-      { path: 'team/:memberId/growth/goals/:goalId', element: <GrowthGoalDetailView /> },
-      { path: 'risks', element: <RisksView /> },
-      { path: 'risks/:riskId', element: <RisksView /> },
-      { path: 'projects', element: <ProjectsView /> },
-      { path: 'projects/:projectId', element: <ProjectsView /> },
-      { path: 'settings', element: <SettingsView /> },
-      { path: 'settings/azure-import', element: <AzureImportView /> },
+      { index: true, element: <LoginView /> },
+      { path: 'login', element: <LoginView /> },
+      { path: 'setup', element: <AzureSetupView /> },
+      {
+        path: '',
+        element: <ShellLayout />,
+        children: [
+          { index: true, element: <DashboardView /> },
+          { path: 'dashboard', element: <DashboardView /> },
+          { path: 'tasks', element: <TasksView /> },
+          { path: 'tasks/:taskId', element: <TasksView /> },
+          { path: 'team', element: <TeamView /> },
+          { path: 'team/:memberId', element: <TeamView /> },
+          { path: 'team/:memberId/notes', element: <TeamView /> },
+          { path: 'team/:memberId/notes/:noteId', element: <TeamNoteDetailView /> },
+          { path: 'team/:memberId/work-items', element: <TeamView /> },
+          { path: 'team/:memberId/work-items/:workItemId', element: <TeamWorkItemDetailView /> },
+          { path: 'team/:memberId/risks', element: <TeamView /> },
+          { path: 'team/:memberId/risks/:teamMemberRiskId', element: <TeamMemberRiskDetailView /> },
+          { path: 'team/:memberId/growth', element: <TeamView /> },
+          { path: 'team/:memberId/growth/goals/:goalId', element: <GrowthGoalDetailView /> },
+          { path: 'risks', element: <RisksView /> },
+          { path: 'risks/:riskId', element: <RisksView /> },
+          { path: 'projects', element: <ProjectsView /> },
+          { path: 'projects/:projectId', element: <ProjectsView /> },
+          { path: 'settings', element: <SettingsView /> },
+          { path: 'settings/azure-import', element: <AzureImportView /> },
+        ],
+      },
       { path: '*', element: <NotFoundView /> },
     ],
   },
