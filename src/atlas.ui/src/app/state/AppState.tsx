@@ -22,6 +22,7 @@ export interface AppState {
 
 type Action =
   | { type: 'hydrate'; state: AppState }
+  | { type: 'replaceTeamMembers'; team: TeamMember[]; teamMemberRisks: TeamMemberRisk[] }
   | { type: 'selectTask'; taskId?: string }
   | { type: 'selectRisk'; riskId?: string }
   | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
@@ -41,6 +42,18 @@ function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'hydrate':
       return action.state
+    case 'replaceTeamMembers': {
+      const nextSelectedId = action.team.some((m) => m.id === state.selectedTeamMemberId)
+        ? state.selectedTeamMemberId
+        : action.team[0]?.id
+
+      return {
+        ...state,
+        team: action.team,
+        teamMemberRisks: action.teamMemberRisks,
+        selectedTeamMemberId: nextSelectedId,
+      }
+    }
     case 'selectTask':
       return { ...state, selectedTaskId: action.taskId }
     case 'selectRisk':

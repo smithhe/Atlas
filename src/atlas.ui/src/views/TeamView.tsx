@@ -7,6 +7,7 @@ import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
+import { loadTeamMembers } from '../app/api/teamMembers'
 
 const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -63,6 +64,22 @@ export function TeamView() {
       { id: 'cite-notes', label: 'Cite specific notes (draft)' },
     ])
   }, [ai.setContext])
+
+  useEffect(() => {
+    let mounted = true
+    loadTeamMembers()
+      .then(({ team: nextTeam, teamMemberRisks }) => {
+        if (!mounted) return
+        dispatch({ type: 'replaceTeamMembers', team: nextTeam, teamMemberRisks })
+      })
+      .catch((err) => {
+        console.error('Failed to refresh team members', err)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [dispatch])
 
   useEffect(() => {
     if (!memberId) return
