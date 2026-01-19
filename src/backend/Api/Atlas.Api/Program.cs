@@ -1,8 +1,8 @@
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
-using Atlas.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,12 +41,17 @@ var useInMemorySqlite = builder.Environment.IsDevelopment() &&
 if (useInMemorySqlite)
 {
     // Keep the connection open for the life of the app; otherwise the in-memory database is lost.
-    var keepAliveConnection = new SqliteConnection("Data Source=:memory:;Cache=Shared");
+    // Use a named shared in-memory DB so multiple connections see the same store.
+    var inMemoryConnectionString = "Data Source=atlas-dev-mem;Mode=Memory;Cache=Shared";
+    var keepAliveConnection = new SqliteConnection(inMemoryConnectionString);
     keepAliveConnection.Open();
     builder.Services.AddSingleton(keepAliveConnection);
 
-    builder.Services.AddDbContext<AtlasDbContext>((sp, options) =>
-        options.UseSqlite(sp.GetRequiredService<SqliteConnection>()));
+    // Use the connection string so each DbContext gets its own connection.
+    builder.Services.AddDbContext<AtlasDbContext>(options =>
+        options.UseSqlite(
+            inMemoryConnectionString,
+            sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 }
 else
 {
@@ -57,13 +62,14 @@ else
     }
 
     builder.Services.AddDbContext<AtlasDbContext>(options =>
-        options.UseSqlite(connectionString));
+        options.UseSqlite(
+            connectionString,
+            sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 }
 
 builder.Services.AddAtlasPersistence();
 builder.Services.AddAzureDevOps();
 builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-builder.Services.AddHostedService<AzureDevOpsNightlySyncService>();
 
 var app = builder.Build();
 
