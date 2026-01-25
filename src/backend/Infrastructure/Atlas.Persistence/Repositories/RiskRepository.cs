@@ -29,11 +29,9 @@ public sealed class RiskRepository : IRiskRepository
 
     public async Task<IReadOnlyList<Risk>> ListAsync(CancellationToken cancellationToken = default)
     {
-        // SQLite doesn't support ordering by DateTimeOffset; order client-side for now.
-        var risks = await _db.Risks.ToListAsync(cancellationToken);
-        return risks
+        return await _db.Risks
             .OrderByDescending(x => x.LastUpdatedAt)
-            .ToList();
+            .ToListAsync(cancellationToken);
     }
 
     public async Task AddAsync(Risk risk, CancellationToken cancellationToken = default)

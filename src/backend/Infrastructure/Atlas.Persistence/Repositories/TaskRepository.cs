@@ -35,16 +35,12 @@ public sealed class TaskRepository : ITaskRepository
             query = query.Where(x => ids.Contains(x.Id));
         }
 
-        // SQLite doesn't support ordering by DateTimeOffset; order client-side for now.
-        var tasks = await query
+        return await query
             .Include(x => x.Project)
             .Include(x => x.Risk)
             .Include(x => x.BlockedBy)
-            .ToListAsync(cancellationToken);
-
-        return tasks
             .OrderByDescending(x => x.LastTouchedAt)
-            .ToList();
+            .ToListAsync(cancellationToken);
     }
 
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
