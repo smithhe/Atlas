@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState } from '../app/state/AppState'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
@@ -8,6 +8,7 @@ import { updateSettings } from '../app/api/settings'
 
 export function SettingsView() {
   const ai = useAi()
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { settings } = useAppState()
   const [settingsSaving, setSettingsSaving] = useState(false)
@@ -232,27 +233,35 @@ export function SettingsView() {
           </label>
         </div>
 
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="rowTiny" style={{ marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
-            className="btn"
+            className="btn btnWide"
             onClick={onSaveAzureConnection}
             disabled={!azureLoaded || !azureConnection.projectId.trim() || !azureConnection.teamId.trim()}
           >
             Save Azure connection
           </button>
-          <button className="btn btnSecondary" onClick={onSyncNow} disabled={syncRunning || !azureLoaded}>
+          <button className="btn btnSecondary btnWide" onClick={onSyncNow} disabled={syncRunning || !azureLoaded}>
             {syncRunning ? 'Syncing…' : 'Sync now'}
           </button>
-          <Link className="btn btnSecondary" to="/settings/azure-import">
-            Open Azure import
-          </Link>
-          {azureLoaded && (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) ? (
-            <div className="muted" style={{ marginLeft: 12 }}>
-              Azure connection needs Project ID and Team ID. Use <Link to="/setup">Azure Setup</Link>.
-            </div>
-          ) : null}
-          {azureError ? <div className="muted" style={{ marginLeft: 12 }}>{azureError}</div> : null}
+          <button
+            type="button"
+            className="btn btnSecondary btnWide"
+            onClick={() => navigate('/settings/azure-import')}
+          >
+            Open Azure Import
+          </button>
         </div>
+        {azureLoaded && (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) ? (
+          <div className="mutedSmall textBad" style={{ marginTop: 8 }}>
+            Azure connection needs Project ID and Team ID. Use <Link to="/setup">Azure Setup</Link>.
+          </div>
+        ) : null}
+        {azureError ? (
+          <div className="mutedSmall textBad" style={{ marginTop: 6 }}>
+            {azureError}
+          </div>
+        ) : null}
 
         {syncState ? (
           <div className="muted" style={{ marginTop: 12 }}>

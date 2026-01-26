@@ -24,6 +24,8 @@ export function AzureImportView() {
   const [error, setError] = useState<string | null>(null)
 
   const teamById = useMemo(() => new Map(team.map((m) => [m.id, m])), [team])
+  const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
+  const selectedProjectName = projectId ? projectById.get(projectId)?.name : ''
 
   useEffect(() => {
     let mounted = true
@@ -91,87 +93,149 @@ export function AzureImportView() {
 
   return (
     <div className="page">
-      <h2 className="pageTitle">Azure DevOps Import</h2>
-      <div className="muted" style={{ marginBottom: 8 }}>
-        <Link to="/settings">Back to Settings</Link>
+      <div className="pageBreadcrumbs">
+        <Link className="crumbLink" to="/settings">
+          Settings
+        </Link>
+        <span className="crumbSep">/</span>
+        <span className="crumbCurrent">Azure Import</span>
       </div>
+      <h2 className="pageTitle">Azure DevOps Import</h2>
 
-      {error ? <div className="card pad" style={{ marginBottom: 12 }}>Error: {error}</div> : null}
+      {error ? (
+        <div className="card pad" style={{ marginBottom: 12 }}>
+          <div className="textBad">Error: {error}</div>
+        </div>
+      ) : null}
 
-      <div className="card pad" style={{ marginBottom: 16 }}>
-        <h3>Select Azure team members</h3>
-        {!connection?.organization ? (
-          <div className="muted">Set your Azure organization in Settings before importing users.</div>
-        ) : null}
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="cardHeader">
+          <div className="cardTitle">Select Azure team members</div>
+          <div className="mutedSmall">{users.length} available</div>
+        </div>
+        <div className="pad">
+          {!connection?.organization ? (
+            <div className="mutedSmall">Set your Azure organization in Settings before importing users.</div>
+          ) : null}
 
-        {loading ? <div className="muted">Loading…</div> : null}
+          {loading ? <div className="mutedSmall">Loading…</div> : null}
 
-        {users.length > 0 ? (
-          <div className="fieldGrid2" style={{ marginTop: 12 }}>
-            {users.map((u) => (
-              <label key={u.uniqueName} className="field" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedUsers.has(u.uniqueName)}
-                  onChange={(e) => {
-                    const next = new Set(selectedUsers)
-                    if (e.target.checked) next.add(u.uniqueName)
-                    else next.delete(u.uniqueName)
-                    setSelectedUsers(next)
-                  }}
-                />
-                <span>{u.displayName || u.uniqueName}</span>
-              </label>
-            ))}
+          {users.length > 0 ? (
+            <>
+              <div className="rowTiny" style={{ marginTop: 10, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btnGhost"
+                  disabled={users.length === 0}
+                  onClick={() => setSelectedUsers(new Set(users.map((u) => u.uniqueName)))}
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className="btn btnGhost"
+                  disabled={selectedUsers.size === 0}
+                  onClick={() => setSelectedUsers(new Set())}
+                >
+                  Clear
+                </button>
+                <span className="mutedSmall" style={{ marginLeft: 'auto' }}>
+                  {selectedUsers.size} selected
+                </span>
+              </div>
+              <div className="list listCard" style={{ marginTop: 10, maxHeight: 320, overflow: 'auto' }}>
+                {users.map((u) => (
+                  <label
+                    key={u.uniqueName}
+                    className={`listRow listRowBtn ${selectedUsers.has(u.uniqueName) ? 'listRowActive' : ''}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.has(u.uniqueName)}
+                      onChange={(e) => {
+                        const next = new Set(selectedUsers)
+                        if (e.target.checked) next.add(u.uniqueName)
+                        else next.delete(u.uniqueName)
+                        setSelectedUsers(next)
+                      }}
+                    />
+                    <div className="listMain">
+                      <div className="listTitle">{u.displayName || u.uniqueName}</div>
+                      {u.displayName ? <div className="listMeta">{u.uniqueName}</div> : null}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="muted">No new users to import.</div>
+          )}
+        </div>
+        <div className="cardFooter">
+          <div className="rowTiny" style={{ alignItems: 'center' }}>
+            <button className="btn btnWide" onClick={onImportUsers} disabled={selectedUsers.size === 0}>
+              Import selected users
+            </button>
+            <div className="mutedSmall">Adds selected members to your team roster.</div>
           </div>
-        ) : (
-          <div className="muted">No users loaded yet.</div>
-        )}
-
-        <div className="row" style={{ marginTop: 12 }}>
-          <button className="btn" onClick={onImportUsers} disabled={selectedUsers.size === 0}>
-            Import selected users
-          </button>
         </div>
       </div>
 
-      <div className="card pad">
-        <h3>Work items awaiting import</h3>
+      <div className="card">
+        <div className="cardHeader">
+          <div className="cardTitle">Work items awaiting import</div>
+          <div className="mutedSmall">{importWorkItems.length} items</div>
+        </div>
         {importWorkItems.length === 0 ? (
-          <div className="muted">No work items awaiting import.</div>
+          <div className="pad muted">No work items awaiting import.</div>
         ) : (
-          <>
-            <div className="row" style={{ marginBottom: 12 }}>
-              <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-                <option value="">Select project</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+          <div className="pad">
+            <div className="fieldGrid2" style={{ marginBottom: 12 }}>
+              <label className="field">
+                <div className="fieldLabel">Target project</div>
+                <select className="input" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+                  <option value="">Select project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <select className="input" value={teamMemberId} onChange={(e) => setTeamMemberId(e.target.value)}>
-                <option value="">Auto-assign from mapping</option>
-                {team.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-
-              <button className="btn" onClick={onLinkWorkItems} disabled={!projectId || selectedWorkItems.size === 0}>
-                Link selected
-              </button>
+              <label className="field">
+                <div className="fieldLabel">Assign to</div>
+                <select className="input" value={teamMemberId} onChange={(e) => setTeamMemberId(e.target.value)}>
+                  <option value="">Auto-assign from mapping</option>
+                  {team.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
-            <div className="tableGrid" style={{ gridTemplateColumns: '40px 100px 1fr 120px 160px 160px' }}>
+            <div className="rowTiny" style={{ alignItems: 'center', marginBottom: 12 }}>
+              <button className="btn btnWide" onClick={onLinkWorkItems} disabled={!projectId || selectedWorkItems.size === 0}>
+                Link selected
+              </button>
+              <div className="mutedSmall">
+                {selectedProjectName ? `Linking to ${selectedProjectName}.` : 'Select a project to link work items.'}
+              </div>
+              <span className="mutedSmall" style={{ marginLeft: 'auto' }}>
+                {selectedWorkItems.size} selected
+              </span>
+            </div>
+
+            <div className="tableGrid" style={{ gridTemplateColumns: '40px 100px 1fr 120px 160px 140px' }}>
               <div className="tableCell tableHeader">✓</div>
               <div className="tableCell tableHeader">ID</div>
               <div className="tableCell tableHeader">Title</div>
               <div className="tableCell tableHeader">State</div>
               <div className="tableCell tableHeader">Assigned</div>
-              <div className="tableCell tableHeader">Project</div>
+              <div className="tableCell tableHeader">Type</div>
 
               {importWorkItems.map((item) => {
                 const assigned = item.suggestedTeamMemberId ? teamById.get(item.suggestedTeamMemberId)?.name : null
@@ -180,15 +244,15 @@ export function AzureImportView() {
                   <div className="tableRow" key={item.id}>
                     <div className="tableCell">
                       <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        const next = new Set(selectedWorkItems)
-                        if (e.target.checked) next.add(item.id)
-                        else next.delete(item.id)
-                        setSelectedWorkItems(next)
-                      }}
-                    />
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          const next = new Set(selectedWorkItems)
+                          if (e.target.checked) next.add(item.id)
+                          else next.delete(item.id)
+                          setSelectedWorkItems(next)
+                        }}
+                      />
                     </div>
                     <div className="tableCell">{item.workItemId}</div>
                     <div className="tableCell truncate">
@@ -198,18 +262,14 @@ export function AzureImportView() {
                     </div>
                     <div className="tableCell">{item.state}</div>
                     <div className="tableCell">
-                      {assigned ? (
-                        assigned
-                      ) : (
-                        <span className="chip chipGhost">Unmatched</span>
-                      )}
+                      {assigned ? assigned : <span className="chip chipGhost">Unmatched</span>}
                     </div>
-                    <div className="tableCell">{projectId ? projects.find((p) => p.id === projectId)?.name : '—'}</div>
+                    <div className="tableCell">{item.workItemType}</div>
                   </div>
                 )
               })}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
