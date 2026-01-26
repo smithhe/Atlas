@@ -72,6 +72,10 @@ export function SettingsView() {
 
   async function onSaveAzureConnection() {
     setAzureError(null)
+    if (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) {
+      setAzureError('Project ID and Team ID are required. Use Azure Setup to select a project and team.')
+      return
+    }
     try {
       await updateAzureConnection(azureConnection)
       setAzureLoaded(true)
@@ -229,7 +233,11 @@ export function SettingsView() {
         </div>
 
         <div className="row" style={{ marginTop: 16 }}>
-          <button className="btn" onClick={onSaveAzureConnection} disabled={!azureLoaded}>
+          <button
+            className="btn"
+            onClick={onSaveAzureConnection}
+            disabled={!azureLoaded || !azureConnection.projectId.trim() || !azureConnection.teamId.trim()}
+          >
             Save Azure connection
           </button>
           <button className="btn btnSecondary" onClick={onSyncNow} disabled={syncRunning || !azureLoaded}>
@@ -238,6 +246,11 @@ export function SettingsView() {
           <Link className="btn btnSecondary" to="/settings/azure-import">
             Open Azure import
           </Link>
+          {azureLoaded && (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) ? (
+            <div className="muted" style={{ marginLeft: 12 }}>
+              Azure connection needs Project ID and Team ID. Use <Link to="/setup">Azure Setup</Link>.
+            </div>
+          ) : null}
           {azureError ? <div className="muted" style={{ marginLeft: 12 }}>{azureError}</div> : null}
         </div>
 
