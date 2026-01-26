@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   getAzureConnection,
   importAzureTeam,
+  listImportedAzureUsers,
   listAzureImportWorkItems,
   listAzureUsers,
   linkAzureWorkItems,
@@ -36,8 +37,14 @@ export function AzureImportView() {
           return
         }
 
-        return listAzureUsers(conn.organization, conn.projectId, conn.teamId).then((list) => {
-          if (mounted) setUsers(list)
+        return Promise.all([
+          listAzureUsers(conn.organization, conn.projectId, conn.teamId),
+          listImportedAzureUsers(),
+        ]).then(([list, imported]) => {
+          if (!mounted) return
+          const importedSet = new Set(imported.map((u) => u.uniqueName.trim().toLowerCase()))
+          const filtered = list.filter((u) => !importedSet.has(u.uniqueName.trim().toLowerCase()))
+          setUsers(filtered)
         })
       })
       .then(() => listAzureImportWorkItems())
@@ -61,6 +68,8 @@ export function AzureImportView() {
     try {
       const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
       await importAzureTeam(selected)
+      const selectedSet = new Set(selected.map((u) => u.uniqueName.trim().toLowerCase()))
+      setUsers((prev) => prev.filter((u) => !selectedSet.has(u.uniqueName.trim().toLowerCase())))
       setSelectedUsers(new Set())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import team members')

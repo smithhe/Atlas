@@ -96,9 +96,17 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         return new AzureTeamAreaPaths(payload?.DefaultValue, values);
     }
 
-    public async Task<IReadOnlyList<int>> QueryWorkItemIdsAsync(string baseUrl, string organization, string wiql, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<int>> QueryWorkItemIdsAsync(
+        string baseUrl,
+        string organization,
+        string project,
+        string wiql,
+        int? top = null,
+        CancellationToken cancellationToken = default)
     {
-        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/wit/wiql?api-version=7.1";
+        var projectSegment = Uri.EscapeDataString(project);
+        var topQuery = top.HasValue ? $"$top={top.Value}&" : string.Empty;
+        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectSegment}/_apis/wit/wiql?{topQuery}api-version=7.1";
         using var req = CreateRequest(HttpMethod.Post, url);
         req.Content = new StringContent(JsonSerializer.Serialize(new { query = wiql }), Encoding.UTF8, "application/json");
 
@@ -109,11 +117,17 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         return payload?.WorkItems?.Select(x => x.Id).ToList() ?? [];
     }
 
-    public async Task<IReadOnlyList<AzureWorkItemDetails>> GetWorkItemsAsync(string baseUrl, string organization, IReadOnlyList<int> workItemIds, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AzureWorkItemDetails>> GetWorkItemsAsync(
+        string baseUrl,
+        string organization,
+        string project,
+        IReadOnlyList<int> workItemIds,
+        CancellationToken cancellationToken = default)
     {
         if (workItemIds.Count == 0) return [];
 
-        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/wit/workitemsbatch?api-version=7.1";
+        var projectSegment = Uri.EscapeDataString(project);
+        var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectSegment}/_apis/wit/workitemsbatch?api-version=7.1";
         using var req = CreateRequest(HttpMethod.Post, url);
         req.Content = new StringContent(
             JsonSerializer.Serialize(new { ids = workItemIds, fields = WorkItemFields }),

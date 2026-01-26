@@ -78,6 +78,10 @@ export function listAzureUsers(organization: string, projectId: string, teamId: 
   )
 }
 
+export function listImportedAzureUsers(): Promise<AzureUserDto[]> {
+  return getJson<AzureUserDto[]>('/azure-devops/import/users')
+}
+
 export function getAzureTeamAreaPaths(organization: string, projectId: string, teamName: string): Promise<AzureTeamAreaPathsDto> {
   return getJson<AzureTeamAreaPathsDto>(
     `/azure-devops/team-area-paths?organization=${encodeURIComponent(organization)}&projectId=${encodeURIComponent(projectId)}&teamName=${encodeURIComponent(teamName)}`,

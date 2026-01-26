@@ -21,6 +21,13 @@ public sealed class AzureUserRepository : IAzureUserRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AzureUser>> ListActiveAsync(CancellationToken cancellationToken = default)
+    {
+        return await _db.AzureUsers
+            .Where(x => x.IsActive)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AddAsync(AzureUser user, CancellationToken cancellationToken = default)
     {
         await _db.AzureUsers.AddAsync(user, cancellationToken);

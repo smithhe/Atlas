@@ -79,12 +79,18 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
         {
             while (true)
             {
-                var wiql = BuildWiql(connection, currentChanged, currentId, PageSize);
-                var ids = await _client.QueryWorkItemIdsAsync(baseUrl, connection.Organization, wiql, cancellationToken);
+                var wiql = BuildWiql(connection, currentChanged, currentId);
+                var ids = await _client.QueryWorkItemIdsAsync(
+                    baseUrl,
+                    connection.Organization,
+                    connection.Project,
+                    wiql,
+                    PageSize,
+                    cancellationToken);
                 if (ids.Count == 0) break;
 
                 totalFetched += ids.Count;
-                var details = await _client.GetWorkItemsAsync(baseUrl, connection.Organization, ids, cancellationToken);
+                var details = await _client.GetWorkItemsAsync(baseUrl, connection.Organization, connection.Project, ids, cancellationToken);
 
                 var existing = await _workItems.GetByWorkItemIdsAsync(connection.Id, ids, cancellationToken);
                 var existingById = existing.ToDictionary(x => x.WorkItemId);
@@ -142,8 +148,7 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
             state.LastRunStatus = SyncRunStatus.Failed;
             state.LastCompletedAtUtc = _clock.UtcNow;
             state.LastError = ex.Message;
-            await _uow.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
+            await tx.RollbackAsync(cancellationToken);
 
             return new RunAzureSyncResult(false, totalFetched, totalUpserted, currentChanged, currentId, ex.Message);
         }
@@ -156,11 +161,11 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
         return nextChanged == currentChanged && (!currentId.HasValue || nextId > currentId.Value);
     }
 
-    private static string BuildWiql(AzureConnection connection, DateTimeOffset? lastChangedUtc, int? lastWorkItemId, int take)
+    private static string BuildWiql(AzureConnection connection, DateTimeOffset? lastChangedUtc, int? lastWorkItemId)
     {
         var clauses = new List<string>
         {
-            $"[System.TeamProject] = '{EscapeWiql(connection.Project)}'",
+            $"[System.TeamProject] = @project",
             $"[System.AreaPath] UNDER '{EscapeWiql(connection.AreaPath)}'"
         };
 
@@ -178,10 +183,10 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
         }
 
         var where = string.Join(" AND ", clauses);
-        return $"SELECT TOP {take} [System.Id] FROM WorkItems WHERE {where} ORDER BY [System.ChangedDate] ASC, [System.Id] ASC";
+        return $"SELECT [System.Id] FROM WorkItems WHERE {where} ORDER BY [System.ChangedDate] ASC, [System.Id] ASC";
     }
 
-    private static string EscapeWiql(string value) => value.Replace("'", "''", StringComparison.Ordinal);
+    private static string EscapeWiql(string value) => value.Replace("'", "''", StringComparison.Ordinal).Replace("\\", "\\\\");
 
     private static string? NormalizeUniqueName(string? value)
     {
