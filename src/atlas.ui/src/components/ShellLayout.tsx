@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AiPanel } from './AiPanel'
 import { useAi } from '../app/state/AiState'
+import { useAppHydration } from '../app/state/AppState'
+import { LoadingOverlay } from './LoadingOverlay'
+import { Spinner } from './Spinner'
 
 type NavItem = { to: string; label: string }
 
@@ -26,6 +29,7 @@ function routeToContextTitle(pathname: string) {
 
 export function ShellLayout() {
   const ai = useAi()
+  const isHydrating = useAppHydration()
   const loc = useLocation()
   const [search, setSearch] = useState('')
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
@@ -59,7 +63,10 @@ export function ShellLayout() {
     <div className="appShell">
       <header className="topBar">
         <div className="topBarLeft">
-          <div className="appTitle">Atlas</div>
+          <div className="appTitleRow">
+            <div className="appTitle">Atlas</div>
+            {isHydrating ? <Spinner className="topBarSpinner" size="sm" inline label="Loading data" /> : null}
+          </div>
         </div>
         <div className="topBarCenter">
           <input
@@ -102,7 +109,9 @@ export function ShellLayout() {
           <div className="srOnly" aria-hidden="true">
             {contextTitle}
           </div>
-          <Outlet />
+          <LoadingOverlay isLoading={isHydrating} label="Loading app data">
+            <Outlet />
+          </LoadingOverlay>
         </main>
 
         {ai.state.isOpen ? (

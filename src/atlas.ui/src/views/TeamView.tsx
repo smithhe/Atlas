@@ -6,6 +6,7 @@ import { isCurrentTicketStatus } from '../app/team'
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
+import { LoadingOverlay } from '../components/LoadingOverlay'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
 import { loadTeamMembers } from '../app/api/teamMembers'
 
@@ -51,6 +52,7 @@ export function TeamView() {
   const isFocusMode = !!memberId
   const routeTab = useMemo(() => getActiveTab(location.pathname), [location.pathname])
   const [localTab, setLocalTab] = useState<MemberTab>('overview')
+  const [refreshingTeam, setRefreshingTeam] = useState(false)
   const activeTab = isFocusMode ? routeTab : localTab
   const memberName = useMemo(() => {
     if (!memberId) return undefined
@@ -67,6 +69,7 @@ export function TeamView() {
 
   useEffect(() => {
     let mounted = true
+    setRefreshingTeam(true)
     loadTeamMembers()
       .then(({ team: nextTeam, teamMemberRisks }) => {
         if (!mounted) return
@@ -74,6 +77,9 @@ export function TeamView() {
       })
       .catch((err) => {
         console.error('Failed to refresh team members', err)
+      })
+      .finally(() => {
+        if (mounted) setRefreshingTeam(false)
       })
 
     return () => {
@@ -133,7 +139,8 @@ export function TeamView() {
 
       <h2 className="pageTitle">Team</h2>
 
-      <div className={`teamGrid ${isFocusMode ? 'teamGridFocus' : ''}`}>
+      <LoadingOverlay isLoading={refreshingTeam} label="Refreshing team data">
+        <div className={`teamGrid ${isFocusMode ? 'teamGridFocus' : ''}`}>
         {!isFocusMode ? (
           <section className="pane paneTeamLeft" aria-label="Team member list">
             <div className="list listCard">
@@ -178,6 +185,7 @@ export function TeamView() {
           )}
         </section>
       </div>
+      </LoadingOverlay>
     </div>
   )
 }

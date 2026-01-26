@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAzureConnection } from '../app/api/azureDevOps'
+import { LoadingButton } from '../components/LoadingButton'
+import { LoadingOverlay } from '../components/LoadingOverlay'
 
 export function LoginView() {
   const navigate = useNavigate()
@@ -27,11 +29,13 @@ export function LoginView() {
     <div className="page">
       <h2 className="pageTitle">Login</h2>
       <div className="card pad">
-        <p className="muted">Authentication will be added later. Continue to setup for now.</p>
-        {error ? <div className="muted" style={{ marginBottom: 8 }}>Error: {error}</div> : null}
-        <button className="btn" onClick={onContinue} disabled={loading}>
-          {loading ? 'Checking…' : 'Continue'}
-        </button>
+        <LoadingOverlay isLoading={loading} label="Checking connection">
+          <p className="muted">Authentication will be added later. Continue to setup for now.</p>
+          {error ? <div className="muted" style={{ marginBottom: 8 }}>Error: {error}</div> : null}
+          <LoadingButton className="btn" onClick={onContinue} loading={loading} spinnerLabel="Checking connection">
+            Continue
+          </LoadingButton>
+        </LoadingOverlay>
       </div>
     </div>
   )

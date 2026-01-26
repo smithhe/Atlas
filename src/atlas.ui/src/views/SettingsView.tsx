@@ -5,6 +5,8 @@ import { useAppDispatch, useAppState } from '../app/state/AppState'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureSyncStateDto } from '../app/api/azureDevOps'
 import { updateSettings } from '../app/api/settings'
+import { LoadingButton } from '../components/LoadingButton'
+import { LoadingOverlay } from '../components/LoadingOverlay'
 
 export function SettingsView() {
   const ai = useAi()
@@ -24,9 +26,12 @@ export function SettingsView() {
     teamId: '',
   })
   const [azureLoaded, setAzureLoaded] = useState(false)
+  const [azureConnectionLoading, setAzureConnectionLoading] = useState(false)
+  const [azureConnectionSaving, setAzureConnectionSaving] = useState(false)
   const [azureError, setAzureError] = useState<string | null>(null)
   const [syncState, setSyncState] = useState<AzureSyncStateDto | null>(null)
   const [syncRunning, setSyncRunning] = useState(false)
+  const [syncStateLoading, setSyncStateLoading] = useState(false)
 
   useEffect(() => {
     ai.setContext('Context: Settings', [{ id: 'settings-help', label: 'Explain settings (placeholder)' }])
@@ -34,6 +39,7 @@ export function SettingsView() {
 
   useEffect(() => {
     let mounted = true
+    setAzureConnectionLoading(true)
     getAzureConnection()
       .then((conn) => {
         if (!mounted) return
@@ -45,13 +51,20 @@ export function SettingsView() {
         setAzureError(err instanceof Error ? err.message : 'Failed to load Azure connection')
         setAzureLoaded(true)
       })
+      .finally(() => {
+        if (mounted) setAzureConnectionLoading(false)
+      })
 
+    setSyncStateLoading(true)
     getAzureSyncState()
       .then((state) => {
         if (mounted) setSyncState(state)
       })
       .catch(() => {
         if (mounted) setSyncState(null)
+      })
+      .finally(() => {
+        if (mounted) setSyncStateLoading(false)
       })
 
     return () => {
@@ -77,11 +90,14 @@ export function SettingsView() {
       setAzureError('Project ID and Team ID are required. Use Azure Setup to select a project and team.')
       return
     }
+    setAzureConnectionSaving(true)
     try {
       await updateAzureConnection(azureConnection)
       setAzureLoaded(true)
     } catch (err) {
       setAzureError(err instanceof Error ? err.message : 'Failed to save Azure connection')
+    } finally {
+      setAzureConnectionSaving(false)
     }
   }
 
@@ -90,12 +106,14 @@ export function SettingsView() {
     setAzureError(null)
     try {
       await runAzureSync()
+      setSyncStateLoading(true)
       const state = await getAzureSyncState()
       setSyncState(state)
     } catch (err) {
       setAzureError(err instanceof Error ? err.message : 'Failed to run Azure sync')
     } finally {
       setSyncRunning(false)
+      setSyncStateLoading(false)
     }
   }
 
@@ -156,94 +174,105 @@ export function SettingsView() {
         </div>
 
         <div className="row" style={{ marginTop: 16 }}>
-          <button className="btn" onClick={onSaveSettings} disabled={settingsSaving}>
-            {settingsSaving ? 'Saving…' : 'Save settings'}
-          </button>
+          <LoadingButton className="btn" onClick={onSaveSettings} loading={settingsSaving} spinnerLabel="Saving settings">
+            Save settings
+          </LoadingButton>
           {settingsError ? <div className="muted" style={{ marginLeft: 12 }}>{settingsError}</div> : null}
         </div>
       </div>
 
       <div className="card pad" style={{ marginTop: 16 }}>
-        <h3>Azure DevOps</h3>
-        <div className="fieldGrid2">
-          <label className="field">
-            <div className="fieldLabel">Organization</div>
-            <input
-              className="input"
-              value={azureConnection.organization}
-              onChange={(e) => setAzureConnection({ ...azureConnection, organization: e.target.value })}
-            />
-          </label>
+        <LoadingOverlay isLoading={azureConnectionLoading} label="Loading Azure DevOps connection">
+          <div className="rowTiny" style={{ alignItems: 'center', marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>Azure DevOps</h3>
+          </div>
+          <div className="fieldGrid2">
+            <label className="field">
+              <div className="fieldLabel">Organization</div>
+              <input
+                className="input"
+                value={azureConnection.organization}
+                onChange={(e) => setAzureConnection({ ...azureConnection, organization: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Project</div>
-            <input
-              className="input"
-              value={azureConnection.project}
-              onChange={(e) => setAzureConnection({ ...azureConnection, project: e.target.value })}
-            />
-          </label>
+            <label className="field">
+              <div className="fieldLabel">Project</div>
+              <input
+                className="input"
+                value={azureConnection.project}
+                onChange={(e) => setAzureConnection({ ...azureConnection, project: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Area path</div>
-            <input
-              className="input"
-              value={azureConnection.areaPath}
-              onChange={(e) => setAzureConnection({ ...azureConnection, areaPath: e.target.value })}
-            />
-          </label>
+            <label className="field">
+              <div className="fieldLabel">Area path</div>
+              <input
+                className="input"
+                value={azureConnection.areaPath}
+                onChange={(e) => setAzureConnection({ ...azureConnection, areaPath: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Team (optional)</div>
-            <input
-              className="input"
-              value={azureConnection.teamName ?? ''}
-              onChange={(e) => setAzureConnection({ ...azureConnection, teamName: e.target.value })}
-            />
-          </label>
+            <label className="field">
+              <div className="fieldLabel">Team (optional)</div>
+              <input
+                className="input"
+                value={azureConnection.teamName ?? ''}
+                onChange={(e) => setAzureConnection({ ...azureConnection, teamName: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Project ID</div>
-            <input
-              className="input"
-              value={azureConnection.projectId ?? ''}
-              onChange={(e) => setAzureConnection({ ...azureConnection, projectId: e.target.value })}
-            />
-          </label>
+            <label className="field">
+              <div className="fieldLabel">Project ID</div>
+              <input
+                className="input"
+                value={azureConnection.projectId ?? ''}
+                onChange={(e) => setAzureConnection({ ...azureConnection, projectId: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Team ID</div>
-            <input
-              className="input"
-              value={azureConnection.teamId ?? ''}
-              onChange={(e) => setAzureConnection({ ...azureConnection, teamId: e.target.value })}
-            />
-          </label>
+            <label className="field">
+              <div className="fieldLabel">Team ID</div>
+              <input
+                className="input"
+                value={azureConnection.teamId ?? ''}
+                onChange={(e) => setAzureConnection({ ...azureConnection, teamId: e.target.value })}
+              />
+            </label>
 
-          <label className="field">
-            <div className="fieldLabel">Enabled</div>
-            <select
-              className="input"
-              value={azureConnection.isEnabled ? 'yes' : 'no'}
-              onChange={(e) => setAzureConnection({ ...azureConnection, isEnabled: e.target.value === 'yes' })}
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-          </label>
-        </div>
+            <label className="field">
+              <div className="fieldLabel">Enabled</div>
+              <select
+                className="input"
+                value={azureConnection.isEnabled ? 'yes' : 'no'}
+                onChange={(e) => setAzureConnection({ ...azureConnection, isEnabled: e.target.value === 'yes' })}
+              >
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </label>
+          </div>
 
         <div className="rowTiny" style={{ marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
+          <LoadingButton
             className="btn btnWide"
             onClick={onSaveAzureConnection}
+            loading={azureConnectionSaving}
+            spinnerLabel="Saving Azure DevOps connection"
             disabled={!azureLoaded || !azureConnection.projectId.trim() || !azureConnection.teamId.trim()}
           >
             Save Azure connection
-          </button>
-          <button className="btn btnSecondary btnWide" onClick={onSyncNow} disabled={syncRunning || !azureLoaded}>
-            {syncRunning ? 'Syncing…' : 'Sync now'}
-          </button>
+          </LoadingButton>
+          <LoadingButton
+            className="btn btnSecondary btnWide"
+            onClick={onSyncNow}
+            loading={syncRunning}
+            spinnerLabel="Running sync"
+            disabled={!azureLoaded}
+          >
+            Sync now
+          </LoadingButton>
           <button
             type="button"
             className="btn btnSecondary btnWide"
@@ -263,14 +292,17 @@ export function SettingsView() {
           </div>
         ) : null}
 
-        {syncState ? (
-          <div className="muted" style={{ marginTop: 12 }}>
-            Last sync: {syncState.lastCompletedAtUtc ?? 'Never'} • Status: {syncState.lastRunStatus}
-            {syncState.lastError ? ` • Error: ${syncState.lastError}` : ''}
-          </div>
-        ) : (
-          <div className="muted" style={{ marginTop: 12 }}>No sync history yet.</div>
-        )}
+          <LoadingOverlay isLoading={syncStateLoading} label="Loading sync history" spinnerSize="sm">
+            {syncState ? (
+              <div className="muted" style={{ marginTop: 12 }}>
+                Last sync: {syncState.lastCompletedAtUtc ?? 'Never'} • Status: {syncState.lastRunStatus}
+                {syncState.lastError ? ` • Error: ${syncState.lastError}` : ''}
+              </div>
+            ) : (
+              <div className="muted" style={{ marginTop: 12 }}>No sync history yet.</div>
+            )}
+          </LoadingOverlay>
+        </LoadingOverlay>
       </div>
     </div>
   )

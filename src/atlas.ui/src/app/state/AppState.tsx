@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { Dispatch, ReactNode } from 'react'
 import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
 import { loadInitialState } from '../api/loadInitialState'
@@ -134,15 +134,18 @@ function initialState(): AppState {
 
 const AppStateContext = createContext<AppState | undefined>(undefined)
 const AppDispatchContext = createContext<Dispatch<Action> | undefined>(undefined)
+const AppHydrationContext = createContext(false)
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reduce, undefined, initialState)
   const didLoadRef = useRef(false)
+  const [isHydrating, setIsHydrating] = useState(true)
 
   useEffect(() => {
     if (didLoadRef.current) return
     didLoadRef.current = true
 
+    setIsHydrating(true)
     loadInitialState()
       .then((loaded) => dispatch({ type: 'hydrate', state: loaded }))
       .catch((err) => {
@@ -150,12 +153,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         // (A future enhancement could show a non-blocking banner.)
         console.error('Failed to load initial state from API', err)
       })
+      .finally(() => {
+        setIsHydrating(false)
+      })
   }, [])
 
   return (
-    <AppStateContext.Provider value={state}>
-      <AppDispatchContext.Provider value={dispatch}>{children}</AppDispatchContext.Provider>
-    </AppStateContext.Provider>
+    <AppHydrationContext.Provider value={isHydrating}>
+      <AppStateContext.Provider value={state}>
+        <AppDispatchContext.Provider value={dispatch}>{children}</AppDispatchContext.Provider>
+      </AppStateContext.Provider>
+    </AppHydrationContext.Provider>
   )
 }
 
@@ -169,6 +177,10 @@ export function useAppDispatch() {
   const ctx = useContext(AppDispatchContext)
   if (!ctx) throw new Error('useAppDispatch must be used within AppStateProvider')
   return ctx
+}
+
+export function useAppHydration(): boolean {
+  return useContext(AppHydrationContext)
 }
 
 export function useSelectedTask(): Task | undefined {

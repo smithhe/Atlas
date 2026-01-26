@@ -10,6 +10,9 @@ import {
   updateAzureConnection,
 } from '../app/api/azureDevOps'
 import type { AzureProjectDto, AzureTeamDto, AzureUserDto } from '../app/api/azureDevOps'
+import { LoadingButton } from '../components/LoadingButton'
+import { LoadingOverlay } from '../components/LoadingOverlay'
+import { Spinner } from '../components/Spinner'
 
 type Step = 'project' | 'team' | 'members' | 'saving'
 
@@ -247,7 +250,7 @@ export function AzureSetupView() {
 
   const stepLabel =
     step === 'saving'
-      ? 'Saving…'
+      ? 'Saving'
       : step === 'project'
         ? 'Step 1/3 • Project'
         : step === 'team'
@@ -266,7 +269,12 @@ export function AzureSetupView() {
               </div>
             </div>
             <div className="pageHeaderRight">
-              <span className="pill toneInfo">{stepLabel}</span>
+              <span className="pill toneInfo">
+                <span className="btnContent">
+                  {stepLabel}
+                  {step === 'saving' ? <Spinner size="sm" inline label="Saving Azure connection" /> : null}
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -292,9 +300,15 @@ export function AzureSetupView() {
         </div>
 
         <div className="rowTiny" style={{ marginTop: 12, alignItems: 'center' }}>
-          <button className="btn btnWide" onClick={onLoadProjects} disabled={loading || !organization.trim()}>
-            {loading ? 'Loading…' : 'Load projects'}
-          </button>
+          <LoadingButton
+            className="btn btnWide"
+            onClick={onLoadProjects}
+            loading={loading}
+            spinnerLabel="Loading projects"
+            disabled={!organization.trim()}
+          >
+            Load projects
+          </LoadingButton>
           <div className="mutedSmall">
             {organization.trim() ? (
               <>Next: choose a project and team.</>
@@ -309,140 +323,154 @@ export function AzureSetupView() {
 
       {projects.length > 0 ? (
         <div className="card pad scrollCard" style={{ marginBottom: 16 }} ref={projectsCardRef}>
-          <h3>Select project</h3>
-          <label className="field" style={{ marginTop: 8 }}>
-            <div className="fieldLabel">Search</div>
-            <input
-              className="input"
-              value={projectQuery}
-              onChange={(e) => setProjectQuery(e.target.value)}
-              placeholder="Filter projects…"
-            />
-          </label>
-          <div className="mutedSmall" style={{ marginTop: 8 }}>
-            {selectedProjectId ? 'Project selected.' : 'Choose one project.'} • {filteredProjects.length} shown
-          </div>
-          <div className="list listCard" style={{ marginTop: 10, maxHeight: 260, overflow: 'auto' }}>
-            {filteredProjects.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`listRow listRowBtn ${selectedProjectId === p.id ? 'listRowActive' : ''}`}
-                onClick={() => onSelectProject(p.id)}
-                disabled={loading}
-              >
-                <div className="listMain">
-                  <div className="listTitle">{p.name}</div>
-                </div>
-                {selectedProjectId === p.id ? <span className="pill toneInfo">Selected</span> : null}
-              </button>
-            ))}
-            {filteredProjects.length === 0 ? <div className="muted pad">No projects match your search.</div> : null}
-          </div>
+          <LoadingOverlay isLoading={loading && step === 'project'} label="Loading projects">
+            <h3>Select project</h3>
+            <label className="field" style={{ marginTop: 8 }}>
+              <div className="fieldLabel">Search</div>
+              <input
+                className="input"
+                value={projectQuery}
+                onChange={(e) => setProjectQuery(e.target.value)}
+                placeholder="Filter projects…"
+              />
+            </label>
+            <div className="mutedSmall" style={{ marginTop: 8 }}>
+              {selectedProjectId ? 'Project selected.' : 'Choose one project.'} • {filteredProjects.length} shown
+            </div>
+            <div className="list listCard" style={{ marginTop: 10, maxHeight: 260, overflow: 'auto' }}>
+              {filteredProjects.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`listRow listRowBtn ${selectedProjectId === p.id ? 'listRowActive' : ''}`}
+                  onClick={() => onSelectProject(p.id)}
+                  disabled={loading}
+                >
+                  <div className="listMain">
+                    <div className="listTitle">{p.name}</div>
+                  </div>
+                  {selectedProjectId === p.id ? <span className="pill toneInfo">Selected</span> : null}
+                </button>
+              ))}
+              {filteredProjects.length === 0 ? <div className="muted pad">No projects match your search.</div> : null}
+            </div>
+          </LoadingOverlay>
         </div>
       ) : null}
 
       {teams.length > 0 ? (
         <div className="card pad scrollCard" style={{ marginBottom: 16 }} ref={teamsCardRef}>
-          <h3>Select team</h3>
-          <label className="field" style={{ marginTop: 8 }}>
-            <div className="fieldLabel">Search</div>
-            <input className="input" value={teamQuery} onChange={(e) => setTeamQuery(e.target.value)} placeholder="Filter teams…" />
-          </label>
-          <div className="mutedSmall" style={{ marginTop: 8 }}>
-            {selectedTeamId ? 'Team selected.' : 'Choose one team.'} • {filteredTeams.length} shown
-          </div>
-          <div className="list listCard" style={{ marginTop: 10, maxHeight: 320, overflow: 'auto' }}>
-            {filteredTeams.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`listRow listRowBtn ${selectedTeamId === t.id ? 'listRowActive' : ''}`}
-                onClick={() => onSelectTeam(t.id, t.name)}
-                disabled={loading}
-              >
-                <div className="listMain">
-                  <div className="listTitle">{t.name}</div>
-                </div>
-                {selectedTeamId === t.id ? <span className="pill toneInfo">Selected</span> : null}
-              </button>
-            ))}
-            {filteredTeams.length === 0 ? <div className="muted pad">No teams match your search.</div> : null}
-          </div>
+          <LoadingOverlay isLoading={loading && step === 'team'} label="Loading teams">
+            <h3>Select team</h3>
+            <label className="field" style={{ marginTop: 8 }}>
+              <div className="fieldLabel">Search</div>
+              <input className="input" value={teamQuery} onChange={(e) => setTeamQuery(e.target.value)} placeholder="Filter teams…" />
+            </label>
+            <div className="mutedSmall" style={{ marginTop: 8 }}>
+              {selectedTeamId ? 'Team selected.' : 'Choose one team.'} • {filteredTeams.length} shown
+            </div>
+            <div className="list listCard" style={{ marginTop: 10, maxHeight: 320, overflow: 'auto' }}>
+              {filteredTeams.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`listRow listRowBtn ${selectedTeamId === t.id ? 'listRowActive' : ''}`}
+                  onClick={() => onSelectTeam(t.id, t.name)}
+                  disabled={loading}
+                >
+                  <div className="listMain">
+                    <div className="listTitle">{t.name}</div>
+                  </div>
+                  {selectedTeamId === t.id ? <span className="pill toneInfo">Selected</span> : null}
+                </button>
+              ))}
+              {filteredTeams.length === 0 ? <div className="muted pad">No teams match your search.</div> : null}
+            </div>
+          </LoadingOverlay>
         </div>
       ) : null}
 
       {selectedTeamId ? (
         <div className="card pad scrollCard" style={{ marginBottom: 16 }} ref={areaPathCardRef}>
-          <h3>Default area path</h3>
-          <label className="field" style={{ marginTop: 8 }}>
-            <div className="fieldLabel">Resolved from team settings</div>
-            <input
-              className="input inputReadonly"
-              value={areaPathLoading ? 'Loading…' : areaPath || ''}
-              readOnly
-              placeholder="(not available)"
-              title="Read-only (resolved from team settings)"
-            />
-            <div className="mutedSmall">
-              This is the team’s default Area Path and will be saved with the connection.
-              {areaPathError ? ` (Could not load default: ${areaPathError})` : ''}
-              {' '}You can override it later in Settings.
-            </div>
-          </label>
+          <LoadingOverlay isLoading={areaPathLoading} label="Loading area path" spinnerSize="sm">
+            <h3>Default area path</h3>
+            <label className="field" style={{ marginTop: 8 }}>
+              <div className="fieldLabel">Resolved from team settings</div>
+              <input
+                className="input inputReadonly"
+                value={areaPath || ''}
+                readOnly
+                placeholder="(not available)"
+                title="Read-only (resolved from team settings)"
+              />
+              <div className="mutedSmall">
+                This is the team’s default Area Path and will be saved with the connection.
+                {areaPathError ? ` (Could not load default: ${areaPathError})` : ''}
+                {' '}You can override it later in Settings.
+              </div>
+            </label>
+          </LoadingOverlay>
         </div>
       ) : null}
 
       {users.length > 0 ? (
         <div className="card pad scrollCard" ref={membersCardRef}>
-          <h3>Select members to import</h3>
-          <label className="field" style={{ marginTop: 8 }}>
-            <div className="fieldLabel">Search</div>
-            <input
-              className="input"
-              value={memberQuery}
-              onChange={(e) => setMemberQuery(e.target.value)}
-              placeholder="Filter members…"
-            />
-          </label>
-          <div className="rowTiny" style={{ marginTop: 10 }}>
-            <button
-              type="button"
-              className="btn btnGhost"
-              disabled={filteredUsers.length === 0}
-              onClick={() => setSelectedUsers(new Set(filteredUsers.map((u) => u.uniqueName)))}
-            >
-              Select all shown
-            </button>
-            <button type="button" className="btn btnGhost" disabled={selectedUsers.size === 0} onClick={() => setSelectedUsers(new Set())}>
-              Clear
-            </button>
-            <span className="mutedSmall" style={{ marginLeft: 'auto' }}>
-              {selectedUsers.size} selected • {filteredUsers.length} shown
-            </span>
-          </div>
-          <div className="list listCard" style={{ marginTop: 10, maxHeight: 360, overflow: 'auto' }}>
-            {filteredUsers.map((u) => (
-              <label
-                key={u.uniqueName}
-                className={`listRow listRowBtn ${selectedUsers.has(u.uniqueName) ? 'listRowActive' : ''}`}
-                style={{ cursor: 'pointer' }}
+          <LoadingOverlay isLoading={step === 'saving'} label="Saving connection">
+            <h3>Select members to import</h3>
+            <label className="field" style={{ marginTop: 8 }}>
+              <div className="fieldLabel">Search</div>
+              <input
+                className="input"
+                value={memberQuery}
+                onChange={(e) => setMemberQuery(e.target.value)}
+                placeholder="Filter members…"
+              />
+            </label>
+            <div className="rowTiny" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className="btn btnGhost"
+                disabled={filteredUsers.length === 0}
+                onClick={() => setSelectedUsers(new Set(filteredUsers.map((u) => u.uniqueName)))}
               >
-                <input type="checkbox" checked={selectedUsers.has(u.uniqueName)} onChange={(e) => toggleUser(u.uniqueName, e.target.checked)} />
-                <div className="listMain">
-                  <div className="listTitle">{u.displayName || u.uniqueName}</div>
-                  {u.displayName ? <div className="listMeta">{u.uniqueName}</div> : null}
-                </div>
-              </label>
-            ))}
-            {filteredUsers.length === 0 ? <div className="muted pad">No members match your search.</div> : null}
-          </div>
+                Select all shown
+              </button>
+              <button type="button" className="btn btnGhost" disabled={selectedUsers.size === 0} onClick={() => setSelectedUsers(new Set())}>
+                Clear
+              </button>
+              <span className="mutedSmall" style={{ marginLeft: 'auto' }}>
+                {selectedUsers.size} selected • {filteredUsers.length} shown
+              </span>
+            </div>
+            <div className="list listCard" style={{ marginTop: 10, maxHeight: 360, overflow: 'auto' }}>
+              {filteredUsers.map((u) => (
+                <label
+                  key={u.uniqueName}
+                  className={`listRow listRowBtn ${selectedUsers.has(u.uniqueName) ? 'listRowActive' : ''}`}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <input type="checkbox" checked={selectedUsers.has(u.uniqueName)} onChange={(e) => toggleUser(u.uniqueName, e.target.checked)} />
+                  <div className="listMain">
+                    <div className="listTitle">{u.displayName || u.uniqueName}</div>
+                    {u.displayName ? <div className="listMeta">{u.uniqueName}</div> : null}
+                  </div>
+                </label>
+              ))}
+              {filteredUsers.length === 0 ? <div className="muted pad">No members match your search.</div> : null}
+            </div>
 
-          <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn" onClick={onSave} disabled={loading || step === 'saving'}>
-              {step === 'saving' ? 'Saving…' : 'Save connection'}
-            </button>
-          </div>
+            <div className="row" style={{ marginTop: 12 }}>
+              <LoadingButton
+                className="btn"
+                onClick={onSave}
+                loading={step === 'saving'}
+                spinnerLabel="Saving connection"
+                disabled={loading}
+              >
+                Save connection
+              </LoadingButton>
+            </div>
+          </LoadingOverlay>
         </div>
       ) : null}
       </div>
