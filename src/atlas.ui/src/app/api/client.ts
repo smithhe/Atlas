@@ -75,3 +75,19 @@ export function putJson<T>(path: string, body: unknown, init?: RequestInit): Pro
   return sendJson<T>(path, 'PUT', body, init)
 }
 
+export async function deleteJson(path: string, init?: RequestInit): Promise<void> {
+  const url = `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+  const res = await fetch(url, {
+    ...init,
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  })
+
+  if (!res.ok) {
+    throw new HttpError({ status: res.status, url })
+  }
+}
+

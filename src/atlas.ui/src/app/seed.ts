@@ -800,6 +800,7 @@ export function seedSettings(): Settings {
   return {
     staleDays: 10,
     defaultAiManualOnly: true,
+    defaultAiPanelOpen: false,
     theme: 'Dark',
     azureDevOpsBaseUrl: '(placeholder)',
   }

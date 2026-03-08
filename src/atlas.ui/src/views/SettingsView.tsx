@@ -5,6 +5,7 @@ import { useAppDispatch, useAppState } from '../app/state/AppState'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureSyncStateDto } from '../app/api/azureDevOps'
 import { updateSettings } from '../app/api/settings'
+import { saveDefaultAiPanelOpen } from '../app/localSettings'
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 
@@ -147,6 +148,25 @@ export function SettingsView() {
           <label className="field span2">
             <div className="fieldLabel">Default AI behavior</div>
             <div className="placeholderBox">Manual only (AI acts only when you click an action)</div>
+          </label>
+
+          <label className="field span2">
+            <div className="fieldLabel">Default AI chat panel state on app open</div>
+            <select
+              className="input"
+              value={settings.defaultAiPanelOpen ? 'on' : 'off'}
+              onChange={(e) => {
+                const defaultAiPanelOpen = e.target.value === 'on'
+                saveDefaultAiPanelOpen(defaultAiPanelOpen)
+                dispatch({
+                  type: 'updateSettings',
+                  settings: { ...settings, defaultAiPanelOpen },
+                })
+              }}
+            >
+              <option value="off">Off (closed)</option>
+              <option value="on">On (open)</option>
+            </select>
           </label>
 
           <label className="field span2">

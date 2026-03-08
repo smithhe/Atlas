@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useAppHydration, useAppState } from './AppState'
 
 export interface AiAction {
   id: string
@@ -28,11 +29,15 @@ export interface AiApi {
 const AiContext = createContext<AiApi | undefined>(undefined)
 
 export function AiProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState<boolean>(true)
+  const { settings } = useAppState()
+  const isHydrating = useAppHydration()
+  const [isOpen, setIsOpenState] = useState<boolean>(false)
   const [contextTitle, setContextTitle] = useState<string>('Context: Dashboard')
   const [actions, setActions] = useState<AiAction[]>([])
   const [output, setOutput] = useState<string>('AI is placeholder-only. Choose an action to generate a draft.\n')
   const [panelWidthPx, setPanelWidthPx] = useState<number | undefined>(undefined)
+  const userChangedIsOpenRef = useRef(false)
+  const appliedStartupPreferenceRef = useRef(false)
 
   // Keep latest values accessible to stable callbacks.
   const actionsRef = useRef<AiAction[]>(actions)
@@ -42,6 +47,17 @@ export function AiProvider({ children }: { children: ReactNode }) {
     actionsRef.current = actions
     contextTitleRef.current = contextTitle
   }, [actions, contextTitle])
+
+  useEffect(() => {
+    if (isHydrating || appliedStartupPreferenceRef.current || userChangedIsOpenRef.current) return
+    setIsOpenState(settings.defaultAiPanelOpen)
+    appliedStartupPreferenceRef.current = true
+  }, [isHydrating, settings.defaultAiPanelOpen])
+
+  const setIsOpen = useCallback((nextIsOpen: boolean) => {
+    userChangedIsOpenRef.current = true
+    setIsOpenState(nextIsOpen)
+  }, [])
 
   const setContext = useCallback((newContextTitle: string, newActions: AiAction[]) => {
     setContextTitle(newContextTitle)
@@ -57,7 +73,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     const action = currentActions.find((a) => a.id === actionId)
     const stamp = new Date().toLocaleString()
     const label = action?.label ?? actionId
-    setIsOpen(true)
+    setIsOpenState(true)
     setOutput((prev) => {
       const header = `\n---\n${stamp}\n${currentContext}\nAction: ${label}\n`
       const body = 'Draft (placeholder):\n- Summary: ...\n- Suggested next steps: ...\n- Risks/tradeoffs: ...\n'

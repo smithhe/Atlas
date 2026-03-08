@@ -1,5 +1,6 @@
 import type { Confidence, Growth, GrowthGoalActionState, GrowthGoalCheckInSignal, GrowthGoalStatus, Priority, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
 import { teamMemberLocalExtrasById, teamNoteLocalExtrasById } from '../localExtras'
+import { loadDefaultAiPanelOpen } from '../localSettings'
 
 export interface SettingsDto {
   staleDays: number
@@ -170,6 +171,7 @@ export function mapSettings(dto: SettingsDto): Settings {
   return {
     staleDays: dto.staleDays,
     defaultAiManualOnly: dto.defaultAiManualOnly,
+    defaultAiPanelOpen: loadDefaultAiPanelOpen(),
     theme: dto.theme,
     azureDevOpsBaseUrl: dto.azureDevOpsBaseUrl ?? undefined,
   }

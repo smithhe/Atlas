@@ -4,6 +4,7 @@ import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppSt
 import type { Priority, Task, TaskStatus } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
+import { createTask, deleteTask as deleteTaskApi, updateTask as updateTaskApi } from '../app/api/tasks'
 
 function daysSince(iso: string) {
   const a = new Date(iso).getTime()
@@ -49,6 +50,9 @@ export function TasksView() {
   const [sortBy, setSortBy] =
     useState<'Priority' | 'Project' | 'Risk' | 'Staleness' | 'Estimated Duration' | 'Title'>('Priority')
   const [sortDir, setSortDir] = useState<'Asc' | 'Desc'>('Desc')
+  const [isCreatingTask, setIsCreatingTask] = useState(false)
+  const [deletingTaskId, setDeletingTaskId] = useState<string | undefined>(undefined)
+  const [autoEditTaskId, setAutoEditTaskId] = useState<string | undefined>(undefined)
 
   function sortButtonGlyph(category: typeof sortBy) {
     if (sortBy !== category) return '↕'
@@ -228,9 +232,69 @@ export function TasksView() {
     setListMaxHeightPx(Math.ceil(sumHeights + gaps + paddingTop + paddingBottom + 2))
   }, [filteredSorted, isFocusMode, showDetail])
 
+  async function handleAddTask() {
+    if (isCreatingTask) return
+    setIsCreatingTask(true)
+    try {
+      const id = await createTask({
+        title: 'New task',
+        priority: 'Medium',
+        status: 'NotStarted',
+        estimatedDurationText: '1h',
+        estimateConfidence: 'Medium',
+        notes: '',
+        dependencyTaskIds: [],
+      })
+
+      dispatch({
+        type: 'addTask',
+        task: {
+          id,
+          title: 'New task',
+          priority: 'Medium',
+          status: 'Not Started',
+          estimatedDurationText: '1h',
+          estimateConfidence: 'Medium',
+          notes: '',
+          dependencyTaskIds: [],
+          lastTouchedIso: new Date().toISOString(),
+        },
+      })
+      setAutoEditTaskId(id)
+    } catch (err) {
+      console.error('Failed to create task', err)
+      window.alert('Unable to create task right now. Please try again.')
+    } finally {
+      setIsCreatingTask(false)
+    }
+  }
+
+  async function handleDeleteTask(task: Task) {
+    if (deletingTaskId) return
+    if (!window.confirm(`Delete task "${task.title}"? This cannot be undone.`)) return
+
+    setDeletingTaskId(task.id)
+    try {
+      await deleteTaskApi(task.id)
+      dispatch({ type: 'removeTask', taskId: task.id })
+      if (taskId === task.id) navigate('/tasks', { replace: true })
+      if (autoEditTaskId === task.id) setAutoEditTaskId(undefined)
+    } catch (err) {
+      console.error('Failed to delete task', err)
+      window.alert('Unable to delete this task right now. Please try again.')
+    } finally {
+      setDeletingTaskId(undefined)
+    }
+  }
+
   return (
     <div className="page pageFill">
-      <h2 className="pageTitle">Tasks</h2>
+      <div className="pageTitleRow">
+        <h2 className="pageTitle">Tasks</h2>
+        <button className="btn btnSecondary" type="button" onClick={handleAddTask} disabled={isCreatingTask}>
+          {isCreatingTask ? 'Adding…' : 'Add task'}
+        </button>
+      </div>
 
       <div className={`tasksStack ${isFocusMode ? 'tasksStackFocus' : ''} ${!showDetail ? 'tasksStackNoDetail' : ''}`}>
         {!isFocusMode ? (
@@ -410,11 +474,14 @@ export function TasksView() {
             {selected ? (
               <TaskDetail
                 task={selected}
+                autoEditOnOpen={selected.id === autoEditTaskId}
                 staleDays={settings.staleDays}
                 isFocusMode={isFocusMode}
+                isDeleting={deletingTaskId === selected.id}
                 onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
                 onExitFocus={() => navigate('/tasks')}
                 onClose={() => dispatch({ type: 'selectTask', taskId: undefined })}
+                onDelete={() => void handleDeleteTask(selected)}
                 projectOptions={projectOptions}
                 riskOptions={riskOptions}
               />
@@ -432,40 +499,75 @@ export function TasksView() {
 
 function TaskDetail({
   task,
+  autoEditOnOpen,
   staleDays,
   isFocusMode,
+  isDeleting,
   onEnterFocus,
   onExitFocus,
   onClose,
+  onDelete,
   projectOptions,
   riskOptions,
 }: {
   task: Task
+  autoEditOnOpen: boolean
   staleDays: number
   isFocusMode: boolean
+  isDeleting: boolean
   onEnterFocus: () => void
   onExitFocus: () => void
   onClose: () => void
+  onDelete: () => void
   projectOptions: string[]
   riskOptions: string[]
 }) {
   const dispatch = useAppDispatch()
-  const { tasks, team } = useAppState()
+  const { tasks, team, projects, risks } = useAppState()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
   const [isEditing, setIsEditing] = useState(false)
   const notesRef = useRef<HTMLTextAreaElement | null>(null)
   const notesMaxHeightPx = 280
   const [addBlockerText, setAddBlockerText] = useState<string>('')
 
+  function toApiStatus(status?: TaskStatus): 'NotStarted' | 'InProgress' | 'Blocked' | 'Done' {
+    if (status === 'In Progress') return 'InProgress'
+    if (status === 'Blocked') return 'Blocked'
+    if (status === 'Done') return 'Done'
+    return 'NotStarted'
+  }
+
   function update(patch: Partial<Task>) {
-    dispatch({ type: 'updateTask', task: { ...task, ...patch } })
+    const next = { ...task, ...patch }
+    dispatch({ type: 'updateTask', task: next })
+
+    const projectId = next.project ? projects.find((p) => p.name === next.project)?.id : undefined
+    const riskId = next.risk ? risks.find((r) => r.title === next.risk)?.id : undefined
+
+    void updateTaskApi(next.id, {
+      title: next.title,
+      priority: next.priority,
+      status: toApiStatus(next.status),
+      assigneeId: next.assigneeId,
+      projectId,
+      riskId,
+      dueDate: next.dueDate,
+      dependencyTaskIds: next.dependencyTaskIds,
+      estimatedDurationText: next.estimatedDurationText,
+      estimateConfidence: next.estimateConfidence,
+      actualDurationText: next.actualDurationText,
+      notes: next.notes,
+    }).catch((err) => {
+      console.error('Failed to update task', err)
+      window.alert('Unable to save task changes right now. Please try again.')
+    })
   }
 
   useEffect(() => {
     // Switching selection should default back to view mode (prevents "sticky edit" across tasks).
-    setIsEditing(false)
+    setIsEditing(autoEditOnOpen)
     setAddBlockerText('')
-  }, [task.id])
+  }, [autoEditOnOpen, task.id])
 
   function formatLastTouched(iso: string) {
     const d = new Date(iso)
@@ -600,6 +702,9 @@ function TaskDetail({
           ) : null}
           <button className="btn btnGhost" type="button" onClick={() => setIsEditing((e) => !e)}>
             {isEditing ? 'Done' : 'Edit'}
+          </button>
+          <button className="btn btnGhost textBad" type="button" onClick={onDelete} disabled={isDeleting}>
+            {isDeleting ? 'Deleting…' : 'Delete'}
           </button>
           {isFocusMode ? (
             <button className="btn btnGhost" onClick={onExitFocus}>
@@ -877,7 +982,7 @@ function TaskDetail({
       </div>
 
       <div className="row">
-        <button className="btn" onClick={() => dispatch({ type: 'touchTask', taskId: task.id, touchedIso: new Date().toISOString() })}>
+        <button className="btn" onClick={() => update({ lastTouchedIso: new Date().toISOString() })}>
           Touch / Update Activity
         </button>
       </div>

@@ -5,6 +5,7 @@ import type { Risk, RiskStatus, Task, TeamMember } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
+import { createRisk, deleteRisk as deleteRiskApi, updateRisk as updateRiskApi } from '../app/api/risks'
 
 function newId(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2)}`
@@ -89,6 +90,9 @@ export function RisksView() {
   const selected = useSelectedRisk()
   const listRef = useRef<HTMLElement | null>(null)
   const [listMaxHeightPx, setListMaxHeightPx] = useState<number | undefined>(undefined)
+  const [isCreatingRisk, setIsCreatingRisk] = useState(false)
+  const [deletingRiskId, setDeletingRiskId] = useState<string | undefined>(undefined)
+  const [autoEditRiskId, setAutoEditRiskId] = useState<string | undefined>(undefined)
 
   const projectOptions = useMemo(() => projects.map((p) => p.name).sort((a, b) => a.localeCompare(b)), [projects])
 
@@ -160,9 +164,68 @@ export function RisksView() {
     setListMaxHeightPx(Math.ceil(sumHeights + gaps + paddingTop + paddingBottom + 2))
   }, [filtered.length, showDetail])
 
+  async function handleAddRisk() {
+    if (isCreatingRisk) return
+    setIsCreatingRisk(true)
+    try {
+      const id = await createRisk({
+        title: 'New risk',
+        status: 'Open',
+        severity: 'Medium',
+        description: '',
+        evidence: '',
+      })
+
+      dispatch({
+        type: 'addRisk',
+        risk: {
+          id,
+          title: 'New risk',
+          status: 'Open',
+          severity: 'Medium',
+          description: '',
+          evidence: '',
+          linkedTaskIds: [],
+          linkedTeamMemberIds: [],
+          history: [],
+          lastUpdatedIso: new Date().toISOString(),
+        },
+      })
+      setAutoEditRiskId(id)
+    } catch (err) {
+      console.error('Failed to create risk', err)
+      window.alert('Unable to create risk right now. Please try again.')
+    } finally {
+      setIsCreatingRisk(false)
+    }
+  }
+
+  async function handleDeleteRisk(risk: Risk) {
+    if (deletingRiskId) return
+    if (!window.confirm(`Delete risk "${risk.title}"? This cannot be undone.`)) return
+
+    setDeletingRiskId(risk.id)
+    try {
+      await deleteRiskApi(risk.id)
+      dispatch({ type: 'removeRisk', riskId: risk.id })
+      if (riskId === risk.id) navigate('/risks', { replace: true })
+      if (autoEditRiskId === risk.id) setAutoEditRiskId(undefined)
+    } catch (err) {
+      console.error('Failed to delete risk', err)
+      window.alert('Unable to delete this risk right now. Please try again.')
+    } finally {
+      setDeletingRiskId(undefined)
+    }
+  }
+
   return (
     <div className="page pageFill">
-      <h2 className="pageTitle">Risks &amp; Mitigation</h2>
+      <div className="pageTitleRow">
+        <h2 className="pageTitle">Risks &amp; Mitigation</h2>
+        <button className="btn btnSecondary" type="button" onClick={handleAddRisk} disabled={isCreatingRisk}>
+          {isCreatingRisk ? 'Adding…' : 'Add risk'}
+        </button>
+      </div>
 
       <div
         className={`risksStack ${isFocusMode ? 'risksStackFocus' : ''} ${!showDetail ? 'risksStackNoDetail' : ''}`}
@@ -250,10 +313,13 @@ export function RisksView() {
             {selected ? (
               <RiskDetail
                 risk={selected}
+                autoEditOnOpen={selected.id === autoEditRiskId}
                 isFocusMode={isFocusMode}
+                isDeleting={deletingRiskId === selected.id}
                 onEnterFocus={() => navigate(`/risks/${selected.id}`)}
                 onExitFocus={() => navigate('/risks')}
                 onClose={() => dispatch({ type: 'selectRisk', riskId: undefined })}
+                onDelete={() => void handleDeleteRisk(selected)}
                 projectOptions={projectOptions}
               />
             ) : (
@@ -270,21 +336,27 @@ export function RisksView() {
 
 function RiskDetail({
   risk,
+  autoEditOnOpen,
   isFocusMode,
+  isDeleting,
   onEnterFocus,
   onExitFocus,
   onClose,
+  onDelete,
   projectOptions,
 }: {
   risk: Risk
+  autoEditOnOpen: boolean
   isFocusMode: boolean
+  isDeleting: boolean
   onEnterFocus: () => void
   onExitFocus: () => void
   onClose: () => void
+  onDelete: () => void
   projectOptions: string[]
 }) {
   const dispatch = useAppDispatch()
-  const { tasks, team } = useAppState()
+  const { tasks, team, projects } = useAppState()
   const [isEditing, setIsEditing] = useState(false)
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNoteText, setNewNoteText] = useState('')
@@ -316,9 +388,24 @@ function RiskDetail({
   }
 
   function update(patch: Partial<Risk>) {
+    const next = { ...risk, ...patch, lastUpdatedIso: new Date().toISOString() }
     dispatch({
       type: 'updateRisk',
-      risk: { ...risk, ...patch, lastUpdatedIso: new Date().toISOString() },
+      risk: next,
+    })
+
+    const projectId = next.project ? projects.find((p) => p.name === next.project)?.id : undefined
+
+    void updateRiskApi(next.id, {
+      title: next.title,
+      status: next.status,
+      severity: next.severity,
+      projectId,
+      description: next.description,
+      evidence: next.evidence,
+    }).catch((err) => {
+      console.error('Failed to update risk', err)
+      window.alert('Unable to save risk changes right now. Please try again.')
     })
   }
 
@@ -339,13 +426,13 @@ function RiskDetail({
 
   useEffect(() => {
     // Switching selection should default back to view mode (prevents "sticky edit" across risks).
-    setIsEditing(false)
+    setIsEditing(autoEditOnOpen)
     setIsAddingNote(false)
     setNewNoteText('')
     setSelectedHistoryId(undefined)
     setHistoryDraftText('')
     setHistoryEditTab('Write')
-  }, [risk.id])
+  }, [autoEditOnOpen, risk.id])
 
   const taskById = useMemo(() => new Map<string, Task>(tasks.map((t) => [t.id, t])), [tasks])
   const memberById = useMemo(() => new Map<string, TeamMember>(team.map((m) => [m.id, m])), [team])
@@ -387,6 +474,9 @@ function RiskDetail({
             <div className="rowTiny">
               <button className="btn btnGhost" onClick={() => setIsEditing((e) => !e)}>
                 {isEditing ? 'Done' : 'Edit'}
+              </button>
+              <button className="btn btnGhost textBad" onClick={onDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting…' : 'Delete'}
               </button>
               {isFocusMode ? (
                 <button className="btn btnGhost" onClick={onExitFocus}>

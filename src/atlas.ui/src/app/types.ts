@@ -184,6 +184,7 @@ export interface Project {
 export interface Settings {
   staleDays: number
   defaultAiManualOnly: boolean
+  defaultAiPanelOpen: boolean
   theme: 'Dark' | 'Light'
   azureDevOpsBaseUrl?: string
 }

@@ -7,6 +7,7 @@ import {
   useSelectedProject,
 } from '../app/state/AppState'
 import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, Risk, TaskStatus } from '../app/types'
+import { createProject, deleteProject as deleteProjectApi, updateProject as updateProjectApi } from '../app/api/projects'
 
 export function ProjectsView() {
   const ai = useAi()
@@ -16,6 +17,9 @@ export function ProjectsView() {
   const { projects, selectedProjectId } = useAppState()
   const selected = useSelectedProject()
   const isFocusMode = !!projectId
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [deletingProjectId, setDeletingProjectId] = useState<string | undefined>(undefined)
+  const [autoEditProjectId, setAutoEditProjectId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     ai.setContext('Context: Projects', [
@@ -36,9 +40,72 @@ export function ProjectsView() {
     if (!exists) navigate('/projects', { replace: true })
   }, [navigate, projectId, projects])
 
+  async function handleAddProject() {
+    if (isCreatingProject) return
+    setIsCreatingProject(true)
+    try {
+      const id = await createProject({
+        name: 'New project',
+        summary: 'New project summary',
+        description: '',
+        status: 'Active',
+        health: 'Green',
+        tags: [],
+        links: [],
+      })
+
+      dispatch({
+        type: 'addProject',
+        project: {
+          id,
+          name: 'New project',
+          summary: 'New project summary',
+          description: '',
+          status: 'Active',
+          health: 'Green',
+          tags: [],
+          links: [],
+          linkedTaskIds: [],
+          linkedRiskIds: [],
+          teamMemberIds: [],
+          lastUpdatedIso: new Date().toISOString(),
+        },
+      })
+      setAutoEditProjectId(id)
+    } catch (err) {
+      console.error('Failed to create project', err)
+      window.alert('Unable to create project right now. Please try again.')
+    } finally {
+      setIsCreatingProject(false)
+    }
+  }
+
+  async function handleDeleteProject(project: Project, search = '') {
+    if (deletingProjectId) return
+    if (!window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) return
+
+    setDeletingProjectId(project.id)
+    try {
+      await deleteProjectApi(project.id)
+      dispatch({ type: 'removeProject', projectId: project.id })
+      if (projectId === project.id) navigate(`/projects${search}`, { replace: true })
+      if (autoEditProjectId === project.id) setAutoEditProjectId(undefined)
+    } catch (err) {
+      console.error('Failed to delete project', err)
+      window.alert('Unable to delete this project right now. Please try again.')
+    } finally {
+      setDeletingProjectId(undefined)
+    }
+  }
+
   return (
     <div className="page pageFill">
-      <h2 className="pageTitle">Projects</h2>
+      <div className="pageTitleRow">
+        <h2 className="pageTitle">Projects</h2>
+        <button className="btn btnSecondary" type="button" onClick={handleAddProject} disabled={isCreatingProject}>
+          {isCreatingProject ? 'Adding…' : 'Add project'}
+        </button>
+      </div>
 
       <div className={`splitGrid splitGridFill ${isFocusMode ? 'projectsSplitFocus' : ''}`}>
         {!isFocusMode ? (
@@ -69,9 +136,12 @@ export function ProjectsView() {
           ) : (
             <ProjectDetail
               project={selected}
+              autoEditOnOpen={selected.id === autoEditProjectId}
               isFocusMode={isFocusMode}
+              isDeleting={deletingProjectId === selected.id}
               onEnterFocus={(search) => navigate(`/projects/${selected.id}${search}`)}
               onExitFocus={(search) => navigate(`/projects${search}`)}
+              onDelete={(search) => void handleDeleteProject(selected, search)}
             />
           )}
         </section>
@@ -82,14 +152,20 @@ export function ProjectsView() {
 
 function ProjectDetail({
   project,
+  autoEditOnOpen,
   isFocusMode,
+  isDeleting,
   onEnterFocus,
   onExitFocus,
+  onDelete,
 }: {
   project: Project
+  autoEditOnOpen: boolean
   isFocusMode: boolean
+  isDeleting: boolean
   onEnterFocus: (search: string) => void
   onExitFocus: (search: string) => void
+  onDelete: (search: string) => void
 }) {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
@@ -159,9 +235,9 @@ function ProjectDetail({
 
   useEffect(() => {
     // Reset edit mode when switching project (prevents "sticky edit" across projects).
-    setIsEditingOverview(false)
+    setIsEditingOverview(autoEditOnOpen)
     setDraft(project)
-  }, [project.id])
+  }, [autoEditOnOpen, project])
 
   useEffect(() => {
     // Leaving the Overview tab cancels edit mode.
@@ -201,10 +277,27 @@ function ProjectDetail({
     }
   }
 
-  function saveOverviewEdits() {
+  async function saveOverviewEdits() {
     const next = normalizeDraftForSave(draft)
-    dispatch({ type: 'updateProject', project: next })
-    setIsEditingOverview(false)
+    try {
+      await updateProjectApi(next.id, {
+        name: next.name,
+        summary: next.summary,
+        description: next.description,
+        status: next.status,
+        health: next.health,
+        targetDate: next.targetDateIso,
+        priority: next.priority,
+        productOwnerId: next.productOwnerId,
+        tags: next.tags,
+        links: next.links,
+      })
+      dispatch({ type: 'updateProject', project: next })
+      setIsEditingOverview(false)
+    } catch (err) {
+      console.error('Failed to update project', err)
+      window.alert('Unable to save project changes right now. Please try again.')
+    }
   }
 
   function cancelOverviewEdits() {
@@ -389,6 +482,9 @@ function ProjectDetail({
                 Focus
               </button>
             )}
+            <button className="btn btnGhost textBad" onClick={() => onDelete(currentSearch)} disabled={isDeleting}>
+              {isDeleting ? 'Deleting…' : 'Delete'}
+            </button>
           </div>
         </div>
       </div>

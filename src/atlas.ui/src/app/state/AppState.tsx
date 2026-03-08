@@ -28,15 +28,21 @@ type Action =
   | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
   | { type: 'selectTeamMember'; memberId?: string }
   | { type: 'selectProject'; projectId?: string }
+  | { type: 'addTask'; task: Task }
   | { type: 'updateTask'; task: Task }
+  | { type: 'removeTask'; taskId: string }
   | { type: 'touchTask'; taskId: string; touchedIso: string }
+  | { type: 'addRisk'; risk: Risk }
   | { type: 'updateRisk'; risk: Risk }
+  | { type: 'removeRisk'; riskId: string }
   | { type: 'addTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
   | { type: 'updateTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
   | { type: 'updateGrowth'; growth: Growth }
   | { type: 'updateSettings'; settings: Settings }
   | { type: 'updateTeamMember'; member: TeamMember }
+  | { type: 'addProject'; project: Project }
   | { type: 'updateProject'; project: Project }
+  | { type: 'removeProject'; projectId: string }
 
 function reduce(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -64,8 +70,16 @@ function reduce(state: AppState, action: Action): AppState {
       return { ...state, selectedTeamMemberId: action.memberId }
     case 'selectProject':
       return { ...state, selectedProjectId: action.projectId }
+    case 'addTask':
+      return { ...state, selectedTaskId: action.task.id, tasks: [action.task, ...state.tasks] }
     case 'updateTask':
       return { ...state, tasks: state.tasks.map((t) => (t.id === action.task.id ? action.task : t)) }
+    case 'removeTask':
+      return {
+        ...state,
+        tasks: state.tasks.filter((t) => t.id !== action.taskId),
+        selectedTaskId: state.selectedTaskId === action.taskId ? undefined : state.selectedTaskId,
+      }
     case 'touchTask':
       return {
         ...state,
@@ -73,8 +87,16 @@ function reduce(state: AppState, action: Action): AppState {
           t.id === action.taskId ? { ...t, lastTouchedIso: action.touchedIso } : t,
         ),
       }
+    case 'addRisk':
+      return { ...state, selectedRiskId: action.risk.id, risks: [action.risk, ...state.risks] }
     case 'updateRisk':
       return { ...state, risks: state.risks.map((r) => (r.id === action.risk.id ? action.risk : r)) }
+    case 'removeRisk':
+      return {
+        ...state,
+        risks: state.risks.filter((r) => r.id !== action.riskId),
+        selectedRiskId: state.selectedRiskId === action.riskId ? undefined : state.selectedRiskId,
+      }
     case 'addTeamMemberRisk':
       return {
         ...state,
@@ -97,8 +119,16 @@ function reduce(state: AppState, action: Action): AppState {
       return { ...state, settings: action.settings }
     case 'updateTeamMember':
       return { ...state, team: state.team.map((m) => (m.id === action.member.id ? action.member : m)) }
+    case 'addProject':
+      return { ...state, selectedProjectId: action.project.id, projects: [action.project, ...state.projects] }
     case 'updateProject':
       return { ...state, projects: state.projects.map((p) => (p.id === action.project.id ? action.project : p)) }
+    case 'removeProject':
+      return {
+        ...state,
+        projects: state.projects.filter((p) => p.id !== action.projectId),
+        selectedProjectId: state.selectedProjectId === action.projectId ? undefined : state.selectedProjectId,
+      }
     default: {
       const _exhaustive: never = action
       void _exhaustive
@@ -119,6 +149,7 @@ function initialState(): AppState {
     settings: {
       staleDays: 10,
       defaultAiManualOnly: true,
+      defaultAiPanelOpen: false,
       theme: 'Dark',
       azureDevOpsBaseUrl: undefined,
     },

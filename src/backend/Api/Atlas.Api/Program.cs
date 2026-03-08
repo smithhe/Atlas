@@ -72,7 +72,6 @@ builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
 var app = builder.Build();
 
-
 app.UseCors("UiCors");
 
 if (app.Environment.IsDevelopment())
