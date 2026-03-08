@@ -101,6 +101,12 @@ export function AzureImportView() {
     }
   }
 
+  function onIgnoreSelectedWorkItems() {
+    if (selectedWorkItems.size === 0) return
+    setImportWorkItems((prev) => prev.filter((item) => !selectedWorkItems.has(item.id)))
+    setSelectedWorkItems(new Set())
+  }
+
   return (
     <div className="page">
       <div className="pageBreadcrumbs">
@@ -244,6 +250,14 @@ export function AzureImportView() {
                 >
                   Link selected
                 </LoadingButton>
+                <button
+                  type="button"
+                  className="btn btnGhost"
+                  disabled={selectedWorkItems.size === 0 || linkingWorkItems}
+                  onClick={onIgnoreSelectedWorkItems}
+                >
+                  Ignore selected
+                </button>
                 <div className="mutedSmall">
                   {selectedProjectName ? `Linking to ${selectedProjectName}.` : 'Select a project to link work items.'}
                 </div>

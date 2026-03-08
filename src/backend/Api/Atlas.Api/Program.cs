@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,12 +12,33 @@ builder.Services.Configure<JsonOptions>(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// Local UI (Vite/Electron) -> API calls.
+var configuredCorsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+configuredCorsOrigins = configuredCorsOrigins
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
+if (configuredCorsOrigins.Length == 0 && builder.Environment.IsDevelopment())
+{
+    configuredCorsOrigins =
+    [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ];
+}
+
+if (configuredCorsOrigins.Length == 0)
+{
+    throw new InvalidOperationException("At least one CORS origin is required in configuration: Cors:AllowedOrigins");
+}
+
+// Browser-hosted atlas.ui -> API calls.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevCors", policy =>
+    options.AddPolicy("UiCors", policy =>
         policy
-            .AllowAnyOrigin()
+            .WithOrigins(configuredCorsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
@@ -51,7 +73,7 @@ builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 var app = builder.Build();
 
 
-app.UseCors("DevCors");
+app.UseCors("UiCors");
 
 if (app.Environment.IsDevelopment())
 {

@@ -12,7 +12,17 @@ export class HttpError extends Error {
 
 function apiBaseUrl(): string {
   const fromEnv = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
-  return (fromEnv ?? 'http://localhost:5012').replace(/\/+$/, '')
+  if (fromEnv?.trim()) {
+    return fromEnv.replace(/\/+$/, '')
+  }
+
+  // Local dev keeps the API on a separate port; deployed web defaults to same-origin.
+  const hostname = window.location.hostname
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:5012'
+  }
+
+  return window.location.origin.replace(/\/+$/, '')
 }
 
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
