@@ -1,4 +1,6 @@
 using Atlas.Domain.Entities;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Atlas.Persistence;
 
@@ -45,6 +47,50 @@ public sealed class AtlasDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AtlasDbContext).Assembly);
+        ConfigureReadableValueStorage(modelBuilder);
+    }
+
+    private static void ConfigureReadableValueStorage(ModelBuilder modelBuilder)
+    {
+        foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(static entityType => entityType.GetProperties()))
+        {
+            if (property.IsPrimaryKey() || property.IsForeignKey())
+            {
+                continue;
+            }
+
+            ConfigureBoolProperty(property);
+            ConfigureEnumProperty(property);
+        }
+    }
+
+    private static void ConfigureBoolProperty(IMutableProperty property)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+        if (underlyingType != typeof(bool))
+        {
+            return;
+        }
+
+        property.SetValueConverter(new BoolToStringConverter("false", "true"));
+    }
+
+    private static void ConfigureEnumProperty(IMutableProperty property)
+    {
+        var enumType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+        if (!enumType.IsEnum)
+        {
+            return;
+        }
+
+        var converterType = typeof(EnumToStringConverter<>).MakeGenericType(enumType);
+        var converter = (ValueConverter?)Activator.CreateInstance(converterType);
+        if (converter is null)
+        {
+            throw new InvalidOperationException($"Could not create enum converter for type '{enumType.Name}'.");
+        }
+
+        property.SetValueConverter(converter);
     }
 }
 
