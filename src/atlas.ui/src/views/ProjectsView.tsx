@@ -43,10 +43,13 @@ export function ProjectsView() {
 
   async function handleAddProject() {
     if (isCreatingProject) return
+    const requestedName = window.prompt('Project name', 'New project')
+    if (requestedName === null) return
+    const name = requestedName.trim() || 'New project'
     setIsCreatingProject(true)
     try {
       const id = await createProject({
-        name: 'New project',
+        name,
         summary: 'New project summary',
         description: '',
         status: 'Active',
@@ -59,7 +62,7 @@ export function ProjectsView() {
         type: 'addProject',
         project: {
           id,
-          name: 'New project',
+          name,
           summary: 'New project summary',
           description: '',
           status: 'Active',
@@ -477,6 +480,10 @@ function ProjectDetail({
               </div>
               <div className="pad">
                 <div className="fieldGrid2">
+                  <label className="field span2">
+                    <div className="fieldLabel">Name</div>
+                    <input className="input" value={draft.name} onChange={(e) => updateDraft({ name: e.target.value })} />
+                  </label>
                   <label className="field">
                     <div className="fieldLabel">Status</div>
                     <select className="select" value={draft.status ?? 'Active'} onChange={(e) => updateDraft({ status: e.target.value as ProjectStatus })}>
