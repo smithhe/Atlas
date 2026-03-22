@@ -171,7 +171,7 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
 
         if (lastChangedUtc.HasValue)
         {
-            var changed = lastChangedUtc.Value.ToString("o", CultureInfo.InvariantCulture);
+            var changed = lastChangedUtc.Value.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             if (lastWorkItemId.HasValue)
             {
                 clauses.Add($"(([System.ChangedDate] > '{changed}') OR ([System.ChangedDate] = '{changed}' AND [System.Id] > {lastWorkItemId.Value}))");
