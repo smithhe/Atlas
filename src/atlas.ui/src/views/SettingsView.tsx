@@ -193,7 +193,7 @@ export function SettingsView() {
           </label>
         </div>
 
-        <div className="row" style={{ marginTop: 16 }}>
+        <div className="row mt-lg">
           <LoadingButton className="btn" onClick={onSaveSettings} loading={settingsSaving} spinnerLabel="Saving settings">
             Save settings
           </LoadingButton>
@@ -201,9 +201,9 @@ export function SettingsView() {
         </div>
       </div>
 
-      <div className="card pad" style={{ marginTop: 16 }}>
+      <div className="card pad mt-lg">
         <LoadingOverlay isLoading={azureConnectionLoading} label="Loading Azure DevOps connection">
-          <div className="rowTiny" style={{ alignItems: 'center', marginBottom: 8 }}>
+          <div className="rowTiny items-center mb-sm">
             <h3 style={{ margin: 0 }}>Azure DevOps</h3>
           </div>
           <div className="fieldGrid2">
@@ -274,7 +274,7 @@ export function SettingsView() {
             </label>
           </div>
 
-        <div className="rowTiny" style={{ marginTop: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="rowTiny mt-lg items-center">
           <LoadingButton
             className="btn btnWide"
             onClick={onSaveAzureConnection}
@@ -302,24 +302,24 @@ export function SettingsView() {
           </button>
         </div>
         {azureLoaded && (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) ? (
-          <div className="mutedSmall textBad" style={{ marginTop: 8 }}>
+          <div className="mutedSmall textBad mt-sm">
             Azure connection needs Project ID and Team ID. Use <Link to="/setup">Azure Setup</Link>.
           </div>
         ) : null}
         {azureError ? (
-          <div className="mutedSmall textBad" style={{ marginTop: 6 }}>
+          <div className="mutedSmall textBad mt-xs">
             {azureError}
           </div>
         ) : null}
 
           <LoadingOverlay isLoading={syncStateLoading} label="Loading sync history" spinnerSize="sm">
             {syncState ? (
-              <div className="muted" style={{ marginTop: 12 }}>
+              <div className="muted mt-md">
                 Last sync: {syncState.lastCompletedAtUtc ?? 'Never'} • Status: {syncState.lastRunStatus}
                 {syncState.lastError ? ` • Error: ${syncState.lastError}` : ''}
               </div>
             ) : (
-              <div className="muted" style={{ marginTop: 12 }}>No sync history yet.</div>
+              <div className="muted mt-md">No sync history yet.</div>
             )}
           </LoadingOverlay>
         </LoadingOverlay>

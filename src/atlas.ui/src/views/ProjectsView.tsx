@@ -6,8 +6,9 @@ import {
   useAppState,
   useSelectedProject,
 } from '../app/state/AppState'
-import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, Risk, TaskStatus } from '../app/types'
+import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, TaskStatus } from '../app/types'
 import { createProject, deleteProject as deleteProjectApi, updateProject as updateProjectApi } from '../app/api/projects'
+import { healthTone, projectStatusTone, priorityTone, taskStatusTone, severityTone } from '../app/tones'
 
 export function ProjectsView() {
   const ai = useAi()
@@ -323,46 +324,6 @@ function ProjectDetail({
     return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })
   }
 
-  function healthTone(health?: Project['health']) {
-    if (health === 'Green') return 'toneGood'
-    if (health === 'Yellow') return 'toneWarn'
-    if (health === 'Red') return 'toneBad'
-    return 'toneNeutral'
-  }
-
-  function statusTone(status?: Project['status']) {
-    if (status === 'Active') return 'toneGood'
-    if (status === 'Paused') return 'toneWarn'
-    if (status === 'Completed') return 'toneNeutral'
-    return 'toneNeutral'
-  }
-
-  function priorityTone(priority?: Priority) {
-    if (!priority) return 'toneNeutral'
-    if (priority === 'Low') return 'toneNeutral'
-    if (priority === 'Medium') return 'toneWarn'
-    if (priority === 'High' || priority === 'Critical') return 'toneBad'
-    return 'toneNeutral'
-  }
-
-  function taskStatusTone(s?: TaskStatus) {
-    if (s === 'Done') return 'toneGood'
-    if (s === 'Blocked') return 'toneBad'
-    if (s === 'In Progress') return 'toneInfo'
-    return 'toneNeutral'
-  }
-
-  function severityTone(sev: Risk['severity']) {
-    switch (sev) {
-      case 'High':
-        return 'toneBad'
-      case 'Medium':
-        return 'toneWarn'
-      case 'Low':
-        return 'toneNeutral'
-    }
-  }
-
   const filteredTasks = useMemo(() => {
     const q = taskQuery.trim().toLowerCase()
     const todayIso = new Date().toISOString().slice(0, 10)
@@ -442,7 +403,7 @@ function ProjectDetail({
         <div className="projectHeaderRight">
           {!isEditingOverview ? (
             <div className="pillRow projectHeaderPills" aria-label="Project status summary">
-              {project.status ? <span className={`pill ${statusTone(project.status)}`}>Status: {project.status}</span> : null}
+              {project.status ? <span className={`pill ${projectStatusTone(project.status)}`}>Status: {project.status}</span> : null}
               {project.health ? <span className={`pill ${healthTone(project.health)}`}>Health: {project.health}</span> : null}
               {project.targetDateIso ? <span className="pill toneNeutral">Target: {formatDateLabel(project.targetDateIso)}</span> : null}
               {project.priority ? <span className={`pill ${priorityTone(project.priority)}`}>Priority: {project.priority}</span> : null}

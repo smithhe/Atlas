@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
 import { loadTeamMembers } from '../app/api/teamMembers'
+import { goalStatusTone, ticketAttentionTone } from '../app/tones'
 
 const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -869,13 +870,6 @@ function MemberWorkItemsTab({ member }: { member: TeamMember }) {
   const [quickFilter, setQuickFilter] = useState<'All' | 'Current' | 'Blocked' | 'InReview'>('All')
   const [statusFilter, setStatusFilter] = useState<string>('All')
 
-  function ticketAttentionTone(status: string) {
-    const s = status.toLowerCase()
-    if (s.includes('blocked')) return 'toneBad'
-    if (s.includes('code review') || s.includes('in review') || s.includes('review')) return 'toneWarn'
-    return 'toneNeutral'
-  }
-
   const statusOptions = useMemo(() => {
     const uniq = Array.from(new Set(member.azureItems.map((a) => a.status).filter(Boolean)))
     uniq.sort((a, b) => a.localeCompare(b))
@@ -1576,11 +1570,6 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
   const themes = growth?.feedbackThemes ?? []
   const focusAreasMarkdown = growth?.focusAreasMarkdown ?? ''
 
-  function statusPillTone(status: GrowthGoalStatus) {
-    if (status === 'Completed') return 'toneGood'
-    return status === 'OnTrack' ? 'toneGood' : 'toneWarn'
-  }
-
   function statusLabel(status: GrowthGoalStatus) {
     if (status === 'Completed') return 'Completed'
     return status === 'OnTrack' ? 'On Track' : 'Needs Attention'
@@ -1613,7 +1602,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
                 <div className="pad">
                   <div className="growthGoalTop">
                     <div className="growthGoalTitle">{g.title}</div>
-                    <span className={`pill ${statusPillTone(g.status)}`}>{statusLabel(g.status)}</span>
+                    <span className={`pill ${goalStatusTone(g.status)}`}>{statusLabel(g.status)}</span>
                   </div>
                   <div className="growthGoalDesc">{g.description}</div>
                 </div>

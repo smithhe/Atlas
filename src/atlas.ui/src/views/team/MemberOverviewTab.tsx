@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { TeamMember, TeamNote } from '../../app/types'
 import { isCurrentTicketStatus } from '../../app/team'
 import { Modal } from '../../components/Modal'
+import { signalTone, ticketAttentionTone } from '../../app/tones'
 
 const US_TIMEZONE_OPTIONS = [
   { value: 'PT', label: 'Pacific (PT)' },
@@ -37,26 +38,6 @@ function getPreview(note: TeamNote) {
   const text = note.text.replace(/\\s+/g, ' ').trim()
   if (text.length <= 120) return text
   return text.slice(0, 120).trim() + '…'
-}
-
-function signalTone(value: string) {
-  const v = value.toLowerCase()
-  if (v.includes('blocked')) return 'toneBad'
-  if (v.includes('atrisk')) return 'toneWarn'
-  if (v.includes('heavy')) return 'toneWarn'
-  if (v === 'high') return 'toneWarn'
-  if (v.includes('medium')) return 'toneWarn'
-  if (v.includes('ontrack')) return 'toneGood'
-  if (v.includes('light')) return 'toneGood'
-  if (v === 'low') return 'toneGood'
-  return 'toneNeutral'
-}
-
-function ticketAttentionTone(status: string) {
-  const s = status.toLowerCase()
-  if (s.includes('blocked')) return 'toneBad'
-  if (s.includes('code review') || s.includes('in review') || s.includes('review')) return 'toneWarn'
-  return 'toneNeutral'
 }
 
 export function MemberOverviewTab({

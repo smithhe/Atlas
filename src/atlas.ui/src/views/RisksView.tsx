@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import { createRisk, deleteRisk as deleteRiskApi, updateRisk as updateRiskApi } from '../app/api/risks'
+import { riskStatusTone, severityTone } from '../app/tones'
 
 function newId(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2)}`
@@ -365,28 +366,6 @@ function RiskDetail({
   const [historyEditTab, setHistoryEditTab] = useState<'Write' | 'Preview'>('Write')
   const historyTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
-  function statusTone(status: RiskStatus) {
-    switch (status) {
-      case 'Open':
-        return 'toneBad'
-      case 'Watching':
-        return 'toneWarn'
-      case 'Resolved':
-        return 'toneGood'
-    }
-  }
-
-  function severityTone(sev: Risk['severity']) {
-    switch (sev) {
-      case 'High':
-        return 'toneBad'
-      case 'Medium':
-        return 'toneWarn'
-      case 'Low':
-        return 'toneNeutral'
-    }
-  }
-
   function update(patch: Partial<Risk>) {
     const next = { ...risk, ...patch, lastUpdatedIso: new Date().toISOString() }
     dispatch({
@@ -467,7 +446,7 @@ function RiskDetail({
           <div className="riskDetailHeaderRight">
             {!isEditing ? (
               <div className="pillRow">
-                <span className={`pill ${statusTone(risk.status)}`}>{risk.status}</span>
+                <span className={`pill ${riskStatusTone(risk.status)}`}>{risk.status}</span>
                 <span className={`pill ${severityTone(risk.severity)}`}>{risk.severity}</span>
               </div>
             ) : null}
@@ -630,14 +609,14 @@ function RiskDetail({
 
         <div className="field span2">
           <div className="fieldLabel">Notes / History</div>
-          <div className="row" style={{ marginTop: 8 }}>
+          <div className="row mt-sm">
             <button className="btn btnSecondary" type="button" onClick={() => setIsAddingNote((v) => !v)}>
               {isAddingNote ? 'Cancel' : 'Add note'}
             </button>
           </div>
 
           {isAddingNote ? (
-            <div style={{ marginTop: 10 }}>
+            <div className="mt-sm">
               <label className="field">
                 <div className="fieldLabel">New note</div>
                 <textarea
@@ -647,7 +626,7 @@ function RiskDetail({
                   onChange={(e) => setNewNoteText(e.target.value)}
                 />
               </label>
-              <div className="row" style={{ marginTop: 10 }}>
+              <div className="row mt-sm">
                 <button className="btn btnSecondary" type="button" onClick={addNote}>
                   Add
                 </button>
@@ -655,7 +634,7 @@ function RiskDetail({
             </div>
           ) : null}
 
-          <div style={{ marginTop: 12 }}>
+          <div className="mt-md">
             {historyNewestFirst.length === 0 ? (
               <div className="muted">No history yet.</div>
             ) : (
@@ -673,7 +652,7 @@ function RiskDetail({
                   >
                     <div className="listMain">
                       <div className="listMeta">{new Date(h.createdIso).toLocaleString()}</div>
-                      <div className="noteBody" style={{ marginTop: 8 }}>
+                      <div className="noteBody mt-sm">
                         <Markdown text={h.text} />
                       </div>
                     </div>
@@ -695,7 +674,7 @@ function RiskDetail({
         }}
         footer={
           selectedHistory ? (
-            <div className="row" style={{ marginTop: 0 }}>
+            <div className="row mt-0">
               <button
                 className="btn btnSecondary"
                 onClick={() => {

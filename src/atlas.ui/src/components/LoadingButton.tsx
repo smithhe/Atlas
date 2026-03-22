@@ -14,10 +14,11 @@ export function LoadingButton({
   children,
   ...rest
 }: LoadingButtonProps) {
+  const classes = className?.includes('btn') ? className : `btn ${className ?? ''}`.trim()
   return (
     <button
       {...rest}
-      className={className}
+      className={classes}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
     >

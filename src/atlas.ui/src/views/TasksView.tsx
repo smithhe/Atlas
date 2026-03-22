@@ -5,25 +5,12 @@ import type { Priority, Task, TaskStatus } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 import { createTask, deleteTask as deleteTaskApi, updateTask as updateTaskApi } from '../app/api/tasks'
+import { taskStatusTone, priorityTone } from '../app/tones'
 
 function daysSince(iso: string) {
   const a = new Date(iso).getTime()
   const b = Date.now()
   return Math.floor((b - a) / (1000 * 60 * 60 * 24))
-}
-
-function taskStatusTone(s?: TaskStatus) {
-  if (s === 'Done') return 'toneGood'
-  if (s === 'Blocked') return 'toneBad'
-  if (s === 'In Progress') return 'toneInfo'
-  return 'toneNeutral'
-}
-
-function priorityTone(p: Priority) {
-  if (p === 'Low') return 'toneNeutral'
-  if (p === 'Medium') return 'toneWarn'
-  // High + Critical
-  return 'toneBad'
 }
 
 export function TasksView() {
@@ -578,13 +565,6 @@ function TaskDetail({
       hour: 'numeric',
       minute: '2-digit',
     })
-  }
-
-  function taskStatusTone(s?: TaskStatus) {
-    if (s === 'Done') return 'toneGood'
-    if (s === 'Blocked') return 'toneBad'
-    if (s === 'In Progress') return 'toneInfo'
-    return 'toneNeutral'
   }
 
   const estimateParsed = parseDurationText(task.estimatedDurationText)

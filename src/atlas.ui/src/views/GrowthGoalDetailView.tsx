@@ -10,6 +10,7 @@ import type {
   GrowthGoalCheckInSignal,
   Priority,
 } from '../app/types'
+import { goalStatusTone, actionStateTone, checkInSignalTone, priorityTone } from '../app/tones'
 
 type Selected =
   | { kind: 'action'; id: string }
@@ -39,17 +40,6 @@ function goalStatusLabel(status: GrowthGoal['status']) {
   }
 }
 
-function goalStatusTone(status: GrowthGoal['status']) {
-  switch (status) {
-    case 'Completed':
-      return 'toneGood'
-    case 'OnTrack':
-      return 'toneGood'
-    case 'NeedsAttention':
-      return 'toneWarn'
-  }
-}
-
 function formatShortDate(iso?: string) {
   if (!iso) return '—'
   const d = new Date(`${iso}T00:00:00`)
@@ -66,28 +56,6 @@ function formatLongDate(iso?: string) {
 
 function priorityLabel(p?: Priority) {
   return p ? `Priority: ${p}` : undefined
-}
-
-function actionStateTone(state: GrowthGoalActionState) {
-  switch (state) {
-    case 'Complete':
-      return 'toneGood'
-    case 'InProgress':
-      return 'toneWarn'
-    case 'Planned':
-      return 'toneNeutral'
-  }
-}
-
-function checkInSignalTone(signal: GrowthGoalCheckInSignal) {
-  switch (signal) {
-    case 'Positive':
-      return 'toneGood'
-    case 'Mixed':
-      return 'toneWarn'
-    case 'Concern':
-      return 'toneBad'
-  }
 }
 
 export function GrowthGoalDetailView() {
