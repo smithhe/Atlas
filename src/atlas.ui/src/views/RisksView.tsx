@@ -357,6 +357,7 @@ function RiskDetail({
   projectOptions: string[]
 }) {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { tasks, team, projects } = useAppState()
   const [isEditing, setIsEditing] = useState(false)
   const [isAddingNote, setIsAddingNote] = useState(false)
@@ -413,21 +414,18 @@ function RiskDetail({
     setHistoryEditTab('Write')
   }, [autoEditOnOpen, risk.id])
 
-  const taskById = useMemo(() => new Map<string, Task>(tasks.map((t) => [t.id, t])), [tasks])
   const memberById = useMemo(() => new Map<string, TeamMember>(team.map((m) => [m.id, m])), [team])
 
   const linkedTasks = useMemo(() => {
-    return risk.linkedTaskIds.map((id) => taskById.get(id)).filter(Boolean) as Task[]
-  }, [risk.linkedTaskIds, taskById])
+    return tasks.filter((t) => t.risk === risk.title)
+  }, [risk.title, tasks])
 
   const linkedMembers = useMemo(() => {
     return risk.linkedTeamMemberIds.map((id) => memberById.get(id)).filter(Boolean) as TeamMember[]
   }, [memberById, risk.linkedTeamMemberIds])
 
-  const tasksToShow = linkedTasks.length ? linkedTasks : tasks.slice(0, 2)
-  const membersToShow = linkedMembers.length ? linkedMembers : team.slice(0, 2)
-  const isTasksExample = linkedTasks.length === 0 && tasksToShow.length > 0
-  const isMembersExample = linkedMembers.length === 0 && membersToShow.length > 0
+  const tasksToShow = linkedTasks
+  const membersToShow = linkedMembers
 
   const historyNewestFirst = useMemo(() => {
     return [...(risk.history ?? [])].sort((a, b) => (a.createdIso < b.createdIso ? 1 : a.createdIso > b.createdIso ? -1 : 0))
@@ -560,13 +558,17 @@ function RiskDetail({
           <div className="risksLinkedGrid">
             <div className="field">
               <div className="fieldLabel">Linked Tasks</div>
-              {isTasksExample ? <div className="mutedSmall">Example (not yet linked)</div> : null}
               <div className="list listCard risksLinkedListCard">
                 {tasksToShow.length === 0 ? (
-                  <div className="muted pad">No tasks to show.</div>
+                  <div className="muted pad">No linked tasks yet.</div>
                 ) : (
                   tasksToShow.map((t) => (
-                    <div key={t.id} className="listRow">
+                    <button
+                      key={t.id}
+                      className="listRow listRowBtn"
+                      type="button"
+                      onClick={() => navigate(`/tasks/${t.id}`)}
+                    >
                       <span className={`dot dot-${t.priority.toLowerCase()}`} aria-hidden="true" />
                       <div className="listMain">
                         <div className="listTitle">{t.title}</div>
@@ -576,7 +578,7 @@ function RiskDetail({
                           {t.dueDate ? ` • Due ${t.dueDate}` : ''}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -584,13 +586,17 @@ function RiskDetail({
 
             <div className="field">
               <div className="fieldLabel">Linked Team Members</div>
-              {isMembersExample ? <div className="mutedSmall">Example (not yet linked)</div> : null}
               <div className="list listCard risksLinkedListCard">
                 {membersToShow.length === 0 ? (
-                  <div className="muted pad">No team members to show.</div>
+                  <div className="muted pad">No linked team members yet.</div>
                 ) : (
                   membersToShow.map((m) => (
-                    <div key={m.id} className="listRow">
+                    <button
+                      key={m.id}
+                      className="listRow listRowBtn"
+                      type="button"
+                      onClick={() => navigate(`/team/${m.id}`)}
+                    >
                       <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-hidden="true" />
                       <div className="listMain">
                         <div className="listTitle">{m.name}</div>
@@ -599,7 +605,7 @@ function RiskDetail({
                           {m.currentFocus ? ` • ${m.currentFocus}` : ''}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
