@@ -1220,7 +1220,7 @@
 .fieldGrid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .field {
@@ -1396,7 +1396,7 @@ select option:disabled {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .detailTitle {
@@ -1404,7 +1404,7 @@ select option:disabled {
 }
 
 .riskDetailHeader {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .riskDetailHeaderTop {
@@ -1602,19 +1602,25 @@ select option:disabled {
   flex-direction: column;
 }
 
+.projectDetailCard.pad {
+  padding: 18px;
+}
+
 .projectDetailScroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding-right: 6px; /* keep content off the scrollbar */
+  padding-right: 6px;
+  padding-top: 4px;
 }
 
 .projectHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
+  padding-bottom: 4px;
 }
 
 .projectHeaderLeft {
@@ -1643,14 +1649,14 @@ select option:disabled {
 }
 
 .projectTabsBar {
-  margin-top: 12px;
-  margin-bottom: 12px;
+  margin-top: 14px;
+  margin-bottom: 14px;
 }
 
 .projectOverviewGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 12px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -1660,6 +1666,14 @@ select option:disabled {
 
 .projectOverviewSection {
   overflow: hidden;
+}
+
+.projectOverviewSection > .cardHeader {
+  padding: 14px 16px;
+}
+
+.projectOverviewSection > .pad {
+  padding: 16px;
 }
 
 .projectOverviewBody {
@@ -1694,7 +1708,7 @@ select option:disabled {
 .projectTabBody {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .projectTabSection {
@@ -2133,7 +2147,7 @@ select option:disabled {
   gap: 8px;
   flex-wrap: wrap;
   padding: 10px;
-  margin: 10px 0 6px 0;
+  margin: 10px 0 8px 0;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
