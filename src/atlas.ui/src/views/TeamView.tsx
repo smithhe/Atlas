@@ -152,7 +152,6 @@ export function TeamView() {
                   onClick={() => dispatch({ type: 'selectTeamMember', memberId: m.id })}
                   onDoubleClick={() => navigate(`/team/${m.id}`)}
                 >
-                  <div className="avatar" aria-hidden="true" />
                   <div className="listMain">
                     <div className="listTitle">{m.name}</div>
                     <div className="listMeta">{m.role ?? '—'}</div>

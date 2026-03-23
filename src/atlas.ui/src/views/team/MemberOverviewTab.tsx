@@ -52,6 +52,7 @@ export function MemberOverviewTab({
   onGoToWorkItem: (workItemId: string) => void
 }) {
   const currentTickets = useMemo(() => member.azureItems.filter((a) => isCurrentTicketStatus(a.status)), [member.azureItems])
+  const topCurrentTickets = useMemo(() => currentTickets.slice(0, 3), [currentTickets])
 
   const pinnedNotes = useMemo(() => {
     const byId = new Map(member.notes.map((n) => [n.id, n] as const))
@@ -82,6 +83,8 @@ export function MemberOverviewTab({
     delivery: member.signals.delivery,
     supportNeeded: member.signals.supportNeeded,
   })
+  const [focusModalOpen, setFocusModalOpen] = useState(false)
+  const [focusDraftText, setFocusDraftText] = useState('')
 
   function openProfileModal() {
     setProfileDraft({
@@ -127,6 +130,20 @@ export function MemberOverviewTab({
     setSignalsModalOpen(false)
   }
 
+  function openFocusModal() {
+    setFocusDraftText(member.currentFocus ?? '')
+    setFocusModalOpen(true)
+  }
+
+  function saveFocusModal() {
+    const nextFocus = focusDraftText.trim()
+    onUpdate({
+      currentFocus: nextFocus || undefined,
+    })
+    setFocusModalOpen(false)
+    setFocusDraftText('')
+  }
+
   return (
     <div className="memberOverviewGrid" aria-label="Team member overview">
       <section className="card subtle" aria-label="Profile">
@@ -158,29 +175,35 @@ export function MemberOverviewTab({
       <section className="card subtle memberOverviewFocus" aria-label="Focus Right Now">
         <div className="cardHeader">
           <div className="cardTitle">Focus Right Now</div>
+          <button className="btn btnGhost" type="button" onClick={openFocusModal}>
+            Edit
+          </button>
         </div>
         <div className="pad memberOverviewFocusBody">
-          {currentTickets.length === 0 ? (
-            <div className="muted">No current tickets.</div>
+          <div className={`memberOverviewFocusSummary ${!member.currentFocus?.trim() ? 'muted' : ''}`}>
+            {member.currentFocus?.trim() ? member.currentFocus : 'No current focus set.'}
+          </div>
+          <div className="memberOverviewFocusDivider" aria-hidden="true" />
+          <div className="memberOverviewFocusLabel">
+            Current work items{currentTickets.length > 3 ? ` (${currentTickets.length})` : ''}
+          </div>
+          {topCurrentTickets.length === 0 ? (
+            <div className="mutedSmall">No current work items.</div>
           ) : (
-            <div className="focusTicketsList" role="list">
-              {currentTickets.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`focusTicketRow focusTicketRowBtn ${ticketAttentionTone(t.status)}`}
-                  role="listitem"
-                  onClick={() => onGoToWorkItem(t.id)}
-                >
-                  <div className="listMain">
-                    <div className="listTitle">
-                      {t.id} — {t.title}
-                    </div>
-                    <div className="listMeta">{t.status}</div>
-                  </div>
-                </button>
+            <ul className="memberOverviewBullets">
+              {topCurrentTickets.map((t) => (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    className={`linkBtn ${ticketAttentionTone(t.status)}`}
+                    onClick={() => onGoToWorkItem(t.id)}
+                    title="Open work item"
+                  >
+                    {t.id} &mdash; {t.title}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </section>
@@ -424,6 +447,44 @@ export function MemberOverviewTab({
                 </option>
               ))}
             </select>
+          </label>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Edit focus right now"
+        isOpen={focusModalOpen}
+        onClose={() => {
+          setFocusModalOpen(false)
+          setFocusDraftText('')
+        }}
+        footer={
+          <div className="row" style={{ marginTop: 0 }}>
+            <button className="btn btnSecondary" type="button" onClick={saveFocusModal}>
+              Save
+            </button>
+            <button
+              className="btn btnGhost"
+              type="button"
+              onClick={() => {
+                setFocusModalOpen(false)
+                setFocusDraftText('')
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        <div className="fieldGrid">
+          <label className="field">
+            <div className="fieldLabel">Current focus</div>
+            <textarea
+              className="textarea"
+              value={focusDraftText}
+              onChange={(e) => setFocusDraftText(e.target.value)}
+              placeholder="What is this person focused on right now?"
+            />
           </label>
         </div>
       </Modal>
