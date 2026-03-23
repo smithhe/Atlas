@@ -28,6 +28,14 @@ public sealed record TeamMemberRiskDto(
     DateTimeOffset? LastReviewedAt,
     Guid? LinkedGlobalRiskId);
 
+public sealed record TeamMemberAzureWorkItemDto(
+    string Id,
+    string Title,
+    string Status,
+    string? AssignedTo,
+    string TicketUrl,
+    Guid ProjectId);
+
 public sealed record TeamMemberListItemDto(
     Guid Id,
     string Name,
@@ -44,6 +52,7 @@ public sealed record TeamMemberDto(
     TeamMemberSignalsDto Signals,
     IReadOnlyList<TeamNoteDto> Notes,
     IReadOnlyList<TeamMemberRiskDto> Risks,
+    IReadOnlyList<TeamMemberAzureWorkItemDto> AzureWorkItems,
     IReadOnlyList<Guid> ProjectIds,
     IReadOnlyList<Guid> LinkedGlobalRiskIds);
 

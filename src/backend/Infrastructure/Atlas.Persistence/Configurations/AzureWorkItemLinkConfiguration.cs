@@ -22,7 +22,7 @@ public sealed class AzureWorkItemLinkConfiguration : IEntityTypeConfiguration<Az
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.TeamMember)
-            .WithMany()
+            .WithMany(x => x.AzureWorkItemLinks)
             .HasForeignKey(x => x.TeamMemberId)
             .OnDelete(DeleteBehavior.SetNull);
 

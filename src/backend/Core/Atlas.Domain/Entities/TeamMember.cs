@@ -28,6 +28,9 @@ public sealed class TeamMember : AggregateRoot
     /// </summary>
     public List<RiskTeamMember> LinkedRisks { get; set; } = [];
 
-    // Azure DevOps/work item shapes intentionally deferred to a later layer.
+    /// <summary>
+    /// Linked Azure work items assigned to this member.
+    /// </summary>
+    public List<AzureWorkItemLink> AzureWorkItemLinks { get; set; } = [];
 }
 

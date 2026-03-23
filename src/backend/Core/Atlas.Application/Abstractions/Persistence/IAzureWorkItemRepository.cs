@@ -4,6 +4,7 @@ namespace Atlas.Application.Abstractions.Persistence;
 
 public interface IAzureWorkItemRepository
 {
+    Task<IReadOnlyList<AzureWorkItem>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AzureWorkItem>> GetByWorkItemIdsAsync(Guid connectionId, IReadOnlyList<int> workItemIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AzureWorkItem>> ListUnlinkedAsync(Guid connectionId, int take, CancellationToken cancellationToken = default);
     Task AddAsync(AzureWorkItem workItem, CancellationToken cancellationToken = default);

@@ -107,6 +107,14 @@ export interface TeamMemberRiskDto {
   lastReviewedAt?: string | null
   linkedGlobalRiskId?: string | null
 }
+export interface TeamMemberAzureWorkItemDto {
+  id: string
+  title: string
+  status: string
+  assignedTo?: string | null
+  ticketUrl: string
+  projectId: string
+}
 export interface TeamMemberDto {
   id: string
   name: string
@@ -117,6 +125,7 @@ export interface TeamMemberDto {
   signals: TeamMemberSignalsDto
   notes: TeamNoteDto[]
   risks: TeamMemberRiskDto[]
+  azureWorkItems: TeamMemberAzureWorkItemDto[]
   projectIds: string[]
   linkedGlobalRiskIds: string[]
 }
@@ -275,7 +284,14 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     .map((n) => n.id)
 
   const local = teamMemberLocalExtrasById[dto.id]
-  const azureItems = local?.azureItems ?? []
+  const azureItems = (dto.azureWorkItems ?? []).map((w) => ({
+    id: w.id,
+    title: w.title,
+    status: w.status,
+    assignedTo: w.assignedTo ?? undefined,
+    ticketUrl: w.ticketUrl,
+    projectId: w.projectId,
+  }))
   const activitySnapshot = local?.activitySnapshot ?? { bullets: [], lastUpdatedIso: undefined, quickTags: undefined }
 
   const member: TeamMember = {

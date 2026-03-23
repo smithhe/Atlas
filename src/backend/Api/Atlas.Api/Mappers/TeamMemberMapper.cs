@@ -46,6 +46,18 @@ internal static class TeamMemberMapper
                 r.LinkedGlobalRiskId))
             .ToList();
 
+        var azureWorkItems = (m.AzureWorkItemLinks ?? [])
+            .Where(x => x.AzureWorkItem is not null)
+            .OrderByDescending(x => x.AzureWorkItem!.ChangedDateUtc)
+            .Select(x => new TeamMemberAzureWorkItemDto(
+                x.AzureWorkItem!.WorkItemId.ToString(),
+                x.AzureWorkItem.Title,
+                x.AzureWorkItem.State,
+                x.AzureWorkItem.AssignedToUniqueName,
+                x.AzureWorkItem.Url,
+                x.ProjectId))
+            .ToList();
+
         var projectIds = (m.Projects ?? [])
             .Select(p => p.ProjectId)
             .Where(id => id != Guid.Empty)
@@ -68,6 +80,7 @@ internal static class TeamMemberMapper
             signals,
             notes,
             risks,
+            azureWorkItems,
             projectIds,
             linkedGlobalRiskIds);
     }

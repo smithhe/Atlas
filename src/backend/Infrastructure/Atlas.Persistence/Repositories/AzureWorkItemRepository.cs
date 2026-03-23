@@ -12,6 +12,15 @@ public sealed class AzureWorkItemRepository : IAzureWorkItemRepository
         _db = db;
     }
 
+    public async Task<IReadOnlyList<AzureWorkItem>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0) return [];
+
+        return await _db.AzureWorkItems
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<AzureWorkItem>> GetByWorkItemIdsAsync(Guid connectionId, IReadOnlyList<int> workItemIds, CancellationToken cancellationToken = default)
     {
         if (workItemIds.Count == 0) return [];
