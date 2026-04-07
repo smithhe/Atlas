@@ -10,7 +10,7 @@ import type {
   GrowthGoalCheckInSignal,
   Priority,
 } from '../app/types'
-import { goalStatusTone, actionStateTone, checkInSignalTone, priorityTone } from '../app/tones'
+import { goalStatusTone, actionStateTone, checkInSignalTone } from '../app/tones'
 
 type Selected =
   | { kind: 'action'; id: string }

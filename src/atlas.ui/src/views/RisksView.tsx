@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedRisk } from '../app/state/AppState'
-import type { Risk, RiskStatus, Task, TeamMember } from '../app/types'
+import type { Risk, RiskStatus, TeamMember } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
