@@ -10,6 +10,13 @@ import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, Task
 import { createProject, deleteProject as deleteProjectApi, updateProject as updateProjectApi } from '../app/api/projects'
 import { healthTone, projectStatusTone, priorityTone, taskStatusTone, severityTone } from '../app/tones'
 
+const DONE_AZURE_WORK_ITEM_STATUSES = new Set(['done', 'closed', 'completed', 'resolved', 'removed'])
+
+function isAzureWorkItemDone(status?: string) {
+  if (!status) return false
+  return DONE_AZURE_WORK_ITEM_STATUSES.has(status.trim().toLowerCase())
+}
+
 export function ProjectsView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
@@ -205,6 +212,16 @@ function ProjectDetail({
     () => team.filter((m) => project.teamMemberIds.includes(m.id)),
     [project.teamMemberIds, team],
   )
+  const linkedAzureItems = useMemo(() => {
+    const byId = new Map<string, (typeof team)[number]['azureItems'][number]>()
+    for (const member of team) {
+      for (const item of member.azureItems) {
+        if (item.projectId !== project.id) continue
+        if (!byId.has(item.id)) byId.set(item.id, item)
+      }
+    }
+    return Array.from(byId.values())
+  }, [project.id, team])
 
   const memberById = useMemo(() => new Map(team.map((m) => [m.id, m] as const)), [team])
 
@@ -370,23 +387,34 @@ function ProjectDetail({
   }, [linkedRisks, riskOwnerFilter, riskQuery, riskSeverityFilter])
 
   const rollup = useMemo(() => {
-    const totalTasks = linkedTasks.length
-    const doneTasks = linkedTasks.filter((t) => (t.status ?? 'Not Started') === 'Done').length
+    const localTotalTasks = linkedTasks.length
+    const localDoneTasks = linkedTasks.filter((t) => (t.status ?? 'Not Started') === 'Done').length
+    const importedTotalTasks = linkedAzureItems.length
+    const importedDoneTasks = linkedAzureItems.filter((x) => isAzureWorkItemDone(x.status)).length
+    const totalTasks = localTotalTasks + importedTotalTasks
+    const doneTasks = localDoneTasks + importedDoneTasks
     const taskCompletionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
-    const openTasks = linkedTasks.filter((t) => (t.status ?? 'Not Started') !== 'Done')
-    const highPriorityOpenTasks = openTasks.filter((t) => t.priority === 'High' || t.priority === 'Critical')
+    const localOpenTasks = linkedTasks.filter((t) => (t.status ?? 'Not Started') !== 'Done')
+    const importedOpenTasks = linkedAzureItems.filter((x) => !isAzureWorkItemDone(x.status))
+    const highPriorityOpenTasks = localOpenTasks.filter((t) => t.priority === 'High' || t.priority === 'Critical')
     const openRisks = linkedRisks.filter((r) => r.status !== 'Resolved')
     const atRiskCount = linkedRisks.filter((r) => r.status !== 'Resolved' && (r.severity === 'High' || r.severity === 'Medium')).length
     return {
       totalTasks,
       doneTasks,
       taskCompletionPct,
-      openTasks: openTasks.length,
+      localTotalTasks,
+      localDoneTasks,
+      importedTotalTasks,
+      importedDoneTasks,
+      openTasks: localOpenTasks.length + importedOpenTasks.length,
+      localOpenTasks: localOpenTasks.length,
+      importedOpenTasks: importedOpenTasks.length,
       highPriorityOpenTasks: highPriorityOpenTasks.length,
       openRisks: openRisks.length,
       atRiskCount,
     }
-  }, [linkedRisks, linkedTasks])
+  }, [linkedAzureItems, linkedRisks, linkedTasks])
 
   const productOwnerOptions = useMemo(() => {
     return [...productOwners].sort((a, b) => a.name.localeCompare(b.name))
@@ -707,6 +735,9 @@ function ProjectDetail({
                       </span>
                     </div>
                   </div>
+                  <div className="mutedSmall">
+                    Local: {rollup.localDoneTasks} / {rollup.localTotalTasks} | Imported: {rollup.importedDoneTasks} / {rollup.importedTotalTasks}
+                  </div>
                   <div className="ggProgressBar" aria-label="Task completion progress">
                     <div className="ggProgressFill" style={{ width: `${rollup.taskCompletionPct}%` }} />
                   </div>
@@ -716,6 +747,9 @@ function ProjectDetail({
                       <span className="pill toneNeutral">{rollup.openTasks}</span>
                     </div>
                   </div>
+                  <div className="mutedSmall">
+                    Local: {rollup.localOpenTasks} | Imported: {rollup.importedOpenTasks}
+                  </div>
                   <div className="projectDetailsRow">
                     <div className="projectDetailsKey">High priority</div>
                     <div className="projectDetailsVal">
@@ -724,6 +758,7 @@ function ProjectDetail({
                       </span>
                     </div>
                   </div>
+                  <div className="mutedSmall">Local tasks only (Azure imports do not include priority today).</div>
                   <div className="projectDetailsRow">
                     <div className="projectDetailsKey">Open risks</div>
                     <div className="projectDetailsVal">
