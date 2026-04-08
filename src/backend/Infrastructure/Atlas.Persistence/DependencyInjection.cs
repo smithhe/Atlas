@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IAzureWorkItemRepository, AzureWorkItemRepository>();
         services.AddScoped<IAzureUserRepository, AzureUserRepository>();
         services.AddScoped<IAzureUserMappingRepository, AzureUserMappingRepository>();
+        services.AddScoped<IAzureProductOwnerMappingRepository, AzureProductOwnerMappingRepository>();
         services.AddScoped<IAzureWorkItemLinkRepository, AzureWorkItemLinkRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<IRiskRepository, RiskRepository>();

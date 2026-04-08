@@ -1,41 +1,43 @@
 using Atlas.Application.Abstractions.Persistence;
 using Atlas.Application.Abstractions.Time;
 using Atlas.Domain.Entities;
-using Atlas.Domain.Enums;
 
-namespace Atlas.Application.Features.AzureDevOps.Team;
+namespace Atlas.Application.Features.AzureDevOps.ProductOwners;
 
-public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<ImportAzureTeamMembersCommand, ImportAzureTeamMembersResult>
+public sealed class ImportAzureProductOwnersCommandHandler
+    : IRequestHandler<ImportAzureProductOwnersCommand, ImportAzureProductOwnersResult>
 {
     private readonly IAzureUserRepository _azureUsers;
-    private readonly IAzureUserMappingRepository _mappings;
+    private readonly IAzureUserMappingRepository _teamMappings;
     private readonly IAzureProductOwnerMappingRepository _productOwnerMappings;
-    private readonly ITeamMemberRepository _teamMembers;
+    private readonly IProductOwnerRepository _productOwners;
     private readonly IUnitOfWork _uow;
     private readonly IDateTimeProvider _clock;
 
-    public ImportAzureTeamMembersCommandHandler(
+    public ImportAzureProductOwnersCommandHandler(
         IAzureUserRepository azureUsers,
-        IAzureUserMappingRepository mappings,
+        IAzureUserMappingRepository teamMappings,
         IAzureProductOwnerMappingRepository productOwnerMappings,
-        ITeamMemberRepository teamMembers,
+        IProductOwnerRepository productOwners,
         IUnitOfWork uow,
         IDateTimeProvider clock)
     {
         _azureUsers = azureUsers;
-        _mappings = mappings;
+        _teamMappings = teamMappings;
         _productOwnerMappings = productOwnerMappings;
-        _teamMembers = teamMembers;
+        _productOwners = productOwners;
         _uow = uow;
         _clock = clock;
     }
 
-    public async Task<ImportAzureTeamMembersResult> Handle(ImportAzureTeamMembersCommand request, CancellationToken cancellationToken)
+    public async Task<ImportAzureProductOwnersResult> Handle(
+        ImportAzureProductOwnersCommand request,
+        CancellationToken cancellationToken)
     {
         var normalized = request.Users
             .Where(x => !string.IsNullOrWhiteSpace(x.UniqueName))
-            .Select(x => new AzureTeamMemberSelection(
-                x.DisplayName.Trim(),
+            .Select(x => new AzureProductOwnerSelection(
+                (x.DisplayName ?? string.Empty).Trim(),
                 NormalizeUniqueName(x.UniqueName),
                 string.IsNullOrWhiteSpace(x.Descriptor) ? null : x.Descriptor.Trim()))
             .GroupBy(x => x.UniqueName, StringComparer.OrdinalIgnoreCase)
@@ -44,29 +46,31 @@ public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<Impor
 
         if (normalized.Count == 0)
         {
-            return new ImportAzureTeamMembersResult(0, 0, 0, 0);
+            return new ImportAzureProductOwnersResult(0, 0, 0, 0);
         }
 
         await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var uniqueNames = normalized.Select(x => x.UniqueName).ToList();
         var existingUsers = await _azureUsers.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingMappings = await _mappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        var existingTeamMappings = await _teamMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
         var existingProductOwnerMappings = await _productOwnerMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        var existingProductOwners = await _productOwners.ListAsync(cancellationToken);
 
         var userByUnique = existingUsers.ToDictionary(x => x.UniqueName, StringComparer.OrdinalIgnoreCase);
-        var mappingByUnique = existingMappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
+        var teamMappingByUnique = existingTeamMappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
         var productOwnerMappingByUnique = existingProductOwnerMappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
+        var productOwnerByName = existingProductOwners.ToDictionary(x => x.Name, StringComparer.OrdinalIgnoreCase);
 
         var usersAdded = 0;
         var usersUpdated = 0;
-        var teamMembersCreated = 0;
+        var productOwnersCreated = 0;
         var mappingsCreated = 0;
 
         foreach (var selection in normalized)
         {
             // Product Owners and Team Members are mutually exclusive import targets.
-            if (productOwnerMappingByUnique.ContainsKey(selection.UniqueName))
+            if (teamMappingByUnique.ContainsKey(selection.UniqueName))
             {
                 continue;
             }
@@ -93,37 +97,54 @@ public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<Impor
                 usersUpdated++;
             }
 
-            if (!mappingByUnique.ContainsKey(selection.UniqueName))
+            if (productOwnerMappingByUnique.ContainsKey(selection.UniqueName))
             {
-                var teamMember = new TeamMember
-                {
-                    Id = Guid.NewGuid(),
-                    Name = string.IsNullOrWhiteSpace(selection.DisplayName) ? selection.UniqueName : selection.DisplayName,
-                    Role = string.Empty,
-                    StatusDot = StatusDot.Green,
-                    CurrentFocus = string.Empty
-                };
-
-                await _teamMembers.AddAsync(teamMember, cancellationToken);
-                teamMembersCreated++;
-
-                var mapping = new AzureUserMapping
-                {
-                    Id = Guid.NewGuid(),
-                    AzureUniqueName = selection.UniqueName,
-                    TeamMemberId = teamMember.Id,
-                    LinkedAtUtc = _clock.UtcNow
-                };
-                await _mappings.AddAsync(mapping, cancellationToken);
-                mappingsCreated++;
-                mappingByUnique[mapping.AzureUniqueName] = mapping;
+                continue;
             }
+
+            var preferredName = string.IsNullOrWhiteSpace(selection.DisplayName)
+                ? selection.UniqueName
+                : selection.DisplayName;
+
+            if (!productOwnerByName.TryGetValue(preferredName, out var productOwner))
+            {
+                productOwner = new ProductOwner
+                {
+                    Id = Guid.NewGuid(),
+                    Name = preferredName
+                };
+                await _productOwners.AddAsync(productOwner, cancellationToken);
+                productOwnerByName[productOwner.Name] = productOwner;
+                productOwnersCreated++;
+            }
+            else
+            {
+                // Name-based ProductOwner dedupe is intentional. Keep creating a mapping
+                // for each distinct Azure identity so future imports can still detect
+                // that this Azure user has already been processed.
+                // TODO: Surface a UI warning when duplicate Product Owner names are skipped.
+            }
+
+            var mapping = new AzureProductOwnerMapping
+            {
+                Id = Guid.NewGuid(),
+                AzureUniqueName = selection.UniqueName,
+                ProductOwnerId = productOwner.Id,
+                LinkedAtUtc = _clock.UtcNow
+            };
+            await _productOwnerMappings.AddAsync(mapping, cancellationToken);
+            productOwnerMappingByUnique[mapping.AzureUniqueName] = mapping;
+            mappingsCreated++;
         }
 
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
-        return new ImportAzureTeamMembersResult(usersAdded, usersUpdated, teamMembersCreated, mappingsCreated);
+        return new ImportAzureProductOwnersResult(
+            usersAdded,
+            usersUpdated,
+            productOwnersCreated,
+            mappingsCreated);
     }
 
     private static string NormalizeUniqueName(string value)

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   getAzureConnection,
+  importAzureProductOwners,
   importAzureTeam,
   listImportedAzureUsers,
   listAzureImportWorkItems,
@@ -9,11 +10,13 @@ import {
   linkAzureWorkItems,
 } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureImportWorkItemDto, AzureUserDto } from '../app/api/azureDevOps'
-import { useAppState } from '../app/state/AppState'
+import { listProductOwners } from '../app/api/productOwners'
+import { useAppDispatch, useAppState } from '../app/state/AppState'
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 
 export function AzureImportView() {
+  const dispatch = useAppDispatch()
   const { projects, team } = useAppState()
   const [connection, setConnection] = useState<AzureConnectionDto | null>(null)
   const [users, setUsers] = useState<AzureUserDto[]>([])
@@ -24,6 +27,7 @@ export function AzureImportView() {
   const [teamMemberId, setTeamMemberId] = useState('')
   const [loading, setLoading] = useState(false)
   const [importingUsers, setImportingUsers] = useState(false)
+  const [importingProductOwners, setImportingProductOwners] = useState(false)
   const [linkingWorkItems, setLinkingWorkItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,6 +89,24 @@ export function AzureImportView() {
     }
   }
 
+  async function onImportProductOwners() {
+    setError(null)
+    setImportingProductOwners(true)
+    try {
+      const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
+      await importAzureProductOwners(selected)
+      const refreshedProductOwners = await listProductOwners()
+      dispatch({ type: 'replaceProductOwners', productOwners: refreshedProductOwners })
+      const selectedSet = new Set(selected.map((u) => u.uniqueName.trim().toLowerCase()))
+      setUsers((prev) => prev.filter((u) => !selectedSet.has(u.uniqueName.trim().toLowerCase())))
+      setSelectedUsers(new Set())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to import product owners')
+    } finally {
+      setImportingProductOwners(false)
+    }
+  }
+
   async function onLinkWorkItems() {
     if (!projectId || selectedWorkItems.size === 0) return
     setError(null)
@@ -125,7 +147,7 @@ export function AzureImportView() {
       ) : null}
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <LoadingOverlay isLoading={loading || importingUsers} label="Loading Azure import data">
+        <LoadingOverlay isLoading={loading || importingUsers || importingProductOwners} label="Loading Azure import data">
           <div className="cardHeader">
             <div className="cardTitle">Select Azure team members</div>
             <div className="mutedSmall">{users.length} available</div>
@@ -194,11 +216,20 @@ export function AzureImportView() {
                 onClick={onImportUsers}
                 loading={importingUsers}
                 spinnerLabel="Importing users"
-                disabled={selectedUsers.size === 0 || loading}
+                disabled={selectedUsers.size === 0 || loading || importingProductOwners}
               >
-                Import selected users
+                Import as team members
               </LoadingButton>
-              <div className="mutedSmall">Adds selected members to your team roster.</div>
+              <LoadingButton
+                className="btn btnWide"
+                onClick={onImportProductOwners}
+                loading={importingProductOwners}
+                spinnerLabel="Importing product owners"
+                disabled={selectedUsers.size === 0 || loading || importingUsers}
+              >
+                Import as product owners
+              </LoadingButton>
+              <div className="mutedSmall">Select users once, then import to either target list.</div>
             </div>
           </div>
         </LoadingOverlay>

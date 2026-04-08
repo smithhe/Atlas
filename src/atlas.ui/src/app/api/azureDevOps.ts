@@ -92,6 +92,10 @@ export function importAzureTeam(users: AzureUserDto[]): Promise<void> {
   return postJson<void>('/azure-devops/team/import', { users })
 }
 
+export function importAzureProductOwners(users: AzureUserDto[]): Promise<void> {
+  return postJson<void>('/azure-devops/product-owners/import', { users })
+}
+
 export function getAzureSyncState(): Promise<AzureSyncStateDto | null> {
   return getJson<AzureSyncStateDto>('/azure-devops/sync-state').catch((err) => {
     if (err instanceof HttpError && err.status === 404) return null

@@ -31,6 +31,7 @@ public sealed class AtlasDbContext : DbContext
     public DbSet<AzureWorkItem> AzureWorkItems => Set<AzureWorkItem>();
     public DbSet<AzureUser> AzureUsers => Set<AzureUser>();
     public DbSet<AzureUserMapping> AzureUserMappings => Set<AzureUserMapping>();
+    public DbSet<AzureProductOwnerMapping> AzureProductOwnerMappings => Set<AzureProductOwnerMapping>();
     public DbSet<AzureWorkItemLink> AzureWorkItemLinks => Set<AzureWorkItemLink>();
 
     public DbSet<Growth> GrowthPlans => Set<Growth>();

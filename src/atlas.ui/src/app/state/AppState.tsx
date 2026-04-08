@@ -23,6 +23,7 @@ export interface AppState {
 type Action =
   | { type: 'hydrate'; state: AppState }
   | { type: 'replaceTeamMembers'; team: TeamMember[]; teamMemberRisks: TeamMemberRisk[] }
+  | { type: 'replaceProductOwners'; productOwners: ProductOwner[] }
   | { type: 'selectTask'; taskId?: string }
   | { type: 'selectRisk'; riskId?: string }
   | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
@@ -60,6 +61,8 @@ function reduce(state: AppState, action: Action): AppState {
         selectedTeamMemberId: nextSelectedId,
       }
     }
+    case 'replaceProductOwners':
+      return { ...state, productOwners: action.productOwners }
     case 'selectTask':
       return { ...state, selectedTaskId: action.taskId }
     case 'selectRisk':

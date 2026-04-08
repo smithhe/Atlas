@@ -12,3 +12,11 @@ public sealed record ImportAzureTeamResultDto(
     int UsersUpdated,
     int TeamMembersCreated,
     int MappingsCreated);
+
+public sealed record ImportAzureProductOwnersRequest(IReadOnlyList<AzureUserSelectionDto> Users);
+
+public sealed record ImportAzureProductOwnersResultDto(
+    int UsersAdded,
+    int UsersUpdated,
+    int ProductOwnersCreated,
+    int MappingsCreated);

@@ -5,7 +5,7 @@ namespace Atlas.Api.Mappers;
 
 internal static class GrowthMapper
 {
-    public static GrowthDto ToDto(Atlas.Domain.Entities.Growth g)
+    public static GrowthDto ToDto(Growth g)
     {
         var goals = (g.Goals ?? [])
             .Select(ToGoalDto)
