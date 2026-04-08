@@ -6,12 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 import { createTask, deleteTask as deleteTaskApi, updateTask as updateTaskApi } from '../app/api/tasks'
 import { taskStatusTone, priorityTone } from '../app/tones'
-
-function daysSince(iso: string) {
-  const a = new Date(iso).getTime()
-  const b = Date.now()
-  return Math.floor((b - a) / (1000 * 60 * 60 * 24))
-}
+import { daysSince } from '../app/utils'
 
 export function TasksView() {
   const ai = useAi()

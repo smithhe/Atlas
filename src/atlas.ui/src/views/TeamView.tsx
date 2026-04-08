@@ -10,6 +10,7 @@ import { LoadingOverlay } from '../components/LoadingOverlay'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
 import { loadTeamMembers } from '../app/api/teamMembers'
 import { goalStatusTone, ticketAttentionTone } from '../app/tones'
+import { getDerivedTitle, newId } from '../app/utils'
 
 const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -21,10 +22,6 @@ function getActiveTab(pathname: string): MemberTab {
   if (pathname.includes('/risks')) return 'risks'
   if (pathname.includes('/growth')) return 'growth'
   return 'overview'
-}
-
-function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(16).slice(2)}`
 }
 
 function memberTabPath(memberId: string, tab: MemberTab) {
@@ -309,17 +306,6 @@ function MemberDetail({
       {activeTab === 'growth' ? <MemberGrowthTab member={member} /> : null}
     </div>
   )
-}
-
-function stripMarkdownHeadings(line: string) {
-  return line.replace(/^#{1,6}\s+/, '').trim()
-}
-
-function getDerivedTitle(note: TeamNote) {
-  const explicit = note.title?.trim()
-  if (explicit) return explicit
-  const firstNonEmpty = note.text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '(untitled)'
-  return stripMarkdownHeadings(firstNonEmpty)
 }
 
 function isActionItemNote(note: TeamNote) {

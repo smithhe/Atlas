@@ -4,30 +4,9 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag, TeamNote } from '../app/types'
 import { Markdown } from '../components/Markdown'
+import { formatReadableDateTime, getDerivedTitle } from '../app/utils'
 
 const NOTE_TAGS: NoteTag[] = ['Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
-
-function stripMarkdownHeadings(line: string) {
-  return line.replace(/^#{1,6}\s+/, '').trim()
-}
-
-function getDerivedTitle(note: TeamNote) {
-  const explicit = note.title?.trim()
-  if (explicit) return explicit
-  const firstNonEmpty = note.text.split('\n').map((l) => l.trim()).find((l) => l.length > 0) ?? '(untitled)'
-  return stripMarkdownHeadings(firstNonEmpty)
-}
-
-function formatReadableDateTime(iso: string) {
-  const dt = new Date(iso)
-  return dt.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
 
 export function TeamNoteDetailView() {
   const ai = useAi()

@@ -8,7 +8,7 @@ function App() {
   return (
     <AppStateProvider>
       <AiProvider>
-        <RouterProvider router={appRouter} future={{ v7_startTransition: true } as any} />
+        <RouterProvider router={appRouter} />
       </AiProvider>
     </AppStateProvider>
   )

@@ -4,18 +4,7 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { AzureItem } from '../app/types'
 import { Markdown } from '../components/Markdown'
-
-function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(16).slice(2)}`
-}
-
-function formatIsoDateLong(iso?: string) {
-  if (!iso) return '—'
-  // Treat ISO date (YYYY-MM-DD) as a local date to avoid timezone shifting.
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-}
+import { formatIsoDateLong, newId } from '../app/utils'
 
 export function TeamWorkItemDetailView() {
   const ai = useAi()

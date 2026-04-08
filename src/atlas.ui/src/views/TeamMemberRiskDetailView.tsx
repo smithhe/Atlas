@@ -3,24 +3,10 @@ import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { TeamMemberRisk } from '../app/types'
-
-function daysSince(iso?: string) {
-  if (!iso) return undefined
-  const a = new Date(iso).getTime()
-  if (Number.isNaN(a)) return undefined
-  const b = Date.now()
-  return Math.max(0, Math.floor((b - a) / (1000 * 60 * 60 * 24)))
-}
+import { daysSince, formatIsoDate } from '../app/utils'
 
 function severityClass(sev: TeamMemberRisk['severity']) {
   return sev.toLowerCase()
-}
-
-function formatIsoDate(iso: string) {
-  // Treat ISO date (YYYY-MM-DD) as a local date to avoid timezone shifting.
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 export function TeamMemberRiskDetailView() {

@@ -10,6 +10,8 @@ function daysBetween(iso: string, nowIso: string) {
   return Math.floor((b - a) / (1000 * 60 * 60 * 24))
 }
 
+const DUE_SOON_DAYS = 2
+
 function isoDateAddDays(isoDate: string, days: number) {
   const d = new Date(`${isoDate}T00:00:00.000Z`)
   d.setUTCDate(d.getUTCDate() + days)
@@ -46,7 +48,7 @@ type DriftRow = {
 export function DashboardView() {
   const ai = useAi()
   const nav = useNavigate()
-  const { tasks, risks, team, projects } = useAppState()
+  const { tasks, risks, team, projects, settings } = useAppState()
   const nowIso = useMemo(() => new Date().toISOString(), [])
   const todayIsoDate = useMemo(() => nowIso.slice(0, 10), [nowIso])
 
@@ -58,9 +60,9 @@ export function DashboardView() {
   }, [ai.setContext])
 
   const dashboard = useMemo(() => {
-    const staleSoonDays = 7
-    const staleDays = 10
-    const dueSoonDays = 2
+    const staleDays = settings.staleDays
+    const staleSoonDays = Math.max(1, staleDays - 3)
+    const dueSoonDays = DUE_SOON_DAYS
 
     function normalize(s: string) {
       return s.trim().toLowerCase()
@@ -346,7 +348,7 @@ export function DashboardView() {
       taskWhy,
       daysSince,
     }
-  }, [nowIso, projects, risks, tasks, team, todayIsoDate])
+  }, [nowIso, projects, risks, settings.staleDays, tasks, team, todayIsoDate])
 
   return (
     <div className="page">
@@ -522,7 +524,3 @@ export function DashboardView() {
     </div>
   )
 }
-
-// duration formatting now lives in app/duration.ts
-
-

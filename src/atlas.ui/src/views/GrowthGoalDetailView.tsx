@@ -11,6 +11,7 @@ import type {
   Priority,
 } from '../app/types'
 import { goalStatusTone, actionStateTone, checkInSignalTone } from '../app/tones'
+import { formatIsoDate, formatIsoDateShort, newId } from '../app/utils'
 
 type Selected =
   | { kind: 'action'; id: string }
@@ -25,10 +26,6 @@ function isoNow() {
   return new Date().toISOString()
 }
 
-function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(16).slice(2)}`
-}
-
 function goalStatusLabel(status: GrowthGoal['status']) {
   switch (status) {
     case 'OnTrack':
@@ -38,20 +35,6 @@ function goalStatusLabel(status: GrowthGoal['status']) {
     case 'Completed':
       return 'Completed'
   }
-}
-
-function formatShortDate(iso?: string) {
-  if (!iso) return '—'
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit' })
-}
-
-function formatLongDate(iso?: string) {
-  if (!iso) return '—'
-  const d = new Date(`${iso}T00:00:00`)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })
 }
 
 function priorityLabel(p?: Priority) {
@@ -269,7 +252,7 @@ export function GrowthGoalDetailView() {
               <div className="ggOverviewLastUpdated" title={goalSafe.lastUpdatedIso ? `Last updated: ${goalSafe.lastUpdatedIso}` : undefined}>
                 <span className="ggOverviewLastUpdatedLabel">Last updated</span>
                 <span className="ggOverviewLastUpdatedValue">
-                  {goalSafe.lastUpdatedIso ? formatLongDate(goalSafe.lastUpdatedIso.slice(0, 10)) : '—'}
+                  {goalSafe.lastUpdatedIso ? formatIsoDate(goalSafe.lastUpdatedIso.slice(0, 10)) : '—'}
                 </span>
               </div>
             </div>
@@ -285,10 +268,10 @@ export function GrowthGoalDetailView() {
                   {!edit.timeframe ? (
                     <div className="ggMiniValue ggTimeframeLines">
                       <div>
-                        <span className="ggTimeframeKey">Start</span> <strong>{formatLongDate(goalSafe.startDateIso)}</strong>
+                        <span className="ggTimeframeKey">Start</span> <strong>{formatIsoDate(goalSafe.startDateIso)}</strong>
                       </div>
                       <div>
-                        <span className="ggTimeframeKey">Target</span> <strong>{formatLongDate(goalSafe.targetDateIso)}</strong>
+                        <span className="ggTimeframeKey">Target</span> <strong>{formatIsoDate(goalSafe.targetDateIso)}</strong>
                       </div>
                     </div>
                   ) : (
@@ -537,7 +520,7 @@ export function GrowthGoalDetailView() {
                           {notesPreview ? <div className="ggRowSubtle">{`Notes: ${notesPreview}`}</div> : null}
                         </div>
                         <div className="ggCell ggCellDue" role="cell">
-                          <div className="ggMuted">{formatShortDate(a.dueDateIso)}</div>
+                          <div className="ggMuted">{formatIsoDateShort(a.dueDateIso)}</div>
                         </div>
                         <div className="ggCell ggCellState" role="cell">
                           <span className={`pill ${actionStateTone(a.state)}`}>{a.state === 'InProgress' ? 'In Progress' : a.state}</span>
@@ -583,7 +566,7 @@ export function GrowthGoalDetailView() {
                         type="button"
                       >
                         <div className="ggCell ggCellDate" role="cell">
-                          <div className="ggMuted">{formatLongDate(c.dateIso)}</div>
+                          <div className="ggMuted">{formatIsoDate(c.dateIso)}</div>
                         </div>
                         <div className="ggCell ggCellMain" role="cell">
                           <div className="ggPrimary">{preview || '—'}</div>

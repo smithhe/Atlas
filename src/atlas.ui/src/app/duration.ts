@@ -1,4 +1,4 @@
-export interface ParsedDuration {
+interface ParsedDuration {
   totalMinutes: number
   parts: { days: number; hours: number; minutes: number }
 }

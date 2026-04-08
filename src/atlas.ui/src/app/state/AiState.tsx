@@ -2,13 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { useAppHydration, useAppState } from './AppState'
 
-export interface AiAction {
+interface AiAction {
   id: string
   label: string
   description?: string
 }
 
-export interface AiState {
+interface AiState {
   isOpen: boolean
   contextTitle: string
   actions: AiAction[]
@@ -16,7 +16,7 @@ export interface AiState {
   panelWidthPx?: number
 }
 
-export interface AiApi {
+interface AiApi {
   state: AiState
   setIsOpen: (isOpen: boolean) => void
   setPanelWidthPx: (px: number | undefined) => void

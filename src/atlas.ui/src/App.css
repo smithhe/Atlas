@@ -74,10 +74,6 @@
   height: 100%;
 }
 
-.bodyGrid.bodyGridNoAi {
-  grid-template-columns: 220px 1fr;
-}
-
 .bodyGrid.bodyGridAiOpen {
   grid-template-columns: 220px 1fr 6px var(--aiWidth, 320px);
 }
@@ -152,10 +148,6 @@
 
 .pageTitleRow .pageTitle {
   margin: 0;
-}
-
-.pageTitleSpinner {
-  margin-left: 8px;
 }
 
 .page {
@@ -811,20 +803,6 @@
   line-height: 1.25;
 }
 
-.memberNotesPreview {
-  margin-top: 10px;
-  font-size: 14px;
-  line-height: 1.45;
-  /* Requested: make the note text easier to read. */
-  color: rgba(232, 241, 255, 0.88);
-  white-space: normal;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  line-clamp: 4;
-  -webkit-line-clamp: 4;
-}
-
 .memberNotesCollapsedMarkdown {
   margin-top: 10px;
   color: rgba(232, 241, 255, 0.88);
@@ -1011,10 +989,6 @@
 .dot-stale {
   background: rgba(166, 179, 194, 0.8);
 }
-.dot-team {
-  background: rgba(110, 168, 254, 0.8);
-}
-
 .splitGrid {
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -1029,22 +1003,6 @@
 }
 
 .projectsSplitFocus {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.tasksSplit {
-  grid-template-columns: var(--tasksListWidth, 360px) minmax(0, 1fr);
-}
-
-.tasksSplitAiOpen {
-  --tasksListWidth: 280px;
-}
-
-.tasksSplitAiClosed {
-  --tasksListWidth: 420px;
-}
-
-.tasksSplitFocus {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1235,21 +1193,6 @@
   color: var(--muted);
 }
 
-.teamNotesComposer .fieldLabel,
-.teamCurrentFocusField .fieldLabel {
-  color: var(--text-bright);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.15px;
-}
-
-.teamNotesComposer .row {
-  margin-top: 8px;
-}
-
-.teamNotesStructuredField {
-  margin-top: 18px;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    Form controls
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1275,10 +1218,6 @@
 
 .select {
   color-scheme: dark;
-}
-
-.selectMulti {
-  min-height: 120px;
 }
 
 .blockersCard {
@@ -1374,11 +1313,6 @@ select option:disabled {
   resize: none;
 }
 
-.textareaAutoGrowSmall {
-  /* Default textarea min-height is a bit tall for inline note entry. */
-  min-height: 84px;
-}
-
 .span2 {
   grid-column: 1 / -1;
 }
@@ -1454,12 +1388,6 @@ select option:disabled {
   font-size: var(--text-xs);
 }
 
-.riskDetailSectionDivider {
-  margin-top: 8px;
-  margin-bottom: 10px;
-  border-top: 1px solid var(--border-default);
-}
-
 .row {
   display: flex;
   gap: 8px;
@@ -1474,18 +1402,6 @@ select option:disabled {
 
 .pad {
   padding: 12px;
-}
-
-.durationRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.durationField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .aiPanel {
@@ -1545,53 +1461,6 @@ select option:disabled {
 
 .teamGridFocus {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.subGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.projectDetailSections {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.projectTopGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.projectTasksGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 10px;
-  padding: 10px;
-}
-
-.projectLinkedItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.14);
-  min-width: 0;
 }
 
 .projectDetailCard {
@@ -1859,32 +1728,6 @@ select option:disabled {
   /* Allow real wrapping for readability (avoid ellipsis). */
   white-space: normal;
   overflow-wrap: anywhere;
-}
-
-.memberOverviewKv {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.memberOverviewKvRow {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 10px;
-}
-
-.memberOverviewKvKey {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.memberOverviewKvVal {
-  color: var(--text);
-  min-width: 0;
-  text-align: right;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .signalPillsRow {
@@ -2755,12 +2598,6 @@ select option:disabled {
   line-height: 1.15;
 }
 
-.growthGoalHeaderSubtle {
-  margin-top: 6px;
-  color: var(--muted2);
-  font-size: 12px;
-}
-
 .linkBtn {
   background: transparent;
   border: none;
@@ -3100,40 +2937,6 @@ select option:disabled {
   }
 }
 
-.azureGrid {
-  display: grid;
-  /* Keep the ticket list narrow; give the detail pane more room. */
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: 12px;
-}
-
-.teamNotesHistoryBody {
-  max-height: 360px;
-  overflow: auto;
-}
-
-.kv {
-  margin: 12px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.kvRow {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 10px;
-}
-
-.kvKey {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.kvVal {
-  color: var(--text);
-}
-
 .workItemDetailsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3211,17 +3014,6 @@ select option:disabled {
   margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
-}
-
-.tmRiskSubtitleEditRow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tmRiskSubtitleSep {
-  color: var(--muted2);
 }
 
 .inputInline {
@@ -3359,36 +3151,6 @@ select option:disabled {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Empty state
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.emptyState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: 32px var(--space-lg);
-  text-align: center;
-}
-
-.emptyStateIcon {
-  font-size: 28px;
-  opacity: 0.7;
-}
-
-.emptyStateMessage {
-  color: var(--muted);
-  font-size: var(--text-base);
-}
-
-.emptyStateDetail {
-  color: var(--muted2);
-  font-size: var(--text-sm);
-  max-width: 36ch;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    Responsive overrides
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -3417,17 +3179,6 @@ select option:disabled {
   .dashboardGrid {
     grid-template-columns: 1fr;
   }
-  .subGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .projectTasksGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .projectTopGrid {
-    grid-template-columns: 1fr;
-  }
 
   .memberOverviewGrid {
     grid-template-columns: 1fr;
@@ -3438,9 +3189,6 @@ select option:disabled {
   }
 
   .memberProfileMetaGrid {
-    grid-template-columns: 1fr;
-  }
-  .azureGrid {
     grid-template-columns: 1fr;
   }
 

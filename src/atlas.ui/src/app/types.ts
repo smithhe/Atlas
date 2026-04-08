@@ -1,4 +1,4 @@
-export type Id = string
+type Id = string
 
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type RiskStatus = 'Open' | 'Watching' | 'Resolved'

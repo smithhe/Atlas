@@ -14,8 +14,8 @@ export type AzureProjectDto = { id: string; name: string }
 export type AzureTeamDto = { id: string; name: string }
 export type AzureUserDto = { displayName: string; uniqueName: string; descriptor?: string | null }
 
-export type AzureTeamAreaPathDto = { value: string; includeChildren: boolean }
-export type AzureTeamAreaPathsDto = { defaultValue?: string | null; values: AzureTeamAreaPathDto[] }
+type AzureTeamAreaPathDto = { value: string; includeChildren: boolean }
+type AzureTeamAreaPathsDto = { defaultValue?: string | null; values: AzureTeamAreaPathDto[] }
 
 export type AzureSyncStateDto = {
   lastSuccessfulChangedUtc?: string | null
@@ -26,7 +26,7 @@ export type AzureSyncStateDto = {
   lastError?: string | null
 }
 
-export type AzureSyncResultDto = {
+type AzureSyncResultDto = {
   succeeded: boolean
   itemsFetched: number
   itemsUpserted: number

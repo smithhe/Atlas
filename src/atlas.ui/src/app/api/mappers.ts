@@ -1,5 +1,4 @@
 import type { Confidence, Growth, GrowthGoalActionState, GrowthGoalCheckInSignal, GrowthGoalStatus, Priority, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
-import { teamMemberLocalExtrasById, teamNoteLocalExtrasById } from '../localExtras'
 import { loadDefaultAiPanelOpen } from '../localSettings'
 
 export interface SettingsDto {
@@ -31,10 +30,10 @@ export interface TaskDto {
   lastTouchedAt: string
 }
 
-export interface ProjectTagDto {
+interface ProjectTagDto {
   value: string
 }
-export interface ProjectLinkDto {
+interface ProjectLinkDto {
   label: string
   url: string
 }
@@ -56,7 +55,7 @@ export interface ProjectDto {
   teamMemberIds: string[]
 }
 
-export interface RiskHistoryEntryDto {
+interface RiskHistoryEntryDto {
   id: string
   text: string
   createdAt: string
@@ -75,16 +74,16 @@ export interface RiskDto {
   lastUpdatedAt: string
 }
 
-export interface TeamMemberProfileDto {
+interface TeamMemberProfileDto {
   timeZone?: string | null
   typicalHours?: string | null
 }
-export interface TeamMemberSignalsDto {
+interface TeamMemberSignalsDto {
   load: 'Light' | 'Normal' | 'Heavy'
   delivery: 'AtRisk' | 'OnTrack' | 'Blocked'
   supportNeeded: 'Low' | 'Medium' | 'High'
 }
-export interface TeamNoteDto {
+interface TeamNoteDto {
   id: string
   createdAt: string
   lastModifiedAt?: string | null
@@ -93,7 +92,7 @@ export interface TeamNoteDto {
   text: string
   pinnedOrder?: number | null
 }
-export interface TeamMemberRiskDto {
+interface TeamMemberRiskDto {
   id: string
   title: string
   severity: 'Low' | 'Medium' | 'High'
@@ -107,7 +106,7 @@ export interface TeamMemberRiskDto {
   lastReviewedAt?: string | null
   linkedGlobalRiskId?: string | null
 }
-export interface TeamMemberAzureWorkItemDto {
+interface TeamMemberAzureWorkItemDto {
   id: string
   title: string
   status: string
@@ -130,13 +129,13 @@ export interface TeamMemberDto {
   linkedGlobalRiskIds: string[]
 }
 
-export interface GrowthFeedbackThemeDto {
+interface GrowthFeedbackThemeDto {
   id: string
   title: string
   description: string
   observedSinceLabel?: string | null
 }
-export interface GrowthGoalActionDto {
+interface GrowthGoalActionDto {
   id: string
   title: string
   dueDate?: string | null
@@ -145,13 +144,13 @@ export interface GrowthGoalActionDto {
   notes?: string | null
   evidence?: string | null
 }
-export interface GrowthGoalCheckInDto {
+interface GrowthGoalCheckInDto {
   id: string
   date: string
   signal: GrowthGoalCheckInSignal
   note: string
 }
-export interface GrowthGoalDto {
+interface GrowthGoalDto {
   id: string
   title: string
   description: string
@@ -264,26 +263,20 @@ export function mapRisk(dto: RiskDto, lookups: { projectNameById: Map<string, st
 }
 
 export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberRisks: TeamMemberRisk[] } {
-  const notes = (dto.notes ?? []).map((n) => {
-    const local = teamNoteLocalExtrasById[n.id]
-    return {
-      id: n.id,
-      createdIso: n.createdAt,
-      lastModifiedIso: n.lastModifiedAt ?? undefined,
-      tag: n.type,
-      title: n.title ?? undefined,
-      text: n.text,
-      adoWorkItemId: local?.adoWorkItemId,
-      prUrl: local?.prUrl,
-    }
-  })
+  const notes = (dto.notes ?? []).map((n) => ({
+    id: n.id,
+    createdIso: n.createdAt,
+    lastModifiedIso: n.lastModifiedAt ?? undefined,
+    tag: n.type,
+    title: n.title ?? undefined,
+    text: n.text,
+  }))
 
   const pinnedNoteIds = (dto.notes ?? [])
     .filter((n) => n.pinnedOrder != null)
     .sort((a, b) => (a.pinnedOrder ?? 0) - (b.pinnedOrder ?? 0))
     .map((n) => n.id)
 
-  const local = teamMemberLocalExtrasById[dto.id]
   const azureItems = (dto.azureWorkItems ?? []).map((w) => ({
     id: w.id,
     title: w.title,
@@ -292,7 +285,6 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     ticketUrl: w.ticketUrl,
     projectId: w.projectId,
   }))
-  const activitySnapshot = local?.activitySnapshot ?? { bullets: [], lastUpdatedIso: undefined, quickTags: undefined }
 
   const member: TeamMember = {
     id: dto.id,
@@ -307,7 +299,7 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     signals: dto.signals,
     notes,
     pinnedNoteIds,
-    activitySnapshot,
+    activitySnapshot: { bullets: [], lastUpdatedIso: undefined, quickTags: undefined },
     azureItems,
   }
 

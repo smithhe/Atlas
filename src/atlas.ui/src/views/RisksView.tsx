@@ -7,10 +7,7 @@ import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import { createRisk, deleteRisk as deleteRiskApi, updateRisk as updateRiskApi } from '../app/api/risks'
 import { riskStatusTone, severityTone } from '../app/tones'
-
-function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(16).slice(2)}`
-}
+import { daysSince, newId } from '../app/utils'
 
 function applyTabIndentation(params: {
   value: string
@@ -36,15 +33,12 @@ function applyTabIndentation(params: {
       return { value: nextValue, selectionStart: nextPos, selectionEnd: nextPos }
     }
 
-    // Outdent: remove one tab (2 spaces) if present at the cursor line start.
-    const linePrefix = value.slice(lineStart, selectionStart)
     const canOutdent = value.slice(lineStart, lineStart + tab.length) === tab
     if (!canOutdent) return { value, selectionStart, selectionEnd }
 
     const nextValue = value.slice(0, lineStart) + value.slice(lineStart + tab.length)
     const nextStart = Math.max(lineStart, selectionStart - tab.length)
     const nextEnd = Math.max(lineStart, selectionEnd - tab.length)
-    void linePrefix
     return { value: nextValue, selectionStart: nextStart, selectionEnd: nextEnd }
   }
 
@@ -74,12 +68,6 @@ function applyTabIndentation(params: {
   const nextStart = Math.max(lineStart, selectionStart - removedCountFirstLine)
   const nextEnd = Math.max(lineStart, selectionEnd - removedTotal)
   return { value: nextValue, selectionStart: nextStart, selectionEnd: nextEnd }
-}
-
-function daysSince(iso: string) {
-  const a = new Date(iso).getTime()
-  const b = Date.now()
-  return Math.floor((b - a) / (1000 * 60 * 60 * 24))
 }
 
 export function RisksView() {

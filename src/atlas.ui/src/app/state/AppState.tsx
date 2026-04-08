@@ -227,14 +227,6 @@ export function useSelectedRisk(): Risk | undefined {
   return useMemo(() => risks.find((r) => r.id === selectedRiskId), [risks, selectedRiskId])
 }
 
-export function useSelectedTeamMemberRisk(): TeamMemberRisk | undefined {
-  const { teamMemberRisks, selectedTeamMemberRiskId } = useAppState()
-  return useMemo(
-    () => teamMemberRisks.find((r) => r.id === selectedTeamMemberRiskId),
-    [teamMemberRisks, selectedTeamMemberRiskId],
-  )
-}
-
 export function useSelectedTeamMember(): TeamMember | undefined {
   const { team, selectedTeamMemberId } = useAppState()
   return useMemo(() => team.find((m) => m.id === selectedTeamMemberId), [team, selectedTeamMemberId])

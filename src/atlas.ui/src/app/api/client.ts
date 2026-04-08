@@ -11,7 +11,7 @@ export class HttpError extends Error {
 }
 
 function apiBaseUrl(): string {
-  const fromEnv = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined
+  const fromEnv = import.meta.env.VITE_API_BASE_URL
   if (fromEnv?.trim()) {
     return fromEnv.replace(/\/+$/, '')
   }
@@ -61,7 +61,7 @@ async function sendJson<T>(path: string, method: 'POST' | 'PUT', body: unknown, 
   }
 
   if (res.status === 204) {
-    return undefined as T
+    return undefined as unknown as T
   }
 
   return (await res.json()) as T

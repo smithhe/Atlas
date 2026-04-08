@@ -3,6 +3,7 @@ import type { TeamMember, TeamNote } from '../../app/types'
 import { isCurrentTicketStatus } from '../../app/team'
 import { Modal } from '../../components/Modal'
 import { signalTone, ticketAttentionTone } from '../../app/tones'
+import { getDerivedTitle } from '../../app/utils'
 
 const US_TIMEZONE_OPTIONS = [
   { value: 'PT', label: 'Pacific (PT)' },
@@ -20,22 +21,8 @@ function cycle<T extends string>(value: T, options: readonly T[]): T {
   return options[(idx + 1) % options.length]
 }
 
-function stripMarkdownHeadings(line: string) {
-  return line.replace(/^#{1,6}\\s+/, '').trim()
-}
-
-function getDerivedTitle(note: TeamNote) {
-  const explicit = note.title?.trim()
-  if (explicit) return explicit
-  const firstNonEmpty = note.text
-    .split('\n')
-    .map((l) => l.trim())
-    .find((l) => l.length > 0)
-  return stripMarkdownHeadings(firstNonEmpty ?? '(untitled)')
-}
-
 function getPreview(note: TeamNote) {
-  const text = note.text.replace(/\\s+/g, ' ').trim()
+  const text = note.text.replace(/\s+/g, ' ').trim()
   if (text.length <= 120) return text
   return text.slice(0, 120).trim() + '…'
 }
