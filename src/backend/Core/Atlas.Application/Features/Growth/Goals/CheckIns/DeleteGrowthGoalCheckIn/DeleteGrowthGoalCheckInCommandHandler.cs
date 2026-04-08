@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Growth.Goals.CheckIns.DeleteGrowthGoalCheckIn;
 
@@ -15,16 +16,16 @@ public sealed class DeleteGrowthGoalCheckInCommandHandler : IRequestHandler<Dele
 
     public async Task<bool> Handle(DeleteGrowthGoalCheckInCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
+        GrowthGoal? goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
         if (goal is null)
         {
             await tx.RollbackAsync(cancellationToken);

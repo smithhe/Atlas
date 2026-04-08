@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Risks.History.UpdateRiskHistoryEntry;
 
@@ -15,16 +16,16 @@ public sealed class UpdateRiskHistoryEntryCommandHandler : IRequestHandler<Updat
 
     public async Task<bool> Handle(UpdateRiskHistoryEntryCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
+        Risk? risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
         if (risk is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var entry = risk.History.FirstOrDefault(x => x.Id == request.EntryId);
+        RiskHistoryEntry? entry = risk.History.FirstOrDefault(x => x.Id == request.EntryId);
         if (entry is null)
         {
             await tx.RollbackAsync(cancellationToken);

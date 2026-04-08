@@ -22,7 +22,7 @@ public sealed class GetSettingsEndpoint : EndpointWithoutRequest<SettingsDto>
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var settings = await _mediator.Send(new GetSettingsQuery(), ct);
+        Domain.Entities.Settings settings = await _mediator.Send(new GetSettingsQuery(), ct);
         await Send.OkAsync(SettingsMapper.ToDto(settings), ct);
     }
 }

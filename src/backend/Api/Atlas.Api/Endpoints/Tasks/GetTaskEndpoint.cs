@@ -1,6 +1,7 @@
 using Atlas.Application.Features.Tasks.GetTask;
 using Atlas.Api.DTOs.Tasks;
 using Atlas.Api.Mappers;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Tasks;
 
@@ -25,7 +26,7 @@ public sealed class GetTaskEndpoint : Endpoint<GetTaskRequest, TaskDto>
 
     public override async Task HandleAsync(GetTaskRequest req, CancellationToken ct)
     {
-        var task = await _mediator.Send(new GetTaskByIdQuery(req.Id, IncludeDetails: true), ct);
+        TaskItem? task = await _mediator.Send(new GetTaskByIdQuery(req.Id, IncludeDetails: true), ct);
         if (task is null)
         {
             await Send.NotFoundAsync(ct);

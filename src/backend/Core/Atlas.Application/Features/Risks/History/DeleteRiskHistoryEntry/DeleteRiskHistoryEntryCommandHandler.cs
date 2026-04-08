@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Risks.History.DeleteRiskHistoryEntry;
 
@@ -15,9 +16,9 @@ public sealed class DeleteRiskHistoryEntryCommandHandler : IRequestHandler<Delet
 
     public async Task<bool> Handle(DeleteRiskHistoryEntryCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
+        Risk? risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
         if (risk is null)
         {
             await tx.RollbackAsync(cancellationToken);

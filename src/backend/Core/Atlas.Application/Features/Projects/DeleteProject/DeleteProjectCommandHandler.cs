@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Projects.DeleteProject;
 
@@ -15,9 +16,9 @@ public sealed class DeleteProjectCommandHandler : IRequestHandler<DeleteProjectC
 
     public async Task<bool> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var project = await _projects.GetByIdAsync(request.Id, cancellationToken);
+        Project? project = await _projects.GetByIdAsync(request.Id, cancellationToken);
         if (project is null)
         {
             await tx.RollbackAsync(cancellationToken);

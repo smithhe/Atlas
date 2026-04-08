@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 namespace Atlas.Persistence.Seeding;
 
 public static class DevDatabaseSeeder

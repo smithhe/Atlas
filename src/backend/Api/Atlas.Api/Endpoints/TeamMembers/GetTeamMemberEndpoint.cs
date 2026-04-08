@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.TeamMembers;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.TeamMembers.GetTeamMember;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.TeamMembers;
 
@@ -22,10 +23,10 @@ public sealed class GetTeamMemberEndpoint : Endpoint<GetTeamMemberRequest, TeamM
 
     public override async Task HandleAsync(GetTeamMemberRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new GetTeamMemberRequest(Id: id);
 
-        var member = await _mediator.Send(new GetTeamMemberByIdQuery(req.Id, IncludeDetails: true), ct);
+        TeamMember? member = await _mediator.Send(new GetTeamMemberByIdQuery(req.Id, IncludeDetails: true), ct);
         if (member is null)
         {
             await Send.NotFoundAsync(ct);

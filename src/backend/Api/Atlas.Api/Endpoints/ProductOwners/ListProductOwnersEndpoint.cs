@@ -1,5 +1,6 @@
 using Atlas.Api.DTOs.ProductOwners;
 using Atlas.Application.Features.ProductOwners.ListProductOwners;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.ProductOwners;
 
@@ -21,7 +22,7 @@ public sealed class ListProductOwnersEndpoint : Endpoint<ListProductOwnersReques
 
     public override async Task HandleAsync(ListProductOwnersRequest req, CancellationToken ct)
     {
-        var owners = await _mediator.Send(new ListProductOwnersQuery(), ct);
+        IReadOnlyList<ProductOwner> owners = await _mediator.Send(new ListProductOwnersQuery(), ct);
 
         if (req.Ids is { Count: > 0 })
         {

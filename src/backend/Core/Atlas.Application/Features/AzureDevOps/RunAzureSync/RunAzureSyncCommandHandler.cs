@@ -39,20 +39,20 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
 
     public async Task<RunAzureSyncResult> Handle(RunAzureSyncCommand request, CancellationToken cancellationToken)
     {
-        var connection = await _connections.GetSingletonAsync(cancellationToken);
+        AzureConnection? connection = await _connections.GetSingletonAsync(cancellationToken);
         if (connection is null || !connection.IsEnabled)
         {
             return new RunAzureSyncResult(true, 0, 0, null, null, "Azure DevOps connection is not configured or disabled.");
         }
 
-        var settings = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? settings = await _settings.GetSingletonAsync(cancellationToken);
         var baseUrl = string.IsNullOrWhiteSpace(settings?.AzureDevOpsBaseUrl)
             ? "https://dev.azure.com"
-            : settings!.AzureDevOpsBaseUrl!.Trim();
+            : settings.AzureDevOpsBaseUrl!.Trim();
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var state = await _syncStates.GetByConnectionIdAsync(connection.Id, cancellationToken);
+        AzureSyncState? state = await _syncStates.GetByConnectionIdAsync(connection.Id, cancellationToken);
         if (state is null)
         {
             state = new AzureSyncState
@@ -64,13 +64,13 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
             await _syncStates.AddAsync(state, cancellationToken);
         }
 
-        var startedAt = _clock.UtcNow;
+        DateTimeOffset startedAt = _clock.UtcNow;
         state.LastAttemptedAtUtc = startedAt;
         state.LastRunStatus = SyncRunStatus.Running;
         state.LastError = null;
         await _uow.SaveChangesAsync(cancellationToken);
 
-        var currentChanged = state.LastSuccessfulChangedUtc;
+        DateTimeOffset? currentChanged = state.LastSuccessfulChangedUtc;
         var currentId = state.LastSuccessfulWorkItemId;
         var totalFetched = 0;
         var totalUpserted = 0;
@@ -80,24 +80,27 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
             while (true)
             {
                 var wiql = BuildWiql(connection, currentChanged, currentId);
-                var ids = await _client.QueryWorkItemIdsAsync(
+                IReadOnlyList<int> ids = await _client.QueryWorkItemIdsAsync(
                     baseUrl,
                     connection.Organization,
                     connection.Project,
                     wiql,
                     PageSize,
                     cancellationToken);
-                if (ids.Count == 0) break;
+                if (ids.Count == 0)
+                {
+                    break;
+                }
 
                 totalFetched += ids.Count;
-                var details = await _client.GetWorkItemsAsync(baseUrl, connection.Organization, connection.Project, ids, cancellationToken);
+                IReadOnlyList<AzureWorkItemDetails> details = await _client.GetWorkItemsAsync(baseUrl, connection.Organization, connection.Project, ids, cancellationToken);
 
-                var existing = await _workItems.GetByWorkItemIdsAsync(connection.Id, ids, cancellationToken);
+                IReadOnlyList<AzureWorkItem> existing = await _workItems.GetByWorkItemIdsAsync(connection.Id, ids, cancellationToken);
                 var existingById = existing.ToDictionary(x => x.WorkItemId);
 
-                foreach (var item in details)
+                foreach (AzureWorkItemDetails item in details)
                 {
-                    if (!existingById.TryGetValue(item.Id, out var entity))
+                    if (!existingById.TryGetValue(item.Id, out AzureWorkItem? entity))
                     {
                         entity = new AzureWorkItem
                         {
@@ -129,7 +132,10 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
 
                 await _uow.SaveChangesAsync(cancellationToken);
 
-                if (ids.Count < PageSize) break;
+                if (ids.Count < PageSize)
+                {
+                    break;
+                }
             }
 
             state.LastSuccessfulChangedUtc = currentChanged;
@@ -156,8 +162,16 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
 
     private static bool ShouldAdvanceWatermark(DateTimeOffset? currentChanged, int? currentId, DateTimeOffset nextChanged, int nextId)
     {
-        if (currentChanged is null) return true;
-        if (nextChanged > currentChanged) return true;
+        if (currentChanged is null)
+        {
+            return true;
+        }
+
+        if (nextChanged > currentChanged)
+        {
+            return true;
+        }
+
         return nextChanged == currentChanged && (!currentId.HasValue || nextId > currentId.Value);
     }
 
@@ -190,7 +204,11 @@ public sealed class RunAzureSyncCommandHandler : IRequestHandler<RunAzureSyncCom
 
     private static string? NormalizeUniqueName(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
         return value.Trim().ToLowerInvariant();
     }
 }

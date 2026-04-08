@@ -21,9 +21,9 @@ public sealed class DeleteTeamNoteEndpoint : Endpoint<DeleteTeamNoteRequest>
 
     public override async Task HandleAsync(DeleteTeamNoteRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        var noteId = Route<Guid>("noteId");
-        req = req with { TeamMemberId = teamMemberId, NoteId = noteId };
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        Guid noteId = Route<Guid>("noteId");
+        req = new DeleteTeamNoteRequest(TeamMemberId: teamMemberId, NoteId: noteId);
 
         var ok = await _mediator.Send(new DeleteTeamNoteCommand(req.TeamMemberId, req.NoteId), ct);
         if (!ok)

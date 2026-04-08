@@ -6,7 +6,7 @@ public sealed class UpdateGrowthFocusAreasCommandValidator : AbstractValidator<U
     {
         RuleFor(x => x.GrowthId).NotEmpty();
         RuleFor(x => x.FocusAreasMarkdown).NotNull()
-            .MaximumLength(10000);;
+            .MaximumLength(10000);
     }
 }
 

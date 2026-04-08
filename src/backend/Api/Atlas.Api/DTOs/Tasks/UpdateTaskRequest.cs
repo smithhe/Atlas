@@ -5,7 +5,7 @@ namespace Atlas.Api.DTOs.Tasks;
 public sealed record UpdateTaskRequest(
     string Title,
     Priority Priority,
-    Atlas.Domain.Enums.TaskStatus Status,
+    Domain.Enums.TaskStatus Status,
     Guid? AssigneeId,
     Guid? ProjectId,
     Guid? RiskId,

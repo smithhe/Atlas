@@ -5,7 +5,7 @@ namespace Atlas.Api.Mappers;
 
 internal static class SettingsMapper
 {
-    public static SettingsDto ToDto(Atlas.Domain.Entities.Settings s)
+    public static SettingsDto ToDto(Settings s)
     {
         return new SettingsDto(s.StaleDays, s.DefaultAiManualOnly, s.Theme, s.AzureDevOpsBaseUrl);
     }

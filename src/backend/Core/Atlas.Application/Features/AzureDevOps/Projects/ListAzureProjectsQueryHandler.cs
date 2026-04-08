@@ -16,10 +16,10 @@ public sealed class ListAzureProjectsQueryHandler : IRequestHandler<ListAzurePro
 
     public async Task<IReadOnlyList<AzureProjectSummary>> Handle(ListAzureProjectsQuery request, CancellationToken cancellationToken)
     {
-        var settings = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? settings = await _settings.GetSingletonAsync(cancellationToken);
         var baseUrl = string.IsNullOrWhiteSpace(settings?.AzureDevOpsBaseUrl)
             ? "https://dev.azure.com"
-            : settings!.AzureDevOpsBaseUrl!.Trim();
+            : settings.AzureDevOpsBaseUrl!.Trim();
 
         return await _client.ListProjectsAsync(baseUrl, request.Organization, cancellationToken);
     }

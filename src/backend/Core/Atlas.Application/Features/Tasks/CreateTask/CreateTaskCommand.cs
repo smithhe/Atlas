@@ -5,7 +5,7 @@ namespace Atlas.Application.Features.Tasks.CreateTask;
 public sealed record CreateTaskCommand(
     string Title,
     Priority Priority,
-    Atlas.Domain.Enums.TaskStatus Status,
+    Domain.Enums.TaskStatus Status,
     Guid? AssigneeId,
     Guid? ProjectId,
     Guid? RiskId,

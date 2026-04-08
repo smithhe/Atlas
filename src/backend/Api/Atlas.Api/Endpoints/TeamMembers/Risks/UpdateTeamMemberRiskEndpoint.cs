@@ -21,8 +21,8 @@ public sealed class UpdateTeamMemberRiskEndpoint : Endpoint<UpdateTeamMemberRisk
 
     public override async Task HandleAsync(UpdateTeamMemberRiskRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        var riskId = Route<Guid>("teamMemberRiskId");
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        Guid riskId = Route<Guid>("teamMemberRiskId");
         req = req with { TeamMemberId = teamMemberId, TeamMemberRiskId = riskId };
 
         var ok = await _mediator.Send(new UpdateTeamMemberRiskCommand(

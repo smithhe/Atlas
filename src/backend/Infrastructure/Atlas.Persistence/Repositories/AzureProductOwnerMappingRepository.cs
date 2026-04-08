@@ -16,7 +16,10 @@ public sealed class AzureProductOwnerMappingRepository : IAzureProductOwnerMappi
         IReadOnlyList<string> uniqueNames,
         CancellationToken cancellationToken = default)
     {
-        if (uniqueNames.Count == 0) return [];
+        if (uniqueNames.Count == 0)
+        {
+            return [];
+        }
 
         return await _db.AzureProductOwnerMappings
             .Where(x => uniqueNames.Contains(x.AzureUniqueName))

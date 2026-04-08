@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.AzureDevOps.Import;
 
@@ -20,11 +21,17 @@ public sealed class GetAzureImportWorkItemsQueryHandler : IRequestHandler<GetAzu
 
     public async Task<IReadOnlyList<AzureImportWorkItem>> Handle(GetAzureImportWorkItemsQuery request, CancellationToken cancellationToken)
     {
-        var connection = await _connections.GetSingletonAsync(cancellationToken);
-        if (connection is null) return [];
+        AzureConnection? connection = await _connections.GetSingletonAsync(cancellationToken);
+        if (connection is null)
+        {
+            return [];
+        }
 
-        var items = await _workItems.ListUnlinkedAsync(connection.Id, request.Take, cancellationToken);
-        if (items.Count == 0) return [];
+        IReadOnlyList<AzureWorkItem> items = await _workItems.ListUnlinkedAsync(connection.Id, request.Take, cancellationToken);
+        if (items.Count == 0)
+        {
+            return [];
+        }
 
         var assigned = items
             .Select(x => NormalizeUniqueName(x.AssignedToUniqueName))
@@ -32,13 +39,13 @@ public sealed class GetAzureImportWorkItemsQueryHandler : IRequestHandler<GetAzu
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var mappings = await _mappings.GetByUniqueNamesAsync(assigned, cancellationToken);
+        IReadOnlyList<AzureUserMapping> mappings = await _mappings.GetByUniqueNamesAsync(assigned, cancellationToken);
         var mapByUnique = mappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
 
         return items.Select(x =>
         {
             var assignedTo = NormalizeUniqueName(x.AssignedToUniqueName);
-            mapByUnique.TryGetValue(assignedTo, out var mapping);
+            mapByUnique.TryGetValue(assignedTo, out AzureUserMapping? mapping);
 
             return new AzureImportWorkItem(
                 x.Id,

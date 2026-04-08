@@ -21,7 +21,7 @@ public sealed class CreateTeamMemberEndpoint : Endpoint<CreateTeamMemberRequest,
 
     public override async Task HandleAsync(CreateTeamMemberRequest req, CancellationToken ct)
     {
-        var id = await _mediator.Send(new CreateTeamMemberCommand(req.Name, req.Role, req.StatusDot), ct);
+        Guid id = await _mediator.Send(new CreateTeamMemberCommand(req.Name, req.Role, req.StatusDot), ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

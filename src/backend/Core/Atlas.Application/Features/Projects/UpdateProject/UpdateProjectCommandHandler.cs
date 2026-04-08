@@ -16,9 +16,9 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
 
     public async Task<bool> Handle(UpdateProjectCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var project = await _projects.GetByIdWithDetailsAsync(request.Id, cancellationToken);
+        Project? project = await _projects.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (project is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -31,10 +31,10 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var desiredLinks = (request.Links ?? Array.Empty<Application.DTOs.ProjectLinkDto>())
+        var desiredLinks = (request.Links ?? Array.Empty<DTOs.ProjectLinkDto>())
             .Select(l => new { Label = l.Label.Trim(), Url = l.Url.Trim() })
             .Where(l => l.Label.Length > 0 && l.Url.Length > 0)
-            .Select(l => (Key: (l.Label.ToUpperInvariant(), l.Url.ToUpperInvariant()), Label: l.Label, Url: l.Url))
+            .Select(l => (Key: (l.Label.ToUpperInvariant(), l.Url.ToUpperInvariant()), l.Label, l.Url))
             .GroupBy(x => x.Key)
             .Select(g => g.First())
             .ToDictionary(x => x.Key, x => (x.Label, x.Url));
@@ -62,7 +62,7 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
 
         // Sync links: remove missing, add new.
         project.Links.RemoveAll(l => !desiredLinks.ContainsKey((l.Label.ToUpperInvariant(), l.Url.ToUpperInvariant())));
-        foreach (var kvp in desiredLinks)
+        foreach (KeyValuePair<(string, string), (string Label, string Url)> kvp in desiredLinks)
         {
             var exists = project.Links.Any(l =>
                 string.Equals(l.Label, kvp.Value.Label, StringComparison.OrdinalIgnoreCase) &&

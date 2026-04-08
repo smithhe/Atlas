@@ -16,7 +16,7 @@ public sealed class CreateTeamMemberCommandHandler : IRequestHandler<CreateTeamM
 
     public async Task<Guid> Handle(CreateTeamMemberCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var member = new TeamMember
         {

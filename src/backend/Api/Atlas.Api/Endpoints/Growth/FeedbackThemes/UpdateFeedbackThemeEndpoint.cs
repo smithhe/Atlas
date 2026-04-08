@@ -21,8 +21,8 @@ public sealed class UpdateFeedbackThemeEndpoint : Endpoint<UpdateFeedbackThemeRe
 
     public override async Task HandleAsync(UpdateFeedbackThemeRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var themeId = Route<Guid>("themeId");
+        Guid growthId = Route<Guid>("growthId");
+        Guid themeId = Route<Guid>("themeId");
         req = req with { GrowthId = growthId, ThemeId = themeId };
 
         var ok = await _mediator.Send(new UpdateFeedbackThemeCommand(req.GrowthId, req.ThemeId, req.Title, req.Description, req.ObservedSinceLabel), ct);

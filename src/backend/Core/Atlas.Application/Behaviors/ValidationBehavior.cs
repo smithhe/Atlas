@@ -1,3 +1,5 @@
+using FluentValidation.Results;
+
 namespace Atlas.Application.Behaviors;
 
 public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
@@ -22,7 +24,7 @@ public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<
 
         var context = new ValidationContext<TRequest>(request);
 
-        var results = await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+        ValidationResult[] results = await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, cancellationToken)));
         var failures = results.SelectMany(r => r.Errors).Where(f => f is not null).ToList();
 
         if (failures.Count != 0)

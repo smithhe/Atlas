@@ -21,8 +21,8 @@ public sealed class DeleteProjectEndpoint : Endpoint<DeleteProjectRequest>
 
     public override async Task HandleAsync(DeleteProjectRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new DeleteProjectRequest(Id: id);
 
         var ok = await _mediator.Send(new DeleteProjectCommand(req.Id), ct);
         if (!ok)

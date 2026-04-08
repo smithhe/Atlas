@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.Projects;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.Projects.ListProjects;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Projects;
 
@@ -22,7 +23,7 @@ public sealed class ListProjectsEndpoint : EndpointWithoutRequest<IReadOnlyList<
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var projects = await _mediator.Send(new ListProjectsQuery(), ct);
+        IReadOnlyList<Project> projects = await _mediator.Send(new ListProjectsQuery(), ct);
         var dtos = projects.Select(ProjectMapper.ToListItemDto).ToList();
         await Send.OkAsync(dtos, ct);
     }

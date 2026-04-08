@@ -16,9 +16,9 @@ public sealed class UpdateSettingsCommandHandler : IRequestHandler<UpdateSetting
 
     public async Task<bool> Handle(UpdateSettingsCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var existing = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? existing = await _settings.GetSingletonAsync(cancellationToken);
         if (existing is null)
         {
             existing = new Atlas.Domain.Entities.Settings

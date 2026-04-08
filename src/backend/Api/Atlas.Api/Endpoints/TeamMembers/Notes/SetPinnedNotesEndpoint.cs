@@ -21,7 +21,7 @@ public sealed class SetPinnedNotesEndpoint : Endpoint<SetPinnedNotesRequest>
 
     public override async Task HandleAsync(SetPinnedNotesRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
+        Guid teamMemberId = Route<Guid>("teamMemberId");
         req = req with { TeamMemberId = teamMemberId };
 
         var ok = await _mediator.Send(new SetPinnedNotesCommand(req.TeamMemberId, req.NoteIdsInOrder), ct);

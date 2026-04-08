@@ -16,10 +16,10 @@ public sealed class ListAzureUsersQueryHandler : IRequestHandler<ListAzureUsersQ
 
     public async Task<IReadOnlyList<AzureUserSummary>> Handle(ListAzureUsersQuery request, CancellationToken cancellationToken)
     {
-        var settings = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? settings = await _settings.GetSingletonAsync(cancellationToken);
         var baseUrl = string.IsNullOrWhiteSpace(settings?.AzureDevOpsBaseUrl)
             ? "https://dev.azure.com"
-            : settings!.AzureDevOpsBaseUrl!.Trim();
+            : settings.AzureDevOpsBaseUrl!.Trim();
 
         return await _client.ListUsersAsync(baseUrl, request.Organization, request.ProjectId, request.TeamId, cancellationToken);
     }

@@ -16,9 +16,9 @@ public sealed class SetGrowthSkillsInProgressCommandHandler : IRequestHandler<Se
 
     public async Task<bool> Handle(SetGrowthSkillsInProgressCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -28,48 +28,56 @@ public sealed class SetGrowthSkillsInProgressCommandHandler : IRequestHandler<Se
         // Match UI semantics:
         // - trim + drop blanks
         // - keep order
-         // - remove duplicates (case-insensitive, first occurrence wins)
+        // - remove duplicates (case-insensitive, first occurrence wins)
         var next = new List<string>();
-         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var raw in request.SkillsInProgress)
         {
-            var value = (raw ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(value)) continue;
-            if (!seen.Add(value)) continue;
+            var value = raw.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (!seen.Add(value))
+            {
+                continue;
+            }
+
             next.Add(value);
         }
 
-         // Remove rows that are no longer present (case-insensitive).
-         plan.SkillsInProgress.RemoveAll(x => !next.Any(v => string.Equals(v, x.Value, StringComparison.OrdinalIgnoreCase)));
+        // Remove rows that are no longer present (case-insensitive).
+        plan.SkillsInProgress.RemoveAll(x => !next.Any(v => string.Equals(v, x.Value, StringComparison.OrdinalIgnoreCase)));
 
-         // Add missing rows, de-dupe any existing casing-variants, and update sort order.
+        // Add missing rows, de-dupe any existing casing-variants, and update sort order.
         for (var i = 0; i < next.Count; i++)
         {
             var value = next[i];
-             var matches = plan.SkillsInProgress
-                 .Where(x => string.Equals(x.Value, value, StringComparison.OrdinalIgnoreCase))
-                 .ToList();
+            var matches = plan.SkillsInProgress
+                .Where(x => string.Equals(x.Value, value, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-             if (matches.Count == 0)
-             {
-                 plan.SkillsInProgress.Add(new GrowthSkillInProgress
-                 {
-                     GrowthId = plan.Id,
-                     Value = value,
-                     SortOrder = i
-                 });
-                 continue;
-             }
+            if (matches.Count == 0)
+            {
+                plan.SkillsInProgress.Add(new GrowthSkillInProgress
+                {
+                    GrowthId = plan.Id,
+                    Value = value,
+                    SortOrder = i
+                });
+                continue;
+            }
 
-             var keep = matches[0];
-             keep.SortOrder = i;
+            GrowthSkillInProgress keep = matches[0];
+            keep.SortOrder = i;
 
-             // If we somehow had duplicates with different casing (e.g., case-insensitive DB collation),
-             // keep the first and remove the rest.
-             for (var m = 1; m < matches.Count; m++)
-             {
-                 plan.SkillsInProgress.Remove(matches[m]);
-             }
+            // If we somehow had duplicates with different casing (e.g., case-insensitive DB collation),
+            // keep the first and remove the rest.
+            for (var m = 1; m < matches.Count; m++)
+            {
+                plan.SkillsInProgress.Remove(matches[m]);
+            }
         }
 
         // Keep in-memory order stable after mutation.

@@ -16,10 +16,10 @@ public sealed class ListAzureTeamsQueryHandler : IRequestHandler<ListAzureTeamsQ
 
     public async Task<IReadOnlyList<AzureTeamSummary>> Handle(ListAzureTeamsQuery request, CancellationToken cancellationToken)
     {
-        var settings = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? settings = await _settings.GetSingletonAsync(cancellationToken);
         var baseUrl = string.IsNullOrWhiteSpace(settings?.AzureDevOpsBaseUrl)
             ? "https://dev.azure.com"
-            : settings!.AzureDevOpsBaseUrl!.Trim();
+            : settings.AzureDevOpsBaseUrl!.Trim();
 
         return await _client.ListTeamsAsync(baseUrl, request.Organization, request.ProjectId, cancellationToken);
     }

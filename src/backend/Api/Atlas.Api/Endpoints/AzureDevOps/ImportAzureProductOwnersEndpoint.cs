@@ -25,8 +25,8 @@ public sealed class ImportAzureProductOwnersEndpoint
         var selections = req.Users
             .Select(u => new AzureProductOwnerSelection(u.DisplayName, u.UniqueName, u.Descriptor))
             .ToList();
-        
-        var result = await _mediator.Send(new ImportAzureProductOwnersCommand(selections), ct);
+
+        ImportAzureProductOwnersResult result = await _mediator.Send(new ImportAzureProductOwnersCommand(selections), ct);
 
         await Send.OkAsync(new ImportAzureProductOwnersResultDto(
             result.UsersAdded,

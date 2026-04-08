@@ -21,7 +21,7 @@ public sealed class SetGrowthSkillsInProgressEndpoint : Endpoint<SetGrowthSkills
 
     public override async Task HandleAsync(SetGrowthSkillsInProgressRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
+        Guid growthId = Route<Guid>("growthId");
         req = req with { GrowthId = growthId };
 
         var ok = await _mediator.Send(new SetGrowthSkillsInProgressCommand(req.GrowthId, req.SkillsInProgress), ct);

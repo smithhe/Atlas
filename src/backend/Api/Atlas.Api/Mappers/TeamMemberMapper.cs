@@ -15,7 +15,7 @@ internal static class TeamMemberMapper
         var profile = new TeamMemberProfileDto(m.Profile.TimeZone, m.Profile.TypicalHours);
         var signals = new TeamMemberSignalsDto(m.Signals.Load, m.Signals.Delivery, m.Signals.SupportNeeded);
 
-        var notes = (m.Notes ?? [])
+        var notes = m.Notes
             .OrderBy(n => n.PinnedOrder ?? int.MaxValue)
             .ThenByDescending(n => n.CreatedAt)
             .Select(n => new TeamNoteDto(
@@ -28,7 +28,7 @@ internal static class TeamMemberMapper
                 n.PinnedOrder))
             .ToList();
 
-        var risks = (m.Risks ?? [])
+        var risks = m.Risks
             .OrderByDescending(r => r.LastReviewedAt ?? DateTimeOffset.MinValue)
             .ThenBy(r => r.Title, StringComparer.OrdinalIgnoreCase)
             .Select(r => new TeamMemberRiskDto(
@@ -46,7 +46,7 @@ internal static class TeamMemberMapper
                 r.LinkedGlobalRiskId))
             .ToList();
 
-        var azureWorkItems = (m.AzureWorkItemLinks ?? [])
+        var azureWorkItems = m.AzureWorkItemLinks
             .Where(x => x.AzureWorkItem is not null)
             .OrderByDescending(x => x.AzureWorkItem!.ChangedDateUtc)
             .Select(x => new TeamMemberAzureWorkItemDto(
@@ -58,13 +58,13 @@ internal static class TeamMemberMapper
                 x.ProjectId))
             .ToList();
 
-        var projectIds = (m.Projects ?? [])
+        var projectIds = m.Projects
             .Select(p => p.ProjectId)
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
-        var linkedGlobalRiskIds = (m.LinkedRisks ?? [])
+        var linkedGlobalRiskIds = m.LinkedRisks
             .Select(x => x.RiskId)
             .Where(id => id != Guid.Empty)
             .Distinct()

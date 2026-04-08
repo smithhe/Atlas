@@ -21,8 +21,8 @@ public sealed class ListImportedAzureUsersQueryHandler : IRequestHandler<ListImp
 
     public async Task<IReadOnlyList<AzureUser>> Handle(ListImportedAzureUsersQuery request, CancellationToken cancellationToken)
     {
-        var teamMapped = await _teamMappings.ListUniqueNamesAsync(cancellationToken);
-        var productOwnerMapped = await _productOwnerMappings.ListUniqueNamesAsync(cancellationToken);
+        IReadOnlyList<string> teamMapped = await _teamMappings.ListUniqueNamesAsync(cancellationToken);
+        IReadOnlyList<string> productOwnerMapped = await _productOwnerMappings.ListUniqueNamesAsync(cancellationToken);
         var mappedUniqueNames = teamMapped
             .Concat(productOwnerMapped)
             .Distinct(StringComparer.OrdinalIgnoreCase)

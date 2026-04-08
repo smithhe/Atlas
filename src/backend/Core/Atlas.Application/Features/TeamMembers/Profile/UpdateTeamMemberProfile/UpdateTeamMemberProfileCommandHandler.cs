@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 using Atlas.Domain.ValueObjects;
 
 namespace Atlas.Application.Features.TeamMembers.Profile.UpdateTeamMemberProfile;
@@ -16,9 +17,9 @@ public sealed class UpdateTeamMemberProfileCommandHandler : IRequestHandler<Upda
 
     public async Task<bool> Handle(UpdateTeamMemberProfileCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -26,10 +27,16 @@ public sealed class UpdateTeamMemberProfileCommandHandler : IRequestHandler<Upda
         }
 
         var timeZone = request.TimeZone?.Trim();
-        if (string.IsNullOrWhiteSpace(timeZone)) timeZone = null;
+        if (string.IsNullOrWhiteSpace(timeZone))
+        {
+            timeZone = null;
+        }
 
         var typicalHours = request.TypicalHours?.Trim();
-        if (string.IsNullOrWhiteSpace(typicalHours)) typicalHours = null;
+        if (string.IsNullOrWhiteSpace(typicalHours))
+        {
+            typicalHours = null;
+        }
 
         member.Profile = new TeamMemberProfile
         {

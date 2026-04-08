@@ -18,21 +18,21 @@ public sealed class SetProjectTeamMembersCommandHandler : IRequestHandler<SetPro
 
     public async Task<bool> Handle(SetProjectTeamMembersCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var project = await _projects.GetByIdWithDetailsAsync(request.ProjectId, cancellationToken);
+        Project? project = await _projects.GetByIdWithDetailsAsync(request.ProjectId, cancellationToken);
         if (project is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var desiredIds = (request.TeamMemberIds ?? Array.Empty<Guid>())
+        var desiredIds = request.TeamMemberIds
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToHashSet();
 
-        foreach (var memberId in desiredIds)
+        foreach (Guid memberId in desiredIds)
         {
             var exists = await _teamMembers.ExistsAsync(memberId, cancellationToken);
             if (!exists)
@@ -43,10 +43,13 @@ public sealed class SetProjectTeamMembersCommandHandler : IRequestHandler<SetPro
 
         project.TeamMembers.RemoveAll(x => !desiredIds.Contains(x.TeamMemberId));
 
-        foreach (var memberId in desiredIds)
+        foreach (Guid memberId in desiredIds)
         {
             var exists = project.TeamMembers.Any(x => x.TeamMemberId == memberId);
-            if (exists) continue;
+            if (exists)
+            {
+                continue;
+            }
 
             project.TeamMembers.Add(new ProjectTeamMember
             {

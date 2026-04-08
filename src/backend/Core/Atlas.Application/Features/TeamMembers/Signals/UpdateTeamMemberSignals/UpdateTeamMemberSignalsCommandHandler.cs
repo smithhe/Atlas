@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 using Atlas.Domain.ValueObjects;
 
 namespace Atlas.Application.Features.TeamMembers.Signals.UpdateTeamMemberSignals;
@@ -16,9 +17,9 @@ public sealed class UpdateTeamMemberSignalsCommandHandler : IRequestHandler<Upda
 
     public async Task<bool> Handle(UpdateTeamMemberSignalsCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);

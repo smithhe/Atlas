@@ -21,10 +21,10 @@ public sealed class AddFeedbackThemeEndpoint : Endpoint<AddFeedbackThemeRequest,
 
     public override async Task HandleAsync(AddFeedbackThemeRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
+        Guid growthId = Route<Guid>("growthId");
         req = req with { GrowthId = growthId };
 
-        var id = await _mediator.Send(new AddFeedbackThemeCommand(req.GrowthId, req.Title, req.Description, req.ObservedSinceLabel), ct);
+        Guid id = await _mediator.Send(new AddFeedbackThemeCommand(req.GrowthId, req.Title, req.Description, req.ObservedSinceLabel), ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

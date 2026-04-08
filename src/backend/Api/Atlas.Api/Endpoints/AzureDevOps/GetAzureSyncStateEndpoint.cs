@@ -1,5 +1,6 @@
 using Atlas.Api.DTOs.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.SyncState;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
 
@@ -21,7 +22,7 @@ public sealed class GetAzureSyncStateEndpoint : EndpointWithoutRequest<AzureSync
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var state = await _mediator.Send(new GetAzureSyncStateQuery(), ct);
+        AzureSyncState? state = await _mediator.Send(new GetAzureSyncStateQuery(), ct);
         if (state is null)
         {
             await Send.NotFoundAsync(ct);

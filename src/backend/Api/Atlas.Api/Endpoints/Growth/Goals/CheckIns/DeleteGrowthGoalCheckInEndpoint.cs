@@ -21,10 +21,10 @@ public sealed class DeleteGrowthGoalCheckInEndpoint : Endpoint<DeleteGrowthGoalC
 
     public override async Task HandleAsync(DeleteGrowthGoalCheckInRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var goalId = Route<Guid>("goalId");
-        var checkInId = Route<Guid>("checkInId");
-        req = req with { GrowthId = growthId, GoalId = goalId, CheckInId = checkInId };
+        Guid growthId = Route<Guid>("growthId");
+        Guid goalId = Route<Guid>("goalId");
+        Guid checkInId = Route<Guid>("checkInId");
+        req = new DeleteGrowthGoalCheckInRequest(GrowthId: growthId, GoalId: goalId, CheckInId: checkInId);
 
         var ok = await _mediator.Send(new DeleteGrowthGoalCheckInCommand(req.GrowthId, req.GoalId, req.CheckInId), ct);
         if (!ok)

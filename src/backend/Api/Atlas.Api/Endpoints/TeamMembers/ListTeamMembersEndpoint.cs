@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.TeamMembers;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.TeamMembers.ListTeamMembers;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.TeamMembers;
 
@@ -22,7 +23,7 @@ public sealed class ListTeamMembersEndpoint : Endpoint<ListTeamMembersRequest, I
 
     public override async Task HandleAsync(ListTeamMembersRequest req, CancellationToken ct)
     {
-        var members = await _mediator.Send(new ListTeamMembersQuery(), ct);
+        IReadOnlyList<TeamMember> members = await _mediator.Send(new ListTeamMembersQuery(), ct);
 
         if (req.Ids is { Count: > 0 })
         {

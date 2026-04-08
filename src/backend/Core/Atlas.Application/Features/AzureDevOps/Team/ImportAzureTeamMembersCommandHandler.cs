@@ -47,12 +47,12 @@ public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<Impor
             return new ImportAzureTeamMembersResult(0, 0, 0, 0);
         }
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var uniqueNames = normalized.Select(x => x.UniqueName).ToList();
-        var existingUsers = await _azureUsers.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingMappings = await _mappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingProductOwnerMappings = await _productOwnerMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<AzureUser> existingUsers = await _azureUsers.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<AzureUserMapping> existingMappings = await _mappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<AzureProductOwnerMapping> existingProductOwnerMappings = await _productOwnerMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
 
         var userByUnique = existingUsers.ToDictionary(x => x.UniqueName, StringComparer.OrdinalIgnoreCase);
         var mappingByUnique = existingMappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
@@ -63,7 +63,7 @@ public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<Impor
         var teamMembersCreated = 0;
         var mappingsCreated = 0;
 
-        foreach (var selection in normalized)
+        foreach (AzureTeamMemberSelection selection in normalized)
         {
             // Product Owners and Team Members are mutually exclusive import targets.
             if (productOwnerMappingByUnique.ContainsKey(selection.UniqueName))
@@ -71,7 +71,7 @@ public sealed class ImportAzureTeamMembersCommandHandler : IRequestHandler<Impor
                 continue;
             }
 
-            if (!userByUnique.TryGetValue(selection.UniqueName, out var user))
+            if (!userByUnique.TryGetValue(selection.UniqueName, out AzureUser? user))
             {
                 user = new AzureUser
                 {

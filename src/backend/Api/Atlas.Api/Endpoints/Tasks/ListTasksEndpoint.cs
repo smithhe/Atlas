@@ -1,6 +1,7 @@
 using Atlas.Application.Features.Tasks.ListTasks;
 using Atlas.Api.DTOs.Tasks;
 using Atlas.Api.Mappers;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Tasks;
 
@@ -25,7 +26,7 @@ public sealed class ListTasksEndpoint : Endpoint<ListTasksRequest, IReadOnlyList
 
     public override async Task HandleAsync(ListTasksRequest req, CancellationToken ct)
     {
-        var tasks = await _mediator.Send(new ListTasksQuery(req.Ids), ct);
+        IReadOnlyList<TaskItem> tasks = await _mediator.Send(new ListTasksQuery(req.Ids), ct);
         var dtos = tasks.Select(TaskMapper.ToDto).ToList();
         await Send.OkAsync(dtos, ct);
     }

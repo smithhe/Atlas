@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.Projects;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.Projects.GetProject;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Projects;
 
@@ -22,10 +23,10 @@ public sealed class GetProjectEndpoint : Endpoint<GetProjectRequest, ProjectDto>
 
     public override async Task HandleAsync(GetProjectRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new GetProjectRequest(Id: id);
 
-        var project = await _mediator.Send(new GetProjectByIdQuery(req.Id, IncludeDetails: true), ct);
+        Project? project = await _mediator.Send(new GetProjectByIdQuery(req.Id, IncludeDetails: true), ct);
         if (project is null)
         {
             await Send.NotFoundAsync(ct);

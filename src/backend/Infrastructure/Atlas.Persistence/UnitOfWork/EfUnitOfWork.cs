@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Atlas.Persistence.UnitOfWork;
 
@@ -13,7 +14,7 @@ public sealed class EfUnitOfWork : IUnitOfWork
 
     public async Task<IUnitOfWorkTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
-        var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        IDbContextTransaction tx = await _db.Database.BeginTransactionAsync(cancellationToken);
         return new EfUnitOfWorkTransaction(tx);
     }
 

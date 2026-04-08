@@ -1,4 +1,3 @@
-using Atlas.Application.DTOs;
 using Atlas.Application.Features.Projects.CreateProject;
 using ProjectLinkDto = Atlas.Application.DTOs.ProjectLinkDto;
 using Atlas.Api.DTOs.Projects;
@@ -25,7 +24,7 @@ public sealed class CreateProjectEndpoint : Endpoint<CreateProjectRequest, Creat
     {
         var links = req.Links?.Select(l => new ProjectLinkDto(l.Label, l.Url)).ToList();
 
-        var id = await _mediator.Send(new CreateProjectCommand(
+        Guid id = await _mediator.Send(new CreateProjectCommand(
             req.Name,
             req.Summary,
             req.Description,

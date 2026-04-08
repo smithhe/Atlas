@@ -19,7 +19,7 @@ public sealed class GrowthRepository : IGrowthRepository
 
     public async Task<Growth?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var plan = await _db.GrowthPlans
+        Growth? plan = await _db.GrowthPlans
             .Include(x => x.SkillsInProgress)
             .Include(x => x.FeedbackThemes)
             .Include(x => x.Goals)
@@ -39,7 +39,7 @@ public sealed class GrowthRepository : IGrowthRepository
 
     public async Task<Growth?> GetByTeamMemberIdWithDetailsAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
     {
-        var plan = await _db.GrowthPlans
+        Growth? plan = await _db.GrowthPlans
             .Where(x => x.TeamMemberId == teamMemberId)
             .Include(x => x.SkillsInProgress)
             .Include(x => x.FeedbackThemes)
@@ -55,8 +55,11 @@ public sealed class GrowthRepository : IGrowthRepository
 
     private static void NormalizeSkillOrder(Growth? plan)
     {
-        if (plan?.SkillsInProgress is null || plan.SkillsInProgress.Count == 0) return;
-        
+        if (plan?.SkillsInProgress is null || plan.SkillsInProgress.Count == 0)
+        {
+            return;
+        }
+
         plan.SkillsInProgress = plan.SkillsInProgress
             .OrderBy(x => x.SortOrder)
             .ThenBy(x => x.Value, StringComparer.Ordinal)

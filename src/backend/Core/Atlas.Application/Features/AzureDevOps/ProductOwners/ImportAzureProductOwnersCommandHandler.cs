@@ -37,7 +37,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
         var normalized = request.Users
             .Where(x => !string.IsNullOrWhiteSpace(x.UniqueName))
             .Select(x => new AzureProductOwnerSelection(
-                (x.DisplayName ?? string.Empty).Trim(),
+                x.DisplayName.Trim(),
                 NormalizeUniqueName(x.UniqueName),
                 string.IsNullOrWhiteSpace(x.Descriptor) ? null : x.Descriptor.Trim()))
             .GroupBy(x => x.UniqueName, StringComparer.OrdinalIgnoreCase)
@@ -49,13 +49,13 @@ public sealed class ImportAzureProductOwnersCommandHandler
             return new ImportAzureProductOwnersResult(0, 0, 0, 0);
         }
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var uniqueNames = normalized.Select(x => x.UniqueName).ToList();
-        var existingUsers = await _azureUsers.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingTeamMappings = await _teamMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingProductOwnerMappings = await _productOwnerMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
-        var existingProductOwners = await _productOwners.ListAsync(cancellationToken);
+        IReadOnlyList<AzureUser> existingUsers = await _azureUsers.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<AzureUserMapping> existingTeamMappings = await _teamMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<AzureProductOwnerMapping> existingProductOwnerMappings = await _productOwnerMappings.GetByUniqueNamesAsync(uniqueNames, cancellationToken);
+        IReadOnlyList<ProductOwner> existingProductOwners = await _productOwners.ListAsync(cancellationToken);
 
         var userByUnique = existingUsers.ToDictionary(x => x.UniqueName, StringComparer.OrdinalIgnoreCase);
         var teamMappingByUnique = existingTeamMappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
@@ -67,7 +67,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
         var productOwnersCreated = 0;
         var mappingsCreated = 0;
 
-        foreach (var selection in normalized)
+        foreach (AzureProductOwnerSelection selection in normalized)
         {
             // Product Owners and Team Members are mutually exclusive import targets.
             if (teamMappingByUnique.ContainsKey(selection.UniqueName))
@@ -75,7 +75,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
                 continue;
             }
 
-            if (!userByUnique.TryGetValue(selection.UniqueName, out var user))
+            if (!userByUnique.TryGetValue(selection.UniqueName, out AzureUser? user))
             {
                 user = new AzureUser
                 {
@@ -106,7 +106,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
                 ? selection.UniqueName
                 : selection.DisplayName;
 
-            if (!productOwnerByName.TryGetValue(preferredName, out var productOwner))
+            if (!productOwnerByName.TryGetValue(preferredName, out ProductOwner? productOwner))
             {
                 productOwner = new ProductOwner
                 {

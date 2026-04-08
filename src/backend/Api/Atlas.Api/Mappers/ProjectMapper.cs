@@ -21,30 +21,30 @@ internal static class ProjectMapper
 
     public static ProjectDto ToDto(Project p)
     {
-        var tags = (p.Tags ?? [])
+        var tags = p.Tags
             .OrderBy(t => t.Value, StringComparer.OrdinalIgnoreCase)
             .Select(t => new ProjectTagDto(t.Value))
             .ToList();
 
-        var links = (p.Links ?? [])
+        var links = p.Links
             .OrderBy(l => l.Label, StringComparer.OrdinalIgnoreCase)
             .ThenBy(l => l.Url, StringComparer.OrdinalIgnoreCase)
             .Select(l => new ProjectLinkDto(l.Label, l.Url))
             .ToList();
 
-        var taskIds = (p.Tasks ?? [])
+        var taskIds = p.Tasks
             .Select(t => t.Id)
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
-        var riskIds = (p.Risks ?? [])
+        var riskIds = p.Risks
             .Select(r => r.Id)
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
-        var memberIds = (p.TeamMembers ?? [])
+        var memberIds = p.TeamMembers
             .Select(tm => tm.TeamMemberId)
             .Where(id => id != Guid.Empty)
             .Distinct()

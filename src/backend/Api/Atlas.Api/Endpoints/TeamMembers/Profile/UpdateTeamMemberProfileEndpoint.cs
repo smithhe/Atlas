@@ -21,7 +21,7 @@ public sealed class UpdateTeamMemberProfileEndpoint : Endpoint<UpdateTeamMemberP
 
     public override async Task HandleAsync(UpdateTeamMemberProfileRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
+        Guid teamMemberId = Route<Guid>("teamMemberId");
         req = req with { TeamMemberId = teamMemberId };
 
         var ok = await _mediator.Send(new UpdateTeamMemberProfileCommand(req.TeamMemberId, req.TimeZone, req.TypicalHours), ct);

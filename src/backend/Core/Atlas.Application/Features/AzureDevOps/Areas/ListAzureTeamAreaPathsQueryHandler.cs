@@ -16,10 +16,10 @@ public sealed class ListAzureTeamAreaPathsQueryHandler : IRequestHandler<ListAzu
 
     public async Task<AzureTeamAreaPaths> Handle(ListAzureTeamAreaPathsQuery request, CancellationToken cancellationToken)
     {
-        var settings = await _settings.GetSingletonAsync(cancellationToken);
+        Domain.Entities.Settings? settings = await _settings.GetSingletonAsync(cancellationToken);
         var baseUrl = string.IsNullOrWhiteSpace(settings?.AzureDevOpsBaseUrl)
             ? "https://dev.azure.com"
-            : settings!.AzureDevOpsBaseUrl!.Trim();
+            : settings.AzureDevOpsBaseUrl!.Trim();
 
         return await _client.GetTeamAreaPathsAsync(baseUrl, request.Organization, request.ProjectId, request.TeamName, cancellationToken);
     }

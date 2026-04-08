@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.Risks;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.Risks.GetRisk;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Risks;
 
@@ -22,10 +23,10 @@ public sealed class GetRiskEndpoint : Endpoint<GetRiskRequest, RiskDto>
 
     public override async Task HandleAsync(GetRiskRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new GetRiskRequest(Id: id);
 
-        var risk = await _mediator.Send(new GetRiskByIdQuery(req.Id, IncludeDetails: true), ct);
+        Risk? risk = await _mediator.Send(new GetRiskByIdQuery(req.Id, IncludeDetails: true), ct);
         if (risk is null)
         {
             await Send.NotFoundAsync(ct);

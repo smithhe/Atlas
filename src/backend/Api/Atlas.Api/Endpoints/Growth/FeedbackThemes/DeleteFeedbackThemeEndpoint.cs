@@ -21,9 +21,9 @@ public sealed class DeleteFeedbackThemeEndpoint : Endpoint<DeleteFeedbackThemeRe
 
     public override async Task HandleAsync(DeleteFeedbackThemeRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var themeId = Route<Guid>("themeId");
-        req = req with { GrowthId = growthId, ThemeId = themeId };
+        Guid growthId = Route<Guid>("growthId");
+        Guid themeId = Route<Guid>("themeId");
+        req = new DeleteFeedbackThemeRequest(GrowthId: growthId, ThemeId: themeId);
 
         var ok = await _mediator.Send(new DeleteFeedbackThemeCommand(req.GrowthId, req.ThemeId), ct);
         if (!ok)

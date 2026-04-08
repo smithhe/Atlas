@@ -22,7 +22,7 @@ public sealed class UpdateProjectEndpoint : Endpoint<UpdateProjectRequest>
 
     public override async Task HandleAsync(UpdateProjectRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
+        Guid id = Route<Guid>("id");
         var links = req.Links?.Select(l => new ProjectLinkDto(l.Label, l.Url)).ToList();
 
         var ok = await _mediator.Send(new UpdateProjectCommand(

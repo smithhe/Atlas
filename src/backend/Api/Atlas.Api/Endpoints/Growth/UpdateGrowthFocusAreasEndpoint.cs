@@ -21,7 +21,7 @@ public sealed class UpdateGrowthFocusAreasEndpoint : Endpoint<UpdateGrowthFocusA
 
     public override async Task HandleAsync(UpdateGrowthFocusAreasRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
+        Guid growthId = Route<Guid>("growthId");
         req = req with { GrowthId = growthId };
 
         var ok = await _mediator.Send(new UpdateGrowthFocusAreasCommand(req.GrowthId, req.FocusAreasMarkdown), ct);

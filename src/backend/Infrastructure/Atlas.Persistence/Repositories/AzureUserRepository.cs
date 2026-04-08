@@ -14,7 +14,10 @@ public sealed class AzureUserRepository : IAzureUserRepository
 
     public async Task<IReadOnlyList<AzureUser>> GetByUniqueNamesAsync(IReadOnlyList<string> uniqueNames, CancellationToken cancellationToken = default)
     {
-        if (uniqueNames.Count == 0) return [];
+        if (uniqueNames.Count == 0)
+        {
+            return [];
+        }
 
         return await _db.AzureUsers
             .Where(x => uniqueNames.Contains(x.UniqueName))

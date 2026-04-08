@@ -53,7 +53,7 @@ public sealed class AtlasDbContext : DbContext
 
     private static void ConfigureReadableValueStorage(ModelBuilder modelBuilder)
     {
-        foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(static entityType => entityType.GetProperties()))
+        foreach (IMutableProperty property in modelBuilder.Model.GetEntityTypes().SelectMany(static entityType => entityType.GetProperties()))
         {
             if (property.IsPrimaryKey() || property.IsForeignKey())
             {
@@ -67,7 +67,7 @@ public sealed class AtlasDbContext : DbContext
 
     private static void ConfigureBoolProperty(IMutableProperty property)
     {
-        var underlyingType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+        Type underlyingType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
         if (underlyingType != typeof(bool))
         {
             return;
@@ -78,13 +78,13 @@ public sealed class AtlasDbContext : DbContext
 
     private static void ConfigureEnumProperty(IMutableProperty property)
     {
-        var enumType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+        Type enumType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
         if (!enumType.IsEnum)
         {
             return;
         }
 
-        var converterType = typeof(EnumToStringConverter<>).MakeGenericType(enumType);
+        Type converterType = typeof(EnumToStringConverter<>).MakeGenericType(enumType);
         var converter = (ValueConverter?)Activator.CreateInstance(converterType);
         if (converter is null)
         {

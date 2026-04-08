@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Risks.UpdateRisk;
 
@@ -15,9 +16,9 @@ public sealed class UpdateRiskCommandHandler : IRequestHandler<UpdateRiskCommand
 
     public async Task<bool> Handle(UpdateRiskCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var risk = await _risks.GetByIdAsync(request.Id, cancellationToken);
+        Risk? risk = await _risks.GetByIdAsync(request.Id, cancellationToken);
         if (risk is null)
         {
             await tx.RollbackAsync(cancellationToken);

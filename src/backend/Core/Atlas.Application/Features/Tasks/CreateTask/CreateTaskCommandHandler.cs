@@ -16,7 +16,7 @@ public sealed class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand
 
     public async Task<Guid> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var task = new TaskItem
         {
@@ -40,7 +40,7 @@ public sealed class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand
             .Distinct()
             .ToList();
 
-        foreach (var blockerId in blockerIds)
+        foreach (Guid blockerId in blockerIds)
         {
             var exists = await _tasks.ExistsAsync(blockerId, cancellationToken);
             if (!exists)

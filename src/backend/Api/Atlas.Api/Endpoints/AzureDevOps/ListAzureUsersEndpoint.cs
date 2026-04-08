@@ -1,4 +1,5 @@
 using Atlas.Api.DTOs.AzureDevOps;
+using Atlas.Application.Abstractions.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.Users;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
@@ -30,7 +31,7 @@ public sealed class ListAzureUsersEndpoint : Endpoint<AzureTeamMembersRequest, I
             return;
         }
 
-        var users = await _mediator.Send(new ListAzureUsersQuery(req.Organization, req.ProjectId, req.TeamId), ct);
+        IReadOnlyList<AzureUserSummary> users = await _mediator.Send(new ListAzureUsersQuery(req.Organization, req.ProjectId, req.TeamId), ct);
         var dto = users.Select(u => new AzureUserDto(u.DisplayName, u.UniqueName, u.Descriptor)).ToList();
         await Send.OkAsync(dto, ct);
     }

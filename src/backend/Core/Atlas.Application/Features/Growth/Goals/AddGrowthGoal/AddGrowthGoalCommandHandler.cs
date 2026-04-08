@@ -16,9 +16,9 @@ public sealed class AddGrowthGoalCommandHandler : IRequestHandler<AddGrowthGoalC
 
     public async Task<Guid> Handle(AddGrowthGoalCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);

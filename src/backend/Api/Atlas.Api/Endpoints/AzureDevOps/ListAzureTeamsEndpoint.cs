@@ -1,4 +1,5 @@
 using Atlas.Api.DTOs.AzureDevOps;
+using Atlas.Application.Abstractions.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.Teams;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
@@ -29,7 +30,7 @@ public sealed class ListAzureTeamsEndpoint : Endpoint<AzureTeamsRequest, IReadOn
             return;
         }
 
-        var teams = await _mediator.Send(new ListAzureTeamsQuery(req.Organization, req.ProjectId), ct);
+        IReadOnlyList<AzureTeamSummary> teams = await _mediator.Send(new ListAzureTeamsQuery(req.Organization, req.ProjectId), ct);
         var dto = teams.Select(t => new AzureTeamDto(t.Id, t.Name)).ToList();
         await Send.OkAsync(dto, ct);
     }

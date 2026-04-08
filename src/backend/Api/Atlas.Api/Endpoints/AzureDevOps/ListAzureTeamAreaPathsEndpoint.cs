@@ -1,4 +1,5 @@
 using Atlas.Api.DTOs.AzureDevOps;
+using Atlas.Application.Abstractions.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.Areas;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
@@ -32,7 +33,7 @@ public sealed class ListAzureTeamAreaPathsEndpoint : Endpoint<AzureTeamAreaPaths
             return;
         }
 
-        var result = await _mediator.Send(new ListAzureTeamAreaPathsQuery(req.Organization, req.ProjectId, req.TeamName), ct);
+        AzureTeamAreaPaths result = await _mediator.Send(new ListAzureTeamAreaPathsQuery(req.Organization, req.ProjectId, req.TeamName), ct);
         var dto = new AzureTeamAreaPathsDto(
             result.DefaultValue,
             result.Values.Select(v => new AzureTeamAreaPathDto(v.Value, v.IncludeChildren)).ToList());

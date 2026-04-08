@@ -16,16 +16,16 @@ public sealed class AddGrowthGoalCheckInCommandHandler : IRequestHandler<AddGrow
 
     public async Task<Guid> Handle(AddGrowthGoalCheckInCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return Guid.Empty;
         }
 
-        var goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
+        GrowthGoal? goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
         if (goal is null)
         {
             await tx.RollbackAsync(cancellationToken);

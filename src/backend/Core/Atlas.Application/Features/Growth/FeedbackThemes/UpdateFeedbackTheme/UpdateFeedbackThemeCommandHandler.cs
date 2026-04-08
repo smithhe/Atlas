@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Growth.FeedbackThemes.UpdateFeedbackTheme;
 
@@ -15,16 +16,16 @@ public sealed class UpdateFeedbackThemeCommandHandler : IRequestHandler<UpdateFe
 
     public async Task<bool> Handle(UpdateFeedbackThemeCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var theme = plan.FeedbackThemes.FirstOrDefault(x => x.Id == request.ThemeId);
+        GrowthFeedbackTheme? theme = plan.FeedbackThemes.FirstOrDefault(x => x.Id == request.ThemeId);
         if (theme is null)
         {
             await tx.RollbackAsync(cancellationToken);

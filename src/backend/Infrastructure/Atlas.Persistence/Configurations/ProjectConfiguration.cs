@@ -1,5 +1,4 @@
 using Atlas.Domain.Entities;
-using Atlas.Domain.ValueObjects;
 
 namespace Atlas.Persistence.Configurations;
 

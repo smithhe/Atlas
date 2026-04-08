@@ -16,7 +16,7 @@ public sealed class CreateRiskCommandHandler : IRequestHandler<CreateRiskCommand
 
     public async Task<Guid> Handle(CreateRiskCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var risk = new Risk
         {

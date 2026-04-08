@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Tasks.DeleteTask;
 
@@ -15,9 +16,9 @@ public sealed class DeleteTaskCommandHandler : IRequestHandler<DeleteTaskCommand
 
     public async Task<bool> Handle(DeleteTaskCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var task = await _tasks.GetByIdAsync(request.Id, cancellationToken);
+        TaskItem? task = await _tasks.GetByIdAsync(request.Id, cancellationToken);
         if (task is null)
         {
             await tx.RollbackAsync(cancellationToken);

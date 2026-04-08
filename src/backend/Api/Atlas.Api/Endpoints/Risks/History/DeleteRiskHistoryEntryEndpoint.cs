@@ -21,9 +21,9 @@ public sealed class DeleteRiskHistoryEntryEndpoint : Endpoint<DeleteRiskHistoryE
 
     public override async Task HandleAsync(DeleteRiskHistoryEntryRequest req, CancellationToken ct)
     {
-        var riskId = Route<Guid>("riskId");
-        var entryId = Route<Guid>("entryId");
-        req = req with { RiskId = riskId, EntryId = entryId };
+        Guid riskId = Route<Guid>("riskId");
+        Guid entryId = Route<Guid>("entryId");
+        req = new DeleteRiskHistoryEntryRequest(RiskId: riskId, EntryId: entryId);
 
         var ok = await _mediator.Send(new DeleteRiskHistoryEntryCommand(req.RiskId, req.EntryId), ct);
         if (!ok)

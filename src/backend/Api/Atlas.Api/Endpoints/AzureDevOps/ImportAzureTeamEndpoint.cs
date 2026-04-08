@@ -22,7 +22,7 @@ public sealed class ImportAzureTeamEndpoint : Endpoint<ImportAzureTeamRequest, I
     public override async Task HandleAsync(ImportAzureTeamRequest req, CancellationToken ct)
     {
         var selections = req.Users.Select(u => new AzureTeamMemberSelection(u.DisplayName, u.UniqueName, u.Descriptor)).ToList();
-        var result = await _mediator.Send(new ImportAzureTeamMembersCommand(selections), ct);
+        ImportAzureTeamMembersResult result = await _mediator.Send(new ImportAzureTeamMembersCommand(selections), ct);
 
         await Send.OkAsync(new ImportAzureTeamResultDto(
             result.UsersAdded,

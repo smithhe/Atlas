@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.TeamMembers.Notes.SetPinnedNotes;
 
@@ -15,9 +16,9 @@ public sealed class SetPinnedNotesCommandHandler : IRequestHandler<SetPinnedNote
 
     public async Task<bool> Handle(SetPinnedNotesCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -30,7 +31,7 @@ public sealed class SetPinnedNotesCommandHandler : IRequestHandler<SetPinnedNote
             .Select((id, idx) => new { id, idx })
             .ToDictionary(x => x.id, x => x.idx);
 
-        foreach (var note in member.Notes)
+        foreach (TeamNote note in member.Notes)
         {
             note.PinnedOrder = order.TryGetValue(note.Id, out var idx) ? idx : null;
         }

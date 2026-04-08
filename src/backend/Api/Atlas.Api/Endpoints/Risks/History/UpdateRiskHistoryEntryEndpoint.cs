@@ -21,8 +21,8 @@ public sealed class UpdateRiskHistoryEntryEndpoint : Endpoint<UpdateRiskHistoryE
 
     public override async Task HandleAsync(UpdateRiskHistoryEntryRequest req, CancellationToken ct)
     {
-        var riskId = Route<Guid>("riskId");
-        var entryId = Route<Guid>("entryId");
+        Guid riskId = Route<Guid>("riskId");
+        Guid entryId = Route<Guid>("entryId");
         req = req with { RiskId = riskId, EntryId = entryId };
 
         var ok = await _mediator.Send(new UpdateRiskHistoryEntryCommand(req.RiskId, req.EntryId, req.Text), ct);

@@ -21,7 +21,7 @@ public sealed class SetProjectTeamMembersEndpoint : Endpoint<SetProjectTeamMembe
 
     public override async Task HandleAsync(SetProjectTeamMembersRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
+        Guid id = Route<Guid>("id");
 
         var ok = await _mediator.Send(new SetProjectTeamMembersCommand(id, req.TeamMemberIds), ct);
         if (!ok)

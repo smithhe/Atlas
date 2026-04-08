@@ -1,10 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
-using System.Linq;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -70,7 +68,7 @@ builder.Services.AddAtlasPersistence();
 builder.Services.AddAzureDevOps();
 builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseCors("UiCors");
 
@@ -79,11 +77,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerGen();
 
     // For local/dev: create tables without migrations.
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
+    using IServiceScope scope = app.Services.CreateScope();
+    AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
     db.Database.EnsureCreated();
 }
-else {
+else
+{
     app.UseHttpsRedirection();
 }
 

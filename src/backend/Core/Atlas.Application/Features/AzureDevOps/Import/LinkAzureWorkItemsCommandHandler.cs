@@ -28,38 +28,41 @@ public sealed class LinkAzureWorkItemsCommandHandler : IRequestHandler<LinkAzure
 
     public async Task<int> Handle(LinkAzureWorkItemsCommand request, CancellationToken cancellationToken)
     {
-        if (request.AzureWorkItemIds.Count == 0) return 0;
+        if (request.AzureWorkItemIds.Count == 0)
+        {
+            return 0;
+        }
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var existing = await _links.GetByWorkItemIdsAsync(request.AzureWorkItemIds, cancellationToken);
+        IReadOnlyList<AzureWorkItemLink> existing = await _links.GetByWorkItemIdsAsync(request.AzureWorkItemIds, cancellationToken);
         var existingById = existing.ToDictionary(x => x.AzureWorkItemId);
 
         var workItemIds = request.AzureWorkItemIds.Distinct().ToList();
         var mappedTeamMemberByWorkItemId = new Dictionary<Guid, Guid?>();
         if (!request.TeamMemberId.HasValue)
         {
-            var workItems = await _workItems.GetByIdsAsync(workItemIds, cancellationToken);
+            IReadOnlyList<AzureWorkItem> workItems = await _workItems.GetByIdsAsync(workItemIds, cancellationToken);
             var assignedUniqueNames = workItems
                 .Select(x => NormalizeUniqueName(x.AssignedToUniqueName))
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            var mappings = await _mappings.GetByUniqueNamesAsync(assignedUniqueNames, cancellationToken);
+            IReadOnlyList<AzureUserMapping> mappings = await _mappings.GetByUniqueNamesAsync(assignedUniqueNames, cancellationToken);
             var mapByUnique = mappings.ToDictionary(x => x.AzureUniqueName, StringComparer.OrdinalIgnoreCase);
 
-            foreach (var workItem in workItems)
+            foreach (AzureWorkItem workItem in workItems)
             {
                 var assignedTo = NormalizeUniqueName(workItem.AssignedToUniqueName);
-                mapByUnique.TryGetValue(assignedTo, out var mapping);
+                mapByUnique.TryGetValue(assignedTo, out AzureUserMapping? mapping);
                 mappedTeamMemberByWorkItemId[workItem.Id] = mapping?.TeamMemberId;
             }
         }
 
         var updated = 0;
-        foreach (var workItemId in workItemIds)
+        foreach (Guid workItemId in workItemIds)
         {
-            if (!existingById.TryGetValue(workItemId, out var link))
+            if (!existingById.TryGetValue(workItemId, out AzureWorkItemLink? link))
             {
                 link = new AzureWorkItemLink
                 {

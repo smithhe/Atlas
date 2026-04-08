@@ -18,19 +18,19 @@ internal static class RiskMapper
 
     public static RiskDto ToDto(Risk risk)
     {
-        var linkedTaskIds = (risk.Tasks ?? [])
+        var linkedTaskIds = risk.Tasks
             .Select(t => t.Id)
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
-        var linkedTeamMemberIds = (risk.LinkedTeamMembers ?? [])
+        var linkedTeamMemberIds = risk.LinkedTeamMembers
             .Select(x => x.TeamMemberId)
             .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
-        var history = (risk.History ?? [])
+        var history = risk.History
             .OrderByDescending(h => h.CreatedAt)
             .Select(h => new RiskHistoryEntryDto(h.Id, h.Text, h.CreatedAt))
             .ToList();

@@ -16,9 +16,9 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
 
     public async Task<bool> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var task = await _tasks.GetByIdWithDetailsAsync(request.Id, cancellationToken);
+        TaskItem? task = await _tasks.GetByIdWithDetailsAsync(request.Id, cancellationToken);
         if (task is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -42,7 +42,7 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
             .Distinct()
             .ToHashSet();
 
-        foreach (var blockerId in desiredBlockerIds)
+        foreach (Guid blockerId in desiredBlockerIds)
         {
             var exists = await _tasks.ExistsAsync(blockerId, cancellationToken);
             if (!exists)
@@ -53,7 +53,7 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
 
         // Cycle detection: ensure none of the desired blockers (directly or indirectly) depends on this task.
         // This prevents introducing cycles like A blocked by B when B is (transitively) blocked by A.
-        foreach (var blockerId in desiredBlockerIds)
+        foreach (Guid blockerId in desiredBlockerIds)
         {
             var visited = new HashSet<Guid> { task.Id };
             var stack = new Stack<Guid>();
@@ -61,7 +61,7 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
 
             while (stack.Count > 0)
             {
-                var current = stack.Pop();
+                Guid current = stack.Pop();
                 if (!visited.Add(current))
                 {
                     continue;
@@ -72,8 +72,8 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
                     throw new InvalidOperationException("Task dependency cycle detected.");
                 }
 
-                var directBlockers = await _tasks.GetDirectBlockerIdsAsync(current, cancellationToken);
-                foreach (var next in directBlockers)
+                IReadOnlyList<Guid> directBlockers = await _tasks.GetDirectBlockerIdsAsync(current, cancellationToken);
+                foreach (Guid next in directBlockers)
                 {
                     if (next == Guid.Empty)
                     {
@@ -98,7 +98,7 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
         }
 
         task.BlockedBy.RemoveAll(d => !desiredBlockerIds.Contains(d.BlockerTaskId));
-        foreach (var blockerId in desiredBlockerIds)
+        foreach (Guid blockerId in desiredBlockerIds)
         {
             var exists = task.BlockedBy.Any(d => d.BlockerTaskId == blockerId);
             if (exists)

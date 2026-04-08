@@ -16,7 +16,7 @@ public sealed class CreateProjectCommandHandler : IRequestHandler<CreateProjectC
 
     public async Task<Guid> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         var tagValues = (request.Tags ?? Array.Empty<string>())
             .Select(t => t.Trim())
@@ -24,7 +24,7 @@ public sealed class CreateProjectCommandHandler : IRequestHandler<CreateProjectC
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var linkValues = (request.Links ?? Array.Empty<Application.DTOs.ProjectLinkDto>())
+        var linkValues = (request.Links ?? Array.Empty<DTOs.ProjectLinkDto>())
             .Select(l => new { Label = l.Label.Trim(), Url = l.Url.Trim() })
             .Where(l => l.Label.Length > 0 && l.Url.Length > 0)
             .DistinctBy(l => (l.Label.ToUpperInvariant(), l.Url.ToUpperInvariant()))

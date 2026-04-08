@@ -1,5 +1,6 @@
 using Atlas.Api.DTOs.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.Users;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
 
@@ -21,7 +22,7 @@ public sealed class ListImportedAzureUsersEndpoint : EndpointWithoutRequest<IRea
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var users = await _mediator.Send(new ListImportedAzureUsersQuery(), ct);
+        IReadOnlyList<AzureUser> users = await _mediator.Send(new ListImportedAzureUsersQuery(), ct);
         var dto = users.Select(u => new AzureUserDto(u.DisplayName, u.UniqueName, u.Descriptor)).ToList();
         await Send.OkAsync(dto, ct);
     }

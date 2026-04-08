@@ -16,9 +16,9 @@ public sealed class UpdateAzureConnectionCommandHandler : IRequestHandler<Update
 
     public async Task<bool> Handle(UpdateAzureConnectionCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var existing = await _connections.GetSingletonAsync(cancellationToken);
+        AzureConnection? existing = await _connections.GetSingletonAsync(cancellationToken);
         if (existing is null)
         {
             existing = new AzureConnection { Id = Guid.NewGuid() };

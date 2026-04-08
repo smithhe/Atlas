@@ -28,7 +28,7 @@ public sealed class TaskRepository : ITaskRepository
 
     public async Task<IReadOnlyList<TaskItem>> ListAsync(IReadOnlyList<Guid>? ids = null, CancellationToken cancellationToken = default)
     {
-        var query = _db.Tasks.AsQueryable();
+        IQueryable<TaskItem> query = _db.Tasks.AsQueryable();
 
         if (ids is { Count: > 0 })
         {

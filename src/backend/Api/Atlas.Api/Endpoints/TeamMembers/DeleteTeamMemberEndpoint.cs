@@ -21,8 +21,8 @@ public sealed class DeleteTeamMemberEndpoint : Endpoint<DeleteTeamMemberRequest>
 
     public override async Task HandleAsync(DeleteTeamMemberRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new DeleteTeamMemberRequest(Id: id);
 
         var ok = await _mediator.Send(new DeleteTeamMemberCommand(req.Id), ct);
         if (!ok)

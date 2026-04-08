@@ -21,7 +21,7 @@ public sealed class UpdateRiskEndpoint : Endpoint<UpdateRiskRequest>
 
     public override async Task HandleAsync(UpdateRiskRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
+        Guid id = Route<Guid>("id");
 
         var ok = await _mediator.Send(new UpdateRiskCommand(
             id,

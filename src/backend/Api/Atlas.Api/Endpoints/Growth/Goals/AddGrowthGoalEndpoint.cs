@@ -21,10 +21,10 @@ public sealed class AddGrowthGoalEndpoint : Endpoint<AddGrowthGoalRequest, AddGr
 
     public override async Task HandleAsync(AddGrowthGoalRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
+        Guid growthId = Route<Guid>("growthId");
         req = req with { GrowthId = growthId };
 
-        var id = await _mediator.Send(new AddGrowthGoalCommand(
+        Guid id = await _mediator.Send(new AddGrowthGoalCommand(
             req.GrowthId,
             req.Title,
             req.Description,

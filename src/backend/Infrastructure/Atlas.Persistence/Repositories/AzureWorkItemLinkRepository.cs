@@ -14,7 +14,10 @@ public sealed class AzureWorkItemLinkRepository : IAzureWorkItemLinkRepository
 
     public async Task<IReadOnlyList<AzureWorkItemLink>> GetByWorkItemIdsAsync(IReadOnlyList<Guid> workItemIds, CancellationToken cancellationToken = default)
     {
-        if (workItemIds.Count == 0) return [];
+        if (workItemIds.Count == 0)
+        {
+            return [];
+        }
 
         return await _db.AzureWorkItemLinks
             .Where(x => workItemIds.Contains(x.AzureWorkItemId))

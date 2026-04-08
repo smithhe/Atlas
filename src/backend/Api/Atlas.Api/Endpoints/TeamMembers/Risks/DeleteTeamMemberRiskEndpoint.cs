@@ -21,9 +21,9 @@ public sealed class DeleteTeamMemberRiskEndpoint : Endpoint<DeleteTeamMemberRisk
 
     public override async Task HandleAsync(DeleteTeamMemberRiskRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        var riskId = Route<Guid>("teamMemberRiskId");
-        req = req with { TeamMemberId = teamMemberId, TeamMemberRiskId = riskId };
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        Guid riskId = Route<Guid>("teamMemberRiskId");
+        req = new DeleteTeamMemberRiskRequest(TeamMemberId: teamMemberId, TeamMemberRiskId: riskId);
 
         var ok = await _mediator.Send(new DeleteTeamMemberRiskCommand(req.TeamMemberId, req.TeamMemberRiskId), ct);
         if (!ok)

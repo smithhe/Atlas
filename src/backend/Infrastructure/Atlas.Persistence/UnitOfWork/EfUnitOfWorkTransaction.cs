@@ -12,12 +12,12 @@ internal sealed class EfUnitOfWorkTransaction : IUnitOfWorkTransaction
         _tx = tx;
     }
 
-    public Task CommitAsync(CancellationToken cancellationToken = default(CancellationToken))
+    public Task CommitAsync(CancellationToken cancellationToken = default)
     {
         return _tx.CommitAsync(cancellationToken);
     }
 
-    public Task RollbackAsync(CancellationToken cancellationToken = default(CancellationToken))
+    public Task RollbackAsync(CancellationToken cancellationToken = default)
     {
         return _tx.RollbackAsync(cancellationToken);
     }

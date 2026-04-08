@@ -21,11 +21,11 @@ public sealed class AddGrowthGoalCheckInEndpoint : Endpoint<AddGrowthGoalCheckIn
 
     public override async Task HandleAsync(AddGrowthGoalCheckInRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var goalId = Route<Guid>("goalId");
+        Guid growthId = Route<Guid>("growthId");
+        Guid goalId = Route<Guid>("goalId");
         req = req with { GrowthId = growthId, GoalId = goalId };
 
-        var id = await _mediator.Send(new AddGrowthGoalCheckInCommand(req.GrowthId, req.GoalId, req.Date, req.Signal, req.Note), ct);
+        Guid id = await _mediator.Send(new AddGrowthGoalCheckInCommand(req.GrowthId, req.GoalId, req.Date, req.Signal, req.Note), ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

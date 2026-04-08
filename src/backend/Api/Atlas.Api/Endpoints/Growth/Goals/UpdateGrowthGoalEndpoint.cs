@@ -21,13 +21,13 @@ public sealed class UpdateGrowthGoalEndpoint : Endpoint<UpdateGrowthGoalRequest>
 
     public override async Task HandleAsync(UpdateGrowthGoalRequest req, CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var goalId = Route<Guid>("goalId");
+        Guid growthId = Route<Guid>("growthId");
+        Guid goalId = Route<Guid>("goalId");
         req = req with { GrowthId = growthId, GoalId = goalId };
 
         var successCriteria = req.SuccessCriteria is null
             ? null
-            : string.Join("\n", req.SuccessCriteria.Select(x => x?.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
+            : string.Join("\n", req.SuccessCriteria.Select(x => x.Trim()).Where(x => !string.IsNullOrWhiteSpace(x)));
 
         var ok = await _mediator.Send(new UpdateGrowthGoalCommand(
             req.GrowthId,

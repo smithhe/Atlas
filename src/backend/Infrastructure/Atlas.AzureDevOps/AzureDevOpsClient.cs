@@ -2,7 +2,7 @@ namespace Atlas.AzureDevOps;
 
 public sealed class AzureDevOpsClient : IAzureDevOpsClient
 {
-    private static readonly IReadOnlyList<string> WorkItemFields =
+    private static readonly IReadOnlyList<string> _workItemFields =
     [
         "System.Id",
         "System.Title",
@@ -33,12 +33,12 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
     public async Task<IReadOnlyList<AzureProjectSummary>> ListProjectsAsync(string baseUrl, string organization, CancellationToken cancellationToken = default)
     {
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/projects?api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Get, url);
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Get, url);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<ProjectListResponse>(_jsonOptions, cancellationToken);
-        return payload?.Value?
+        ProjectListResponse? payload = await res.Content.ReadFromJsonAsync<ProjectListResponse>(_jsonOptions, cancellationToken);
+        return payload?.Value
             .Select(p => new AzureProjectSummary(p.Id, p.Name))
             .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToList() ?? [];
@@ -47,12 +47,12 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
     public async Task<IReadOnlyList<AzureTeamSummary>> ListTeamsAsync(string baseUrl, string organization, string projectId, CancellationToken cancellationToken = default)
     {
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/projects/{projectId}/teams?api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Get, url);
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Get, url);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<TeamListResponse>(_jsonOptions, cancellationToken);
-        return payload?.Value?
+        TeamListResponse? payload = await res.Content.ReadFromJsonAsync<TeamListResponse>(_jsonOptions, cancellationToken);
+        return payload?.Value
             .Select(t => new AzureTeamSummary(t.Id, t.Name))
             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
             .ToList() ?? [];
@@ -61,12 +61,12 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
     public async Task<IReadOnlyList<AzureUserSummary>> ListUsersAsync(string baseUrl, string organization, string projectId, string teamId, CancellationToken cancellationToken = default)
     {
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/_apis/projects/{projectId}/teams/{teamId}/members?api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Get, url);
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Get, url);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<TeamMembersResponse>(_jsonOptions, cancellationToken);
-        return payload?.Value?
+        TeamMembersResponse? payload = await res.Content.ReadFromJsonAsync<TeamMembersResponse>(_jsonOptions, cancellationToken);
+        return payload?.Value
             .Select(m => m.Identity)
             .Where(i => i is not null)
             .Select(i => new AzureUserSummary(i!.DisplayName ?? i.UniqueName ?? string.Empty, i.UniqueName ?? string.Empty, i.Descriptor))
@@ -82,12 +82,12 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         var team = Uri.EscapeDataString(teamName);
         var url =
             $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectId}/{team}/_apis/work/teamsettings/teamfieldvalues?api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Get, url);
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Get, url);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<TeamFieldValuesResponse>(_jsonOptions, cancellationToken);
-        var values = payload?.Values?
+        TeamFieldValuesResponse? payload = await res.Content.ReadFromJsonAsync<TeamFieldValuesResponse>(_jsonOptions, cancellationToken);
+        List<AzureTeamAreaPath> values = payload?.Values?
             .Where(v => !string.IsNullOrWhiteSpace(v.Value))
             .Select(v => new AzureTeamAreaPath(v.Value!, v.IncludeChildren))
             .OrderBy(v => v.Value, StringComparer.OrdinalIgnoreCase)
@@ -107,14 +107,14 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         var projectSegment = Uri.EscapeDataString(project);
         var topQuery = top.HasValue ? $"$top={top.Value}&" : string.Empty;
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectSegment}/_apis/wit/wiql?{topQuery}api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Post, url);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Post, url);
         req.Content = new StringContent(JsonSerializer.Serialize(new { query = wiql }), Encoding.UTF8, "application/json");
 
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<WiqlResponse>(_jsonOptions, cancellationToken);
-        return payload?.WorkItems?.Select(x => x.Id).ToList() ?? [];
+        WiqlResponse? payload = await res.Content.ReadFromJsonAsync<WiqlResponse>(_jsonOptions, cancellationToken);
+        return payload?.WorkItems.Select(x => x.Id).ToList() ?? [];
     }
 
     public async Task<IReadOnlyList<AzureWorkItemDetails>> GetWorkItemsAsync(
@@ -124,26 +124,35 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         IReadOnlyList<int> workItemIds,
         CancellationToken cancellationToken = default)
     {
-        if (workItemIds.Count == 0) return [];
+        if (workItemIds.Count == 0)
+        {
+            return [];
+        }
 
         var projectSegment = Uri.EscapeDataString(project);
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectSegment}/_apis/wit/workitemsbatch?api-version=7.1";
-        using var req = CreateRequest(HttpMethod.Post, url);
+        using HttpRequestMessage req = CreateRequest(HttpMethod.Post, url);
         req.Content = new StringContent(
-            JsonSerializer.Serialize(new { ids = workItemIds, fields = WorkItemFields }),
+            JsonSerializer.Serialize(new { ids = workItemIds, fields = _workItemFields }),
             Encoding.UTF8,
             "application/json");
 
-        using var res = await _httpClient.SendAsync(req, cancellationToken);
+        using HttpResponseMessage res = await _httpClient.SendAsync(req, cancellationToken);
         res.EnsureSuccessStatusCode();
 
-        var payload = await res.Content.ReadFromJsonAsync<WorkItemBatchResponse>(_jsonOptions, cancellationToken);
-        if (payload?.Value is null) return [];
+        WorkItemBatchResponse? payload = await res.Content.ReadFromJsonAsync<WorkItemBatchResponse>(_jsonOptions, cancellationToken);
+        if (payload?.Value is null)
+        {
+            return [];
+        }
 
         var results = new List<AzureWorkItemDetails>(payload.Value.Count);
-        foreach (var item in payload.Value)
+        foreach (WorkItemBatchItem item in payload.Value)
         {
-            if (!item.Fields.TryGetValue("System.ChangedDate", out var changed)) continue;
+            if (!item.Fields.TryGetValue("System.ChangedDate", out JsonElement changed))
+            {
+                continue;
+            }
 
             var changedDate = DateTimeOffset.Parse(changed.GetString() ?? string.Empty, CultureInfo.InvariantCulture);
             var assigned = TryGetAssignedToUniqueName(item.Fields);
@@ -176,24 +185,24 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
 
     private static string GetString(Dictionary<string, JsonElement> fields, string key)
     {
-        return fields.TryGetValue(key, out var value) && value.ValueKind == JsonValueKind.String
+        return fields.TryGetValue(key, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString() ?? string.Empty
             : string.Empty;
     }
 
     private static string? TryGetAssignedToUniqueName(Dictionary<string, JsonElement> fields)
     {
-        if (!fields.TryGetValue("System.AssignedTo", out var assigned) || assigned.ValueKind != JsonValueKind.Object)
+        if (!fields.TryGetValue("System.AssignedTo", out JsonElement assigned) || assigned.ValueKind != JsonValueKind.Object)
         {
             return null;
         }
 
-        if (assigned.TryGetProperty("uniqueName", out var uniqueName) && uniqueName.ValueKind == JsonValueKind.String)
+        if (assigned.TryGetProperty("uniqueName", out JsonElement uniqueName) && uniqueName.ValueKind == JsonValueKind.String)
         {
             return uniqueName.GetString();
         }
 
-        if (assigned.TryGetProperty("principalName", out var principalName) && principalName.ValueKind == JsonValueKind.String)
+        if (assigned.TryGetProperty("principalName", out JsonElement principalName) && principalName.ValueKind == JsonValueKind.String)
         {
             return principalName.GetString();
         }

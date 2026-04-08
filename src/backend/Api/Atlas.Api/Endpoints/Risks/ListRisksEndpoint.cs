@@ -1,6 +1,7 @@
 using Atlas.Api.DTOs.Risks;
 using Atlas.Api.Mappers;
 using Atlas.Application.Features.Risks.ListRisks;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Risks;
 
@@ -22,7 +23,7 @@ public sealed class ListRisksEndpoint : EndpointWithoutRequest<IReadOnlyList<Ris
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var risks = await _mediator.Send(new ListRisksQuery(), ct);
+        IReadOnlyList<Risk> risks = await _mediator.Send(new ListRisksQuery(), ct);
         var dtos = risks.Select(RiskMapper.ToListItemDto).ToList();
         await Send.OkAsync(dtos, ct);
     }

@@ -21,7 +21,7 @@ public sealed class RunAzureSyncEndpoint : EndpointWithoutRequest<AzureSyncResul
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var result = await _mediator.Send(new RunAzureSyncCommand(), ct);
+        RunAzureSyncResult result = await _mediator.Send(new RunAzureSyncCommand(), ct);
 
         await Send.OkAsync(new AzureSyncResultDto(
             result.Succeeded,

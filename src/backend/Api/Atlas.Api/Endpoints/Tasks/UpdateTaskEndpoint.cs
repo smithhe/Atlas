@@ -1,6 +1,5 @@
 using Atlas.Application.Features.Tasks.UpdateTask;
 using Atlas.Api.DTOs.Tasks;
-using Atlas.Domain.Enums;
 
 namespace Atlas.Api.Endpoints.Tasks;
 
@@ -25,7 +24,7 @@ public sealed class UpdateTaskEndpoint : Endpoint<UpdateTaskRequest>
 
     public override async Task HandleAsync(UpdateTaskRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
+        Guid id = Route<Guid>("id");
 
         try
         {

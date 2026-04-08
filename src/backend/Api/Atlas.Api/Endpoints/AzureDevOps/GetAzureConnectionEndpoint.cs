@@ -1,5 +1,6 @@
 using Atlas.Api.DTOs.AzureDevOps;
 using Atlas.Application.Features.AzureDevOps.Connection;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.AzureDevOps;
 
@@ -21,7 +22,7 @@ public sealed class GetAzureConnectionEndpoint : EndpointWithoutRequest<AzureCon
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var connection = await _mediator.Send(new GetAzureConnectionQuery(), ct);
+        AzureConnection? connection = await _mediator.Send(new GetAzureConnectionQuery(), ct);
         if (connection is null)
         {
             await Send.NotFoundAsync(ct);

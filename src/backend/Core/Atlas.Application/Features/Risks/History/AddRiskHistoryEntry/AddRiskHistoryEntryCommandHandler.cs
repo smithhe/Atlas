@@ -16,9 +16,9 @@ public sealed class AddRiskHistoryEntryCommandHandler : IRequestHandler<AddRiskH
 
     public async Task<Guid> Handle(AddRiskHistoryEntryCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
+        Risk? risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
         if (risk is null)
         {
             await tx.RollbackAsync(cancellationToken);

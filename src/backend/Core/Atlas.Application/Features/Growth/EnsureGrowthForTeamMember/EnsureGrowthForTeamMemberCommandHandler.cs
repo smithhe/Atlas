@@ -15,10 +15,13 @@ public sealed class EnsureGrowthForTeamMemberCommandHandler : IRequestHandler<En
 
     public async Task<Guid> Handle(EnsureGrowthForTeamMemberCommand request, CancellationToken cancellationToken)
     {
-        var existing = await _growth.GetByTeamMemberIdAsync(request.TeamMemberId, cancellationToken);
-        if (existing is not null) return existing.Id;
+        Domain.Entities.Growth? existing = await _growth.GetByTeamMemberIdAsync(request.TeamMemberId, cancellationToken);
+        if (existing is not null)
+        {
+            return existing.Id;
+        }
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         // Re-check inside the transaction (race safety).
         existing = await _growth.GetByTeamMemberIdAsync(request.TeamMemberId, cancellationToken);

@@ -1,4 +1,4 @@
 namespace Atlas.Api.DTOs.Growth;
 
-public sealed record GetGrowthByIdRequest();
+public sealed record GetGrowthByIdRequest;
 

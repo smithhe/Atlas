@@ -1,6 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
 using Atlas.Domain.Enums;
-using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Settings.GetSettings;
 
@@ -17,10 +16,13 @@ public sealed class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, 
 
     public async Task<Atlas.Domain.Entities.Settings> Handle(GetSettingsQuery request, CancellationToken cancellationToken)
     {
-        var existing = await _settings.GetSingletonAsync(cancellationToken);
-        if (existing is not null) return existing;
+        Domain.Entities.Settings? existing = await _settings.GetSingletonAsync(cancellationToken);
+        if (existing is not null)
+        {
+            return existing;
+        }
 
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
         existing = await _settings.GetSingletonAsync(cancellationToken);
         if (existing is not null)

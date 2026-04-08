@@ -6,7 +6,7 @@ public sealed record TaskDto(
     Guid Id,
     string Title,
     Priority Priority,
-    Atlas.Domain.Enums.TaskStatus Status,
+    Domain.Enums.TaskStatus Status,
     Guid? AssigneeId,
     Guid? ProjectId,
     Guid? RiskId,

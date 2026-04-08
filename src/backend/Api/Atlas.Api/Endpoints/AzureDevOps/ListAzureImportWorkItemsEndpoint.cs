@@ -21,7 +21,7 @@ public sealed class ListAzureImportWorkItemsEndpoint : EndpointWithoutRequest<IR
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var items = await _mediator.Send(new GetAzureImportWorkItemsQuery(), ct);
+        IReadOnlyList<AzureImportWorkItem> items = await _mediator.Send(new GetAzureImportWorkItemsQuery(), ct);
         var dto = items.Select(x => new AzureImportWorkItemDto(
             x.Id,
             x.WorkItemId,

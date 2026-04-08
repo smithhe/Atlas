@@ -21,10 +21,10 @@ public sealed class AddTeamNoteEndpoint : Endpoint<AddTeamNoteRequest, AddTeamNo
 
     public override async Task HandleAsync(AddTeamNoteRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
+        Guid teamMemberId = Route<Guid>("teamMemberId");
         req = req with { TeamMemberId = teamMemberId };
 
-        var id = await _mediator.Send(new AddTeamNoteCommand(req.TeamMemberId, req.Type, req.Title, req.Text), ct);
+        Guid id = await _mediator.Send(new AddTeamNoteCommand(req.TeamMemberId, req.Type, req.Title, req.Text), ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

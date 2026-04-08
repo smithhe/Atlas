@@ -22,8 +22,8 @@ public sealed class GetGrowthByTeamMemberEndpoint : EndpointWithoutRequest<Growt
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        var growth = await _mediator.Send(new GetGrowthByTeamMemberIdQuery(teamMemberId), ct);
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        Domain.Entities.Growth? growth = await _mediator.Send(new GetGrowthByTeamMemberIdQuery(teamMemberId), ct);
         if (growth is null)
         {
             await Send.NotFoundAsync(ct);

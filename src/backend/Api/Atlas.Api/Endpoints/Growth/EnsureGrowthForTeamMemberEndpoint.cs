@@ -21,10 +21,10 @@ public sealed class EnsureGrowthForTeamMemberEndpoint : Endpoint<EnsureGrowthFor
 
     public override async Task HandleAsync(EnsureGrowthForTeamMemberRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        req = req with { TeamMemberId = teamMemberId };
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        req = new EnsureGrowthForTeamMemberRequest(TeamMemberId: teamMemberId);
 
-        var id = await _mediator.Send(new EnsureGrowthForTeamMemberCommand(req.TeamMemberId), ct);
+        Guid id = await _mediator.Send(new EnsureGrowthForTeamMemberCommand(req.TeamMemberId), ct);
         await Send.OkAsync(new EnsureGrowthForTeamMemberResponse(id), ct);
     }
 }

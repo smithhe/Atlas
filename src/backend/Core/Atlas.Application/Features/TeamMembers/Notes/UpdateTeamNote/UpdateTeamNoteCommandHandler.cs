@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.TeamMembers.Notes.UpdateTeamNote;
 
@@ -15,16 +16,16 @@ public sealed class UpdateTeamNoteCommandHandler : IRequestHandler<UpdateTeamNot
 
     public async Task<bool> Handle(UpdateTeamNoteCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var note = member.Notes.FirstOrDefault(n => n.Id == request.NoteId);
+        TeamNote? note = member.Notes.FirstOrDefault(n => n.Id == request.NoteId);
         if (note is null)
         {
             await tx.RollbackAsync(cancellationToken);

@@ -7,17 +7,17 @@ internal static class GrowthMapper
 {
     public static GrowthDto ToDto(Growth g)
     {
-        var goals = (g.Goals ?? [])
+        var goals = (g.Goals)
             .Select(ToGoalDto)
             .ToList();
 
-        var skills = (g.SkillsInProgress ?? [])
+        var skills = (g.SkillsInProgress)
             .OrderBy(x => x.SortOrder)
             .Select(x => x.Value)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToList();
 
-        var themes = (g.FeedbackThemes ?? [])
+        var themes = (g.FeedbackThemes)
             .Select(t => new GrowthFeedbackThemeDto(t.Id, t.Title, t.Description, t.ObservedSinceLabel))
             .ToList();
 
@@ -27,16 +27,16 @@ internal static class GrowthMapper
             goals,
             skills,
             themes,
-            g.FocusAreasMarkdown ?? string.Empty);
+            g.FocusAreasMarkdown);
     }
 
     private static GrowthGoalDto ToGoalDto(GrowthGoal goal)
     {
-        var actions = (goal.Actions ?? [])
+        var actions = (goal.Actions)
             .Select(a => new GrowthGoalActionDto(a.Id, a.Title, a.DueDate, a.State, a.Priority, a.Notes, a.Evidence))
             .ToList();
 
-        var checkIns = (goal.CheckIns ?? [])
+        var checkIns = (goal.CheckIns)
             .Select(c => new GrowthGoalCheckInDto(c.Id, c.Date, c.Signal, c.Note))
             .OrderByDescending(c => c.Date)
             .ToList();
@@ -65,7 +65,10 @@ internal static class GrowthMapper
 
     private static IReadOnlyList<string> SplitBullets(string? text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return [];
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
 
         return text
             .Split('\n')

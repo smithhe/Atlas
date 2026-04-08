@@ -21,10 +21,10 @@ public sealed class AddRiskHistoryEntryEndpoint : Endpoint<AddRiskHistoryEntryRe
 
     public override async Task HandleAsync(AddRiskHistoryEntryRequest req, CancellationToken ct)
     {
-        var riskId = Route<Guid>("riskId");
+        Guid riskId = Route<Guid>("riskId");
         req = req with { RiskId = riskId };
 
-        var id = await _mediator.Send(new AddRiskHistoryEntryCommand(req.RiskId, req.Text), ct);
+        Guid id = await _mediator.Send(new AddRiskHistoryEntryCommand(req.RiskId, req.Text), ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

@@ -16,8 +16,11 @@ public sealed class GetAzureSyncStateQueryHandler : IRequestHandler<GetAzureSync
 
     public async Task<AzureSyncState?> Handle(GetAzureSyncStateQuery request, CancellationToken cancellationToken)
     {
-        var connection = await _connections.GetSingletonAsync(cancellationToken);
-        if (connection is null) return null;
+        AzureConnection? connection = await _connections.GetSingletonAsync(cancellationToken);
+        if (connection is null)
+        {
+            return null;
+        }
 
         return await _syncStates.GetByConnectionIdAsync(connection.Id, cancellationToken);
     }

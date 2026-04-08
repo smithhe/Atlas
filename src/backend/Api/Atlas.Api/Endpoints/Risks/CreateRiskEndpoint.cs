@@ -21,7 +21,7 @@ public sealed class CreateRiskEndpoint : Endpoint<CreateRiskRequest, CreateRiskR
 
     public override async Task HandleAsync(CreateRiskRequest req, CancellationToken ct)
     {
-        var id = await _mediator.Send(new CreateRiskCommand(
+        Guid id = await _mediator.Send(new CreateRiskCommand(
             req.Title,
             req.Status,
             req.Severity,

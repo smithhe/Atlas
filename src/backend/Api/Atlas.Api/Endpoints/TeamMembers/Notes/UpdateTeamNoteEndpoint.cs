@@ -21,8 +21,8 @@ public sealed class UpdateTeamNoteEndpoint : Endpoint<UpdateTeamNoteRequest>
 
     public override async Task HandleAsync(UpdateTeamNoteRequest req, CancellationToken ct)
     {
-        var teamMemberId = Route<Guid>("teamMemberId");
-        var noteId = Route<Guid>("noteId");
+        Guid teamMemberId = Route<Guid>("teamMemberId");
+        Guid noteId = Route<Guid>("noteId");
         req = req with { TeamMemberId = teamMemberId, NoteId = noteId };
 
         var ok = await _mediator.Send(new UpdateTeamNoteCommand(req.TeamMemberId, req.NoteId, req.Type, req.Title, req.Text, req.PinnedOrder), ct);

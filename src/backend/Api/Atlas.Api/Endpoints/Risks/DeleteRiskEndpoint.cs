@@ -21,8 +21,8 @@ public sealed class DeleteRiskEndpoint : Endpoint<DeleteRiskRequest>
 
     public override async Task HandleAsync(DeleteRiskRequest req, CancellationToken ct)
     {
-        var id = Route<Guid>("id");
-        req = req with { Id = id };
+        Guid id = Route<Guid>("id");
+        req = new DeleteRiskRequest(Id: id);
 
         var ok = await _mediator.Send(new DeleteRiskCommand(req.Id), ct);
         if (!ok)

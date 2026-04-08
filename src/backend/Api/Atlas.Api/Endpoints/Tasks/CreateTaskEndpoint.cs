@@ -1,6 +1,5 @@
 using Atlas.Application.Features.Tasks.CreateTask;
 using Atlas.Api.DTOs.Tasks;
-using Atlas.Domain.Enums;
 
 namespace Atlas.Api.Endpoints.Tasks;
 
@@ -27,7 +26,7 @@ public sealed class CreateTaskEndpoint : Endpoint<CreateTaskRequest, CreateTaskR
     {
         try
         {
-            var id = await _mediator.Send(new CreateTaskCommand(
+            Guid id = await _mediator.Send(new CreateTaskCommand(
                 Title: req.Title,
                 Priority: req.Priority,
                 Status: req.Status,

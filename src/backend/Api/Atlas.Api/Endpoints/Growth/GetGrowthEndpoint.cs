@@ -22,8 +22,8 @@ public sealed class GetGrowthEndpoint : EndpointWithoutRequest<GrowthDto>
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var growthId = Route<Guid>("growthId");
-        var growth = await _mediator.Send(new GetGrowthByIdQuery(growthId), ct);
+        Guid growthId = Route<Guid>("growthId");
+        Domain.Entities.Growth? growth = await _mediator.Send(new GetGrowthByIdQuery(growthId), ct);
         if (growth is null)
         {
             await Send.NotFoundAsync(ct);

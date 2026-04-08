@@ -1,4 +1,5 @@
 using Atlas.Application.Abstractions.Persistence;
+using Atlas.Domain.Entities;
 
 namespace Atlas.Application.Features.Growth.Goals.Actions.UpdateGrowthGoalAction;
 
@@ -15,23 +16,23 @@ public sealed class UpdateGrowthGoalActionCommandHandler : IRequestHandler<Updat
 
     public async Task<bool> Handle(UpdateGrowthGoalActionCommand request, CancellationToken cancellationToken)
     {
-        await using var tx = await _uow.BeginTransactionAsync(cancellationToken);
+        await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        var plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
+        GrowthGoal? goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
         if (goal is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return false;
         }
 
-        var action = goal.Actions.FirstOrDefault(x => x.Id == request.ActionId);
+        GrowthGoalAction? action = goal.Actions.FirstOrDefault(x => x.Id == request.ActionId);
         if (action is null)
         {
             await tx.RollbackAsync(cancellationToken);
