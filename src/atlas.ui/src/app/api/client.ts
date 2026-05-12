@@ -10,7 +10,7 @@ export class HttpError extends Error {
   }
 }
 
-function apiBaseUrl(): string {
+export function apiBaseUrl(): string {
   const fromEnv = import.meta.env.VITE_API_BASE_URL
   if (fromEnv?.trim()) {
     return fromEnv.replace(/\/+$/, '')
@@ -25,8 +25,12 @@ function apiBaseUrl(): string {
   return window.location.origin.replace(/\/+$/, '')
 }
 
+export function toApiUrl(path: string): string {
+  return `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+}
+
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+  const url = toApiUrl(path)
   const res = await fetch(url, {
     ...init,
     method: 'GET',
@@ -44,7 +48,7 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function sendJson<T>(path: string, method: 'POST' | 'PUT', body: unknown, init?: RequestInit): Promise<T> {
-  const url = `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+  const url = toApiUrl(path)
   const res = await fetch(url, {
     ...init,
     method,
@@ -76,7 +80,7 @@ export function putJson<T>(path: string, body: unknown, init?: RequestInit): Pro
 }
 
 export async function deleteJson(path: string, init?: RequestInit): Promise<void> {
-  const url = `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
+  const url = toApiUrl(path)
   const res = await fetch(url, {
     ...init,
     method: 'DELETE',

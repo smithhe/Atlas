@@ -1,6 +1,9 @@
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
+using Atlas.Api.Ai;
+using Atlas.Application.Abstractions.Ai;
+using Atlas.Application.Features.Ai.Context;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +70,21 @@ builder.Services.AddDbContext<AtlasDbContext>(options =>
 builder.Services.AddAtlasPersistence();
 builder.Services.AddAzureDevOps();
 builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions.SectionName));
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IAiSessionStore, PersistentAiSessionStore>();
+builder.Services.AddSingleton(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
+    return new AiExecutionGate(options.MaxConcurrentSessions);
+});
+builder.Services.AddSingleton<IAiSessionService, AiSessionService>();
+builder.Services.AddScoped<AiOrchestrator>();
+builder.Services.AddScoped<AiPromptContextResolver>();
+builder.Services.AddScoped<IChatModelClient, OpenAiChatModelClient>();
+builder.Services.AddScoped<IAiPromptContextBuilder, DashboardPromptContextBuilder>();
+builder.Services.AddScoped<IAiPromptContextBuilder, TasksPromptContextBuilder>();
 
 WebApplication app = builder.Build();
 

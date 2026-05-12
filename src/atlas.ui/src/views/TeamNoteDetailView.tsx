@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
-import type { NoteTag, TeamNote } from '../app/types'
+import type { NoteTag } from '../app/types'
 import { Markdown } from '../components/Markdown'
 import { formatReadableDateTime, getDerivedTitle } from '../app/utils'
 
