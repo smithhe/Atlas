@@ -1407,9 +1407,10 @@ select option:disabled {
 .aiPanel {
   border-left: 1px solid var(--border);
   background: var(--panel2);
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 .aiPanelHeader {
@@ -1418,38 +1419,178 @@ select option:disabled {
   align-items: center;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .aiPanelTitle {
   font-weight: var(--weight-semibold);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
 }
 
-.aiPanelActions {
-  padding: 10px 12px;
+.aiPanelHeaderActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.aiPanelBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.aiPanelMeta {
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.aiPanelOutput {
-  overflow: auto;
+.aiPanelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
 }
 
-.aiPanelOutputPre {
-  margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+.aiPanelTurn {
+  margin-bottom: 20px;
+}
+
+.aiPanelTurn:last-child {
+  margin-bottom: 0;
+}
+
+.aiPanelTurnPrompt {
+  margin: 0 0 8px;
   font-size: 12px;
-  color: var(--text);
+  font-weight: var(--weight-semibold);
+  color: var(--muted);
+  line-height: 1.4;
   white-space: pre-wrap;
 }
 
-.aiPanelFooter {
-  padding: 10px 12px;
+.aiPanelTurnResponse {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.aiPanelTurnResponse .markdown {
+  align-self: stretch;
+  width: 100%;
+  font-size: 13px;
+}
+
+.aiPanelTurnResponse .markdown p {
+  margin: 0 0 10px 0;
+}
+
+.aiPanelTurnResponse .markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.aiPanelThinking {
+  align-self: stretch;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.aiPanelEmpty {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aiPanelCopyBtn {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.aiPanelCopyBtn:hover {
+  color: var(--text);
+}
+
+.aiPanelCopyBtnCopied {
+  color: rgba(110, 168, 254, 1);
+}
+
+.aiPanelNotice {
+  color: rgba(255, 140, 140, 0.95);
+  font-size: 12px;
+}
+
+.aiPanelQuickActions {
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  max-height: 96px;
+  overflow: auto;
+}
+
+.aiPanelComposer {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.aiPanelPrompt {
+  min-height: 72px;
+  max-height: 160px;
+  resize: vertical;
+}
+
+.aiPanelSend {
+  align-self: flex-end;
+}
+
+.aiPanelHistory {
+  padding: 8px 12px 10px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.aiPanelHistoryLabel {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.aiPanelHistoryRow {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.aiPanelHistorySelect {
+  flex: 1;
+  min-width: 0;
+}
+
+.aiPanelHistoryRefresh {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .teamGrid {
@@ -3167,7 +3308,7 @@ select option:disabled {
   }
   .aiPanel {
     /* Keep AI accessible on narrow widths (previously it vanished entirely). */
-    display: block;
+    display: flex;
     position: fixed;
     top: 48px; /* .appShell header row */
     right: 0;

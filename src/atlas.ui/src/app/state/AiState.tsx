@@ -17,12 +17,20 @@ interface AiAction {
   description?: string
 }
 
+export interface AiTranscriptTurn {
+  id: string
+  sessionId?: string
+  prompt: string
+  response: string
+}
+
 interface AiState {
   isOpen: boolean
   contextTitle: string
   actions: AiAction[]
   sessions: AiSessionListItemDto[]
-  output: string
+  turns: AiTranscriptTurn[]
+  notice?: string
   status: string
   isRunning: boolean
   isLoadingHistory: boolean
@@ -55,8 +63,10 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpenState] = useState<boolean>(false)
   const [contextTitle, setContextTitle] = useState<string>('Context: Dashboard')
   const [actions, setActions] = useState<AiAction[]>([])
+  const [turns, setTurns] = useState<AiTranscriptTurn[]>([])
+  const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
   const [events, setEvents] = useState<AiSessionEventDto[]>([])
-  const [localOutput, setLocalOutput] = useState<string>('AI ready.\n')
+  const [notice, setNotice] = useState<string>('')
   const [sessions, setSessions] = useState<AiSessionListItemDto[]>([])
   const [status, setStatus] = useState<string>('Idle')
   const [isRunning, setIsRunning] = useState<boolean>(false)
@@ -93,17 +103,24 @@ export function AiProvider({ children }: { children: ReactNode }) {
     setActions(newActions)
   }, [])
 
-  const output = useMemo(() => {
-    const renderedEvents = renderEvents(events)
-    return `${renderedEvents}${localOutput}`
-  }, [events, localOutput])
+  const activeResponse = useMemo(() => renderEvents(events), [events])
+
+  useEffect(() => {
+    if (!activeTurnId) return
+    setTurns((prev) =>
+      prev.map((turn) => (turn.id === activeTurnId ? { ...turn, response: activeResponse } : turn)),
+    )
+  }, [activeTurnId, activeResponse])
 
   const clearOutput = useCallback(() => {
+    setTurns([])
+    setActiveTurnId(null)
     setEvents([])
-    setLocalOutput('')
+    setNotice('')
+    setActiveSessionId(undefined)
   }, [])
 
-  const appendOutput = useCallback((text: string) => setLocalOutput((prev) => prev + text), [])
+  const appendOutput = useCallback((text: string) => setNotice((prev) => (prev ? `${prev}${text}` : text.trimStart())), [])
 
   const closeStream = useCallback(() => {
     eventSourceRef.current?.close()
@@ -151,6 +168,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
 
     if (evt.isTerminal) {
       setIsRunning(false)
+      setActiveTurnId(null)
       closeStream()
       void refreshSessions()
     }
@@ -204,9 +222,18 @@ export function AiProvider({ children }: { children: ReactNode }) {
 
       try {
         const session = await getAiSession(sessionId)
+        const turnId = newTurnId()
+        const loadedTurn: AiTranscriptTurn = {
+          id: turnId,
+          sessionId: session.sessionId,
+          prompt: session.prompt,
+          response: renderEvents(sortEvents(session.events)),
+        }
         setActiveSessionId(session.sessionId)
+        setTurns([loadedTurn])
         setEvents(sortEvents(session.events))
-        setLocalOutput('')
+        setActiveTurnId(session.isTerminal ? null : turnId)
+        setNotice('')
         setStatus(toDisplayStatus(session.status))
         if (!session.isTerminal) {
           setIsRunning(true)
@@ -215,7 +242,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         setStatus('Failed')
-        setLocalOutput((prev) => `${prev}${prev.endsWith('\n') ? '' : '\n'}${err instanceof Error ? err.message : 'Failed to load AI session'}\n`)
+        setNotice(err instanceof Error ? err.message : 'Failed to load AI session')
       } finally {
         setIsLoadingHistory(false)
       }
@@ -230,15 +257,20 @@ export function AiProvider({ children }: { children: ReactNode }) {
     if (!view) {
       setIsOpenState(true)
       setStatus('Unsupported context')
-      setLocalOutput((prev) => `${prev}${prev.endsWith('\n') ? '' : '\n'}AI context is currently available for Dashboard and Tasks.\n`)
+      setNotice('AI context is currently available for Dashboard and Tasks.')
       return
     }
+
+    const turnId = newTurnId()
+    const nextTurn: AiTranscriptTurn = { id: turnId, prompt: trimmedPrompt, response: '' }
 
     setIsOpenState(true)
     setIsRunning(true)
     setStatus('Starting...')
+    setTurns((prev) => [...prev, nextTurn])
+    setActiveTurnId(turnId)
     setEvents([])
-    setLocalOutput(`---\n${new Date().toLocaleString()}\n${contextTitleRef.current}\n`)
+    setNotice('')
 
     closeStream()
 
@@ -254,13 +286,16 @@ export function AiProvider({ children }: { children: ReactNode }) {
       })
 
       setActiveSessionId(res.sessionId)
+      setTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, sessionId: res.sessionId } : t)))
       setStatus('Connecting to stream...')
       await refreshSessions()
       connectStream(res.sessionId)
     } catch (err) {
       setStatus('Failed')
       setIsRunning(false)
-      setLocalOutput((prev) => `${prev}${prev.endsWith('\n') ? '' : '\n'}${err instanceof Error ? err.message : 'Failed to start AI session'}\n`)
+      setActiveTurnId(null)
+      setTurns((prev) => prev.filter((t) => t.id !== turnId))
+      setNotice(err instanceof Error ? err.message : 'Failed to start AI session')
     }
   }, [closeStream, connectStream, refreshSessions, resolveView, selectedProjectId, selectedRiskId, selectedTaskId, selectedTeamMemberId])
 
@@ -281,7 +316,8 @@ export function AiProvider({ children }: { children: ReactNode }) {
         contextTitle,
         actions,
         sessions,
-        output,
+        turns,
+        notice: notice || undefined,
         status,
         isRunning,
         isLoadingHistory,
@@ -302,10 +338,14 @@ export function AiProvider({ children }: { children: ReactNode }) {
       clearOutput,
       appendOutput,
     }),
-    [actions, activeSessionId, appendOutput, clearOutput, contextSupportMessage, contextTitle, isContextSupported, isLoadingHistory, isOpen, isRunning, loadSessions, openSession, output, panelWidthPx, promptDraft, runAction, sendPrompt, sessions, setContext, setIsOpen, status],
+    [actions, activeSessionId, appendOutput, clearOutput, contextSupportMessage, contextTitle, isContextSupported, isLoadingHistory, isOpen, isRunning, loadSessions, notice, openSession, panelWidthPx, promptDraft, runAction, sendPrompt, sessions, setContext, setIsOpen, status, turns],
   )
 
   return <AiContext.Provider value={api}>{children}</AiContext.Provider>
+}
+
+function newTurnId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `turn-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 function sortEvents(events: AiSessionEventDto[]): AiSessionEventDto[] {
@@ -327,12 +367,12 @@ function renderEvents(events: AiSessionEventDto[]): string {
   if (events.length === 0) return ''
 
   return sortEvents(events).reduce((text, evt) => {
-    if (evt.message) {
-      return `${text}${text.endsWith('\n') || text.length === 0 ? '' : '\n'}${evt.message}\n`
+    if (evt.type === 'model.delta' && evt.delta) {
+      return text + evt.delta
     }
 
-    if (evt.delta) {
-      return text + evt.delta
+    if ((evt.type === 'session.failed' || evt.type === 'session.cancelled') && evt.message) {
+      return `${text}${text.endsWith('\n') || text.length === 0 ? '' : '\n'}${evt.message}\n`
     }
 
     return text
