@@ -29,13 +29,31 @@ public sealed class AiSessionRepository : IAiSessionRepository
             .FirstOrDefaultAsync(x => x.Id == sessionId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<AiSession>> ListRecentAsync(int take, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<AiSession>> ListByConversationIdWithEventsAsync(Guid conversationId, CancellationToken cancellationToken = default)
     {
-        int safeTake = Math.Clamp(take, 1, 100);
         return await _db.AiSessions
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .Take(safeTake)
+            .Where(x => x.ConversationId == conversationId)
+            .Include(x => x.Events.OrderBy(e => e.Sequence))
+            .OrderBy(x => x.TurnIndex)
             .ToListAsync(cancellationToken);
+    }
+
+    public Task<AiSession?> GetLatestTurnAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        return _db.AiSessions
+            .Where(x => x.ConversationId == conversationId)
+            .OrderByDescending(x => x.TurnIndex)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<int> GetNextTurnIndexAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        int? maxIndex = await _db.AiSessions
+            .Where(x => x.ConversationId == conversationId)
+            .Select(x => (int?)x.TurnIndex)
+            .MaxAsync(cancellationToken);
+
+        return (maxIndex ?? -1) + 1;
     }
 
     public async Task<IReadOnlyList<AiSessionEvent>> ListEventsAsync(Guid sessionId, int? afterSequence = null, CancellationToken cancellationToken = default)

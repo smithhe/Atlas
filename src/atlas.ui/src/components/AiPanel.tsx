@@ -15,16 +15,16 @@ export function AiPanel() {
   const ai = useAi()
   const {
     actions,
-    activeSessionId,
+    activeConversationId,
     contextSupportMessage,
     contextTitle,
+    conversations,
     isContextSupported,
     isLoadingHistory,
     isOpen,
     isRunning,
     notice,
     promptDraft,
-    sessions,
     status,
     turns,
   } = ai.state
@@ -63,6 +63,9 @@ export function AiPanel() {
           <button className="btn btnSecondary" onClick={() => ai.appendOutput('\n(Insert Draft action can be wired next.)\n')}>
             Insert Draft
           </button>
+          <button className="btn btnGhost" onClick={() => ai.startNewSession()} disabled={isRunning}>
+            New session
+          </button>
           <button className="btn btnGhost" onClick={() => ai.clearOutput()}>
             Clear
           </button>
@@ -76,6 +79,7 @@ export function AiPanel() {
         <div className="aiPanelMeta">
           <div className="mutedSmall">
             Status: {status}{isRunning ? ' (running)' : ''}
+            {activeConversationId ? ' · In conversation' : ''}
           </div>
           {contextSupportMessage ? <div className="mutedSmall">{contextSupportMessage}</div> : null}
           {notice ? <div className="aiPanelNotice">{notice}</div> : null}
@@ -145,29 +149,30 @@ export function AiPanel() {
           </button>
         </div>
 
-        {sessions.length > 0 ? (
+        {conversations.length > 0 ? (
           <div className="aiPanelHistory">
-            <label className="aiPanelHistoryLabel mutedSmall" htmlFor="ai-session-select">
-              Session history
+            <label className="aiPanelHistoryLabel mutedSmall" htmlFor="ai-conversation-select">
+              Conversations
             </label>
             <div className="aiPanelHistoryRow">
               <select
-                id="ai-session-select"
+                id="ai-conversation-select"
                 className="input aiPanelHistorySelect"
-                value={activeSessionId ?? ''}
+                value={activeConversationId ?? ''}
                 disabled={isLoadingHistory || isRunning}
                 onChange={(e) => {
-                  if (e.target.value) ai.openSession(e.target.value)
+                  if (e.target.value) ai.openConversation(e.target.value)
                 }}
               >
-                <option value="">Recent sessions…</option>
-                {sessions.map((session) => (
-                  <option key={session.sessionId} value={session.sessionId}>
-                    {new Date(session.createdAtUtc).toLocaleString()} — {session.title}
+                <option value="">Recent conversations…</option>
+                {conversations.map((conversation) => (
+                  <option key={conversation.conversationId} value={conversation.conversationId}>
+                    {new Date(conversation.updatedAtUtc).toLocaleString()} — {conversation.title}
+                    {conversation.turnCount > 1 ? ` (${conversation.turnCount} turns)` : ''}
                   </option>
                 ))}
               </select>
-              <button className="btn btnSecondary aiPanelHistoryRefresh" disabled={isLoadingHistory} onClick={() => ai.loadSessions()}>
+              <button className="btn btnSecondary aiPanelHistoryRefresh" disabled={isLoadingHistory} onClick={() => ai.loadConversations()}>
                 Refresh
               </button>
             </div>

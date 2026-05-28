@@ -18,15 +18,19 @@ public sealed class PersistentAiSessionStore : IAiSessionStore
         _scopeFactory = scopeFactory;
     }
 
-    public async Task CreateSessionAsync(Guid sessionId, AiSessionStartRequest request, CancellationToken cancellationToken)
+    public async Task CreateTurnAsync(Guid sessionId, AiSessionStartRequest request, CancellationToken cancellationToken)
     {
         using IServiceScope scope = _scopeFactory.CreateScope();
         IAiSessionRepository sessions = scope.ServiceProvider.GetRequiredService<IAiSessionRepository>();
+        IAiConversationRepository conversations = scope.ServiceProvider.GetRequiredService<IAiConversationRepository>();
         IUnitOfWork uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
+        DateTimeOffset now = DateTimeOffset.UtcNow;
         var session = new DomainAiSession
         {
             Id = sessionId,
+            ConversationId = request.ConversationId,
+            TurnIndex = request.TurnIndex,
             Title = BuildTitle(request.Prompt),
             Prompt = request.Prompt,
             View = request.View.ToString(),
@@ -35,12 +39,13 @@ public sealed class PersistentAiSessionStore : IAiSessionStore
             ProjectId = request.ProjectId,
             RiskId = request.RiskId,
             TeamMemberId = request.TeamMemberId,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
+            CreatedAtUtc = now,
             Status = "created",
             IsTerminal = false,
         };
 
         await sessions.AddAsync(session, cancellationToken);
+        await conversations.TouchUpdatedAtAsync(request.ConversationId, now, cancellationToken);
         await uow.SaveChangesAsync(cancellationToken);
     }
 

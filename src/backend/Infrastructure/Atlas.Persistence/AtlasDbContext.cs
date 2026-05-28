@@ -43,6 +43,7 @@ public sealed class AtlasDbContext : DbContext
 
     public DbSet<ProductOwner> ProductOwners => Set<ProductOwner>();
     public DbSet<Settings> Settings => Set<Settings>();
+    public DbSet<AiConversation> AiConversations => Set<AiConversation>();
     public DbSet<AiSession> AiSessions => Set<AiSession>();
     public DbSet<AiSessionEvent> AiSessionEvents => Set<AiSessionEvent>();
 

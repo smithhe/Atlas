@@ -4,6 +4,10 @@ namespace Atlas.Domain.Entities;
 
 public sealed class AiSession : AggregateRoot
 {
+    public Guid ConversationId { get; set; }
+    public AiConversation? Conversation { get; set; }
+    public int TurnIndex { get; set; }
+
     public string Title { get; set; } = string.Empty;
     public string Prompt { get; set; } = string.Empty;
     public string View { get; set; } = string.Empty;

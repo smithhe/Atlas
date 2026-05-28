@@ -14,6 +14,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IAiSessionRepository, AiSessionRepository>();
+        services.AddScoped<IAiConversationRepository, AiConversationRepository>();
         services.AddScoped<IAzureConnectionRepository, AzureConnectionRepository>();
         services.AddScoped<IAzureSyncStateRepository, AzureSyncStateRepository>();
         services.AddScoped<IAzureWorkItemRepository, AzureWorkItemRepository>();

@@ -1,4 +1,8 @@
 using Atlas.Application.Abstractions.Ai;
+using Atlas.Application.Abstractions.Persistence;
+using Atlas.Application.Features.Ai;
+using Atlas.Domain.Entities;
+using AppAiSessionEvent = Atlas.Application.Abstractions.Ai.AiSessionEvent;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 
@@ -7,6 +11,9 @@ namespace Atlas.Api.Ai;
 public sealed class AiOrchestrator
 {
     private readonly IAiSessionStore _store;
+    private readonly IAiSessionRepository _sessions;
+    private readonly IAiConversationRepository _conversations;
+    private readonly IUnitOfWork _uow;
     private readonly AiPromptContextResolver _contextResolver;
     private readonly IChatModelClient _modelClient;
     private readonly AiExecutionGate _executionGate;
@@ -15,6 +22,9 @@ public sealed class AiOrchestrator
 
     public AiOrchestrator(
         IAiSessionStore store,
+        IAiSessionRepository sessions,
+        IAiConversationRepository conversations,
+        IUnitOfWork uow,
         AiPromptContextResolver contextResolver,
         IChatModelClient modelClient,
         AiExecutionGate executionGate,
@@ -22,6 +32,9 @@ public sealed class AiOrchestrator
         ILogger<AiOrchestrator> logger)
     {
         _store = store;
+        _sessions = sessions;
+        _conversations = conversations;
+        _uow = uow;
         _contextResolver = contextResolver;
         _modelClient = modelClient;
         _executionGate = executionGate;
@@ -32,7 +45,7 @@ public sealed class AiOrchestrator
     public async Task RunSessionAsync(Guid sessionId, AiSessionStartRequest request, CancellationToken cancellationToken)
     {
         DateTimeOffset startedAt = DateTimeOffset.UtcNow;
-        await _store.PublishEventAsync(new AiSessionEvent(
+        await _store.PublishEventAsync(new AppAiSessionEvent(
             EventId: Guid.Empty,
             SessionId: sessionId,
             Sequence: 0,
@@ -43,22 +56,51 @@ public sealed class AiOrchestrator
 
         try
         {
-            await _store.PublishEventAsync(new AiSessionEvent(
-                EventId: Guid.Empty,
-                SessionId: sessionId,
-                Sequence: 0,
-                Type: "context.gathering",
-                OccurredAtUtc: DateTimeOffset.UtcNow,
-                Status: "gathering_context",
-                Message: "Gathering context."), cancellationToken);
+            IReadOnlyList<AiChatMessage> messages;
+            if (request.TurnIndex == 0)
+            {
+                await _store.PublishEventAsync(new AppAiSessionEvent(
+                    EventId: Guid.Empty,
+                    SessionId: sessionId,
+                    Sequence: 0,
+                    Type: "context.gathering",
+                    OccurredAtUtc: DateTimeOffset.UtcNow,
+                    Status: "gathering_context",
+                    Message: "Gathering context."), cancellationToken);
 
-            string context = await _contextResolver.BuildContextAsync(request, cancellationToken);
-            context = TrimToMax(context, _options.MaxContextChars);
+                string context = await _contextResolver.BuildContextAsync(request, cancellationToken);
+                context = TrimToMax(context, _options.MaxContextChars);
 
-            string userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
-            string composedPrompt = BuildUserPrompt(request, context, userPrompt);
+                string userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
+                string composedPrompt = AiConversationMessageBuilder.BuildComposedUserPrompt(request, context, userPrompt);
+                messages = AiConversationMessageBuilder.BuildTurnZeroMessages(_options.SystemPrompt, composedPrompt);
+            }
+            else
+            {
+                await _store.PublishEventAsync(new AppAiSessionEvent(
+                    EventId: Guid.Empty,
+                    SessionId: sessionId,
+                    Sequence: 0,
+                    Type: "history.loading",
+                    OccurredAtUtc: DateTimeOffset.UtcNow,
+                    Status: "using_history",
+                    Message: "Using conversation history."), cancellationToken);
 
-            await _store.PublishEventAsync(new AiSessionEvent(
+                IReadOnlyList<AiSession> priorTurns = await _sessions.ListByConversationIdWithEventsAsync(request.ConversationId, cancellationToken);
+                var history = priorTurns
+                    .Where(t => t.TurnIndex < request.TurnIndex && t.IsTerminal)
+                    .Select(t => new AiConversationTurnHistory(t.Prompt, ExtractAssistantResponse(t.Events)))
+                    .ToList();
+
+                string userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
+                messages = AiConversationMessageBuilder.BuildFollowUpMessages(
+                    _options.SystemPrompt,
+                    history,
+                    userPrompt,
+                    _options.MaxContextChars);
+            }
+
+            await _store.PublishEventAsync(new AppAiSessionEvent(
                 EventId: Guid.Empty,
                 SessionId: sessionId,
                 Sequence: 0,
@@ -71,14 +113,14 @@ public sealed class AiOrchestrator
 
             await foreach (string delta in _modelClient.GenerateStreamingAsync(new AiModelRequest(
                                SystemPrompt: _options.SystemPrompt,
-                               UserPrompt: composedPrompt), cancellationToken))
+                               Messages: messages), cancellationToken))
             {
                 if (string.IsNullOrEmpty(delta))
                 {
                     continue;
                 }
 
-                await _store.PublishEventAsync(new AiSessionEvent(
+                await _store.PublishEventAsync(new AppAiSessionEvent(
                     EventId: Guid.Empty,
                     SessionId: sessionId,
                     Sequence: 0,
@@ -89,7 +131,7 @@ public sealed class AiOrchestrator
             }
 
             TimeSpan elapsed = DateTimeOffset.UtcNow - startedAt;
-            await _store.PublishEventAsync(new AiSessionEvent(
+            await _store.PublishEventAsync(new AppAiSessionEvent(
                 EventId: Guid.Empty,
                 SessionId: sessionId,
                 Sequence: 0,
@@ -98,10 +140,13 @@ public sealed class AiOrchestrator
                 Status: "completed",
                 Message: $"Completed in {elapsed.TotalSeconds:F1}s.",
                 IsTerminal: true), cancellationToken);
+
+            await _conversations.TouchUpdatedAtAsync(request.ConversationId, DateTimeOffset.UtcNow, cancellationToken);
+            await _uow.SaveChangesAsync(cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            await _store.PublishEventAsync(new AiSessionEvent(
+            await _store.PublishEventAsync(new AppAiSessionEvent(
                 EventId: Guid.Empty,
                 SessionId: sessionId,
                 Sequence: 0,
@@ -114,7 +159,7 @@ public sealed class AiOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "AI session {SessionId} failed", sessionId);
-            await _store.PublishEventAsync(new AiSessionEvent(
+            await _store.PublishEventAsync(new AppAiSessionEvent(
                 EventId: Guid.Empty,
                 SessionId: sessionId,
                 Sequence: 0,
@@ -126,6 +171,14 @@ public sealed class AiOrchestrator
         }
     }
 
+    private static string ExtractAssistantResponse(IEnumerable<Atlas.Domain.Entities.AiSessionEvent> events)
+    {
+        return string.Concat(events
+            .OrderBy(e => e.Sequence)
+            .Where(e => e.Type == "model.delta" && !string.IsNullOrEmpty(e.Delta))
+            .Select(e => e.Delta));
+    }
+
     private static string TrimToMax(string value, int maxChars)
     {
         if (string.IsNullOrEmpty(value) || value.Length <= maxChars)
@@ -135,16 +188,4 @@ public sealed class AiOrchestrator
 
         return value[..maxChars];
     }
-
-    private static string BuildUserPrompt(AiSessionStartRequest request, string context, string userPrompt)
-    {
-        return
-            $"Atlas view: {request.View}\n" +
-            $"Action: {(string.IsNullOrWhiteSpace(request.ActionId) ? "none" : request.ActionId)}\n\n" +
-            "Context:\n" +
-            $"{context}\n\n" +
-            "User request:\n" +
-            $"{userPrompt}";
-    }
 }
-

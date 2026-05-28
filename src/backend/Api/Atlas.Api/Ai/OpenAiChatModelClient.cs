@@ -36,11 +36,7 @@ public sealed class OpenAiChatModelClient : IChatModelClient
         {
             model = _options.Model,
             temperature = 0.2,
-            messages = new object[]
-            {
-                new { role = "system", content = request.SystemPrompt },
-                new { role = "user", content = request.UserPrompt }
-            }
+            messages = request.Messages.Select(m => new { role = m.Role, content = m.Content }).ToArray(),
         };
 
         using HttpClient client = _httpClientFactory.CreateClient();
@@ -97,4 +93,3 @@ public sealed class OpenAiChatModelClient : IChatModelClient
         }
     }
 }
-

@@ -2,12 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { ReactNode } from 'react'
 import { useAppHydration, useAppState } from './AppState'
 import {
-  getAiSession,
-  listAiSessions,
+  continueAiConversation,
+  createAiConversation,
+  getAiConversation,
+  listAiConversations,
   openAiSessionEvents,
-  startAiSession,
+  type AiConversationListItemDto,
   type AiSessionEventDto,
-  type AiSessionListItemDto,
   type AiView,
 } from '../api/ai'
 
@@ -28,12 +29,13 @@ interface AiState {
   isOpen: boolean
   contextTitle: string
   actions: AiAction[]
-  sessions: AiSessionListItemDto[]
+  conversations: AiConversationListItemDto[]
   turns: AiTranscriptTurn[]
   notice?: string
   status: string
   isRunning: boolean
   isLoadingHistory: boolean
+  activeConversationId?: string
   activeSessionId?: string
   promptDraft: string
   isContextSupported: boolean
@@ -47,8 +49,9 @@ interface AiApi {
   setPanelWidthPx: (px: number | undefined) => void
   setContext: (contextTitle: string, actions: AiAction[]) => void
   setPromptDraft: (text: string) => void
-  loadSessions: () => void
-  openSession: (sessionId: string) => void
+  loadConversations: () => void
+  openConversation: (conversationId: string) => void
+  startNewSession: () => void
   runAction: (actionId: string, promptOverride?: string) => void
   sendPrompt: (prompt: string) => void
   clearOutput: () => void
@@ -67,10 +70,11 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [activeTurnId, setActiveTurnId] = useState<string | null>(null)
   const [events, setEvents] = useState<AiSessionEventDto[]>([])
   const [notice, setNotice] = useState<string>('')
-  const [sessions, setSessions] = useState<AiSessionListItemDto[]>([])
+  const [conversations, setConversations] = useState<AiConversationListItemDto[]>([])
   const [status, setStatus] = useState<string>('Idle')
   const [isRunning, setIsRunning] = useState<boolean>(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false)
+  const [activeConversationId, setActiveConversationId] = useState<string | undefined>(undefined)
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
   const [promptDraft, setPromptDraft] = useState<string>('')
   const [panelWidthPx, setPanelWidthPx] = useState<number | undefined>(undefined)
@@ -78,14 +82,18 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const appliedStartupPreferenceRef = useRef(false)
   const eventSourceRef = useRef<EventSource | null>(null)
 
-  // Keep latest values accessible to stable callbacks.
   const actionsRef = useRef<AiAction[]>(actions)
   const contextTitleRef = useRef<string>(contextTitle)
+  const activeConversationIdRef = useRef<string | undefined>(activeConversationId)
 
   useEffect(() => {
     actionsRef.current = actions
     contextTitleRef.current = contextTitle
   }, [actions, contextTitle])
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId
+  }, [activeConversationId])
 
   useEffect(() => {
     if (isHydrating || appliedStartupPreferenceRef.current || userChangedIsOpenRef.current) return
@@ -127,6 +135,18 @@ export function AiProvider({ children }: { children: ReactNode }) {
     eventSourceRef.current = null
   }, [])
 
+  const startNewSession = useCallback(() => {
+    closeStream()
+    setTurns([])
+    setActiveTurnId(null)
+    setEvents([])
+    setNotice('')
+    setActiveConversationId(undefined)
+    setActiveSessionId(undefined)
+    setStatus('Idle')
+    setIsRunning(false)
+  }, [closeStream])
+
   useEffect(() => {
     return () => {
       closeStream()
@@ -144,10 +164,10 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const isContextSupported = Boolean(resolvedView)
   const contextSupportMessage = isContextSupported ? undefined : 'AI context is currently available for Dashboard and Tasks.'
 
-  const refreshSessions = useCallback(async () => {
+  const refreshConversations = useCallback(async () => {
     try {
-      const recent = await listAiSessions(25)
-      setSessions(recent)
+      const recent = await listAiConversations(25)
+      setConversations(recent)
     } catch {
       // History is useful but non-critical; active prompts can still run.
     }
@@ -158,6 +178,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
 
     if (evt.status) {
       if (evt.status === 'gathering_context') setStatus('Gathering context...')
+      else if (evt.status === 'using_history') setStatus('Using conversation history...')
       else if (evt.status === 'model_requested') setStatus('Calling model...')
       else if (evt.status === 'streaming') setStatus('Streaming response...')
       else if (evt.status === 'completed') setStatus('Completed')
@@ -170,9 +191,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
       setIsRunning(false)
       setActiveTurnId(null)
       closeStream()
-      void refreshSessions()
+      void refreshConversations()
     }
-  }, [closeStream, refreshSessions])
+  }, [closeStream, refreshConversations])
 
   const connectStream = useCallback((sessionId: string) => {
     closeStream()
@@ -192,6 +213,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     es.onmessage = (event) => processPayload(event.data)
     es.addEventListener('session.started', (event) => processPayload((event as MessageEvent).data))
     es.addEventListener('context.gathering', (event) => processPayload((event as MessageEvent).data))
+    es.addEventListener('history.loading', (event) => processPayload((event as MessageEvent).data))
     es.addEventListener('model.requested', (event) => processPayload((event as MessageEvent).data))
     es.addEventListener('model.delta', (event) => processPayload((event as MessageEvent).data))
     es.addEventListener('session.completed', (event) => processPayload((event as MessageEvent).data))
@@ -203,17 +225,17 @@ export function AiProvider({ children }: { children: ReactNode }) {
     }
   }, [closeStream, onSessionEvent])
 
-  const loadSessions = useCallback(() => {
-    void refreshSessions()
-  }, [refreshSessions])
+  const loadConversations = useCallback(() => {
+    void refreshConversations()
+  }, [refreshConversations])
 
   useEffect(() => {
     if (isOpen) {
-      void refreshSessions()
+      void refreshConversations()
     }
-  }, [isOpen, refreshSessions])
+  }, [isOpen, refreshConversations])
 
-  const openSession = useCallback((sessionId: string) => {
+  const openConversation = useCallback((conversationId: string) => {
     void (async () => {
       closeStream()
       setIsLoadingHistory(true)
@@ -221,35 +243,44 @@ export function AiProvider({ children }: { children: ReactNode }) {
       setIsRunning(false)
 
       try {
-        const session = await getAiSession(sessionId)
-        const turnId = newTurnId()
-        const loadedTurn: AiTranscriptTurn = {
-          id: turnId,
-          sessionId: session.sessionId,
-          prompt: session.prompt,
-          response: renderEvents(sortEvents(session.events)),
-        }
-        setActiveSessionId(session.sessionId)
-        setTurns([loadedTurn])
-        setEvents(sortEvents(session.events))
-        setActiveTurnId(session.isTerminal ? null : turnId)
-        setNotice('')
-        setStatus(toDisplayStatus(session.status))
-        if (!session.isTerminal) {
-          setIsRunning(true)
+        const conversation = await getAiConversation(conversationId)
+        const loadedTurns: AiTranscriptTurn[] = conversation.turns.map((turn) => ({
+          id: newTurnId(),
+          sessionId: turn.sessionId,
+          prompt: turn.prompt,
+          response: renderEvents(sortEvents(turn.events)),
+        }))
+
+        setActiveConversationId(conversation.conversationId)
+        setTurns(loadedTurns)
+
+        const lastTurn = conversation.turns[conversation.turns.length - 1]
+        if (lastTurn && !lastTurn.isTerminal) {
+          const uiTurnId = loadedTurns[loadedTurns.length - 1]?.id ?? null
+          setActiveTurnId(uiTurnId)
+          setActiveSessionId(lastTurn.sessionId)
+          setEvents(sortEvents(lastTurn.events))
           setStatus('Reconnecting to stream...')
-          connectStream(session.sessionId)
+          setIsRunning(true)
+          connectStream(lastTurn.sessionId)
+        } else {
+          setActiveTurnId(null)
+          setActiveSessionId(lastTurn?.sessionId)
+          setEvents([])
+          setStatus(toDisplayStatus(lastTurn?.status ?? 'completed'))
         }
+
+        setNotice('')
       } catch (err) {
         setStatus('Failed')
-        setNotice(err instanceof Error ? err.message : 'Failed to load AI session')
+        setNotice(err instanceof Error ? err.message : 'Failed to load AI conversation')
       } finally {
         setIsLoadingHistory(false)
       }
     })()
   }, [closeStream, connectStream])
 
-  const startSession = useCallback(async (prompt: string, actionId?: string) => {
+  const sendTurn = useCallback(async (prompt: string, actionId?: string) => {
     const trimmedPrompt = prompt.trim()
     if (!trimmedPrompt) return
 
@@ -275,39 +306,50 @@ export function AiProvider({ children }: { children: ReactNode }) {
     closeStream()
 
     try {
-      const res = await startAiSession({
-        prompt: trimmedPrompt,
-        view,
-        actionId,
-        taskId: selectedTaskId,
-        projectId: selectedProjectId,
-        riskId: selectedRiskId,
-        teamMemberId: selectedTeamMemberId,
-      })
+      const conversationId = activeConversationIdRef.current
+      let turnSessionId: string
 
-      setActiveSessionId(res.sessionId)
-      setTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, sessionId: res.sessionId } : t)))
+      if (conversationId) {
+        const res = await continueAiConversation(conversationId, { prompt: trimmedPrompt })
+        turnSessionId = res.turnSessionId
+      } else {
+        const res = await createAiConversation({
+          prompt: trimmedPrompt,
+          view,
+          actionId,
+          taskId: selectedTaskId,
+          projectId: selectedProjectId,
+          riskId: selectedRiskId,
+          teamMemberId: selectedTeamMemberId,
+        })
+        setActiveConversationId(res.conversationId)
+        activeConversationIdRef.current = res.conversationId
+        turnSessionId = res.turnSessionId
+      }
+
+      setActiveSessionId(turnSessionId)
+      setTurns((prev) => prev.map((t) => (t.id === turnId ? { ...t, sessionId: turnSessionId } : t)))
       setStatus('Connecting to stream...')
-      await refreshSessions()
-      connectStream(res.sessionId)
+      await refreshConversations()
+      connectStream(turnSessionId)
     } catch (err) {
       setStatus('Failed')
       setIsRunning(false)
       setActiveTurnId(null)
       setTurns((prev) => prev.filter((t) => t.id !== turnId))
-      setNotice(err instanceof Error ? err.message : 'Failed to start AI session')
+      setNotice(err instanceof Error ? err.message : 'Failed to send AI message')
     }
-  }, [closeStream, connectStream, refreshSessions, resolveView, selectedProjectId, selectedRiskId, selectedTaskId, selectedTeamMemberId])
+  }, [closeStream, connectStream, refreshConversations, resolveView, selectedProjectId, selectedRiskId, selectedTaskId, selectedTeamMemberId])
 
   const runAction = useCallback((actionId: string, promptOverride?: string) => {
     const action = actionsRef.current.find((a) => a.id === actionId)
     const prompt = promptOverride?.trim() || `Please help with this action: ${action?.label ?? actionId}`
-    void startSession(prompt, actionId)
-  }, [startSession])
+    void sendTurn(prompt, actionId)
+  }, [sendTurn])
 
   const sendPrompt = useCallback((prompt: string) => {
-    void startSession(prompt)
-  }, [startSession])
+    void sendTurn(prompt)
+  }, [sendTurn])
 
   const api = useMemo<AiApi>(
     () => ({
@@ -315,12 +357,13 @@ export function AiProvider({ children }: { children: ReactNode }) {
         isOpen,
         contextTitle,
         actions,
-        sessions,
+        conversations,
         turns,
         notice: notice || undefined,
         status,
         isRunning,
         isLoadingHistory,
+        activeConversationId,
         activeSessionId,
         promptDraft,
         isContextSupported,
@@ -331,14 +374,40 @@ export function AiProvider({ children }: { children: ReactNode }) {
       setPanelWidthPx,
       setContext,
       setPromptDraft,
-      loadSessions,
-      openSession,
+      loadConversations,
+      openConversation,
+      startNewSession,
       runAction,
       sendPrompt,
       clearOutput,
       appendOutput,
     }),
-    [actions, activeSessionId, appendOutput, clearOutput, contextSupportMessage, contextTitle, isContextSupported, isLoadingHistory, isOpen, isRunning, loadSessions, notice, openSession, panelWidthPx, promptDraft, runAction, sendPrompt, sessions, setContext, setIsOpen, status, turns],
+    [
+      actions,
+      activeConversationId,
+      activeSessionId,
+      appendOutput,
+      clearOutput,
+      contextSupportMessage,
+      contextTitle,
+      conversations,
+      isContextSupported,
+      isLoadingHistory,
+      isOpen,
+      isRunning,
+      loadConversations,
+      notice,
+      openConversation,
+      panelWidthPx,
+      promptDraft,
+      runAction,
+      sendPrompt,
+      setContext,
+      setIsOpen,
+      startNewSession,
+      status,
+      turns,
+    ],
   )
 
   return <AiContext.Provider value={api}>{children}</AiContext.Provider>
@@ -381,6 +450,7 @@ function renderEvents(events: AiSessionEventDto[]): string {
 
 function toDisplayStatus(status: string): string {
   if (status === 'gathering_context') return 'Gathering context...'
+  if (status === 'using_history') return 'Using conversation history...'
   if (status === 'model_requested') return 'Calling model...'
   if (status === 'streaming') return 'Streaming response...'
   if (status === 'completed') return 'Completed'
@@ -394,5 +464,3 @@ export function useAi(): AiApi {
   if (!ctx) throw new Error('useAi must be used within AiProvider')
   return ctx
 }
-
-

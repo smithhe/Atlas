@@ -79,7 +79,7 @@ builder.Services.AddSingleton(sp =>
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
     return new AiExecutionGate(options.MaxConcurrentSessions);
 });
-builder.Services.AddSingleton<IAiSessionService, AiSessionService>();
+builder.Services.AddSingleton<IAiConversationService, AiConversationService>();
 builder.Services.AddScoped<AiOrchestrator>();
 builder.Services.AddScoped<AiPromptContextResolver>();
 builder.Services.AddScoped<IChatModelClient, OpenAiChatModelClient>();

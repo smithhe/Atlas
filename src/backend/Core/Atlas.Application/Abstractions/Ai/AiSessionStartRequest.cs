@@ -1,6 +1,8 @@
 namespace Atlas.Application.Abstractions.Ai;
 
 public sealed record AiSessionStartRequest(
+    Guid ConversationId,
+    int TurnIndex,
     string Prompt,
     AiViewScope View,
     string? ActionId,
