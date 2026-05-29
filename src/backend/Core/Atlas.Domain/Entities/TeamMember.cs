@@ -32,5 +32,7 @@ public sealed class TeamMember : AggregateRoot
     /// Linked Azure work items assigned to this member.
     /// </summary>
     public List<AzureWorkItemLink> AzureWorkItemLinks { get; set; } = [];
+
+    public List<AzureWorkItemLocalNote> AzureWorkItemLocalNotes { get; set; } = [];
 }
 

@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { TeamMemberRisk } from '../app/types'
-import { daysSince, formatIsoDate } from '../app/utils'
+import { updateTeamMemberRisk } from '../app/api/teamMembers'
+import { daysSince, formatIsoDate, reportSaveError } from '../app/utils'
 
 function severityClass(sev: TeamMemberRisk['severity']) {
   return sev.toLowerCase()
@@ -92,9 +93,29 @@ export function TeamMemberRiskDetailView() {
     setDraft(undefined)
   }
 
+  function persistRisk(next: TeamMemberRisk) {
+    if (!memberId) return
+    dispatch({ type: 'updateTeamMemberRisk', teamMemberRisk: next })
+    void updateTeamMemberRisk(memberId, next.id, {
+      title: next.title,
+      severity: next.severity,
+      riskType: next.riskType,
+      status: next.status,
+      trend: next.trend,
+      firstNoticedDateIso: next.firstNoticedDateIso,
+      impactArea: next.impactArea,
+      description: next.description,
+      currentAction: next.currentAction,
+      linkedRiskId: next.linkedRiskId,
+      lastReviewedIso: next.lastReviewedIso,
+    }).catch((err) => {
+      reportSaveError(err, 'Unable to save team member risk right now. Please try again.')
+    })
+  }
+
   function saveEdit() {
     if (!draft) return
-    dispatch({ type: 'updateTeamMemberRisk', teamMemberRisk: draft })
+    persistRisk(draft)
     setIsEditMode(false)
     setDraft(undefined)
   }
@@ -313,7 +334,7 @@ export function TeamMemberRiskDetailView() {
                         updateDraft({ linkedRiskId: next })
                         return
                       }
-                      dispatch({ type: 'updateTeamMemberRisk', teamMemberRisk: { ...view, linkedRiskId: next } })
+                      persistRisk({ ...view, linkedRiskId: next })
                     }}
                   >
                     <option value="">(None)</option>
@@ -350,10 +371,7 @@ export function TeamMemberRiskDetailView() {
                       updateDraft({ lastReviewedIso: new Date().toISOString() })
                       return
                     }
-                    dispatch({
-                      type: 'updateTeamMemberRisk',
-                      teamMemberRisk: { ...view, lastReviewedIso: new Date().toISOString() },
-                    })
+                    persistRisk({ ...view, lastReviewedIso: new Date().toISOString() })
                   }}
                   title="Update last reviewed timestamp"
                 >

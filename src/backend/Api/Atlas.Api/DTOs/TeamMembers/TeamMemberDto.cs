@@ -28,13 +28,19 @@ public sealed record TeamMemberRiskDto(
     DateTimeOffset? LastReviewedAt,
     Guid? LinkedGlobalRiskId);
 
+public sealed record TeamMemberAzureWorkItemLocalNoteDto(
+    Guid Id,
+    DateTimeOffset CreatedAt,
+    string Text);
+
 public sealed record TeamMemberAzureWorkItemDto(
     string Id,
     string Title,
     string Status,
     string? AssignedTo,
     string TicketUrl,
-    Guid ProjectId);
+    Guid ProjectId,
+    IReadOnlyList<TeamMemberAzureWorkItemLocalNoteDto> LocalNotes);
 
 public sealed record TeamMemberListItemDto(
     Guid Id,

@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  addGrowthGoalAction,
+  addGrowthGoalCheckIn,
+  updateGrowthGoal,
+  updateGrowthGoalAction,
+  updateGrowthGoalCheckIn,
+} from '../app/api/growth'
 import { useAppDispatch, useAppState, useGrowthForMember } from '../app/state/AppState'
 import type {
   Growth,
@@ -11,7 +18,7 @@ import type {
   Priority,
 } from '../app/types'
 import { goalStatusTone, actionStateTone, checkInSignalTone } from '../app/tones'
-import { formatIsoDate, formatIsoDateShort, newId } from '../app/utils'
+import { formatIsoDate, formatIsoDateShort, isGuid, reportSaveError } from '../app/utils'
 
 type Selected =
   | { kind: 'action'; id: string }
@@ -71,6 +78,9 @@ export function GrowthGoalDetailView() {
   })
   const [actionFilter, setActionFilter] = useState<GrowthGoalActionState | 'All'>('All')
   const [actionSort, setActionSort] = useState<'DueDate' | 'State'>('DueDate')
+  const goalPersistTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const actionPersistTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const checkInPersistTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   useEffect(() => {
     if (!memberId) return
@@ -82,8 +92,13 @@ export function GrowthGoalDetailView() {
     setSelected({ kind: 'none' })
   }, [goalId])
 
-  function commitGoal(update: (g: GrowthGoal) => GrowthGoal) {
+  function commitGoal(
+    update: (g: GrowthGoal) => GrowthGoal,
+    options?: { persistGoal?: boolean; persistActionId?: string; persistCheckInId?: string },
+  ) {
     if (!memberId || !goalId || !growth) return
+
+    let nextGoal: GrowthGoal | undefined
     const updatedGrowth: Growth = {
       ...growth,
       goals: growth.goals.map((g) => {
@@ -95,47 +110,125 @@ export function GrowthGoalDetailView() {
           successCriteria: g.successCriteria ?? [],
           lastUpdatedIso: isoNow(),
         }
-        return update(base)
+        nextGoal = update(base)
+        return nextGoal
       }),
     }
     dispatch({ type: 'updateGrowth', growth: updatedGrowth })
+
+    if (!nextGoal || !isGuid(growth.id) || !isGuid(goalId)) return
+
+    const persistGoal = options?.persistGoal ?? true
+    const persistActionId = options?.persistActionId
+    const persistCheckInId = options?.persistCheckInId
+
+    if (persistActionId && isGuid(persistActionId)) {
+      const action = nextGoal.actions.find((a) => a.id === persistActionId)
+      if (!action) return
+      const existing = actionPersistTimers.current.get(persistActionId)
+      if (existing) clearTimeout(existing)
+      actionPersistTimers.current.set(
+        persistActionId,
+        setTimeout(() => {
+          void updateGrowthGoalAction(growth.id, goalId, action).catch((err) => {
+            reportSaveError(err, 'Unable to save action changes right now. Please try again.')
+          })
+        }, 400),
+      )
+      return
+    }
+
+    if (persistCheckInId && isGuid(persistCheckInId)) {
+      const checkIn = nextGoal.checkIns.find((c) => c.id === persistCheckInId)
+      if (!checkIn) return
+      const existing = checkInPersistTimers.current.get(persistCheckInId)
+      if (existing) clearTimeout(existing)
+      checkInPersistTimers.current.set(
+        persistCheckInId,
+        setTimeout(() => {
+          void updateGrowthGoalCheckIn(growth.id, goalId, checkIn).catch((err) => {
+            reportSaveError(err, 'Unable to save check-in changes right now. Please try again.')
+          })
+        }, 400),
+      )
+      return
+    }
+
+    if (!persistGoal) return
+
+    if (goalPersistTimer.current) clearTimeout(goalPersistTimer.current)
+    goalPersistTimer.current = setTimeout(() => {
+      void updateGrowthGoal(growth.id, goalId, nextGoal!).catch((err) => {
+        reportSaveError(err, 'Unable to save goal changes right now. Please try again.')
+      })
+    }, 400)
   }
 
   function addAction() {
-    const id = newId('growth-action')
-    commitGoal((g) => ({
-      ...g,
-      actions: [
-        {
-          id,
+    if (!growth || !goalId || !isGuid(growth.id) || !isGuid(goalId)) return
+
+    void (async () => {
+      try {
+        const id = await addGrowthGoalAction(growth.id, goalId, {
           title: 'New action',
-          dueDateIso: undefined,
           state: 'Planned',
-          priority: g.priority ?? 'Medium',
-          notes: '',
-          links: [],
-        },
-        ...g.actions,
-      ],
-    }))
-    setSelected({ kind: 'action', id })
+          priority: goalSafe?.priority ?? 'Medium',
+        })
+        commitGoal(
+          (g) => ({
+            ...g,
+            actions: [
+              {
+                id,
+                title: 'New action',
+                dueDateIso: undefined,
+                state: 'Planned',
+                priority: g.priority ?? 'Medium',
+                notes: '',
+                links: [],
+              },
+              ...g.actions,
+            ],
+          }),
+          { persistGoal: false },
+        )
+        setSelected({ kind: 'action', id })
+      } catch (err) {
+        reportSaveError(err, 'Unable to add action right now. Please try again.')
+      }
+    })()
   }
 
   function addCheckIn() {
-    const id = newId('growth-checkin')
-    commitGoal((g) => ({
-      ...g,
-      checkIns: [
-        {
-          id,
+    if (!growth || !goalId || !isGuid(growth.id) || !isGuid(goalId)) return
+
+    void (async () => {
+      try {
+        const id = await addGrowthGoalCheckIn(growth.id, goalId, {
           dateIso: isoDateToday(),
           signal: 'Mixed',
           note: '',
-        },
-        ...g.checkIns,
-      ],
-    }))
-    setSelected({ kind: 'checkin', id })
+        })
+        commitGoal(
+          (g) => ({
+            ...g,
+            checkIns: [
+              {
+                id,
+                dateIso: isoDateToday(),
+                signal: 'Mixed',
+                note: '',
+              },
+              ...g.checkIns,
+            ],
+          }),
+          { persistGoal: false },
+        )
+        setSelected({ kind: 'checkin', id })
+      } catch (err) {
+        reportSaveError(err, 'Unable to add check-in right now. Please try again.')
+      }
+    })()
   }
 
   const selectedAction: GrowthGoalAction | undefined =
@@ -506,12 +599,15 @@ export function GrowthGoalDetailView() {
                             type="checkbox"
                             checked={done}
                             onChange={(e) =>
-                              commitGoal((g) => ({
-                                ...g,
-                                actions: g.actions.map((x) =>
-                                  x.id === a.id ? { ...x, state: e.target.checked ? 'Complete' : 'Planned' } : x,
-                                ),
-                              }))
+                              commitGoal(
+                                (g) => ({
+                                  ...g,
+                                  actions: g.actions.map((x) =>
+                                    x.id === a.id ? { ...x, state: e.target.checked ? 'Complete' : 'Planned' } : x,
+                                  ),
+                                }),
+                                { persistGoal: false, persistActionId: a.id },
+                              )
                             }
                           />
                         </div>
@@ -613,10 +709,13 @@ export function GrowthGoalDetailView() {
                         className="input"
                         value={selectedAction.title}
                         onChange={(e) =>
-                          commitGoal((g) => ({
-                            ...g,
-                            actions: g.actions.map((x) => (x.id === selectedAction.id ? { ...x, title: e.target.value } : x)),
-                          }))
+                          commitGoal(
+                            (g) => ({
+                              ...g,
+                              actions: g.actions.map((x) => (x.id === selectedAction.id ? { ...x, title: e.target.value } : x)),
+                            }),
+                            { persistGoal: false, persistActionId: selectedAction.id },
+                          )
                         }
                       />
                     </label>
@@ -627,12 +726,15 @@ export function GrowthGoalDetailView() {
                           className="select"
                           value={selectedAction.state}
                           onChange={(e) =>
-                            commitGoal((g) => ({
-                              ...g,
-                              actions: g.actions.map((x) =>
-                                x.id === selectedAction.id ? { ...x, state: e.target.value as GrowthGoalActionState } : x,
-                              ),
-                            }))
+                            commitGoal(
+                              (g) => ({
+                                ...g,
+                                actions: g.actions.map((x) =>
+                                  x.id === selectedAction.id ? { ...x, state: e.target.value as GrowthGoalActionState } : x,
+                                ),
+                              }),
+                              { persistGoal: false, persistActionId: selectedAction.id },
+                            )
                           }
                         >
                           <option value="Planned">Planned</option>
@@ -647,12 +749,15 @@ export function GrowthGoalDetailView() {
                           type="date"
                           value={selectedAction.dueDateIso ?? ''}
                           onChange={(e) =>
-                            commitGoal((g) => ({
-                              ...g,
-                              actions: g.actions.map((x) =>
-                                x.id === selectedAction.id ? { ...x, dueDateIso: e.target.value || undefined } : x,
-                              ),
-                            }))
+                            commitGoal(
+                              (g) => ({
+                                ...g,
+                                actions: g.actions.map((x) =>
+                                  x.id === selectedAction.id ? { ...x, dueDateIso: e.target.value || undefined } : x,
+                                ),
+                              }),
+                              { persistGoal: false, persistActionId: selectedAction.id },
+                            )
                           }
                         />
                       </label>
@@ -662,12 +767,15 @@ export function GrowthGoalDetailView() {
                           className="select"
                           value={selectedAction.priority ?? 'Medium'}
                           onChange={(e) =>
-                            commitGoal((g) => ({
-                              ...g,
-                              actions: g.actions.map((x) =>
-                                x.id === selectedAction.id ? { ...x, priority: e.target.value as Priority } : x,
-                              ),
-                            }))
+                            commitGoal(
+                              (g) => ({
+                                ...g,
+                                actions: g.actions.map((x) =>
+                                  x.id === selectedAction.id ? { ...x, priority: e.target.value as Priority } : x,
+                                ),
+                              }),
+                              { persistGoal: false, persistActionId: selectedAction.id },
+                            )
                           }
                         >
                           <option value="Low">Low</option>
@@ -684,12 +792,15 @@ export function GrowthGoalDetailView() {
                         value={selectedAction.notes ?? ''}
                         placeholder="Free-text notes…"
                         onChange={(e) =>
-                          commitGoal((g) => ({
-                            ...g,
-                            actions: g.actions.map((x) =>
-                              x.id === selectedAction.id ? { ...x, notes: e.target.value } : x,
-                            ),
-                          }))
+                          commitGoal(
+                            (g) => ({
+                              ...g,
+                              actions: g.actions.map((x) =>
+                                x.id === selectedAction.id ? { ...x, notes: e.target.value } : x,
+                              ),
+                            }),
+                            { persistGoal: false, persistActionId: selectedAction.id },
+                          )
                         }
                       />
                     </label>
@@ -700,14 +811,17 @@ export function GrowthGoalDetailView() {
                         value={(selectedAction.links ?? []).join('\n')}
                         placeholder={'https://…\nhttps://…'}
                         onChange={(e) =>
-                          commitGoal((g) => ({
-                            ...g,
-                            actions: g.actions.map((x) =>
-                              x.id === selectedAction.id
-                                ? { ...x, links: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }
-                                : x,
-                            ),
-                          }))
+                          commitGoal(
+                            (g) => ({
+                              ...g,
+                              actions: g.actions.map((x) =>
+                                x.id === selectedAction.id
+                                  ? { ...x, links: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean) }
+                                  : x,
+                              ),
+                            }),
+                            { persistGoal: false, persistActionId: selectedAction.id },
+                          )
                         }
                       />
                     </label>
@@ -728,10 +842,13 @@ export function GrowthGoalDetailView() {
                         type="date"
                         value={selectedCheckIn.dateIso}
                         onChange={(e) =>
-                          commitGoal((g) => ({
-                            ...g,
-                            checkIns: g.checkIns.map((x) => (x.id === selectedCheckIn.id ? { ...x, dateIso: e.target.value } : x)),
-                          }))
+                          commitGoal(
+                            (g) => ({
+                              ...g,
+                              checkIns: g.checkIns.map((x) => (x.id === selectedCheckIn.id ? { ...x, dateIso: e.target.value } : x)),
+                            }),
+                            { persistGoal: false, persistCheckInId: selectedCheckIn.id },
+                          )
                         }
                       />
                     </label>
@@ -741,12 +858,15 @@ export function GrowthGoalDetailView() {
                         className="select"
                         value={selectedCheckIn.signal}
                         onChange={(e) =>
-                          commitGoal((g) => ({
-                            ...g,
-                            checkIns: g.checkIns.map((x) =>
-                              x.id === selectedCheckIn.id ? { ...x, signal: e.target.value as GrowthGoalCheckInSignal } : x,
-                            ),
-                          }))
+                          commitGoal(
+                            (g) => ({
+                              ...g,
+                              checkIns: g.checkIns.map((x) =>
+                                x.id === selectedCheckIn.id ? { ...x, signal: e.target.value as GrowthGoalCheckInSignal } : x,
+                              ),
+                            }),
+                            { persistGoal: false, persistCheckInId: selectedCheckIn.id },
+                          )
                         }
                       >
                         <option value="Positive">Positive</option>
@@ -762,10 +882,13 @@ export function GrowthGoalDetailView() {
                       value={selectedCheckIn.note}
                       placeholder="Short narrative signal about how the goal is going…"
                       onChange={(e) =>
-                        commitGoal((g) => ({
-                          ...g,
-                          checkIns: g.checkIns.map((x) => (x.id === selectedCheckIn.id ? { ...x, note: e.target.value } : x)),
-                        }))
+                        commitGoal(
+                          (g) => ({
+                            ...g,
+                            checkIns: g.checkIns.map((x) => (x.id === selectedCheckIn.id ? { ...x, note: e.target.value } : x)),
+                          }),
+                          { persistGoal: false, persistCheckInId: selectedCheckIn.id },
+                        )
                       }
                     />
                   </label>

@@ -42,6 +42,7 @@ public sealed class UpdateTeamMemberRiskCommandHandler : IRequestHandler<UpdateT
         risk.Description = request.Description;
         risk.CurrentAction = request.CurrentAction;
         risk.LinkedGlobalRiskId = request.LinkedGlobalRiskId;
+        risk.LastReviewedAt = request.LastReviewedAt;
 
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

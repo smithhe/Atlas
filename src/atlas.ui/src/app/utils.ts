@@ -4,6 +4,17 @@ export function newId(prefix: string) {
   return `${prefix}-${Math.random().toString(16).slice(2)}`
 }
 
+const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export function isGuid(id: string): boolean {
+  return GUID_RE.test(id)
+}
+
+export function reportSaveError(err: unknown, fallbackMessage: string) {
+  console.error(fallbackMessage, err)
+  window.alert(err instanceof Error ? err.message : fallbackMessage)
+}
+
 export function daysSince(iso: string): number
 export function daysSince(iso: string | undefined): number | undefined
 export function daysSince(iso?: string): number | undefined {

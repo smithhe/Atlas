@@ -23,7 +23,7 @@ public sealed class UpdateTeamMemberEndpoint : Endpoint<UpdateTeamMemberRequest>
     {
         Guid id = Route<Guid>("id");
 
-        var ok = await _mediator.Send(new UpdateTeamMemberCommand(id, req.Name, req.Role, req.StatusDot), ct);
+        var ok = await _mediator.Send(new UpdateTeamMemberCommand(id, req.Name, req.Role, req.StatusDot, req.CurrentFocus), ct);
         if (!ok)
         {
             await Send.NotFoundAsync(ct);

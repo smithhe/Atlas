@@ -14,5 +14,6 @@ public sealed record UpdateTeamMemberRiskRequest(
     string ImpactArea,
     string Description,
     string CurrentAction,
-    Guid? LinkedGlobalRiskId);
+    Guid? LinkedGlobalRiskId,
+    DateTimeOffset? LastReviewedAt);
 

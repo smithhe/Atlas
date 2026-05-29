@@ -4,7 +4,8 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { NoteTag } from '../app/types'
 import { Markdown } from '../components/Markdown'
-import { formatReadableDateTime, getDerivedTitle } from '../app/utils'
+import { updateTeamNote } from '../app/api/teamMembers'
+import { formatReadableDateTime, getDerivedTitle, reportSaveError } from '../app/utils'
 
 const NOTE_TAGS: NoteTag[] = ['Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -73,19 +74,28 @@ export function TeamNoteDetailView() {
     if (!member || !note) return
     const nowIso = new Date().toISOString()
     const nextTitle = draftTitle.trim()
-    const nextNotes = member.notes.map((n) =>
-      n.id === note.id
-        ? {
-            ...n,
-            title: nextTitle ? nextTitle : undefined,
-            tag: draftTag,
-            text: draftText,
-            lastModifiedIso: nowIso,
-          }
-        : n,
-    )
-    dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
-    setIsEditing(false)
+    const updated = {
+      ...note,
+      title: nextTitle ? nextTitle : undefined,
+      tag: draftTag,
+      text: draftText,
+      lastModifiedIso: nowIso,
+    }
+
+    void (async () => {
+      try {
+        await updateTeamNote(member.id, note.id, {
+          tag: updated.tag,
+          title: updated.title,
+          text: updated.text,
+        })
+        const nextNotes = member.notes.map((n) => (n.id === note.id ? updated : n))
+        dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
+        setIsEditing(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to save note changes right now. Please try again.')
+      }
+    })()
   }
 
   return (

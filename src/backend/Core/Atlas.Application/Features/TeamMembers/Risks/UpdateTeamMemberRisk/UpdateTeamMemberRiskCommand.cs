@@ -14,5 +14,6 @@ public sealed record UpdateTeamMemberRiskCommand(
     string ImpactArea,
     string Description,
     string CurrentAction,
-    Guid? LinkedGlobalRiskId) : IRequest<bool>;
+    Guid? LinkedGlobalRiskId,
+    DateTimeOffset? LastReviewedAt) : IRequest<bool>;
 

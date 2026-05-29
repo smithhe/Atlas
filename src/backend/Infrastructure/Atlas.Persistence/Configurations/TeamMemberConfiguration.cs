@@ -35,6 +35,11 @@ public sealed class TeamMemberConfiguration : IEntityTypeConfiguration<TeamMembe
             .WithOne(x => x.TeamMember)
             .HasForeignKey(x => x.TeamMemberId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.AzureWorkItemLocalNotes)
+            .WithOne(x => x.TeamMember)
+            .HasForeignKey(x => x.TeamMemberId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

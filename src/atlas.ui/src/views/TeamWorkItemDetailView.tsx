@@ -4,7 +4,8 @@ import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
 import type { AzureItem } from '../app/types'
 import { Markdown } from '../components/Markdown'
-import { formatIsoDateLong, newId } from '../app/utils'
+import { addAzureWorkItemLocalNote } from '../app/api/teamMembers'
+import { formatIsoDateLong, reportSaveError } from '../app/utils'
 
 export function TeamWorkItemDetailView() {
   const ai = useAi()
@@ -60,10 +61,17 @@ export function TeamWorkItemDetailView() {
     if (!member || !item) return
     const text = newNoteText.trim()
     if (!text) return
-    const nowIso = new Date().toISOString()
-    const nextNotes = [{ id: newId('win'), createdIso: nowIso, text }, ...(item.localNotes ?? [])]
-    updateWorkItem({ localNotes: nextNotes })
-    setNewNoteText('')
+
+    void (async () => {
+      try {
+        const saved = await addAzureWorkItemLocalNote(member.id, item.id, text)
+        const nextNotes = [{ id: saved.id, createdIso: saved.createdIso, text }, ...(item.localNotes ?? [])]
+        updateWorkItem({ localNotes: nextNotes })
+        setNewNoteText('')
+      } catch (err) {
+        reportSaveError(err, 'Unable to save work item note right now. Please try again.')
+      }
+    })()
   }
 
   return (

@@ -28,6 +28,7 @@ public sealed class UpdateTeamMemberCommandHandler : IRequestHandler<UpdateTeamM
         member.Name = request.Name;
         member.Role = request.Role ?? string.Empty;
         member.StatusDot = request.StatusDot;
+        member.CurrentFocus = request.CurrentFocus;
 
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

@@ -8,9 +8,26 @@ import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 import { MemberOverviewTab } from './team/MemberOverviewTab'
-import { loadTeamMembers } from '../app/api/teamMembers'
+import {
+  addTeamMemberRisk,
+  addTeamNote,
+  loadTeamMembers,
+  updateTeamMember,
+  updateTeamMemberProfile,
+  updateTeamMemberSignals,
+  updateTeamNote,
+} from '../app/api/teamMembers'
+import {
+  addFeedbackTheme,
+  addGrowthGoal,
+  deleteFeedbackTheme,
+  ensureGrowthForMember,
+  setGrowthSkillsInProgress,
+  updateFeedbackTheme,
+  updateGrowthFocusAreas,
+} from '../app/api/growth'
 import { goalStatusTone, ticketAttentionTone } from '../app/tones'
-import { getDerivedTitle, newId } from '../app/utils'
+import { getDerivedTitle, isGuid, newId, reportSaveError } from '../app/utils'
 
 const FILTER_TAGS: Array<NoteTag | 'All'> = ['All', 'Quick', 'Standup', 'Progress', 'Praise', 'Concern', 'Blocker']
 
@@ -207,7 +224,42 @@ function MemberDetail({
   const { risks, teamMemberRisks } = useAppState()
 
   function update(patch: Partial<TeamMember>) {
-    dispatch({ type: 'updateTeamMember', member: { ...member, ...patch } })
+    const next = { ...member, ...patch }
+    dispatch({ type: 'updateTeamMember', member: next })
+
+    void (async () => {
+      try {
+        const tasks: Promise<void>[] = []
+
+        if (patch.name !== undefined || patch.role !== undefined || patch.currentFocus !== undefined) {
+          tasks.push(
+            updateTeamMember(member.id, {
+              name: next.name,
+              role: next.role,
+              statusDot: next.statusDot,
+              currentFocus: next.currentFocus ?? '',
+            }),
+          )
+        }
+
+        if (patch.profile !== undefined) {
+          tasks.push(
+            updateTeamMemberProfile(member.id, {
+              timeZone: next.profile.timeZone,
+              typicalHours: next.profile.typicalHours,
+            }),
+          )
+        }
+
+        if (patch.signals !== undefined) {
+          tasks.push(updateTeamMemberSignals(member.id, next.signals))
+        }
+
+        await Promise.all(tasks)
+      } catch (err) {
+        reportSaveError(err, 'Unable to save team member changes right now. Please try again.')
+      }
+    })()
   }
 
   return (
@@ -347,6 +399,23 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
 
   function updateNotes(nextNotes: TeamNote[]) {
     dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
+  }
+
+  async function createNote(note: TeamNote) {
+    const id = await addTeamNote(member.id, {
+      tag: note.tag,
+      title: note.title,
+      text: note.text,
+    })
+    return { ...note, id }
+  }
+
+  async function saveNote(note: TeamNote) {
+    await updateTeamNote(member.id, note.id, {
+      tag: note.tag,
+      title: note.title,
+      text: note.text,
+    })
   }
 
   const selectedNote = useMemo(() => member.notes.find((n) => n.id === selectedNoteId), [member.notes, selectedNoteId])
@@ -668,12 +737,18 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                   <button
                     className="btn btnSecondary"
                     onClick={() => {
-                      const nowIso = new Date().toISOString()
-                      const nextNotes = member.notes.map((x) =>
-                        x.id === selectedNote.id ? { ...x, text: draftText, lastModifiedIso: nowIso } : x,
-                      )
-                      updateNotes(nextNotes)
-                      setIsEditOpen(false)
+                      void (async () => {
+                        const nowIso = new Date().toISOString()
+                        const updated = { ...selectedNote, text: draftText, lastModifiedIso: nowIso }
+                        try {
+                          await saveNote(updated)
+                          const nextNotes = member.notes.map((x) => (x.id === selectedNote.id ? updated : x))
+                          updateNotes(nextNotes)
+                          setIsEditOpen(false)
+                        } catch (err) {
+                          reportSaveError(err, 'Unable to save note changes right now. Please try again.')
+                        }
+                      })()
                     }}
                   >
                     Save
@@ -788,20 +863,27 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
             <button
               className="btn btnSecondary"
               onClick={() => {
-                if (!newText.trim()) return
-                const title = newTitle.trim()
-                const next: TeamNote = {
-                  id: newId('note'),
-                  createdIso: new Date().toISOString(),
-                  lastModifiedIso: new Date().toISOString(),
-                  tag: newTag,
-                  title: title || undefined,
-                  text: newText.trim(),
-                }
-                updateNotes([next, ...member.notes])
-                setIsNewOpen(false)
-                setNewTitle('')
-                setNewText('')
+                void (async () => {
+                  if (!newText.trim()) return
+                  const title = newTitle.trim()
+                  const draft: TeamNote = {
+                    id: newId('note'),
+                    createdIso: new Date().toISOString(),
+                    lastModifiedIso: new Date().toISOString(),
+                    tag: newTag,
+                    title: title || undefined,
+                    text: newText.trim(),
+                  }
+                  try {
+                    const saved = await createNote(draft)
+                    updateNotes([saved, ...member.notes])
+                    setIsNewOpen(false)
+                    setNewTitle('')
+                    setNewText('')
+                  } catch (err) {
+                    reportSaveError(err, 'Unable to create note right now. Please try again.')
+                  }
+                })()
               }}
             >
               Create
@@ -1034,20 +1116,40 @@ function MemberRisksTab({
     const title = createDraft.title.trim()
     if (!title) return
 
-    const next: TeamMemberRisk = {
-      ...createDraft,
-      title,
-      riskType: createDraft.riskType.trim(),
-      impactArea: createDraft.impactArea.trim(),
-      description: createDraft.description.trim(),
-      currentAction: createDraft.currentAction.trim(),
-      memberId,
-      linkedRiskId: createDraft.linkedRiskId || undefined,
-    }
+    void (async () => {
+      try {
+        const id = await addTeamMemberRisk(memberId, {
+          title,
+          severity: createDraft.severity,
+          riskType: createDraft.riskType.trim(),
+          status: createDraft.status,
+          trend: createDraft.trend,
+          firstNoticedDateIso: createDraft.firstNoticedDateIso,
+          impactArea: createDraft.impactArea.trim(),
+          description: createDraft.description.trim(),
+          currentAction: createDraft.currentAction.trim(),
+          linkedRiskId: createDraft.linkedRiskId || undefined,
+        })
 
-    dispatch({ type: 'addTeamMemberRisk', teamMemberRisk: next })
-    closeCreateModal()
-    navigate(`/team/${memberId}/risks/${next.id}`)
+        const next: TeamMemberRisk = {
+          ...createDraft,
+          id,
+          title,
+          riskType: createDraft.riskType.trim(),
+          impactArea: createDraft.impactArea.trim(),
+          description: createDraft.description.trim(),
+          currentAction: createDraft.currentAction.trim(),
+          memberId,
+          linkedRiskId: createDraft.linkedRiskId || undefined,
+        }
+
+        dispatch({ type: 'addTeamMemberRisk', teamMemberRisk: next })
+        closeCreateModal()
+        navigate(`/team/${memberId}/risks/${next.id}`)
+      } catch (err) {
+        reportSaveError(err, 'Unable to create team member risk right now. Please try again.')
+      }
+    })()
   }
 
   const memberRisks = useMemo(() => {
@@ -1381,6 +1483,18 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     return label
   }
 
+  async function resolveGrowthId(): Promise<string> {
+    const g = growth
+    if (g?.id && isGuid(g.id)) return g.id
+    const id = await ensureGrowthForMember(member.id)
+    const base = baseGrowth()
+    dispatch({
+      type: 'updateGrowth',
+      growth: { ...base, id, memberId: member.id },
+    })
+    return id
+  }
+
   function commitGrowth(patch: Partial<Growth>) {
     const g = baseGrowth()
     dispatch({
@@ -1441,48 +1555,84 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     const title = goalDraft.title.trim()
     if (!title) return
 
-    const g = baseGrowth()
-    const nowIso = new Date().toISOString()
-    const nextGoal: GrowthGoal = {
-      id: newId('growth-goal'),
-      title,
-      description: goalDraft.description.trim(),
-      status: goalDraft.status,
-      category: goalDraft.category.trim() || undefined,
-      priority: goalDraft.priority || undefined,
-      startDateIso: goalDraft.startDateIso.trim() || undefined,
-      targetDateIso: goalDraft.targetDateIso.trim() || undefined,
-      lastUpdatedIso: nowIso,
-      actions: [],
-      checkIns: [],
-      successCriteria: [],
-    }
+    void (async () => {
+      try {
+        const growthId = await resolveGrowthId()
+        const goalId = await addGrowthGoal(growthId, {
+          title,
+          description: goalDraft.description.trim(),
+          status: goalDraft.status,
+          category: goalDraft.category.trim() || undefined,
+          priority: goalDraft.priority || undefined,
+          startDateIso: goalDraft.startDateIso.trim() || undefined,
+          targetDateIso: goalDraft.targetDateIso.trim() || undefined,
+        })
 
-    commitGrowth({ goals: [nextGoal, ...(g.goals ?? [])] })
-    closeGoalModal()
-    navigate(`/team/${member.id}/growth/goals/${nextGoal.id}`)
+        const nowIso = new Date().toISOString()
+        const nextGoal: GrowthGoal = {
+          id: goalId,
+          title,
+          description: goalDraft.description.trim(),
+          status: goalDraft.status,
+          category: goalDraft.category.trim() || undefined,
+          priority: goalDraft.priority || undefined,
+          startDateIso: goalDraft.startDateIso.trim() || undefined,
+          targetDateIso: goalDraft.targetDateIso.trim() || undefined,
+          lastUpdatedIso: nowIso,
+          actions: [],
+          checkIns: [],
+          successCriteria: [],
+        }
+
+        const g = baseGrowth()
+        commitGrowth({ goals: [nextGoal, ...(g.goals ?? [])] })
+        closeGoalModal()
+        navigate(`/team/${member.id}/growth/goals/${nextGoal.id}`)
+      } catch (err) {
+        reportSaveError(err, 'Unable to add growth goal right now. Please try again.')
+      }
+    })()
   }
 
   function saveSkill() {
     const nextText = formatSkillText(skillDraft)
     if (!nextText) return
-    const g = baseGrowth()
-    const skills = [...g.skillsInProgress]
-    if (skillModalIndex === null) {
-      skills.push(nextText)
-    } else {
-      skills[skillModalIndex] = nextText
-    }
-    commitGrowth({ skillsInProgress: normalizeLines(skills) })
-    setSkillModalOpen(false)
+
+    void (async () => {
+      try {
+        const g = baseGrowth()
+        const skills = [...g.skillsInProgress]
+        if (skillModalIndex === null) {
+          skills.push(nextText)
+        } else {
+          skills[skillModalIndex] = nextText
+        }
+        const normalized = normalizeLines(skills)
+        const growthId = await resolveGrowthId()
+        await setGrowthSkillsInProgress(growthId, normalized)
+        commitGrowth({ skillsInProgress: normalized })
+        setSkillModalOpen(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to save skills right now. Please try again.')
+      }
+    })()
   }
 
   function deleteSkill() {
     if (skillModalIndex === null) return
-    const g = baseGrowth()
-    const skills = g.skillsInProgress.filter((_, i) => i !== skillModalIndex)
-    commitGrowth({ skillsInProgress: normalizeLines(skills) })
-    setSkillModalOpen(false)
+
+    void (async () => {
+      try {
+        const g = baseGrowth()
+        const skills = normalizeLines(g.skillsInProgress.filter((_, i) => i !== skillModalIndex))
+        const growthId = await resolveGrowthId()
+        await setGrowthSkillsInProgress(growthId, skills)
+        commitGrowth({ skillsInProgress: skills })
+        setSkillModalOpen(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to remove skill right now. Please try again.')
+      }
+    })()
   }
 
   function openAddTheme() {
@@ -1516,21 +1666,44 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       return
     }
 
-    const next: GrowthFeedbackTheme = { ...themeDraft, title, description, observedSinceLabel }
-    const g = baseGrowth()
-    const existing = g.feedbackThemes
-    const themes = themeIsNew
-      ? [...existing, next]
-      : existing.map((t) => (t.id === next.id ? next : t))
+    void (async () => {
+      try {
+        const growthId = await resolveGrowthId()
+        const next: GrowthFeedbackTheme = { ...themeDraft, title, description, observedSinceLabel }
+        const g = baseGrowth()
+        const existing = g.feedbackThemes
 
-    commitGrowth({ feedbackThemes: themes })
-    setThemeModalOpen(false)
+        if (themeIsNew) {
+          const id = await addFeedbackTheme(growthId, next)
+          commitGrowth({ feedbackThemes: [...existing, { ...next, id }] })
+        } else if (isGuid(next.id)) {
+          await updateFeedbackTheme(growthId, next)
+          commitGrowth({
+            feedbackThemes: existing.map((t) => (t.id === next.id ? next : t)),
+          })
+        }
+
+        setThemeModalOpen(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to save feedback theme right now. Please try again.')
+      }
+    })()
   }
 
   function deleteTheme(themeId: string) {
-    const g = baseGrowth()
-    commitGrowth({ feedbackThemes: g.feedbackThemes.filter((t) => t.id !== themeId) })
-    setThemeModalOpen(false)
+    void (async () => {
+      try {
+        const g = baseGrowth()
+        const growthId = await resolveGrowthId()
+        if (isGuid(themeId)) {
+          await deleteFeedbackTheme(growthId, themeId)
+        }
+        commitGrowth({ feedbackThemes: g.feedbackThemes.filter((t) => t.id !== themeId) })
+        setThemeModalOpen(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to delete feedback theme right now. Please try again.')
+      }
+    })()
   }
 
   function openEditFocusAreas() {
@@ -1540,8 +1713,16 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
   }
 
   function saveFocusAreas() {
-    commitGrowth({ focusAreasMarkdown: focusDraftText })
-    setFocusModalOpen(false)
+    void (async () => {
+      try {
+        const growthId = await resolveGrowthId()
+        await updateGrowthFocusAreas(growthId, focusDraftText)
+        commitGrowth({ focusAreasMarkdown: focusDraftText })
+        setFocusModalOpen(false)
+      } catch (err) {
+        reportSaveError(err, 'Unable to save focus areas right now. Please try again.')
+      }
+    })()
   }
 
   const derivedFromNotes = useMemo(() => {

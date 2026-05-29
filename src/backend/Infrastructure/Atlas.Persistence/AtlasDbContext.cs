@@ -33,6 +33,7 @@ public sealed class AtlasDbContext : DbContext
     public DbSet<AzureUserMapping> AzureUserMappings => Set<AzureUserMapping>();
     public DbSet<AzureProductOwnerMapping> AzureProductOwnerMappings => Set<AzureProductOwnerMapping>();
     public DbSet<AzureWorkItemLink> AzureWorkItemLinks => Set<AzureWorkItemLink>();
+    public DbSet<AzureWorkItemLocalNote> AzureWorkItemLocalNotes => Set<AzureWorkItemLocalNote>();
 
     public DbSet<Growth> GrowthPlans => Set<Growth>();
     public DbSet<GrowthGoal> GrowthGoals => Set<GrowthGoal>();

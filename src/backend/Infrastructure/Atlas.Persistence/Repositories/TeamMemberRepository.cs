@@ -26,6 +26,7 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
             .Include(x => x.LinkedRisks)
             .Include(x => x.AzureWorkItemLinks)
                 .ThenInclude(x => x.AzureWorkItem)
+            .Include(x => x.AzureWorkItemLocalNotes)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 

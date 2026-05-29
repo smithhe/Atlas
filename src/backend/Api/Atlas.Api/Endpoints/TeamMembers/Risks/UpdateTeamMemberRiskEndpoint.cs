@@ -37,7 +37,8 @@ public sealed class UpdateTeamMemberRiskEndpoint : Endpoint<UpdateTeamMemberRisk
             req.ImpactArea,
             req.Description,
             req.CurrentAction,
-            req.LinkedGlobalRiskId), ct);
+            req.LinkedGlobalRiskId,
+            req.LastReviewedAt), ct);
 
         if (!ok)
         {

@@ -106,6 +106,12 @@ interface TeamMemberRiskDto {
   lastReviewedAt?: string | null
   linkedGlobalRiskId?: string | null
 }
+interface TeamMemberAzureWorkItemLocalNoteDto {
+  id: string
+  createdAt: string
+  text: string
+}
+
 interface TeamMemberAzureWorkItemDto {
   id: string
   title: string
@@ -113,6 +119,7 @@ interface TeamMemberAzureWorkItemDto {
   assignedTo?: string | null
   ticketUrl: string
   projectId: string
+  localNotes: TeamMemberAzureWorkItemLocalNoteDto[]
 }
 export interface TeamMemberDto {
   id: string
@@ -284,6 +291,11 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     assignedTo: w.assignedTo ?? undefined,
     ticketUrl: w.ticketUrl,
     projectId: w.projectId,
+    localNotes: (w.localNotes ?? []).map((n) => ({
+      id: n.id,
+      createdIso: n.createdAt,
+      text: n.text,
+    })),
   }))
 
   const member: TeamMember = {

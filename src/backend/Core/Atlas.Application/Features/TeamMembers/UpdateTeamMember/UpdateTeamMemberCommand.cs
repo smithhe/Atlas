@@ -6,5 +6,6 @@ public sealed record UpdateTeamMemberCommand(
     Guid Id,
     string Name,
     string? Role,
-    StatusDot StatusDot) : IRequest<bool>;
+    StatusDot StatusDot,
+    string CurrentFocus) : IRequest<bool>;
 

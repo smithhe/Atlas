@@ -46,16 +46,30 @@ internal static class TeamMemberMapper
                 r.LinkedGlobalRiskId))
             .ToList();
 
+        var localNotesByWorkItemId = m.AzureWorkItemLocalNotes
+            .GroupBy(x => x.WorkItemId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(n => n.CreatedAt)
+                    .Select(n => new TeamMemberAzureWorkItemLocalNoteDto(n.Id, n.CreatedAt, n.Text))
+                    .ToList());
+
         var azureWorkItems = m.AzureWorkItemLinks
             .Where(x => x.AzureWorkItem is not null)
             .OrderByDescending(x => x.AzureWorkItem!.ChangedDateUtc)
-            .Select(x => new TeamMemberAzureWorkItemDto(
-                x.AzureWorkItem!.WorkItemId.ToString(),
-                x.AzureWorkItem.Title,
-                x.AzureWorkItem.State,
-                x.AzureWorkItem.AssignedToUniqueName,
-                x.AzureWorkItem.Url,
-                x.ProjectId))
+            .Select(x =>
+            {
+                int workItemId = x.AzureWorkItem!.WorkItemId;
+                localNotesByWorkItemId.TryGetValue(workItemId, out List<TeamMemberAzureWorkItemLocalNoteDto>? notes);
+                return new TeamMemberAzureWorkItemDto(
+                    workItemId.ToString(),
+                    x.AzureWorkItem.Title,
+                    x.AzureWorkItem.State,
+                    x.AzureWorkItem.AssignedToUniqueName,
+                    x.AzureWorkItem.Url,
+                    x.ProjectId,
+                    notes ?? []);
+            })
             .ToList();
 
         var projectIds = m.Projects
