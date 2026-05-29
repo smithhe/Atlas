@@ -1424,18 +1424,29 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     return `${yyyy}-${mm}-${dd}`
   }
 
-  function baseGrowth(): Growth {
-    const g =
-      growth ?? {
-        id: newId('growth'),
+  function baseGrowth(knownGrowthId?: string): Growth {
+    const g = growth
+    const id =
+      knownGrowthId && isGuid(knownGrowthId)
+        ? knownGrowthId
+        : g?.id && isGuid(g.id)
+          ? g.id
+          : ''
+
+    if (!g) {
+      return {
+        id,
         memberId: member.id,
         goals: [],
         skillsInProgress: [],
         feedbackThemes: [],
         focusAreasMarkdown: '',
       }
+    }
+
     return {
       ...g,
+      id: id || g.id,
       memberId: member.id,
       goals: g.goals ?? [],
       skillsInProgress: g.skillsInProgress ?? [],
@@ -1487,16 +1498,15 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     const g = growth
     if (g?.id && isGuid(g.id)) return g.id
     const id = await ensureGrowthForMember(member.id)
-    const base = baseGrowth()
     dispatch({
       type: 'updateGrowth',
-      growth: { ...base, id, memberId: member.id },
+      growth: baseGrowth(id),
     })
     return id
   }
 
-  function commitGrowth(patch: Partial<Growth>) {
-    const g = baseGrowth()
+  function commitGrowth(patch: Partial<Growth>, growthId?: string) {
+    const g = baseGrowth(growthId)
     dispatch({
       type: 'updateGrowth',
       growth: {
@@ -1584,8 +1594,8 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
           successCriteria: [],
         }
 
-        const g = baseGrowth()
-        commitGrowth({ goals: [nextGoal, ...(g.goals ?? [])] })
+        const g = baseGrowth(growthId)
+        commitGrowth({ goals: [nextGoal, ...(g.goals ?? [])] }, growthId)
         closeGoalModal()
         navigate(`/team/${member.id}/growth/goals/${nextGoal.id}`)
       } catch (err) {
@@ -1610,7 +1620,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
         const normalized = normalizeLines(skills)
         const growthId = await resolveGrowthId()
         await setGrowthSkillsInProgress(growthId, normalized)
-        commitGrowth({ skillsInProgress: normalized })
+        commitGrowth({ skillsInProgress: normalized }, growthId)
         setSkillModalOpen(false)
       } catch (err) {
         reportSaveError(err, 'Unable to save skills right now. Please try again.')
@@ -1627,7 +1637,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
         const skills = normalizeLines(g.skillsInProgress.filter((_, i) => i !== skillModalIndex))
         const growthId = await resolveGrowthId()
         await setGrowthSkillsInProgress(growthId, skills)
-        commitGrowth({ skillsInProgress: skills })
+        commitGrowth({ skillsInProgress: skills }, growthId)
         setSkillModalOpen(false)
       } catch (err) {
         reportSaveError(err, 'Unable to remove skill right now. Please try again.')
@@ -1675,12 +1685,15 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
 
         if (themeIsNew) {
           const id = await addFeedbackTheme(growthId, next)
-          commitGrowth({ feedbackThemes: [...existing, { ...next, id }] })
+          commitGrowth({ feedbackThemes: [...existing, { ...next, id }] }, growthId)
         } else if (isGuid(next.id)) {
           await updateFeedbackTheme(growthId, next)
-          commitGrowth({
-            feedbackThemes: existing.map((t) => (t.id === next.id ? next : t)),
-          })
+          commitGrowth(
+            {
+              feedbackThemes: existing.map((t) => (t.id === next.id ? next : t)),
+            },
+            growthId,
+          )
         }
 
         setThemeModalOpen(false)
@@ -1698,7 +1711,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
         if (isGuid(themeId)) {
           await deleteFeedbackTheme(growthId, themeId)
         }
-        commitGrowth({ feedbackThemes: g.feedbackThemes.filter((t) => t.id !== themeId) })
+        commitGrowth({ feedbackThemes: g.feedbackThemes.filter((t) => t.id !== themeId) }, growthId)
         setThemeModalOpen(false)
       } catch (err) {
         reportSaveError(err, 'Unable to delete feedback theme right now. Please try again.')
@@ -1717,7 +1730,7 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
       try {
         const growthId = await resolveGrowthId()
         await updateGrowthFocusAreas(growthId, focusDraftText)
-        commitGrowth({ focusAreasMarkdown: focusDraftText })
+        commitGrowth({ focusAreasMarkdown: focusDraftText }, growthId)
         setFocusModalOpen(false)
       } catch (err) {
         reportSaveError(err, 'Unable to save focus areas right now. Please try again.')

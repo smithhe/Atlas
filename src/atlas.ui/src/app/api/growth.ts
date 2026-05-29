@@ -23,10 +23,10 @@ export async function fetchGrowthForMember(memberId: string): Promise<Growth | n
 }
 
 export async function ensureGrowthForMember(memberId: string): Promise<string> {
-  const res = await postJson<{ id: string }>(`/team-members/${memberId}/growth/ensure`, {
+  const res = await postJson<{ growthId: string }>(`/team-members/${memberId}/growth/ensure`, {
     teamMemberId: memberId,
   })
-  return res.id
+  return res.growthId
 }
 
 export async function setGrowthSkillsInProgress(growthId: string, skillsInProgress: string[]): Promise<void> {
