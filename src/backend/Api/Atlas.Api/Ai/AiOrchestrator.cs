@@ -68,11 +68,11 @@ public sealed class AiOrchestrator
                     Status: "gathering_context",
                     Message: "Gathering context."), cancellationToken);
 
-                string context = await _contextResolver.BuildContextAsync(request, cancellationToken);
+                var context = await _contextResolver.BuildContextAsync(request, cancellationToken);
                 context = TrimToMax(context, _options.MaxContextChars);
 
-                string userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
-                string composedPrompt = AiConversationMessageBuilder.BuildComposedUserPrompt(request, context, userPrompt);
+                var userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
+                var composedPrompt = AiConversationMessageBuilder.BuildComposedUserPrompt(request, context, userPrompt);
                 messages = AiConversationMessageBuilder.BuildTurnZeroMessages(_options.SystemPrompt, composedPrompt);
             }
             else
@@ -92,7 +92,7 @@ public sealed class AiOrchestrator
                     .Select(t => new AiConversationTurnHistory(t.Prompt, ExtractAssistantResponse(t.Events)))
                     .ToList();
 
-                string userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
+                var userPrompt = TrimToMax(request.Prompt, _options.MaxPromptChars);
                 messages = AiConversationMessageBuilder.BuildFollowUpMessages(
                     _options.SystemPrompt,
                     history,
@@ -111,7 +111,7 @@ public sealed class AiOrchestrator
 
             using IDisposable _ = await _executionGate.EnterAsync(cancellationToken);
 
-            await foreach (string delta in _modelClient.GenerateStreamingAsync(new AiModelRequest(
+            await foreach (var delta in _modelClient.GenerateStreamingAsync(new AiModelRequest(
                                SystemPrompt: _options.SystemPrompt,
                                Messages: messages), cancellationToken))
             {
@@ -171,7 +171,7 @@ public sealed class AiOrchestrator
         }
     }
 
-    private static string ExtractAssistantResponse(IEnumerable<Atlas.Domain.Entities.AiSessionEvent> events)
+    private static string ExtractAssistantResponse(IEnumerable<Domain.Entities.AiSessionEvent> events)
     {
         return string.Concat(events
             .OrderBy(e => e.Sequence)

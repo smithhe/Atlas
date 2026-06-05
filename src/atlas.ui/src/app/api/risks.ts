@@ -27,3 +27,7 @@ export async function updateRisk(riskId: string, request: UpdateRiskRequest): Pr
 export async function deleteRisk(riskId: string): Promise<void> {
   await deleteJson(`/risks/${riskId}`)
 }
+
+export async function setRiskTeamMembers(riskId: string, teamMemberIds: string[]): Promise<void> {
+  await putJson<void>(`/risks/${riskId}/team-members`, { teamMemberIds })
+}

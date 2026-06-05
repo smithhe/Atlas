@@ -82,12 +82,12 @@ public sealed class PersistentAiSessionStore : IAiSessionStore
         Guid sessionId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        Channel<AiSessionEvent> channel = Channel.CreateUnbounded<AiSessionEvent>();
+        var channel = Channel.CreateUnbounded<AiSessionEvent>();
         var deliveredIds = new HashSet<Guid>();
 
         IReadOnlyList<AiSessionEvent> replay = await LoadEventsAsync(sessionId, afterSequence: null, cancellationToken);
-        int lastSequence = 0;
-        bool terminalAlreadyReached = false;
+        var lastSequence = 0;
+        var terminalAlreadyReached = false;
 
         foreach (AiSessionEvent evt in replay)
         {
@@ -220,7 +220,7 @@ public sealed class PersistentAiSessionStore : IAiSessionStore
 
     private static string BuildTitle(string prompt)
     {
-        string trimmed = prompt.Trim();
+        var trimmed = prompt.Trim();
         if (trimmed.Length <= 80)
         {
             return trimmed;

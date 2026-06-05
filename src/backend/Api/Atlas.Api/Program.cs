@@ -70,13 +70,13 @@ builder.Services.AddDbContext<AtlasDbContext>(options =>
 builder.Services.AddAtlasPersistence();
 builder.Services.AddAzureDevOps();
 builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
-builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
-builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions.SectionName));
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions._sectionName));
+builder.Services.Configure<OpenAiOptions>(builder.Configuration.GetSection(OpenAiOptions._sectionName));
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IAiSessionStore, PersistentAiSessionStore>();
 builder.Services.AddSingleton(sp =>
 {
-    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
+    AiOptions options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
     return new AiExecutionGate(options.MaxConcurrentSessions);
 });
 builder.Services.AddSingleton<IAiConversationService, AiConversationService>();

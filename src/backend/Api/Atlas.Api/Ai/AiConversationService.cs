@@ -27,7 +27,7 @@ public sealed class AiConversationService : IAiConversationService
         CancellationToken cancellationToken)
     {
         Guid conversationId = request.ConversationId;
-        Guid sessionId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
 
         using (IServiceScope scope = _scopeFactory.CreateScope())
         {
@@ -53,7 +53,7 @@ public sealed class AiConversationService : IAiConversationService
             await uow.SaveChangesAsync(cancellationToken);
         }
 
-        var turnRequest = request with { TurnIndex = 0 };
+        AiSessionStartRequest turnRequest = request with { TurnIndex = 0 };
         await _store.CreateTurnAsync(sessionId, turnRequest, cancellationToken);
         StartWorker(sessionId, turnRequest);
 
@@ -78,9 +78,9 @@ public sealed class AiConversationService : IAiConversationService
             throw new InvalidOperationException("A turn is still in progress for this conversation.");
         }
 
-        int turnIndex = await sessions.GetNextTurnIndexAsync(conversationId, cancellationToken);
-        Guid sessionId = Guid.NewGuid();
-        string trimmedPrompt = prompt.Trim();
+        var turnIndex = await sessions.GetNextTurnIndexAsync(conversationId, cancellationToken);
+        var sessionId = Guid.NewGuid();
+        var trimmedPrompt = prompt.Trim();
 
         var turnRequest = new AiSessionStartRequest(
             ConversationId: conversationId,
@@ -106,7 +106,7 @@ public sealed class AiConversationService : IAiConversationService
             try
             {
                 using IServiceScope scope = _scopeFactory.CreateScope();
-                var orchestrator = scope.ServiceProvider.GetRequiredService<AiOrchestrator>();
+                AiOrchestrator orchestrator = scope.ServiceProvider.GetRequiredService<AiOrchestrator>();
                 await orchestrator.RunSessionAsync(sessionId, request, CancellationToken.None);
             }
             catch (Exception ex)
@@ -127,7 +127,7 @@ public sealed class AiConversationService : IAiConversationService
 
     private static string BuildTitle(string prompt)
     {
-        string trimmed = prompt.Trim();
+        var trimmed = prompt.Trim();
         if (trimmed.Length <= 80)
         {
             return trimmed;

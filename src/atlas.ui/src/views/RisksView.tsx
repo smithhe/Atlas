@@ -5,7 +5,12 @@ import type { Risk, RiskStatus, TeamMember } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
-import { createRisk, deleteRisk as deleteRiskApi, updateRisk as updateRiskApi } from '../app/api/risks'
+import {
+  createRisk,
+  deleteRisk as deleteRiskApi,
+  setRiskTeamMembers,
+  updateRisk as updateRiskApi,
+} from '../app/api/risks'
 import { riskStatusTone, severityTone } from '../app/tones'
 import { daysSince, newId } from '../app/utils'
 
@@ -377,6 +382,23 @@ function RiskDetail({
     })
   }
 
+  function updateLinkedTeamMembers(memberIds: string[]) {
+    const next = { ...risk, linkedTeamMemberIds: memberIds, lastUpdatedIso: new Date().toISOString() }
+    dispatch({ type: 'updateRisk', risk: next })
+
+    void setRiskTeamMembers(next.id, memberIds).catch((err) => {
+      console.error('Failed to update risk team members', err)
+      window.alert('Unable to save team member links right now. Please try again.')
+    })
+  }
+
+  function toggleLinkedTeamMember(memberId: string, checked: boolean) {
+    const current = new Set(risk.linkedTeamMemberIds)
+    if (checked) current.add(memberId)
+    else current.delete(memberId)
+    updateLinkedTeamMembers([...current])
+  }
+
   function addNote() {
     const text = newNoteText.trim()
     if (!text) return
@@ -403,6 +425,7 @@ function RiskDetail({
   }, [autoEditOnOpen, risk.id])
 
   const memberById = useMemo(() => new Map<string, TeamMember>(team.map((m) => [m.id, m])), [team])
+  const teamMemberOptions = useMemo(() => [...team].sort((a, b) => a.name.localeCompare(b.name)), [team])
 
   const linkedTasks = useMemo(() => {
     return tasks.filter((t) => t.risk === risk.title)
@@ -574,29 +597,55 @@ function RiskDetail({
 
             <div className="field">
               <div className="fieldLabel">Linked Team Members</div>
-              <div className="list listCard risksLinkedListCard">
-                {membersToShow.length === 0 ? (
-                  <div className="muted pad">No linked team members yet.</div>
-                ) : (
-                  membersToShow.map((m) => (
-                    <button
-                      key={m.id}
-                      className="listRow listRowBtn"
-                      type="button"
-                      onClick={() => navigate(`/team/${m.id}`)}
-                    >
-                      <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-hidden="true" />
-                      <div className="listMain">
-                        <div className="listTitle">{m.name}</div>
-                        <div className="listMeta">
-                          {m.role ?? 'Team member'}
-                          {m.currentFocus ? ` • ${m.currentFocus}` : ''}
+              {isEditing ? (
+                <div className="list listCard risksLinkedListCard">
+                  {teamMemberOptions.length === 0 ? (
+                    <div className="muted pad">No team members available.</div>
+                  ) : (
+                    teamMemberOptions.map((m) => (
+                      <label key={m.id} className="listRow" style={{ cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={risk.linkedTeamMemberIds.includes(m.id)}
+                          onChange={(e) => toggleLinkedTeamMember(m.id, e.target.checked)}
+                        />
+                        <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-hidden="true" />
+                        <div className="listMain">
+                          <div className="listTitle">{m.name}</div>
+                          <div className="listMeta">
+                            {m.role ?? 'Team member'}
+                            {m.currentFocus ? ` • ${m.currentFocus}` : ''}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="list listCard risksLinkedListCard">
+                  {membersToShow.length === 0 ? (
+                    <div className="muted pad">No linked team members yet.</div>
+                  ) : (
+                    membersToShow.map((m) => (
+                      <button
+                        key={m.id}
+                        className="listRow listRowBtn"
+                        type="button"
+                        onClick={() => navigate(`/team/${m.id}`)}
+                      >
+                        <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-hidden="true" />
+                        <div className="listMain">
+                          <div className="listTitle">{m.name}</div>
+                          <div className="listMeta">
+                            {m.role ?? 'Team member'}
+                            {m.currentFocus ? ` • ${m.currentFocus}` : ''}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

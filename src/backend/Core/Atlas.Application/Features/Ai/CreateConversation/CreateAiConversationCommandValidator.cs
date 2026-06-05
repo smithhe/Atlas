@@ -1,5 +1,3 @@
-using FluentValidation;
-
 namespace Atlas.Application.Features.Ai.CreateConversation;
 
 public sealed class CreateAiConversationCommandValidator : AbstractValidator<CreateAiConversationCommand>

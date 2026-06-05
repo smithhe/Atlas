@@ -59,8 +59,8 @@ internal static class TeamMemberMapper
             .OrderByDescending(x => x.AzureWorkItem!.ChangedDateUtc)
             .Select(x =>
             {
-                int workItemId = x.AzureWorkItem!.WorkItemId;
-                localNotesByWorkItemId.TryGetValue(workItemId, out List<TeamMemberAzureWorkItemLocalNoteDto>? notes);
+                var workItemId = x.AzureWorkItem!.WorkItemId;
+                localNotesByWorkItemId.TryGetValue(workItemId, out List<TeamMemberAzureWorkItemLocalNoteDto>? teamMemberAzureWorkItemLocalNoteDtos);
                 return new TeamMemberAzureWorkItemDto(
                     workItemId.ToString(),
                     x.AzureWorkItem.Title,
@@ -68,7 +68,7 @@ internal static class TeamMemberMapper
                     x.AzureWorkItem.AssignedToUniqueName,
                     x.AzureWorkItem.Url,
                     x.ProjectId,
-                    notes ?? []);
+                    teamMemberAzureWorkItemLocalNoteDtos ?? []);
             })
             .ToList();
 

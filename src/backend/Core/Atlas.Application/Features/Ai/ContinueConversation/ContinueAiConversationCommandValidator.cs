@@ -1,4 +1,3 @@
-using FluentValidation;
 
 namespace Atlas.Application.Features.Ai.ContinueConversation;
 

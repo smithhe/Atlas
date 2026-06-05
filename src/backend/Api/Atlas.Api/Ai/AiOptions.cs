@@ -2,7 +2,7 @@ namespace Atlas.Api.Ai;
 
 public sealed class AiOptions
 {
-    public const string SectionName = "Ai";
+    public const string _sectionName = "Ai";
 
     public int MaxPromptChars { get; set; } = 4_000;
     public int MaxContextChars { get; set; } = 12_000;
@@ -14,7 +14,7 @@ public sealed class AiOptions
 
 public sealed class OpenAiOptions
 {
-    public const string SectionName = "OpenAI";
+    public const string _sectionName = "OpenAI";
 
     public string? ApiKey { get; set; }
     public string Model { get; set; } = "gpt-4.1-mini";

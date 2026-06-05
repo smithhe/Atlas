@@ -13,7 +13,7 @@ public sealed class CreateAiConversationCommandHandler : IRequestHandler<CreateA
 
     public async Task<CreateAiConversationResult> Handle(CreateAiConversationCommand request, CancellationToken cancellationToken)
     {
-        Guid conversationId = Guid.NewGuid();
+        var conversationId = Guid.NewGuid();
         var startRequest = new AiSessionStartRequest(
             ConversationId: conversationId,
             TurnIndex: 0,

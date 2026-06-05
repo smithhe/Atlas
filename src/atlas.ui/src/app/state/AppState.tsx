@@ -73,14 +73,41 @@ function reduce(state: AppState, action: Action): AppState {
       return { ...state, selectedTeamMemberId: action.memberId }
     case 'selectProject':
       return { ...state, selectedProjectId: action.projectId }
-    case 'addTask':
-      return { ...state, selectedTaskId: action.task.id, tasks: [action.task, ...state.tasks] }
-    case 'updateTask':
-      return { ...state, tasks: state.tasks.map((t) => (t.id === action.task.id ? action.task : t)) }
+    case 'addTask': {
+      const task = action.task
+      const projects =
+        task.project && task.project.length > 0
+          ? state.projects.map((p) => {
+              if (p.name !== task.project || p.linkedTaskIds.includes(task.id)) return p
+              return { ...p, linkedTaskIds: [...p.linkedTaskIds, task.id] }
+            })
+          : state.projects
+      return { ...state, selectedTaskId: task.id, tasks: [task, ...state.tasks], projects }
+    }
+    case 'updateTask': {
+      const task = action.task
+      const projects = state.projects.map((p) => {
+        const shouldInclude = !!task.project && p.name === task.project
+        const has = p.linkedTaskIds.includes(task.id)
+        if (shouldInclude && !has) return { ...p, linkedTaskIds: [...p.linkedTaskIds, task.id] }
+        if (!shouldInclude && has) return { ...p, linkedTaskIds: p.linkedTaskIds.filter((id) => id !== task.id) }
+        return p
+      })
+      return {
+        ...state,
+        tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
+        projects,
+      }
+    }
     case 'removeTask':
       return {
         ...state,
         tasks: state.tasks.filter((t) => t.id !== action.taskId),
+        projects: state.projects.map((p) =>
+          p.linkedTaskIds.includes(action.taskId)
+            ? { ...p, linkedTaskIds: p.linkedTaskIds.filter((id) => id !== action.taskId) }
+            : p,
+        ),
         selectedTaskId: state.selectedTaskId === action.taskId ? undefined : state.selectedTaskId,
       }
     case 'touchTask':

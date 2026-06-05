@@ -188,6 +188,7 @@ function ProjectDetail({
 
   const [isEditingOverview, setIsEditingOverview] = useState(false)
   const [draft, setDraft] = useState<Project>(project)
+  const [tagsText, setTagsText] = useState(() => (project.tags ?? []).join(', '))
 
   const [taskQuery, setTaskQuery] = useState('')
   const [taskStatusFilter, setTaskStatusFilter] = useState<TaskStatus | 'All'>('All')
@@ -201,8 +202,11 @@ function ProjectDetail({
   const [riskOwnerFilter, setRiskOwnerFilter] = useState<string | 'All'>('All')
 
   const linkedTasks = useMemo(
-    () => tasks.filter((t) => project.linkedTaskIds.includes(t.id)),
-    [project.linkedTaskIds, tasks],
+    () =>
+      tasks.filter(
+        (t) => project.linkedTaskIds.includes(t.id) || (!!t.project && t.project === project.name),
+      ),
+    [project.linkedTaskIds, project.name, tasks],
   )
   const linkedRisks = useMemo(
     () => risks.filter((r) => project.linkedRiskIds.includes(r.id)),
@@ -258,6 +262,7 @@ function ProjectDetail({
     // Reset edit mode when switching project (prevents "sticky edit" across projects).
     setIsEditingOverview(autoEditOnOpen)
     setDraft(project)
+    setTagsText((project.tags ?? []).join(', '))
   }, [autoEditOnOpen, project])
 
   useEffect(() => {
@@ -278,8 +283,15 @@ function ProjectDetail({
     setDraft((d) => ({ ...d, ...patch }))
   }
 
-  function normalizeDraftForSave(input: Project): Project {
-    const tags = (input.tags ?? []).map((t) => t.trim()).filter(Boolean)
+  function parseTagsText(text: string): string[] {
+    return text
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+  }
+
+  function normalizeDraftForSave(input: Project, tagsOverride?: string[]): Project {
+    const tags = (tagsOverride ?? input.tags ?? []).map((t) => t.trim()).filter(Boolean)
     const links = (input.links ?? [])
       .map((l) => ({ label: (l.label ?? '').trim(), url: (l.url ?? '').trim() }))
       .filter((l) => l.label && l.url)
@@ -299,7 +311,7 @@ function ProjectDetail({
   }
 
   async function saveOverviewEdits() {
-    const next = normalizeDraftForSave(draft)
+    const next = normalizeDraftForSave(draft, parseTagsText(tagsText))
     try {
       await updateProjectApi(next.id, {
         name: next.name,
@@ -323,6 +335,7 @@ function ProjectDetail({
 
   function cancelOverviewEdits() {
     setDraft(project)
+    setTagsText((project.tags ?? []).join(', '))
     setIsEditingOverview(false)
   }
 
@@ -572,8 +585,9 @@ function ProjectDetail({
                     <input
                       className="input"
                       placeholder="platform, reliability"
-                      value={(draft.tags ?? []).join(', ')}
-                      onChange={(e) => updateDraft({ tags: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })}
+                      value={tagsText}
+                      onChange={(e) => setTagsText(e.target.value)}
+                      onBlur={() => updateDraft({ tags: parseTagsText(tagsText) })}
                     />
                   </label>
 

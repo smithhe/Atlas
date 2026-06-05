@@ -45,15 +45,15 @@ public sealed class OpenAiChatModelClient : IChatModelClient
 
         using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
         using HttpResponseMessage response = await client.PostAsync("chat/completions", content, cancellationToken);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogWarning("OpenAI request failed with status {StatusCode}: {Body}", (int)response.StatusCode, body);
             throw new InvalidOperationException("OpenAI request failed.");
         }
 
-        string completion = ExtractCompletionText(body);
-        foreach (string chunk in Chunk(completion, 160))
+        var completion = ExtractCompletionText(body);
+        foreach (var chunk in Chunk(completion, 160))
         {
             cancellationToken.ThrowIfCancellationRequested();
             yield return chunk;
@@ -62,7 +62,7 @@ public sealed class OpenAiChatModelClient : IChatModelClient
 
     private static string ExtractCompletionText(string json)
     {
-        using JsonDocument doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         JsonElement root = doc.RootElement;
         JsonElement choices = root.GetProperty("choices");
         if (choices.GetArrayLength() == 0)
@@ -86,9 +86,9 @@ public sealed class OpenAiChatModelClient : IChatModelClient
             yield break;
         }
 
-        for (int i = 0; i < text.Length; i += size)
+        for (var i = 0; i < text.Length; i += size)
         {
-            int take = Math.Min(size, text.Length - i);
+            var take = Math.Min(size, text.Length - i);
             yield return text.Substring(i, take);
         }
     }
