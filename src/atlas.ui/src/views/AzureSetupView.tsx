@@ -13,11 +13,13 @@ import type { AzureProjectDto, AzureTeamDto, AzureUserDto } from '../app/api/azu
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 import { Spinner } from '../components/Spinner'
+import { useInvalidateAppQueries } from '../app/queries/invalidateAppQueries'
 
 type Step = 'project' | 'team' | 'members' | 'saving'
 
 export function AzureSetupView() {
   const navigate = useNavigate()
+  const invalidateAppQueries = useInvalidateAppQueries()
   const [step, setStep] = useState<Step>('project')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -206,6 +208,7 @@ export function AzureSetupView() {
       })
       if (selected.length > 0) {
         await importAzureTeam(selected)
+        await invalidateAppQueries(['teamMembers'])
       }
       navigate('/dashboard')
     } catch (err) {

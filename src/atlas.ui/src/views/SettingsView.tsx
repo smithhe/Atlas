@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppState } from '../app/state/AppState'
 import { useAppCache } from '../app/queries/useAppCache'
+import { useInvalidateAppQueries } from '../app/queries/invalidateAppQueries'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureSyncStateDto } from '../app/api/azureDevOps'
 import { updateSettings } from '../app/api/settings'
@@ -14,6 +15,7 @@ export function SettingsView() {
   const ai = useAi()
   const navigate = useNavigate()
   const cache = useAppCache()
+  const invalidateAppQueries = useInvalidateAppQueries()
   const { settings } = useAppState()
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState<string | null>(null)
@@ -108,6 +110,7 @@ export function SettingsView() {
     setAzureError(null)
     try {
       await runAzureSync()
+      await invalidateAppQueries(['teamMembers', 'projects', 'tasks'])
       setSyncStateLoading(true)
       const state = await getAzureSyncState()
       setSyncState(state)

@@ -13,11 +13,13 @@ import type { AzureConnectionDto, AzureImportWorkItemDto, AzureUserDto } from '.
 import { listProductOwners } from '../app/api/productOwners'
 import { useAppState } from '../app/state/AppState'
 import { useAppCache } from '../app/queries/useAppCache'
+import { useInvalidateAppQueries } from '../app/queries/invalidateAppQueries'
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 
 export function AzureImportView() {
   const cache = useAppCache()
+  const invalidateAppQueries = useInvalidateAppQueries()
   const { projects, team } = useAppState()
   const [connection, setConnection] = useState<AzureConnectionDto | null>(null)
   const [users, setUsers] = useState<AzureUserDto[]>([])
@@ -80,6 +82,7 @@ export function AzureImportView() {
     try {
       const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
       await importAzureTeam(selected)
+      await invalidateAppQueries(['teamMembers'])
       const selectedSet = new Set(selected.map((u) => u.uniqueName.trim().toLowerCase()))
       setUsers((prev) => prev.filter((u) => !selectedSet.has(u.uniqueName.trim().toLowerCase())))
       setSelectedUsers(new Set())
@@ -114,6 +117,7 @@ export function AzureImportView() {
     setLinkingWorkItems(true)
     try {
       await linkAzureWorkItems([...selectedWorkItems], projectId, teamMemberId || undefined)
+      await invalidateAppQueries(['teamMembers', 'projects'])
       setSelectedWorkItems(new Set())
       const items = await listAzureImportWorkItems()
       setImportWorkItems(items)
