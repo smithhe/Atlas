@@ -11,12 +11,13 @@ import {
 } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureImportWorkItemDto, AzureUserDto } from '../app/api/azureDevOps'
 import { listProductOwners } from '../app/api/productOwners'
-import { useAppDispatch, useAppState } from '../app/state/AppState'
+import { useAppState } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 
 export function AzureImportView() {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const { projects, team } = useAppState()
   const [connection, setConnection] = useState<AzureConnectionDto | null>(null)
   const [users, setUsers] = useState<AzureUserDto[]>([])
@@ -96,7 +97,7 @@ export function AzureImportView() {
       const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
       await importAzureProductOwners(selected)
       const refreshedProductOwners = await listProductOwners()
-      dispatch({ type: 'replaceProductOwners', productOwners: refreshedProductOwners })
+      cache.replaceProductOwners(refreshedProductOwners)
       const selectedSet = new Set(selected.map((u) => u.uniqueName.trim().toLowerCase()))
       setUsers((prev) => prev.filter((u) => !selectedSet.has(u.uniqueName.trim().toLowerCase())))
       setSelectedUsers(new Set())

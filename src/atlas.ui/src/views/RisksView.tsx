@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedRisk } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { Risk, RiskStatus, TeamMember } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
@@ -78,6 +79,7 @@ function applyTabIndentation(params: {
 export function RisksView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { riskId } = useParams<{ riskId?: string }>()
   const { risks, selectedRiskId, projects } = useAppState()
@@ -170,20 +172,17 @@ export function RisksView() {
         evidence: '',
       })
 
-      dispatch({
-        type: 'addRisk',
-        risk: {
-          id,
-          title: 'New risk',
-          status: 'Open',
-          severity: 'Medium',
-          description: '',
-          evidence: '',
-          linkedTaskIds: [],
-          linkedTeamMemberIds: [],
-          history: [],
-          lastUpdatedIso: new Date().toISOString(),
-        },
+      cache.addRisk({
+        id,
+        title: 'New risk',
+        status: 'Open',
+        severity: 'Medium',
+        description: '',
+        evidence: '',
+        linkedTaskIds: [],
+        linkedTeamMemberIds: [],
+        history: [],
+        lastUpdatedIso: new Date().toISOString(),
       })
       setAutoEditRiskId(id)
     } catch (err) {
@@ -201,7 +200,7 @@ export function RisksView() {
     setDeletingRiskId(risk.id)
     try {
       await deleteRiskApi(risk.id)
-      dispatch({ type: 'removeRisk', riskId: risk.id })
+      cache.removeRisk(risk.id)
       if (riskId === risk.id) navigate('/risks', { replace: true })
       if (autoEditRiskId === risk.id) setAutoEditRiskId(undefined)
     } catch (err) {
@@ -349,7 +348,7 @@ function RiskDetail({
   onDelete: () => void
   projectOptions: string[]
 }) {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { tasks, team, projects } = useAppState()
   const [isEditing, setIsEditing] = useState(false)
@@ -362,10 +361,7 @@ function RiskDetail({
 
   function update(patch: Partial<Risk>) {
     const next = { ...risk, ...patch, lastUpdatedIso: new Date().toISOString() }
-    dispatch({
-      type: 'updateRisk',
-      risk: next,
-    })
+    cache.updateRisk(next)
 
     const projectId = next.project ? projects.find((p) => p.name === next.project)?.id : undefined
 
@@ -384,7 +380,7 @@ function RiskDetail({
 
   function updateLinkedTeamMembers(memberIds: string[]) {
     const next = { ...risk, linkedTeamMemberIds: memberIds, lastUpdatedIso: new Date().toISOString() }
-    dispatch({ type: 'updateRisk', risk: next })
+    cache.updateRisk(next)
 
     void setRiskTeamMembers(next.id, memberIds).catch((err) => {
       console.error('Failed to update risk team members', err)

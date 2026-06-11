@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
+import { useTeamMembersQuery } from '../app/queries/hooks'
 import type { Growth, GrowthFeedbackTheme, GrowthGoal, GrowthGoalStatus, NoteTag, Priority, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -11,7 +13,6 @@ import { MemberOverviewTab } from './team/MemberOverviewTab'
 import {
   addTeamMemberRisk,
   addTeamNote,
-  loadTeamMembers,
   updateTeamMember,
   updateTeamMemberProfile,
   updateTeamMemberSignals,
@@ -67,7 +68,7 @@ export function TeamView() {
   const isFocusMode = !!memberId
   const routeTab = useMemo(() => getActiveTab(location.pathname), [location.pathname])
   const [localTab, setLocalTab] = useState<MemberTab>('overview')
-  const [refreshingTeam, setRefreshingTeam] = useState(false)
+  const { isFetching: refreshingTeam } = useTeamMembersQuery()
   const activeTab = isFocusMode ? routeTab : localTab
   const memberName = useMemo(() => {
     if (!memberId) return undefined
@@ -81,26 +82,6 @@ export function TeamView() {
       { id: 'cite-notes', label: 'Cite specific notes (draft)' },
     ])
   }, [ai.setContext])
-
-  useEffect(() => {
-    let mounted = true
-    setRefreshingTeam(true)
-    loadTeamMembers()
-      .then(({ team: nextTeam, teamMemberRisks }) => {
-        if (!mounted) return
-        dispatch({ type: 'replaceTeamMembers', team: nextTeam, teamMemberRisks })
-      })
-      .catch((err) => {
-        console.error('Failed to refresh team members', err)
-      })
-      .finally(() => {
-        if (mounted) setRefreshingTeam(false)
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [dispatch])
 
   useEffect(() => {
     if (!memberId) return
@@ -220,12 +201,12 @@ function MemberDetail({
   onExitFocus: () => void
 }) {
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const { risks, teamMemberRisks } = useAppState()
 
   function update(patch: Partial<TeamMember>) {
     const next = { ...member, ...patch }
-    dispatch({ type: 'updateTeamMember', member: next })
+    cache.updateTeamMember(next)
 
     void (async () => {
       try {
@@ -377,7 +358,7 @@ function isRiskNote(note: TeamNote) {
 }
 
 function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<NoteTag | 'All'> }) {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [tagFilter, setTagFilter] = useState<NoteTag | 'All'>('All')
@@ -398,7 +379,7 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
   const editInputMaxHeightPx = 360
 
   function updateNotes(nextNotes: TeamNote[]) {
-    dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
+    cache.updateTeamMember({ ...member, notes: nextNotes })
   }
 
   async function createNote(note: TeamNote) {
@@ -1067,7 +1048,7 @@ function MemberRisksTab({
   teamMemberRisks: TeamMemberRisk[]
   risks: Risk[]
 }) {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<TeamMemberRisk['status'] | 'All'>('All')
@@ -1143,7 +1124,7 @@ function MemberRisksTab({
           linkedRiskId: createDraft.linkedRiskId || undefined,
         }
 
-        dispatch({ type: 'addTeamMemberRisk', teamMemberRisk: next })
+        cache.addTeamMemberRisk(next)
         closeCreateModal()
         navigate(`/team/${memberId}/risks/${next.id}`)
       } catch (err) {
@@ -1377,7 +1358,7 @@ function MemberRisksTab({
 }
 
 function MemberGrowthTab({ member }: { member: TeamMember }) {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const growth = useGrowthForMember(member.id)
   const navigate = useNavigate()
 
@@ -1498,26 +1479,20 @@ function MemberGrowthTab({ member }: { member: TeamMember }) {
     const g = growth
     if (g?.id && isGuid(g.id)) return g.id
     const id = await ensureGrowthForMember(member.id)
-    dispatch({
-      type: 'updateGrowth',
-      growth: baseGrowth(id),
-    })
+    cache.updateGrowth(baseGrowth(id))
     return id
   }
 
   function commitGrowth(patch: Partial<Growth>, growthId?: string) {
     const g = baseGrowth(growthId)
-    dispatch({
-      type: 'updateGrowth',
-      growth: {
-        ...g,
-        ...patch,
-        memberId: member.id,
-        goals: patch.goals ?? g.goals,
-        skillsInProgress: patch.skillsInProgress ?? g.skillsInProgress,
-        feedbackThemes: patch.feedbackThemes ?? g.feedbackThemes,
-        focusAreasMarkdown: patch.focusAreasMarkdown ?? g.focusAreasMarkdown,
-      },
+    cache.updateGrowth({
+      ...g,
+      ...patch,
+      memberId: member.id,
+      goals: patch.goals ?? g.goals,
+      skillsInProgress: patch.skillsInProgress ?? g.skillsInProgress,
+      feedbackThemes: patch.feedbackThemes ?? g.feedbackThemes,
+      focusAreasMarkdown: patch.focusAreasMarkdown ?? g.focusAreasMarkdown,
     })
   }
 
