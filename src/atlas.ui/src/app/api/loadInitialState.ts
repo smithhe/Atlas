@@ -1,13 +1,25 @@
-import type { AppState } from '../state/AppState'
 import { getJson, HttpError } from './client'
 import type { ProductOwnerListItemDto, ProjectDto, RiskDto, SettingsDto, TaskDto, TeamMemberDto, GrowthDto } from './mappers'
 import { mapGrowth, mapProductOwner, mapProject, mapRisk, mapSettings, mapTask, mapTeamMember } from './mappers'
+import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
 
 type ProjectListItemDto = { id: string }
 type RiskListItemDto = { id: string }
 type TeamMemberListItemDto = { id: string }
 
-export async function loadInitialState(): Promise<AppState> {
+export interface InitialAppData {
+  tasks: Task[]
+  risks: Risk[]
+  teamMemberRisks: TeamMemberRisk[]
+  team: TeamMember[]
+  projects: Project[]
+  productOwners: ProductOwner[]
+  growth: Growth[]
+  settings: Settings
+}
+
+/** @deprecated Use TanStack Query fetchers in `app/queries/fetchers.ts` instead. */
+export async function loadInitialState(): Promise<InitialAppData> {
   const [settingsDto, taskDtos, productOwnerDtos, projectList, riskList, memberList] = await Promise.all([
     getJson<SettingsDto>('/settings'),
     getJson<TaskDto[]>('/tasks'),
@@ -45,8 +57,8 @@ export async function loadInitialState(): Promise<AppState> {
 
   const tasks = taskDtos.map((t) => mapTask(t, { projectNameById, riskTitleById }))
 
-  const team: AppState['team'] = []
-  const teamMemberRisks: AppState['teamMemberRisks'] = []
+  const team: TeamMember[] = []
+  const teamMemberRisks: TeamMemberRisk[] = []
 
   for (const dto of teamMemberDtos) {
     const mapped = mapTeamMember(dto)
@@ -65,11 +77,5 @@ export async function loadInitialState(): Promise<AppState> {
     productOwners,
     growth,
     settings,
-    selectedTaskId: undefined,
-    selectedRiskId: undefined,
-    selectedTeamMemberRiskId: teamMemberRisks[0]?.id,
-    selectedTeamMemberId: team[0]?.id,
-    selectedProjectId: projects[0]?.id,
   }
 }
-

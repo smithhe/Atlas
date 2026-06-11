@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { AzureItem } from '../app/types'
 import { Markdown } from '../components/Markdown'
 import { addAzureWorkItemLocalNote } from '../app/api/teamMembers'
@@ -10,6 +11,7 @@ import { formatIsoDateLong, reportSaveError } from '../app/utils'
 export function TeamWorkItemDetailView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, workItemId } = useParams<{ memberId: string; workItemId: string }>()
   const { team, projects } = useAppState()
@@ -54,7 +56,7 @@ export function TeamWorkItemDetailView() {
       ...member,
       azureItems: member.azureItems.map((a) => (a.id === item.id ? next : a)),
     }
-    dispatch({ type: 'updateTeamMember', member: nextMember })
+    cache.updateTeamMember(nextMember)
   }
 
   function addLocalNote() {

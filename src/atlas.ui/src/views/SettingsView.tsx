@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState } from '../app/state/AppState'
+import { useAppState } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureSyncStateDto } from '../app/api/azureDevOps'
 import { updateSettings } from '../app/api/settings'
@@ -12,7 +13,7 @@ import { LoadingOverlay } from '../components/LoadingOverlay'
 export function SettingsView() {
   const ai = useAi()
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const { settings } = useAppState()
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState<string | null>(null)
@@ -132,10 +133,7 @@ export function SettingsView() {
               min={1}
               value={settings.staleDays}
               onChange={(e) =>
-                dispatch({
-                  type: 'updateSettings',
-                  settings: { ...settings, staleDays: clampInt(e.target.value, 1, 365) },
-                })
+                cache.updateSettings({ ...settings, staleDays: clampInt(e.target.value, 1, 365) })
               }
             />
           </label>
@@ -158,10 +156,7 @@ export function SettingsView() {
               onChange={(e) => {
                 const defaultAiPanelOpen = e.target.value === 'on'
                 saveDefaultAiPanelOpen(defaultAiPanelOpen)
-                dispatch({
-                  type: 'updateSettings',
-                  settings: { ...settings, defaultAiPanelOpen },
-                })
+                cache.updateSettings({ ...settings, defaultAiPanelOpen })
               }}
             >
               <option value="off">Off (closed)</option>
@@ -184,10 +179,7 @@ export function SettingsView() {
               className="input"
               value={settings.azureDevOpsBaseUrl ?? ''}
               onChange={(e) =>
-                dispatch({
-                  type: 'updateSettings',
-                  settings: { ...settings, azureDevOpsBaseUrl: e.target.value },
-                })
+                cache.updateSettings({ ...settings, azureDevOpsBaseUrl: e.target.value })
               }
             />
           </label>

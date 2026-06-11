@@ -6,6 +6,7 @@ import {
   useAppState,
   useSelectedProject,
 } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, TaskStatus } from '../app/types'
 import { createProject, deleteProject as deleteProjectApi, updateProject as updateProjectApi } from '../app/api/projects'
 import { healthTone, projectStatusTone, priorityTone, taskStatusTone, severityTone } from '../app/tones'
@@ -20,6 +21,7 @@ function isAzureWorkItemDone(status?: string) {
 export function ProjectsView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId?: string }>()
   const { projects, selectedProjectId } = useAppState()
@@ -65,22 +67,19 @@ export function ProjectsView() {
         links: [],
       })
 
-      dispatch({
-        type: 'addProject',
-        project: {
-          id,
-          name,
-          summary: 'New project summary',
-          description: '',
-          status: 'Active',
-          health: 'Green',
-          tags: [],
-          links: [],
-          linkedTaskIds: [],
-          linkedRiskIds: [],
-          teamMemberIds: [],
-          lastUpdatedIso: new Date().toISOString(),
-        },
+      cache.addProject({
+        id,
+        name,
+        summary: 'New project summary',
+        description: '',
+        status: 'Active',
+        health: 'Green',
+        tags: [],
+        links: [],
+        linkedTaskIds: [],
+        linkedRiskIds: [],
+        teamMemberIds: [],
+        lastUpdatedIso: new Date().toISOString(),
       })
       setAutoEditProjectId(id)
     } catch (err) {
@@ -98,7 +97,7 @@ export function ProjectsView() {
     setDeletingProjectId(project.id)
     try {
       await deleteProjectApi(project.id)
-      dispatch({ type: 'removeProject', projectId: project.id })
+      cache.removeProject(project.id)
       if (projectId === project.id) navigate(`/projects${search}`, { replace: true })
       if (autoEditProjectId === project.id) setAutoEditProjectId(undefined)
     } catch (err) {
@@ -179,7 +178,7 @@ function ProjectDetail({
   onDelete: (search: string) => void
 }) {
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const { tasks, risks, team, productOwners } = useAppState()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = (searchParams.get('tab') ?? 'overview').toLowerCase()
@@ -325,7 +324,7 @@ function ProjectDetail({
         tags: next.tags,
         links: next.links,
       })
-      dispatch({ type: 'updateProject', project: next })
+      cache.updateProject(next)
       setIsEditingOverview(false)
     } catch (err) {
       console.error('Failed to update project', err)

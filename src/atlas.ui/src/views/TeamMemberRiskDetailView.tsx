@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { TeamMemberRisk } from '../app/types'
 import { updateTeamMemberRisk } from '../app/api/teamMembers'
 import { daysSince, formatIsoDate, reportSaveError } from '../app/utils'
@@ -13,6 +14,7 @@ function severityClass(sev: TeamMemberRisk['severity']) {
 export function TeamMemberRiskDetailView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, teamMemberRiskId } = useParams<{ memberId: string; teamMemberRiskId: string }>()
   const { team, risks, teamMemberRisks } = useAppState()
@@ -95,7 +97,7 @@ export function TeamMemberRiskDetailView() {
 
   function persistRisk(next: TeamMemberRisk) {
     if (!memberId) return
-    dispatch({ type: 'updateTeamMemberRisk', teamMemberRisk: next })
+    cache.updateTeamMemberRisk(next)
     void updateTeamMemberRisk(memberId, next.id, {
       title: next.title,
       severity: next.severity,

@@ -1,272 +1,36 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import type { Dispatch, ReactNode } from 'react'
-import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
-import { loadInitialState } from '../api/loadInitialState'
+import { useMemo } from 'react'
+import type { ReactNode } from 'react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '../queries/queryClient'
+import { useAppData, useAppHydration, useGrowthForMember } from '../queries/hooks'
+import {
+  SelectionProvider,
+  useSelectedProject,
+  useSelectedRisk,
+  useSelectedTask,
+  useSelectedTeamMember,
+  useSelectionDispatch,
+  useSelectionState,
+} from './SelectionState'
 
-export interface AppState {
-  tasks: Task[]
-  risks: Risk[]
-  teamMemberRisks: TeamMemberRisk[]
-  team: TeamMember[]
-  projects: Project[]
-  productOwners: ProductOwner[]
-  growth: Growth[]
-  settings: Settings
-
-  selectedTaskId?: string
-  selectedRiskId?: string
-  selectedTeamMemberRiskId?: string
-  selectedTeamMemberId?: string
-  selectedProjectId?: string
-}
-
-type Action =
-  | { type: 'hydrate'; state: AppState }
-  | { type: 'replaceTeamMembers'; team: TeamMember[]; teamMemberRisks: TeamMemberRisk[] }
-  | { type: 'replaceProductOwners'; productOwners: ProductOwner[] }
-  | { type: 'selectTask'; taskId?: string }
-  | { type: 'selectRisk'; riskId?: string }
-  | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
-  | { type: 'selectTeamMember'; memberId?: string }
-  | { type: 'selectProject'; projectId?: string }
-  | { type: 'addTask'; task: Task }
-  | { type: 'updateTask'; task: Task }
-  | { type: 'removeTask'; taskId: string }
-  | { type: 'touchTask'; taskId: string; touchedIso: string }
-  | { type: 'addRisk'; risk: Risk }
-  | { type: 'updateRisk'; risk: Risk }
-  | { type: 'removeRisk'; riskId: string }
-  | { type: 'addTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
-  | { type: 'updateTeamMemberRisk'; teamMemberRisk: TeamMemberRisk }
-  | { type: 'updateGrowth'; growth: Growth }
-  | { type: 'updateSettings'; settings: Settings }
-  | { type: 'updateTeamMember'; member: TeamMember }
-  | { type: 'addProject'; project: Project }
-  | { type: 'updateProject'; project: Project }
-  | { type: 'removeProject'; projectId: string }
-
-function reduce(state: AppState, action: Action): AppState {
-  switch (action.type) {
-    case 'hydrate':
-      return action.state
-    case 'replaceTeamMembers': {
-      const nextSelectedId = action.team.some((m) => m.id === state.selectedTeamMemberId)
-        ? state.selectedTeamMemberId
-        : action.team[0]?.id
-
-      return {
-        ...state,
-        team: action.team,
-        teamMemberRisks: action.teamMemberRisks,
-        selectedTeamMemberId: nextSelectedId,
-      }
-    }
-    case 'replaceProductOwners':
-      return { ...state, productOwners: action.productOwners }
-    case 'selectTask':
-      return { ...state, selectedTaskId: action.taskId }
-    case 'selectRisk':
-      return { ...state, selectedRiskId: action.riskId }
-    case 'selectTeamMemberRisk':
-      return { ...state, selectedTeamMemberRiskId: action.teamMemberRiskId }
-    case 'selectTeamMember':
-      return { ...state, selectedTeamMemberId: action.memberId }
-    case 'selectProject':
-      return { ...state, selectedProjectId: action.projectId }
-    case 'addTask': {
-      const task = action.task
-      const projects =
-        task.project && task.project.length > 0
-          ? state.projects.map((p) => {
-              if (p.name !== task.project || p.linkedTaskIds.includes(task.id)) return p
-              return { ...p, linkedTaskIds: [...p.linkedTaskIds, task.id] }
-            })
-          : state.projects
-      return { ...state, selectedTaskId: task.id, tasks: [task, ...state.tasks], projects }
-    }
-    case 'updateTask': {
-      const task = action.task
-      const projects = state.projects.map((p) => {
-        const shouldInclude = !!task.project && p.name === task.project
-        const has = p.linkedTaskIds.includes(task.id)
-        if (shouldInclude && !has) return { ...p, linkedTaskIds: [...p.linkedTaskIds, task.id] }
-        if (!shouldInclude && has) return { ...p, linkedTaskIds: p.linkedTaskIds.filter((id) => id !== task.id) }
-        return p
-      })
-      return {
-        ...state,
-        tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
-        projects,
-      }
-    }
-    case 'removeTask':
-      return {
-        ...state,
-        tasks: state.tasks.filter((t) => t.id !== action.taskId),
-        projects: state.projects.map((p) =>
-          p.linkedTaskIds.includes(action.taskId)
-            ? { ...p, linkedTaskIds: p.linkedTaskIds.filter((id) => id !== action.taskId) }
-            : p,
-        ),
-        selectedTaskId: state.selectedTaskId === action.taskId ? undefined : state.selectedTaskId,
-      }
-    case 'touchTask':
-      return {
-        ...state,
-        tasks: state.tasks.map((t) =>
-          t.id === action.taskId ? { ...t, lastTouchedIso: action.touchedIso } : t,
-        ),
-      }
-    case 'addRisk':
-      return { ...state, selectedRiskId: action.risk.id, risks: [action.risk, ...state.risks] }
-    case 'updateRisk':
-      return { ...state, risks: state.risks.map((r) => (r.id === action.risk.id ? action.risk : r)) }
-    case 'removeRisk':
-      return {
-        ...state,
-        risks: state.risks.filter((r) => r.id !== action.riskId),
-        selectedRiskId: state.selectedRiskId === action.riskId ? undefined : state.selectedRiskId,
-      }
-    case 'addTeamMemberRisk':
-      return {
-        ...state,
-        selectedTeamMemberRiskId: action.teamMemberRisk.id,
-        teamMemberRisks: [action.teamMemberRisk, ...state.teamMemberRisks],
-      }
-    case 'updateTeamMemberRisk':
-      return {
-        ...state,
-        teamMemberRisks: state.teamMemberRisks.map((r) => (r.id === action.teamMemberRisk.id ? action.teamMemberRisk : r)),
-      }
-    case 'updateGrowth':
-      return {
-        ...state,
-        growth: state.growth.some((g) => g.id === action.growth.id)
-          ? state.growth.map((g) => (g.id === action.growth.id ? action.growth : g))
-          : [...state.growth, action.growth],
-      }
-    case 'updateSettings':
-      return { ...state, settings: action.settings }
-    case 'updateTeamMember':
-      return { ...state, team: state.team.map((m) => (m.id === action.member.id ? action.member : m)) }
-    case 'addProject':
-      return { ...state, selectedProjectId: action.project.id, projects: [action.project, ...state.projects] }
-    case 'updateProject':
-      return { ...state, projects: state.projects.map((p) => (p.id === action.project.id ? action.project : p)) }
-    case 'removeProject':
-      return {
-        ...state,
-        projects: state.projects.filter((p) => p.id !== action.projectId),
-        selectedProjectId: state.selectedProjectId === action.projectId ? undefined : state.selectedProjectId,
-      }
-    default: {
-      const _exhaustive: never = action
-      void _exhaustive
-      return state
-    }
-  }
-}
-
-function initialState(): AppState {
-  return {
-    tasks: [],
-    risks: [],
-    teamMemberRisks: [],
-    team: [],
-    projects: [],
-    productOwners: [],
-    growth: [],
-    settings: {
-      staleDays: 10,
-      defaultAiManualOnly: true,
-      defaultAiPanelOpen: false,
-      theme: 'Dark',
-      azureDevOpsBaseUrl: undefined,
-    },
-
-    // Start with no task selected so the Tasks page can start "closed".
-    selectedTaskId: undefined,
-    selectedRiskId: undefined,
-    selectedTeamMemberRiskId: undefined,
-    selectedTeamMemberId: undefined,
-    selectedProjectId: undefined,
-  }
-}
-
-const AppStateContext = createContext<AppState | undefined>(undefined)
-const AppDispatchContext = createContext<Dispatch<Action> | undefined>(undefined)
-const AppHydrationContext = createContext(false)
+export type { SelectionState as AppState } from './SelectionState'
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reduce, undefined, initialState)
-  const didLoadRef = useRef(false)
-  const [isHydrating, setIsHydrating] = useState(true)
-
-  useEffect(() => {
-    if (didLoadRef.current) return
-    didLoadRef.current = true
-
-    setIsHydrating(true)
-    loadInitialState()
-      .then((loaded) => dispatch({ type: 'hydrate', state: loaded }))
-      .catch((err) => {
-        // If the API isn't running yet, keep the app usable (empty state) but log for debugging.
-        // (A future enhancement could show a non-blocking banner.)
-        console.error('Failed to load initial state from API', err)
-      })
-      .finally(() => {
-        setIsHydrating(false)
-      })
-  }, [])
-
   return (
-    <AppHydrationContext.Provider value={isHydrating}>
-      <AppStateContext.Provider value={state}>
-        <AppDispatchContext.Provider value={dispatch}>{children}</AppDispatchContext.Provider>
-      </AppStateContext.Provider>
-    </AppHydrationContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <SelectionProvider>{children}</SelectionProvider>
+    </QueryClientProvider>
   )
 }
 
-export function useAppState(): AppState {
-  const ctx = useContext(AppStateContext)
-  if (!ctx) throw new Error('useAppState must be used within AppStateProvider')
-  return ctx
+export function useAppState() {
+  const data = useAppData()
+  const selection = useSelectionState()
+  return useMemo(() => ({ ...data, ...selection }), [data, selection])
 }
 
 export function useAppDispatch() {
-  const ctx = useContext(AppDispatchContext)
-  if (!ctx) throw new Error('useAppDispatch must be used within AppStateProvider')
-  return ctx
+  return useSelectionDispatch()
 }
 
-export function useAppHydration(): boolean {
-  return useContext(AppHydrationContext)
-}
-
-export function useSelectedTask(): Task | undefined {
-  const { tasks, selectedTaskId } = useAppState()
-  return useMemo(() => tasks.find((t) => t.id === selectedTaskId), [tasks, selectedTaskId])
-}
-
-export function useSelectedRisk(): Risk | undefined {
-  const { risks, selectedRiskId } = useAppState()
-  return useMemo(() => risks.find((r) => r.id === selectedRiskId), [risks, selectedRiskId])
-}
-
-export function useSelectedTeamMember(): TeamMember | undefined {
-  const { team, selectedTeamMemberId } = useAppState()
-  return useMemo(() => team.find((m) => m.id === selectedTeamMemberId), [team, selectedTeamMemberId])
-}
-
-export function useGrowthForMember(memberId?: string): Growth | undefined {
-  const { growth } = useAppState()
-  return useMemo(() => (memberId ? growth.find((g) => g.memberId === memberId) : undefined), [growth, memberId])
-}
-
-export function useSelectedProject(): Project | undefined {
-  const { projects, selectedProjectId } = useAppState()
-  return useMemo(() => projects.find((p) => p.id === selectedProjectId), [projects, selectedProjectId])
-}
-
-
+export { useAppHydration, useGrowthForMember, useSelectedTask, useSelectedRisk, useSelectedTeamMember, useSelectedProject }

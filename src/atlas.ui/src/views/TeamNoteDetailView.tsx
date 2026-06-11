@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { NoteTag } from '../app/types'
 import { Markdown } from '../components/Markdown'
 import { updateTeamNote } from '../app/api/teamMembers'
@@ -12,6 +13,7 @@ const NOTE_TAGS: NoteTag[] = ['Quick', 'Standup', 'Progress', 'Praise', 'Concern
 export function TeamNoteDetailView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, noteId } = useParams<{ memberId: string; noteId: string }>()
   const { team } = useAppState()
@@ -90,7 +92,7 @@ export function TeamNoteDetailView() {
           text: updated.text,
         })
         const nextNotes = member.notes.map((n) => (n.id === note.id ? updated : n))
-        dispatch({ type: 'updateTeamMember', member: { ...member, notes: nextNotes } })
+        cache.updateTeamMember({ ...member, notes: nextNotes })
         setIsEditing(false)
       } catch (err) {
         reportSaveError(err, 'Unable to save note changes right now. Please try again.')

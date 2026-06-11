@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type { Priority, Task, TaskStatus } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
@@ -11,6 +12,7 @@ import { daysSince } from '../app/utils'
 export function TasksView() {
   const ai = useAi()
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId?: string }>()
   const { tasks, settings, selectedTaskId, projects, risks } = useAppState()
@@ -228,19 +230,16 @@ export function TasksView() {
         dependencyTaskIds: [],
       })
 
-      dispatch({
-        type: 'addTask',
-        task: {
-          id,
-          title: 'New task',
-          priority: 'Medium',
-          status: 'Not Started',
-          estimatedDurationText: '1h',
-          estimateConfidence: 'Medium',
-          notes: '',
-          dependencyTaskIds: [],
-          lastTouchedIso: new Date().toISOString(),
-        },
+      cache.addTask({
+        id,
+        title: 'New task',
+        priority: 'Medium',
+        status: 'Not Started',
+        estimatedDurationText: '1h',
+        estimateConfidence: 'Medium',
+        notes: '',
+        dependencyTaskIds: [],
+        lastTouchedIso: new Date().toISOString(),
       })
       setAutoEditTaskId(id)
     } catch (err) {
@@ -258,7 +257,7 @@ export function TasksView() {
     setDeletingTaskId(task.id)
     try {
       await deleteTaskApi(task.id)
-      dispatch({ type: 'removeTask', taskId: task.id })
+      cache.removeTask(task.id)
       if (taskId === task.id) navigate('/tasks', { replace: true })
       if (autoEditTaskId === task.id) setAutoEditTaskId(undefined)
     } catch (err) {
@@ -504,7 +503,7 @@ function TaskDetail({
   projectOptions: string[]
   riskOptions: string[]
 }) {
-  const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const { tasks, team, projects, risks } = useAppState()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
   const [isEditing, setIsEditing] = useState(false)
@@ -521,7 +520,7 @@ function TaskDetail({
 
   function update(patch: Partial<Task>) {
     const next = { ...task, ...patch }
-    dispatch({ type: 'updateTask', task: next })
+    cache.updateTask(next)
 
     const projectId = next.project ? projects.find((p) => p.name === next.project)?.id : undefined
     const riskId = next.risk ? risks.find((r) => r.title === next.risk)?.id : undefined

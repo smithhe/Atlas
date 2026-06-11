@@ -8,6 +8,7 @@ import {
   updateGrowthGoalCheckIn,
 } from '../app/api/growth'
 import { useAppDispatch, useAppState, useGrowthForMember } from '../app/state/AppState'
+import { useAppCache } from '../app/queries/useAppCache'
 import type {
   Growth,
   GrowthGoal,
@@ -50,6 +51,7 @@ function priorityLabel(p?: Priority) {
 
 export function GrowthGoalDetailView() {
   const dispatch = useAppDispatch()
+  const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, goalId } = useParams<{ memberId?: string; goalId?: string }>()
   const { team } = useAppState()
@@ -114,7 +116,7 @@ export function GrowthGoalDetailView() {
         return nextGoal
       }),
     }
-    dispatch({ type: 'updateGrowth', growth: updatedGrowth })
+    cache.updateGrowth(updatedGrowth)
 
     if (!nextGoal || !isGuid(growth.id) || !isGuid(goalId)) return
 
