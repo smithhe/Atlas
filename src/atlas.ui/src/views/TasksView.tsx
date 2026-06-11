@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedTask } from '../app/state/AppState'
+import { useProjects, useRisks, useSettings, useTasks, useTeam } from '../app/queries/hooks'
+import { useSelectedTask, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { Priority, Task, TaskStatus } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -11,11 +12,15 @@ import { daysSince } from '../app/utils'
 
 export function TasksView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectTask } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId?: string }>()
-  const { tasks, settings, selectedTaskId, projects, risks } = useAppState()
+  const tasks = useTasks()
+  const settings = useSettings()
+  const projects = useProjects()
+  const risks = useRisks()
+  const { selectedTaskId } = useSelectionState()
   const selected = useSelectedTask()
   const listRef = useRef<HTMLElement | null>(null)
   const [listMaxHeightPx, setListMaxHeightPx] = useState<number | undefined>(undefined)
@@ -148,8 +153,8 @@ export function TasksView() {
 
   useEffect(() => {
     if (!taskId) return
-    dispatch({ type: 'selectTask', taskId })
-  }, [dispatch, taskId])
+    selectTask(taskId)
+  }, [selectTask, taskId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
   useEffect(() => {
@@ -417,7 +422,7 @@ export function TasksView() {
                 <button
                   key={t.id}
                   className={`listRow listRowBtn tasksTaskRow ${t.id === selectedTaskId ? 'listRowActive' : ''}`}
-                  onClick={() => dispatch({ type: 'selectTask', taskId: t.id })}
+                  onClick={() => selectTask(t.id)}
                   onDoubleClick={() => navigate(`/tasks/${t.id}`)}
                 >
                   <div className="listMain">
@@ -461,7 +466,7 @@ export function TasksView() {
                 isDeleting={deletingTaskId === selected.id}
                 onEnterFocus={() => navigate(`/tasks/${selected.id}`)}
                 onExitFocus={() => navigate('/tasks')}
-                onClose={() => dispatch({ type: 'selectTask', taskId: undefined })}
+                onClose={() => selectTask(undefined)}
                 onDelete={() => void handleDeleteTask(selected)}
                 projectOptions={projectOptions}
                 riskOptions={riskOptions}
@@ -504,7 +509,10 @@ function TaskDetail({
   riskOptions: string[]
 }) {
   const cache = useAppCache()
-  const { tasks, team, projects, risks } = useAppState()
+  const tasks = useTasks()
+  const team = useTeam()
+  const projects = useProjects()
+  const risks = useRisks()
   const stale = daysSince(task.lastTouchedIso) >= staleDays
   const [isEditing, setIsEditing] = useState(false)
   const notesRef = useRef<HTMLTextAreaElement | null>(null)

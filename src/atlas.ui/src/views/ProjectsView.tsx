@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import {
-  useAppDispatch,
-  useAppState,
-  useSelectedProject,
-} from '../app/state/AppState'
+import { useProductOwners, useProjects, useRisks, useTasks, useTeam } from '../app/queries/hooks'
+import { useSelectedProject, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, TaskStatus } from '../app/types'
 import { createProject, deleteProject as deleteProjectApi, updateProject as updateProjectApi } from '../app/api/projects'
@@ -20,11 +17,12 @@ function isAzureWorkItemDone(status?: string) {
 
 export function ProjectsView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectProject } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId?: string }>()
-  const { projects, selectedProjectId } = useAppState()
+  const projects = useProjects()
+  const { selectedProjectId } = useSelectionState()
   const selected = useSelectedProject()
   const isFocusMode = !!projectId
   const [isCreatingProject, setIsCreatingProject] = useState(false)
@@ -40,8 +38,8 @@ export function ProjectsView() {
 
   useEffect(() => {
     if (!projectId) return
-    dispatch({ type: 'selectProject', projectId })
-  }, [dispatch, projectId])
+    selectProject(projectId)
+  }, [selectProject, projectId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
   useEffect(() => {
@@ -125,7 +123,7 @@ export function ProjectsView() {
                 <button
                   key={p.id}
                   className={`listRow listRowBtn ${p.id === selectedProjectId ? 'listRowActive' : ''}`}
-                  onClick={() => dispatch({ type: 'selectProject', projectId: p.id })}
+                  onClick={() => selectProject(p.id)}
                   onDoubleClick={() => navigate(`/projects/${p.id}`)}
                 >
                   <div className="listMain">
@@ -179,7 +177,10 @@ function ProjectDetail({
 }) {
   const navigate = useNavigate()
   const cache = useAppCache()
-  const { tasks, risks, team, productOwners } = useAppState()
+  const tasks = useTasks()
+  const risks = useRisks()
+  const team = useTeam()
+  const productOwners = useProductOwners()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = (searchParams.get('tab') ?? 'overview').toLowerCase()
   const tab: 'overview' | 'tasks' | 'risks' = tabParam === 'tasks' ? 'tasks' : tabParam === 'risks' ? 'risks' : 'overview'

@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useGrowthForMember, useSelectedTeamMember } from '../app/state/AppState'
 import { useAppCache } from '../app/queries/useAppCache'
-import { useTeamMembersQuery } from '../app/queries/hooks'
+import { useGrowthForMember, useRisks, useTeam, useTeamMemberRisks, useTeamMembersQuery } from '../app/queries/hooks'
+import { useSelectedTeamMember, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import type { Growth, GrowthFeedbackTheme, GrowthGoal, GrowthGoalStatus, NoteTag, Priority, Risk, TeamMember, TeamMemberRisk, TeamNote } from '../app/types'
 import { isCurrentTicketStatus } from '../app/team'
 import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -59,11 +59,12 @@ function memberTabPath(memberId: string, tab: MemberTab) {
 
 export function TeamView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectTeamMember } = useSelectionActions()
   const navigate = useNavigate()
   const location = useLocation()
   const { memberId } = useParams<{ memberId?: string }>()
-  const { team, selectedTeamMemberId } = useAppState()
+  const team = useTeam()
+  const { selectedTeamMemberId } = useSelectionState()
   const selected = useSelectedTeamMember()
   const isFocusMode = !!memberId
   const routeTab = useMemo(() => getActiveTab(location.pathname), [location.pathname])
@@ -85,8 +86,8 @@ export function TeamView() {
 
   useEffect(() => {
     if (!memberId) return
-    dispatch({ type: 'selectTeamMember', memberId })
-  }, [dispatch, memberId])
+    selectTeamMember(memberId)
+  }, [memberId, selectTeamMember])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
   useEffect(() => {
@@ -144,7 +145,7 @@ export function TeamView() {
                 <button
                   key={m.id}
                   className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
-                  onClick={() => dispatch({ type: 'selectTeamMember', memberId: m.id })}
+                  onClick={() => selectTeamMember(m.id)}
                   onDoubleClick={() => navigate(`/team/${m.id}`)}
                 >
                   <div className="listMain">
@@ -202,7 +203,8 @@ function MemberDetail({
 }) {
   const navigate = useNavigate()
   const cache = useAppCache()
-  const { risks, teamMemberRisks } = useAppState()
+  const risks = useRisks()
+  const teamMemberRisks = useTeamMemberRisks()
 
   function update(patch: Partial<TeamMember>) {
     const next = { ...member, ...patch }

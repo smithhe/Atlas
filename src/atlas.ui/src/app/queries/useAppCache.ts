@@ -23,20 +23,20 @@ import {
   syncRiskLinkedTaskIds,
 } from './cacheUpdates'
 import { queryKeys } from './queryKeys'
-import { useSelectionDispatch } from '../state/SelectionState'
+import { useSelectionActions } from '../state/SelectionState'
 
 export function useAppCache() {
   const queryClient = useQueryClient()
-  const dispatch = useSelectionDispatch()
+  const { selectTask, selectRisk, selectProject } = useSelectionActions()
 
   const addTask = useCallback(
     (task: Task) => {
       setTasksCache(queryClient, (tasks) => [task, ...tasks])
       addTaskToProjectLinks(queryClient, task)
       syncRiskLinkedTaskIds(queryClient, task)
-      dispatch({ type: 'selectTask', taskId: task.id })
+      selectTask(task.id)
     },
-    [dispatch, queryClient],
+    [queryClient, selectTask],
   )
 
   const updateTask = useCallback(
@@ -61,9 +61,9 @@ export function useAppCache() {
     (risk: Risk) => {
       setRisksCache(queryClient, (risks) => [risk, ...risks])
       addRiskToProjectLinks(queryClient, risk)
-      dispatch({ type: 'selectRisk', riskId: risk.id })
+      selectRisk(risk.id)
     },
-    [dispatch, queryClient],
+    [queryClient, selectRisk],
   )
 
   const updateRisk = useCallback(
@@ -95,9 +95,9 @@ export function useAppCache() {
   const addProject = useCallback(
     (project: Project) => {
       setProjectsCache(queryClient, (projects) => [project, ...projects])
-      dispatch({ type: 'selectProject', projectId: project.id })
+      selectProject(project.id)
     },
-    [dispatch, queryClient],
+    [queryClient, selectProject],
   )
 
   const updateProject = useCallback(
@@ -156,9 +156,8 @@ export function useAppCache() {
       )
       if (!cached) return
       setTeamMembersCache(queryClient, cached.team, [teamMemberRisk, ...cached.teamMemberRisks])
-      dispatch({ type: 'selectTeamMemberRisk', teamMemberRiskId: teamMemberRisk.id })
     },
-    [dispatch, queryClient],
+    [queryClient],
   )
 
   const updateTeamMemberRisk = useCallback(

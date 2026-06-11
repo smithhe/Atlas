@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedRisk } from '../app/state/AppState'
+import { useProjects, useRisks, useTasks, useTeam } from '../app/queries/hooks'
+import { useSelectedRisk, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { Risk, RiskStatus, TeamMember } from '../app/types'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -78,11 +79,13 @@ function applyTabIndentation(params: {
 
 export function RisksView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectRisk } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { riskId } = useParams<{ riskId?: string }>()
-  const { risks, selectedRiskId, projects } = useAppState()
+  const risks = useRisks()
+  const projects = useProjects()
+  const { selectedRiskId } = useSelectionState()
   const selected = useSelectedRisk()
   const listRef = useRef<HTMLElement | null>(null)
   const [listMaxHeightPx, setListMaxHeightPx] = useState<number | undefined>(undefined)
@@ -119,8 +122,8 @@ export function RisksView() {
 
   useEffect(() => {
     if (!riskId) return
-    dispatch({ type: 'selectRisk', riskId })
-  }, [dispatch, riskId])
+    selectRisk(riskId)
+  }, [selectRisk, riskId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
   useEffect(() => {
@@ -284,7 +287,7 @@ export function RisksView() {
               <button
                 key={r.id}
                 className={`listRow listRowBtn risksRiskRow ${r.id === selectedRiskId ? 'listRowActive' : ''}`}
-                onClick={() => dispatch({ type: 'selectRisk', riskId: r.id })}
+                onClick={() => selectRisk(r.id)}
                 onDoubleClick={() => navigate(`/risks/${r.id}`)}
               >
                 <span className={`dot dot-${r.severity.toLowerCase()}`} aria-hidden="true" />
@@ -311,7 +314,7 @@ export function RisksView() {
                 isDeleting={deletingRiskId === selected.id}
                 onEnterFocus={() => navigate(`/risks/${selected.id}`)}
                 onExitFocus={() => navigate('/risks')}
-                onClose={() => dispatch({ type: 'selectRisk', riskId: undefined })}
+                onClose={() => selectRisk(undefined)}
                 onDelete={() => void handleDeleteRisk(selected)}
                 projectOptions={projectOptions}
               />
@@ -350,7 +353,9 @@ function RiskDetail({
 }) {
   const cache = useAppCache()
   const navigate = useNavigate()
-  const { tasks, team, projects } = useAppState()
+  const tasks = useTasks()
+  const team = useTeam()
+  const projects = useProjects()
   const [isEditing, setIsEditing] = useState(false)
   const [isAddingNote, setIsAddingNote] = useState(false)
   const [newNoteText, setNewNoteText] = useState('')

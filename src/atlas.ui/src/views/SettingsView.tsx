@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppState } from '../app/state/AppState'
+import { useSettings } from '../app/queries/hooks'
 import { useAppCache } from '../app/queries/useAppCache'
 import { useInvalidateAppQueries } from '../app/queries/invalidateAppQueries'
 import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnection } from '../app/api/azureDevOps'
@@ -16,7 +16,7 @@ export function SettingsView() {
   const navigate = useNavigate()
   const cache = useAppCache()
   const invalidateAppQueries = useInvalidateAppQueries()
-  const { settings } = useAppState()
+  const settings = useSettings()
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsError, setSettingsError] = useState<string | null>(null)
 

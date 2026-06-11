@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useProjects, useTeam } from '../app/queries/hooks'
+import { useSelectedTeamMember, useSelectionActions } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { AzureItem } from '../app/types'
 import { Markdown } from '../components/Markdown'
@@ -10,11 +11,12 @@ import { formatIsoDateLong, reportSaveError } from '../app/utils'
 
 export function TeamWorkItemDetailView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectTeamMember } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, workItemId } = useParams<{ memberId: string; workItemId: string }>()
-  const { team, projects } = useAppState()
+  const team = useTeam()
+  const projects = useProjects()
   const member = useSelectedTeamMember()
   const memberName = useMemo(() => {
     return member?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
@@ -27,8 +29,8 @@ export function TeamWorkItemDetailView() {
 
   useEffect(() => {
     if (!memberId) return
-    dispatch({ type: 'selectTeamMember', memberId })
-  }, [dispatch, memberId])
+    selectTeamMember(memberId)
+  }, [memberId, selectTeamMember])
 
   useEffect(() => {
     if (!memberId) return

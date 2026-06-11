@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AiPanel } from './AiPanel'
 import { useAi } from '../app/state/AiState'
-import { useAppHydration } from '../app/state/AppState'
+import { useAppHydration } from '../app/queries/hooks'
 import { LoadingOverlay } from './LoadingOverlay'
 import { Spinner } from './Spinner'
 

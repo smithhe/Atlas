@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useTeam } from '../app/queries/hooks'
+import { useSelectedTeamMember, useSelectionActions } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { NoteTag } from '../app/types'
 import { Markdown } from '../components/Markdown'
@@ -12,11 +13,11 @@ const NOTE_TAGS: NoteTag[] = ['Quick', 'Standup', 'Progress', 'Praise', 'Concern
 
 export function TeamNoteDetailView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectTeamMember } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, noteId } = useParams<{ memberId: string; noteId: string }>()
-  const { team } = useAppState()
+  const team = useTeam()
   const member = useSelectedTeamMember()
   const memberName = useMemo(() => {
     return member?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
@@ -28,8 +29,8 @@ export function TeamNoteDetailView() {
 
   useEffect(() => {
     if (!memberId) return
-    dispatch({ type: 'selectTeamMember', memberId })
-  }, [dispatch, memberId])
+    selectTeamMember(memberId)
+  }, [memberId, selectTeamMember])
 
   useEffect(() => {
     if (!memberId) return

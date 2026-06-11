@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useAppHydration, useAppState } from './AppState'
+import { useAppHydration, useSettings } from '../queries/hooks'
+import { useSelectionState } from './SelectionState'
 import {
   continueAiConversation,
   createAiConversation,
@@ -61,7 +62,8 @@ interface AiApi {
 const AiContext = createContext<AiApi | undefined>(undefined)
 
 export function AiProvider({ children }: { children: ReactNode }) {
-  const { settings, selectedTaskId, selectedProjectId, selectedRiskId, selectedTeamMemberId } = useAppState()
+  const settings = useSettings()
+  const { selectedTaskId, selectedProjectId, selectedRiskId, selectedTeamMemberId } = useSelectionState()
   const isHydrating = useAppHydration()
   const [isOpen, setIsOpenState] = useState<boolean>(false)
   const [contextTitle, setContextTitle] = useState<string>('Context: Dashboard')

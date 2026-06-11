@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppDispatch, useAppState, useSelectedTeamMember } from '../app/state/AppState'
+import { useRisks, useTeam, useTeamMemberRisks } from '../app/queries/hooks'
+import { useSelectedTeamMember, useSelectionActions } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { TeamMemberRisk } from '../app/types'
 import { updateTeamMemberRisk } from '../app/api/teamMembers'
@@ -13,11 +14,13 @@ function severityClass(sev: TeamMemberRisk['severity']) {
 
 export function TeamMemberRiskDetailView() {
   const ai = useAi()
-  const dispatch = useAppDispatch()
+  const { selectTeamMember, selectRisk } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, teamMemberRiskId } = useParams<{ memberId: string; teamMemberRiskId: string }>()
-  const { team, risks, teamMemberRisks } = useAppState()
+  const team = useTeam()
+  const risks = useRisks()
+  const teamMemberRisks = useTeamMemberRisks()
   const member = useSelectedTeamMember()
   const memberName = useMemo(() => {
     return member?.name ?? team.find((m) => m.id === memberId)?.name ?? memberId
@@ -32,8 +35,8 @@ export function TeamMemberRiskDetailView() {
 
   useEffect(() => {
     if (!memberId) return
-    dispatch({ type: 'selectTeamMember', memberId })
-  }, [dispatch, memberId])
+    selectTeamMember(memberId)
+  }, [memberId, selectTeamMember])
 
   useEffect(() => {
     if (!memberId) return
@@ -48,11 +51,6 @@ export function TeamMemberRiskDetailView() {
     if (memberId && r.memberId !== memberId) return undefined
     return r
   }, [memberId, teamMemberRiskId, teamMemberRisks])
-
-  useEffect(() => {
-    if (!risk) return
-    dispatch({ type: 'selectTeamMemberRisk', teamMemberRiskId: risk.id })
-  }, [dispatch, risk])
 
   const linkedGlobalRisk = useMemo(() => {
     if (!risk?.linkedRiskId) return undefined
@@ -353,7 +351,7 @@ export function TeamMemberRiskDetailView() {
                     disabled={!linkedGlobalRisk}
                     onClick={() => {
                       if (!linkedGlobalRisk) return
-                      dispatch({ type: 'selectRisk', riskId: linkedGlobalRisk.id })
+                      selectRisk(linkedGlobalRisk.id)
                       navigate('/risks')
                     }}
                   >

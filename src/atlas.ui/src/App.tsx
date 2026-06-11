@@ -1,16 +1,16 @@
 import './App.css'
 import { RouterProvider } from 'react-router-dom'
 import { appRouter } from './app/router'
-import { AppStateProvider } from './app/state/AppState'
+import { AppProviders } from './app/providers/AppProviders'
 import { AiProvider } from './app/state/AiState'
 
 function App() {
   return (
-    <AppStateProvider>
+    <AppProviders>
       <AiProvider>
         <RouterProvider router={appRouter} />
       </AiProvider>
-    </AppStateProvider>
+    </AppProviders>
   )
 }
 

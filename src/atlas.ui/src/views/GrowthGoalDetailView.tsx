@@ -7,7 +7,8 @@ import {
   updateGrowthGoalAction,
   updateGrowthGoalCheckIn,
 } from '../app/api/growth'
-import { useAppDispatch, useAppState, useGrowthForMember } from '../app/state/AppState'
+import { useGrowthForMember, useTeam } from '../app/queries/hooks'
+import { useSelectionActions } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type {
   Growth,
@@ -50,11 +51,11 @@ function priorityLabel(p?: Priority) {
 }
 
 export function GrowthGoalDetailView() {
-  const dispatch = useAppDispatch()
+  const { selectTeamMember } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
   const { memberId, goalId } = useParams<{ memberId?: string; goalId?: string }>()
-  const { team } = useAppState()
+  const team = useTeam()
   const growth = useGrowthForMember(memberId)
 
   const member = useMemo(() => (memberId ? team.find((m) => m.id === memberId) : undefined), [memberId, team])
@@ -86,8 +87,8 @@ export function GrowthGoalDetailView() {
 
   useEffect(() => {
     if (!memberId) return
-    dispatch({ type: 'selectTeamMember', memberId })
-  }, [dispatch, memberId])
+    selectTeamMember(memberId)
+  }, [memberId, selectTeamMember])
 
   // When the goal changes, reset selection.
   useEffect(() => {

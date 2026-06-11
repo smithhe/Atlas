@@ -11,7 +11,7 @@ import {
 } from '../app/api/azureDevOps'
 import type { AzureConnectionDto, AzureImportWorkItemDto, AzureUserDto } from '../app/api/azureDevOps'
 import { listProductOwners } from '../app/api/productOwners'
-import { useAppState } from '../app/state/AppState'
+import { useProjects, useTeam } from '../app/queries/hooks'
 import { useAppCache } from '../app/queries/useAppCache'
 import { useInvalidateAppQueries } from '../app/queries/invalidateAppQueries'
 import { LoadingButton } from '../components/LoadingButton'
@@ -20,7 +20,8 @@ import { LoadingOverlay } from '../components/LoadingOverlay'
 export function AzureImportView() {
   const cache = useAppCache()
   const invalidateAppQueries = useInvalidateAppQueries()
-  const { projects, team } = useAppState()
+  const projects = useProjects()
+  const team = useTeam()
   const [connection, setConnection] = useState<AzureConnectionDto | null>(null)
   const [users, setUsers] = useState<AzureUserDto[]>([])
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useAppState } from '../app/state/AppState'
+import { useAppData } from '../app/queries/hooks'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
 
 function daysBetween(iso: string, nowIso: string) {
@@ -48,7 +48,7 @@ type DriftRow = {
 export function DashboardView() {
   const ai = useAi()
   const nav = useNavigate()
-  const { tasks, risks, team, projects, settings } = useAppState()
+  const { tasks, risks, team, projects, settings } = useAppData()
   const nowIso = useMemo(() => new Date().toISOString(), [])
   const todayIsoDate = useMemo(() => nowIso.slice(0, 10), [nowIso])
 

@@ -6,7 +6,6 @@ import { useProjects, useRisks, useTasks, useTeam } from '../queries/hooks'
 export interface SelectionState {
   selectedTaskId?: string
   selectedRiskId?: string
-  selectedTeamMemberRiskId?: string
   selectedTeamMemberId?: string
   selectedProjectId?: string
 }
@@ -14,7 +13,6 @@ export interface SelectionState {
 type SelectionAction =
   | { type: 'selectTask'; taskId?: string }
   | { type: 'selectRisk'; riskId?: string }
-  | { type: 'selectTeamMemberRisk'; teamMemberRiskId?: string }
   | { type: 'selectTeamMember'; memberId?: string }
   | { type: 'selectProject'; projectId?: string }
 
@@ -31,8 +29,6 @@ function reduceSelection(state: SelectionState, action: SelectionAction): Select
       return { ...state, selectedTaskId: action.taskId }
     case 'selectRisk':
       return { ...state, selectedRiskId: action.riskId }
-    case 'selectTeamMemberRisk':
-      return { ...state, selectedTeamMemberRiskId: action.teamMemberRiskId }
     case 'selectTeamMember':
       return { ...state, selectedTeamMemberId: action.memberId }
     case 'selectProject':
@@ -46,7 +42,6 @@ export function SelectionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SelectionState>({
     selectedTaskId: undefined,
     selectedRiskId: undefined,
-    selectedTeamMemberRiskId: undefined,
     selectedTeamMemberId: undefined,
     selectedProjectId: undefined,
   })
@@ -70,6 +65,19 @@ export function useSelectionDispatch() {
   const ctx = useContext(SelectionContext)
   if (!ctx) throw new Error('useSelectionDispatch must be used within SelectionProvider')
   return ctx.dispatch
+}
+
+export function useSelectionActions() {
+  const dispatch = useSelectionDispatch()
+  return useMemo(
+    () => ({
+      selectTask: (taskId?: string) => dispatch({ type: 'selectTask', taskId }),
+      selectRisk: (riskId?: string) => dispatch({ type: 'selectRisk', riskId }),
+      selectProject: (projectId?: string) => dispatch({ type: 'selectProject', projectId }),
+      selectTeamMember: (memberId?: string) => dispatch({ type: 'selectTeamMember', memberId }),
+    }),
+    [dispatch],
+  )
 }
 
 export function useSelectedTask(): Task | undefined {
