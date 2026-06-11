@@ -208,8 +208,11 @@ function ProjectDetail({
     [project.linkedTaskIds, project.name, tasks],
   )
   const linkedRisks = useMemo(
-    () => risks.filter((r) => project.linkedRiskIds.includes(r.id)),
-    [project.linkedRiskIds, risks],
+    () =>
+      risks.filter(
+        (r) => project.linkedRiskIds.includes(r.id) || (!!r.project && r.project === project.name),
+      ),
+    [project.linkedRiskIds, project.name, risks],
   )
   const members = useMemo(
     () => team.filter((m) => project.teamMemberIds.includes(m.id)),

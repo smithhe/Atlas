@@ -2,8 +2,15 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
 import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
 import {
+  addRiskToProjectLinks,
   addTaskToProjectLinks,
+  clearProjectReferences,
+  clearRiskReferences,
+  removeRiskFromProjectLinks,
   removeTaskFromProjectLinks,
+  removeTaskFromRiskLinks,
+  repairProjectNameReferences,
+  repairRiskTitleReferences,
   setGrowthCache,
   setProductOwnersCache,
   setProjectsCache,
@@ -11,7 +18,9 @@ import {
   setSettingsCache,
   setTasksCache,
   setTeamMembersCache,
+  syncProjectLinkedRiskIds,
   syncProjectLinkedTaskIds,
+  syncRiskLinkedTaskIds,
 } from './cacheUpdates'
 import { queryKeys } from './queryKeys'
 import { useSelectionDispatch } from '../state/SelectionState'
@@ -24,6 +33,7 @@ export function useAppCache() {
     (task: Task) => {
       setTasksCache(queryClient, (tasks) => [task, ...tasks])
       addTaskToProjectLinks(queryClient, task)
+      syncRiskLinkedTaskIds(queryClient, task)
       dispatch({ type: 'selectTask', taskId: task.id })
     },
     [dispatch, queryClient],
@@ -33,6 +43,7 @@ export function useAppCache() {
     (task: Task) => {
       setTasksCache(queryClient, (tasks) => tasks.map((t) => (t.id === task.id ? task : t)))
       syncProjectLinkedTaskIds(queryClient, task)
+      syncRiskLinkedTaskIds(queryClient, task)
     },
     [queryClient],
   )
@@ -41,6 +52,7 @@ export function useAppCache() {
     (taskId: string) => {
       setTasksCache(queryClient, (tasks) => tasks.filter((t) => t.id !== taskId))
       removeTaskFromProjectLinks(queryClient, taskId)
+      removeTaskFromRiskLinks(queryClient, taskId)
     },
     [queryClient],
   )
@@ -48,6 +60,7 @@ export function useAppCache() {
   const addRisk = useCallback(
     (risk: Risk) => {
       setRisksCache(queryClient, (risks) => [risk, ...risks])
+      addRiskToProjectLinks(queryClient, risk)
       dispatch({ type: 'selectRisk', riskId: risk.id })
     },
     [dispatch, queryClient],
@@ -55,14 +68,26 @@ export function useAppCache() {
 
   const updateRisk = useCallback(
     (risk: Risk) => {
+      const previous = queryClient.getQueryData<Risk[]>(queryKeys.risks)?.find((r) => r.id === risk.id)
       setRisksCache(queryClient, (risks) => risks.map((r) => (r.id === risk.id ? risk : r)))
+      syncProjectLinkedRiskIds(queryClient, risk)
+      if (previous && previous.title !== risk.title) {
+        repairRiskTitleReferences(queryClient, previous.title, risk.title)
+        const tasks = queryClient.getQueryData<Task[]>(queryKeys.tasks) ?? []
+        for (const task of tasks) {
+          if (task.risk === risk.title) syncRiskLinkedTaskIds(queryClient, task)
+        }
+      }
     },
     [queryClient],
   )
 
   const removeRisk = useCallback(
     (riskId: string) => {
+      const previous = queryClient.getQueryData<Risk[]>(queryKeys.risks)?.find((r) => r.id === riskId)
       setRisksCache(queryClient, (risks) => risks.filter((r) => r.id !== riskId))
+      removeRiskFromProjectLinks(queryClient, riskId)
+      if (previous) clearRiskReferences(queryClient, previous.title)
     },
     [queryClient],
   )
@@ -77,14 +102,20 @@ export function useAppCache() {
 
   const updateProject = useCallback(
     (project: Project) => {
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects)?.find((p) => p.id === project.id)
       setProjectsCache(queryClient, (projects) => projects.map((p) => (p.id === project.id ? project : p)))
+      if (previous && previous.name !== project.name) {
+        repairProjectNameReferences(queryClient, previous.name, project.name)
+      }
     },
     [queryClient],
   )
 
   const removeProject = useCallback(
     (projectId: string) => {
+      const previous = queryClient.getQueryData<Project[]>(queryKeys.projects)?.find((p) => p.id === projectId)
       setProjectsCache(queryClient, (projects) => projects.filter((p) => p.id !== projectId))
+      if (previous) clearProjectReferences(queryClient, previous.name)
     },
     [queryClient],
   )
