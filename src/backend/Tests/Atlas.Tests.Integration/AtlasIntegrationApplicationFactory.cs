@@ -11,8 +11,23 @@ namespace Atlas.Tests.Integration;
 
 public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _databaseName = $"AtlasIntegrationTests-{Guid.NewGuid():N}";
-    private readonly string? _postgresConnectionString = AtlasTestServiceConfigurator.ResolvePostgresConnectionString();
+    private readonly string _inMemoryDatabaseName = $"AtlasIntegrationTests-{Guid.NewGuid():N}";
+    private readonly string? _basePostgresConnectionString = AtlasTestServiceConfigurator.ResolvePostgresConnectionString();
+    private readonly string? _isolatedPostgresDatabaseName;
+    private readonly string? _isolatedPostgresConnectionString;
+
+    public AtlasIntegrationApplicationFactory()
+    {
+        if (!string.IsNullOrWhiteSpace(_basePostgresConnectionString))
+        {
+            // Unique DB per factory instance so parallel/class fixtures never share state.
+            _isolatedPostgresDatabaseName = $"atlas_it_{Guid.NewGuid():N}";
+            PostgresTestDatabase.EnsureDatabaseExists(_basePostgresConnectionString, _isolatedPostgresDatabaseName);
+            _isolatedPostgresConnectionString = PostgresTestDatabase.BuildIsolatedConnectionString(
+                _basePostgresConnectionString,
+                _isolatedPostgresDatabaseName);
+        }
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -22,8 +37,8 @@ public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<P
         {
             AtlasTestServiceConfigurator.ConfigureAtlasPersistence(
                 services,
-                _databaseName,
-                _postgresConnectionString);
+                _inMemoryDatabaseName,
+                _isolatedPostgresConnectionString);
         });
     }
 
@@ -38,7 +53,19 @@ public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<P
         return host;
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (disposing
+            && !string.IsNullOrWhiteSpace(_basePostgresConnectionString)
+            && !string.IsNullOrWhiteSpace(_isolatedPostgresDatabaseName))
+        {
+            PostgresTestDatabase.DropDatabase(_basePostgresConnectionString, _isolatedPostgresDatabaseName);
+        }
+    }
+
     public FakeAzureDevOpsClient AzureDevOps => Services.GetRequiredService<FakeAzureDevOpsClient>();
 
-    public bool UsesPostgres => !string.IsNullOrWhiteSpace(_postgresConnectionString);
+    public bool UsesPostgres => !string.IsNullOrWhiteSpace(_isolatedPostgresConnectionString);
 }

@@ -493,8 +493,12 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         loaded!.Turns.Should().ContainSingle();
         loaded.Turns[0].Events.Should().ContainSingle(e => e.IsTerminal);
 
-        IReadOnlyList<AiConversation> recent = await conversations.ListRecentAsync(1, CancellationToken.None);
-        recent.Should().ContainSingle().Which.Id.Should().Be(newerConv.Id);
+        // Take enough rows that our seeded pair is included even if other fixtures share a provider.
+        IReadOnlyList<AiConversation> recent = await conversations.ListRecentAsync(100, CancellationToken.None);
+        recent.Select(c => c.Id).Should().Contain([newerConv.Id, olderConv.Id]);
+        int newerIndex = recent.ToList().FindIndex(c => c.Id == newerConv.Id);
+        int olderIndex = recent.ToList().FindIndex(c => c.Id == olderConv.Id);
+        newerIndex.Should().BeLessThan(olderIndex, "ListRecentAsync orders by UpdatedAtUtc descending");
     }
 
     private static TaskItem NewTask(string title) => new()

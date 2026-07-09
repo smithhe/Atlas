@@ -29,5 +29,6 @@
 ### Handler unit test style
 
 - **New** handler tests should prefer **Moq** + **FluentAssertions**.
-- Existing hand-rolled fakes under `Atlas.Tests.Unit/Fakes/` may remain; extend them only when Moq alone is awkward for a repository interface.
+- Existing hand-rolled fakes under `Atlas.Tests.Unit/Fakes/` may remain (legacy tests are not required to migrate to Moq+FA); extend fakes only when Moq alone is awkward for a repository interface.
 - Cover happy path plus important failure paths (missing entity, invalid dependency).
+- Integration Postgres: each `AtlasIntegrationApplicationFactory` creates an isolated `atlas_it_{guid}` database (never share the base `atlas` DB across factories).

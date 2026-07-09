@@ -62,4 +62,19 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandlerTests
         id.Should().Be(Guid.Empty);
         _tx.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_WhenMemberMissing_ReturnsEmptyGuid()
+    {
+        Guid memberId = Guid.NewGuid();
+        _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync((TeamMember?)null);
+
+        Guid id = await _handler.Handle(new AddAzureWorkItemLocalNoteCommand(memberId, 42, "x"), CancellationToken.None);
+
+        id.Should().Be(Guid.Empty);
+        _tx.Verify(t => t.RollbackAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _team.Verify(
+            t => t.AddAzureWorkItemLocalNoteAsync(It.IsAny<AzureWorkItemLocalNote>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }

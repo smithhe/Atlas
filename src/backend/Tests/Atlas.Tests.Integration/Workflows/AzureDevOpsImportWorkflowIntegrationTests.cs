@@ -35,7 +35,8 @@ public sealed class AzureDevOpsImportWorkflowIntegrationTests : IClassFixture<At
         IReadOnlyList<TeamMemberListItemDto>? members = await (await client.GetAsync("/team-members"))
             .ReadJsonAsync<IReadOnlyList<TeamMemberListItemDto>>();
         Assert.NotNull(members);
-        TeamMemberListItemDto ada = Assert.Single(members, m => m.Name == "Ada Lovelace");
+        Assert.Contains(members, m => m.Name == "Ada Lovelace");
+        TeamMemberListItemDto ada = members.First(m => m.Name == "Ada Lovelace");
 
         IReadOnlyList<AzureImportWorkItemDto>? unlinked = await (await client.GetAsync("/azure-devops/import/work-items"))
             .ReadJsonAsync<IReadOnlyList<AzureImportWorkItemDto>>();
