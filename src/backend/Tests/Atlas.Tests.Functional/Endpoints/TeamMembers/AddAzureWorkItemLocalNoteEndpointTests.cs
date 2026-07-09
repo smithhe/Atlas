@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using Atlas.Api.DTOs.TeamMembers;
 using Atlas.Api.DTOs.TeamMembers.AzureWorkItems;
 using Atlas.Domain.Entities;
 using Atlas.Domain.Enums;
@@ -88,6 +89,13 @@ public sealed class AddAzureWorkItemLocalNoteEndpointTests : IClassFixture<Atlas
         AddAzureWorkItemLocalNoteResponse? created = await response.ReadJsonAsync<AddAzureWorkItemLocalNoteResponse>();
         created.Should().NotBeNull();
         created!.Id.Should().NotBe(Guid.Empty);
+
+        TeamMemberDto? detail = await (await client.GetAsync($"/team-members/{memberId}"))
+            .ReadJsonAsync<TeamMemberDto>();
+        detail.Should().NotBeNull();
+        TeamMemberAzureWorkItemDto wi = detail!.AzureWorkItems.Should()
+            .ContainSingle(x => x.Id == workItemId.ToString()).Subject;
+        wi.LocalNotes.Should().ContainSingle(n => n.Id == created.Id && n.Text == "Local ADO note");
     }
 
     [Fact]
