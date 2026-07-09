@@ -36,11 +36,17 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandlerTests
             AzureWorkItemLinks = [new AzureWorkItemLink { Id = Guid.NewGuid(), TeamMemberId = memberId, AzureWorkItemId = workItem.Id, AzureWorkItem = workItem }]
         };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
+        AzureWorkItemLocalNote? captured = null;
+        _team.Setup(t => t.AddAzureWorkItemLocalNoteAsync(It.IsAny<AzureWorkItemLocalNote>(), It.IsAny<CancellationToken>()))
+            .Callback<AzureWorkItemLocalNote, CancellationToken>((n, _) => captured = n)
+            .Returns(Task.CompletedTask);
 
         Guid id = await _handler.Handle(new AddAzureWorkItemLocalNoteCommand(memberId, 42, "Local note"), CancellationToken.None);
 
         id.Should().NotBe(Guid.Empty);
-        member.AzureWorkItemLocalNotes.Should().ContainSingle().Which.Text.Should().Be("Local note");
+        captured.Should().NotBeNull();
+        captured!.Text.Should().Be("Local note");
+        captured.WorkItemId.Should().Be(42);
         _tx.Verify(t => t.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -237,6 +237,13 @@ internal sealed class FakeTeamMemberRepository : ITeamMemberRepository
 
     public Task AddRiskAsync(TeamMemberRisk risk, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
+    public Task AddAzureWorkItemLocalNoteAsync(AzureWorkItemLocalNote note, CancellationToken cancellationToken = default)
+    {
+        TeamMember? member = Members.FirstOrDefault(x => x.Id == note.TeamMemberId);
+        member?.AzureWorkItemLocalNotes.Add(note);
+        return Task.CompletedTask;
+    }
+
     public void Remove(TeamMember member) => Members.Remove(member);
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(1);
