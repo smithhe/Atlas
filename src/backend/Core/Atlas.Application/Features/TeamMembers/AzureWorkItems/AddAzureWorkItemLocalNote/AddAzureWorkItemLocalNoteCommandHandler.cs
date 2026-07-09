@@ -41,7 +41,9 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandler : IRequestHandler<Ad
             Text = request.Text,
         };
 
-        member.AzureWorkItemLocalNotes.Add(note);
+        // Insert via DbSet (same pattern as notes/risks) so InMemory EF does not
+        // treat the heavily-included aggregate graph as a concurrent update.
+        await _team.AddAzureWorkItemLocalNoteAsync(note, cancellationToken);
 
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);

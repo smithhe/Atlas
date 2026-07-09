@@ -53,6 +53,9 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
     public Task AddRiskAsync(TeamMemberRisk risk, CancellationToken cancellationToken = default) =>
         _db.TeamMemberRisks.AddAsync(risk, cancellationToken).AsTask();
 
+    public Task AddAzureWorkItemLocalNoteAsync(AzureWorkItemLocalNote note, CancellationToken cancellationToken = default) =>
+        _db.AzureWorkItemLocalNotes.AddAsync(note, cancellationToken).AsTask();
+
     public void Remove(TeamMember member)
     {
         _db.TeamMembers.Remove(member);
