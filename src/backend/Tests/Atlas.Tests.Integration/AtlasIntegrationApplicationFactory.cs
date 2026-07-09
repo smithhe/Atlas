@@ -12,6 +12,7 @@ namespace Atlas.Tests.Integration;
 public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = $"AtlasIntegrationTests-{Guid.NewGuid():N}";
+    private readonly string? _postgresConnectionString = AtlasTestServiceConfigurator.ResolvePostgresConnectionString();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -19,7 +20,10 @@ public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<P
 
         builder.ConfigureTestServices(services =>
         {
-            AtlasTestServiceConfigurator.ConfigureInMemoryAtlas(services, _databaseName);
+            AtlasTestServiceConfigurator.ConfigureAtlasPersistence(
+                services,
+                _databaseName,
+                _postgresConnectionString);
         });
     }
 
@@ -35,4 +39,6 @@ public sealed class AtlasIntegrationApplicationFactory : WebApplicationFactory<P
     }
 
     public FakeAzureDevOpsClient AzureDevOps => Services.GetRequiredService<FakeAzureDevOpsClient>();
+
+    public bool UsesPostgres => !string.IsNullOrWhiteSpace(_postgresConnectionString);
 }
