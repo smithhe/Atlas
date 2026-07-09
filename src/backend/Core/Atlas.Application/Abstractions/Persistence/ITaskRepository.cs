@@ -11,6 +11,7 @@ public interface ITaskRepository
     Task<IReadOnlyList<Guid>> GetDirectBlockerIdsAsync(Guid taskId, CancellationToken cancellationToken = default);
 
     Task AddAsync(TaskItem task, CancellationToken cancellationToken = default);
+    Task AddDependencyAsync(TaskDependency dependency, CancellationToken cancellationToken = default);
     void Remove(TaskItem task);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

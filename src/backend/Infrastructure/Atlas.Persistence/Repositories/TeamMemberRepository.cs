@@ -47,6 +47,12 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
         await _db.TeamMembers.AddAsync(member, cancellationToken);
     }
 
+    public Task AddNoteAsync(TeamNote note, CancellationToken cancellationToken = default) =>
+        _db.TeamNotes.AddAsync(note, cancellationToken).AsTask();
+
+    public Task AddRiskAsync(TeamMemberRisk risk, CancellationToken cancellationToken = default) =>
+        _db.TeamMemberRisks.AddAsync(risk, cancellationToken).AsTask();
+
     public void Remove(TeamMember member)
     {
         _db.TeamMembers.Remove(member);

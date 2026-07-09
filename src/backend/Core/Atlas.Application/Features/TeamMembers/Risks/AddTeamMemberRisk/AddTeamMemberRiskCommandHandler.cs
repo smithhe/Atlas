@@ -18,7 +18,7 @@ public sealed class AddTeamMemberRiskCommandHandler : IRequestHandler<AddTeamMem
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        TeamMember? member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -41,8 +41,7 @@ public sealed class AddTeamMemberRiskCommandHandler : IRequestHandler<AddTeamMem
             LinkedGlobalRiskId = request.LinkedGlobalRiskId
         };
 
-        member.Risks.Add(risk);
-
+        await _team.AddRiskAsync(risk, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 

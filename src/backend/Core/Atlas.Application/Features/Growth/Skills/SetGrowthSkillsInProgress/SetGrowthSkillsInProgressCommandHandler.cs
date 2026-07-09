@@ -80,12 +80,6 @@ public sealed class SetGrowthSkillsInProgressCommandHandler : IRequestHandler<Se
             }
         }
 
-        // Keep in-memory order stable after mutation.
-        plan.SkillsInProgress = plan.SkillsInProgress
-            .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Value, StringComparer.Ordinal)
-            .ToList();
-
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return true;

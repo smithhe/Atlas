@@ -61,6 +61,9 @@ public sealed class TaskRepository : ITaskRepository
         await _db.Tasks.AddAsync(task, cancellationToken);
     }
 
+    public Task AddDependencyAsync(TaskDependency dependency, CancellationToken cancellationToken = default) =>
+        _db.TaskDependencies.AddAsync(dependency, cancellationToken).AsTask();
+
     public void Remove(TaskItem task)
     {
         _db.Tasks.Remove(task);

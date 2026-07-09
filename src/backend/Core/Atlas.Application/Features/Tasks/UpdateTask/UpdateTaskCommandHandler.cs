@@ -106,12 +106,12 @@ public sealed class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand
                 continue;
             }
 
-            task.BlockedBy.Add(new TaskDependency
+            await _tasks.AddDependencyAsync(new TaskDependency
             {
                 Id = Guid.NewGuid(),
                 DependentTaskId = task.Id,
                 BlockerTaskId = blockerId
-            });
+            }, cancellationToken);
         }
 
         task.LastTouchedAt = DateTimeOffset.UtcNow;

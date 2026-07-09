@@ -18,7 +18,7 @@ public sealed class AddGrowthGoalCommandHandler : IRequestHandler<AddGrowthGoalC
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -42,8 +42,7 @@ public sealed class AddGrowthGoalCommandHandler : IRequestHandler<AddGrowthGoalC
             SuccessCriteria = string.Empty
         };
 
-        plan.Goals.Add(goal);
-
+        await _growth.AddGoalAsync(goal, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return goal.Id;

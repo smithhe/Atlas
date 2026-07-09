@@ -18,7 +18,7 @@ public sealed class AddFeedbackThemeCommandHandler : IRequestHandler<AddFeedback
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -34,8 +34,7 @@ public sealed class AddFeedbackThemeCommandHandler : IRequestHandler<AddFeedback
             ObservedSinceLabel = string.IsNullOrWhiteSpace(request.ObservedSinceLabel) ? null : request.ObservedSinceLabel.Trim()
         };
 
-        plan.FeedbackThemes.Add(theme);
-
+        await _growth.AddFeedbackThemeAsync(theme, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return theme.Id;

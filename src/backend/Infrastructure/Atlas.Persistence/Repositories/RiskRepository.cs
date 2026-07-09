@@ -39,6 +39,9 @@ public sealed class RiskRepository : IRiskRepository
         await _db.Risks.AddAsync(risk, cancellationToken);
     }
 
+    public Task AddHistoryEntryAsync(RiskHistoryEntry entry, CancellationToken cancellationToken = default) =>
+        _db.RiskHistoryEntries.AddAsync(entry, cancellationToken).AsTask();
+
     public void Remove(Risk risk)
     {
         _db.Risks.Remove(risk);

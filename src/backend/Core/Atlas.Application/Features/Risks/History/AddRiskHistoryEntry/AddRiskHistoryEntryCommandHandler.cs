@@ -18,7 +18,7 @@ public sealed class AddRiskHistoryEntryCommandHandler : IRequestHandler<AddRiskH
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        Risk? risk = await _risks.GetByIdWithDetailsAsync(request.RiskId, cancellationToken);
+        Risk? risk = await _risks.GetByIdAsync(request.RiskId, cancellationToken);
         if (risk is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -33,9 +33,8 @@ public sealed class AddRiskHistoryEntryCommandHandler : IRequestHandler<AddRiskH
             Text = request.Text
         };
 
-        risk.History.Add(entry);
         risk.LastUpdatedAt = DateTimeOffset.UtcNow;
-
+        await _risks.AddHistoryEntryAsync(entry, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 

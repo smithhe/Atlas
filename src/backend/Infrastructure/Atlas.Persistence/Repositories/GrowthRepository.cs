@@ -37,6 +37,9 @@ public sealed class GrowthRepository : IGrowthRepository
         return _db.GrowthPlans.FirstOrDefaultAsync(x => x.TeamMemberId == teamMemberId, cancellationToken);
     }
 
+    public Task<GrowthGoal?> GetGoalByIdAsync(Guid goalId, CancellationToken cancellationToken = default) =>
+        _db.GrowthGoals.FirstOrDefaultAsync(x => x.Id == goalId, cancellationToken);
+
     public async Task<Growth?> GetByTeamMemberIdWithDetailsAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
     {
         Growth? plan = await _db.GrowthPlans
@@ -60,16 +63,34 @@ public sealed class GrowthRepository : IGrowthRepository
             return;
         }
 
-        plan.SkillsInProgress = plan.SkillsInProgress
+        List<GrowthSkillInProgress> ordered = plan.SkillsInProgress
             .OrderBy(x => x.SortOrder)
             .ThenBy(x => x.Value, StringComparer.Ordinal)
             .ToList();
+
+        plan.SkillsInProgress.Clear();
+        foreach (GrowthSkillInProgress skill in ordered)
+        {
+            plan.SkillsInProgress.Add(skill);
+        }
     }
 
     public async Task AddAsync(Growth growth, CancellationToken cancellationToken = default)
     {
         await _db.GrowthPlans.AddAsync(growth, cancellationToken);
     }
+
+    public Task AddGoalAsync(GrowthGoal goal, CancellationToken cancellationToken = default) =>
+        _db.GrowthGoals.AddAsync(goal, cancellationToken).AsTask();
+
+    public Task AddGoalActionAsync(GrowthGoalAction action, CancellationToken cancellationToken = default) =>
+        _db.GrowthGoalActions.AddAsync(action, cancellationToken).AsTask();
+
+    public Task AddGoalCheckInAsync(GrowthGoalCheckIn checkIn, CancellationToken cancellationToken = default) =>
+        _db.GrowthGoalCheckIns.AddAsync(checkIn, cancellationToken).AsTask();
+
+    public Task AddFeedbackThemeAsync(GrowthFeedbackTheme theme, CancellationToken cancellationToken = default) =>
+        _db.GrowthFeedbackThemes.AddAsync(theme, cancellationToken).AsTask();
 
     public void Remove(Growth growth)
     {

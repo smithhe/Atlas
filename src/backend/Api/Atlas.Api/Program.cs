@@ -55,17 +55,20 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddValidatorsFromAssemblyContaining<Atlas.Application.Features.Tasks.CreateTask.CreateTaskCommand>();
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-// Persistence (Postgres).
-var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
-if (string.IsNullOrWhiteSpace(connectionString))
+// Persistence (Postgres). Test hosts register their own DbContext in the Testing environment.
+if (!builder.Environment.IsEnvironment("Testing"))
 {
-    throw new InvalidOperationException("Connection string 'AtlasDb' is required.");
-}
+    var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("Connection string 'AtlasDb' is required.");
+    }
 
-builder.Services.AddDbContext<AtlasDbContext>(options =>
-    options.UseNpgsql(
-        connectionString,
-        npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+    builder.Services.AddDbContext<AtlasDbContext>(options =>
+        options.UseNpgsql(
+            connectionString,
+            npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+}
 
 builder.Services.AddAtlasPersistence();
 builder.Services.AddAzureDevOps();

@@ -9,6 +9,7 @@ public interface IRiskRepository
     Task<IReadOnlyList<Risk>> ListAsync(CancellationToken cancellationToken = default);
 
     Task AddAsync(Risk risk, CancellationToken cancellationToken = default);
+    Task AddHistoryEntryAsync(RiskHistoryEntry entry, CancellationToken cancellationToken = default);
     void Remove(Risk risk);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

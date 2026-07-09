@@ -18,7 +18,7 @@ public sealed class AddTeamNoteCommandHandler : IRequestHandler<AddTeamNoteComma
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        TeamMember? member = await _team.GetByIdWithDetailsAsync(request.TeamMemberId, cancellationToken);
+        TeamMember? member = await _team.GetByIdAsync(request.TeamMemberId, cancellationToken);
         if (member is null)
         {
             await tx.RollbackAsync(cancellationToken);
@@ -35,8 +35,7 @@ public sealed class AddTeamNoteCommandHandler : IRequestHandler<AddTeamNoteComma
             Text = request.Text
         };
 
-        member.Notes.Add(note);
-
+        await _team.AddNoteAsync(note, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 

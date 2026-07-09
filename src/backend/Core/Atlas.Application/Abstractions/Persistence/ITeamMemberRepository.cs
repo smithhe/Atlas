@@ -10,6 +10,8 @@ public interface ITeamMemberRepository
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task AddAsync(TeamMember member, CancellationToken cancellationToken = default);
+    Task AddNoteAsync(TeamNote note, CancellationToken cancellationToken = default);
+    Task AddRiskAsync(TeamMemberRisk risk, CancellationToken cancellationToken = default);
     void Remove(TeamMember member);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

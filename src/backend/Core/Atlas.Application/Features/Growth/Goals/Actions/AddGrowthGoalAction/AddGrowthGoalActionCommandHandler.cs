@@ -18,15 +18,15 @@ public sealed class AddGrowthGoalActionCommandHandler : IRequestHandler<AddGrowt
     {
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
 
-        Domain.Entities.Growth? plan = await _growth.GetByIdWithDetailsAsync(request.GrowthId, cancellationToken);
+        Domain.Entities.Growth? plan = await _growth.GetByIdAsync(request.GrowthId, cancellationToken);
         if (plan is null)
         {
             await tx.RollbackAsync(cancellationToken);
             return Guid.Empty;
         }
 
-        GrowthGoal? goal = plan.Goals.FirstOrDefault(x => x.Id == request.GoalId);
-        if (goal is null)
+        GrowthGoal? goal = await _growth.GetGoalByIdAsync(request.GoalId, cancellationToken);
+        if (goal is null || goal.GrowthId != plan.Id)
         {
             await tx.RollbackAsync(cancellationToken);
             return Guid.Empty;
@@ -44,9 +44,8 @@ public sealed class AddGrowthGoalActionCommandHandler : IRequestHandler<AddGrowt
             Evidence = request.Evidence?.Trim() ?? string.Empty
         };
 
-        goal.Actions.Add(action);
         goal.LastUpdatedAt = DateTime.UtcNow;
-
+        await _growth.AddGoalActionAsync(action, cancellationToken);
         await _uow.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return action.Id;

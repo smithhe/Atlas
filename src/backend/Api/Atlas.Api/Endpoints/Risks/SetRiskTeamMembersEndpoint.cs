@@ -23,13 +23,21 @@ public sealed class SetRiskTeamMembersEndpoint : Endpoint<SetRiskTeamMembersRequ
     {
         Guid id = Route<Guid>("id");
 
-        var ok = await _mediator.Send(new SetRiskTeamMembersCommand(id, req.TeamMemberIds), ct);
-        if (!ok)
+        try
         {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
+            var ok = await _mediator.Send(new SetRiskTeamMembersCommand(id, req.TeamMemberIds), ct);
+            if (!ok)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
 
-        await Send.NoContentAsync(ct);
+            await Send.NoContentAsync(ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            AddError(ex.Message);
+            await Send.ErrorsAsync(400, ct);
+        }
     }
 }
