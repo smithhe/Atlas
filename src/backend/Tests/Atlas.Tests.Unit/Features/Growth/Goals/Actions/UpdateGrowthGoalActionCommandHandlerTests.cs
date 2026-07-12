@@ -24,9 +24,9 @@ public sealed class UpdateGrowthGoalActionCommandHandlerTests
     [Fact]
     public async Task Handle_WhenActionExists_Updates()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
-        Guid actionId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
+        var actionId = Guid.NewGuid();
         var action = new GrowthGoalAction { Id = actionId, GrowthGoalId = goalId, Title = "Old", State = GrowthGoalActionState.Planned };
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "G", Description = "D", Status = GrowthGoalStatus.OnTrack, Actions = [action] };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), Goals = [goal] };
@@ -43,8 +43,8 @@ public sealed class UpdateGrowthGoalActionCommandHandlerTests
     [Fact]
     public async Task Handle_WhenActionMissing_ReturnsFalse()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "G", Description = "D", Status = GrowthGoalStatus.OnTrack };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), Goals = [goal] };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);

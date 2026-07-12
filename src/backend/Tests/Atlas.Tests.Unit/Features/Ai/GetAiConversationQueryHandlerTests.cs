@@ -12,7 +12,7 @@ public sealed class GetAiConversationQueryHandlerTests
     public async Task Handle_ReturnsConversationWithTurns()
     {
         var repo = new Mock<IAiConversationRepository>();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var conversation = new AiConversation { Id = id, Title = "T", View = "Dashboard", CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow };
         repo.Setup(r => r.GetByIdWithTurnsAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
 

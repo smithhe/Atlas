@@ -26,10 +26,10 @@ public sealed class LinkAzureWorkItemsCommandHandlerTests
     [Fact]
     public async Task Handle_WithExplicitTeamMemberId_OverridesMapping()
     {
-        Guid projectId = Guid.NewGuid();
-        Guid mappedMemberId = Guid.NewGuid();
-        Guid explicitMemberId = Guid.NewGuid();
-        Guid workItemId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var mappedMemberId = Guid.NewGuid();
+        var explicitMemberId = Guid.NewGuid();
+        var workItemId = Guid.NewGuid();
 
         var workItems = new FakeAzureWorkItemRepository();
         workItems.Items.Add(new AzureWorkItem
@@ -79,9 +79,9 @@ public sealed class LinkAzureWorkItemsCommandHandlerTests
     [Fact]
     public async Task Handle_WithoutTeamMemberId_MapsViaAzureUserMapping()
     {
-        Guid workItemId = Guid.NewGuid();
-        Guid memberId = Guid.NewGuid();
-        Guid projectId = Guid.NewGuid();
+        var workItemId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
 
         var workItems = new FakeAzureWorkItemRepository();
         workItems.Items.Add(new AzureWorkItem
@@ -123,9 +123,9 @@ public sealed class LinkAzureWorkItemsCommandHandlerTests
     [Fact]
     public async Task Handle_WhenWorkItemAlreadyLinked_UpdatesProjectAndTimestamp()
     {
-        Guid workItemId = Guid.NewGuid();
-        Guid oldProject = Guid.NewGuid();
-        Guid newProject = Guid.NewGuid();
+        var workItemId = Guid.NewGuid();
+        var oldProject = Guid.NewGuid();
+        var newProject = Guid.NewGuid();
         var clock = new FakeDateTimeProvider(new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero));
 
         var links = new FakeAzureWorkItemLinkRepository();

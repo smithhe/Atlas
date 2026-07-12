@@ -24,8 +24,8 @@ public sealed class UpdateGrowthGoalCommandHandlerTests
     [Fact]
     public async Task Handle_WhenGoalExists_Updates()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "Old", Description = "D", Status = GrowthGoalStatus.OnTrack };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), Goals = [goal] };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
@@ -42,7 +42,7 @@ public sealed class UpdateGrowthGoalCommandHandlerTests
     [Fact]
     public async Task Handle_WhenGoalMissing_ReturnsFalse()
     {
-        Guid growthId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid() };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
 

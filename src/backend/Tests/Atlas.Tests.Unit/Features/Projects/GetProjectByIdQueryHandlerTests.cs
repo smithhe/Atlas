@@ -19,7 +19,7 @@ public sealed class GetProjectByIdQueryHandlerTests
     [Fact]
     public async Task Handle_WhenIncludeDetails_UsesDetailsQuery()
     {
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var project = new Project { Id = id, Name = "Atlas", Summary = "S" };
         _projects.Setup(p => p.GetByIdWithDetailsAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(project);
 
@@ -32,7 +32,7 @@ public sealed class GetProjectByIdQueryHandlerTests
     [Fact]
     public async Task Handle_WhenNotIncludeDetails_UsesBasicQuery()
     {
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         _projects.Setup(p => p.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync((Project?)null);
 
         Project? result = await _handler.Handle(new GetProjectByIdQuery(id, IncludeDetails: false), CancellationToken.None);

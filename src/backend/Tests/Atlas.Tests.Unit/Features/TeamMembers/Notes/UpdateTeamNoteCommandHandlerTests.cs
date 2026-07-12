@@ -24,8 +24,8 @@ public sealed class UpdateTeamNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenNoteExists_Updates()
     {
-        Guid memberId = Guid.NewGuid();
-        Guid noteId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
         var note = new TeamNote { Id = noteId, TeamMemberId = memberId, Type = NoteType.Quick, Text = "Old", CreatedAt = DateTimeOffset.UtcNow };
         var member = new TeamMember { Id = memberId, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "", Notes = [note] };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
@@ -41,7 +41,7 @@ public sealed class UpdateTeamNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenNoteMissing_ReturnsFalse()
     {
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var member = new TeamMember { Id = memberId, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "" };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
 

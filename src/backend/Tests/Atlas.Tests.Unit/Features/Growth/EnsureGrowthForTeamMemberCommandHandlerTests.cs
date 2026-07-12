@@ -9,8 +9,8 @@ public sealed class EnsureGrowthForTeamMemberCommandHandlerTests
     public async Task Handle_WhenPlanExists_ReturnsExistingId()
     {
         var growthRepo = new FakeGrowthRepository();
-        Guid memberId = Guid.NewGuid();
-        Guid existingId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var existingId = Guid.NewGuid();
         growthRepo.Seed(new Atlas.Domain.Entities.Growth
         {
             Id = existingId,
@@ -28,7 +28,7 @@ public sealed class EnsureGrowthForTeamMemberCommandHandlerTests
     public async Task Handle_WhenPlanMissing_CreatesNewPlan()
     {
         var growthRepo = new FakeGrowthRepository();
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
 
         var handler = new EnsureGrowthForTeamMemberCommandHandler(growthRepo, new FakeUnitOfWork());
         Guid result = await handler.Handle(new EnsureGrowthForTeamMemberCommand(memberId), CancellationToken.None);

@@ -11,7 +11,7 @@ public sealed class GetGrowthByTeamMemberIdQueryHandlerTests
     public async Task Handle_ReturnsDetailsByTeamMember()
     {
         var growth = new Mock<IGrowthRepository>();
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth { Id = Guid.NewGuid(), TeamMemberId = memberId };
         growth.Setup(g => g.GetByTeamMemberIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
 

@@ -24,8 +24,8 @@ public sealed class DeleteTeamMemberRiskCommandHandlerTests
     [Fact]
     public async Task Handle_WhenRiskExists_Removes()
     {
-        Guid memberId = Guid.NewGuid();
-        Guid riskId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
         var member = new TeamMember
         {
             Id = memberId,

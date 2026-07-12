@@ -24,9 +24,9 @@ public sealed class DeleteTeamNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenNoteExists_RemovesAndRepacksPins()
     {
-        Guid memberId = Guid.NewGuid();
-        Guid keep = Guid.NewGuid();
-        Guid remove = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var keep = Guid.NewGuid();
+        var remove = Guid.NewGuid();
         var member = new TeamMember
         {
             Id = memberId,

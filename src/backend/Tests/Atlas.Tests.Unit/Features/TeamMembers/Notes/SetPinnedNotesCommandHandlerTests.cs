@@ -11,10 +11,10 @@ public sealed class SetPinnedNotesCommandHandlerTests
     public async Task Handle_AssignsPinnedOrderByIndex()
     {
         var team = new FakeTeamMemberRepository();
-        Guid memberId = Guid.NewGuid();
-        Guid noteA = Guid.NewGuid();
-        Guid noteB = Guid.NewGuid();
-        Guid noteC = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var noteA = Guid.NewGuid();
+        var noteB = Guid.NewGuid();
+        var noteC = Guid.NewGuid();
 
         team.Seed(new TeamMember
         {
@@ -47,8 +47,8 @@ public sealed class SetPinnedNotesCommandHandlerTests
     public async Task Handle_WhenNoteIdUnknown_ReturnsFalse()
     {
         var team = new FakeTeamMemberRepository();
-        Guid memberId = Guid.NewGuid();
-        Guid noteId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
         team.Seed(new TeamMember
         {
             Id = memberId,

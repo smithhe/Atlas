@@ -18,7 +18,7 @@ public sealed class TestAiConversationService : IAiConversationService
         AiSessionStartRequest request,
         CancellationToken cancellationToken)
     {
-        Guid sessionId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
         using IServiceScope scope = _scopeFactory.CreateScope();
         IAiConversationRepository conversations = scope.ServiceProvider.GetRequiredService<IAiConversationRepository>();
         IAiSessionRepository sessions = scope.ServiceProvider.GetRequiredService<IAiSessionRepository>();
@@ -65,7 +65,7 @@ public sealed class TestAiConversationService : IAiConversationService
         }
 
         int turnIndex = await sessions.GetNextTurnIndexAsync(conversationId, cancellationToken);
-        Guid sessionId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
         string trimmedPrompt = prompt.Trim();
 
         var turnRequest = new AiSessionStartRequest(

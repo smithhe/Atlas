@@ -24,9 +24,9 @@ public sealed class DeleteGrowthGoalCheckInCommandHandlerTests
     [Fact]
     public async Task Handle_WhenCheckInExists_Removes()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
-        Guid checkInId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
+        var checkInId = Guid.NewGuid();
         var goal = new GrowthGoal
         {
             Id = goalId,

@@ -17,7 +17,7 @@ public sealed class GetTaskByIdQueryHandlerTests
     [Fact]
     public async Task Handle_WhenIncludeDetails_UsesDetailsQuery()
     {
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var task = new TaskItem
         {
             Id = id,
@@ -39,7 +39,7 @@ public sealed class GetTaskByIdQueryHandlerTests
     [Fact]
     public async Task Handle_WhenMissing_ReturnsNull()
     {
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         _tasks.Setup(t => t.GetByIdAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync((TaskItem?)null);
 
         TaskItem? result = await _handler.Handle(new GetTaskByIdQuery(id, false), CancellationToken.None);

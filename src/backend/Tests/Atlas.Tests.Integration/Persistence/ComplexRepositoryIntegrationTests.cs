@@ -23,15 +23,15 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         ITaskRepository tasks = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
         IUnitOfWork uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        var blocker = NewTask("Blocker");
-        var dependent = NewTask("Dependent");
+        TaskItem blocker = NewTask("Blocker");
+        TaskItem dependent = NewTask("Dependent");
         dependent.BlockedBy.Add(new TaskDependency
         {
             Id = Guid.NewGuid(),
             DependentTaskId = dependent.Id,
             BlockerTaskId = blocker.Id
         });
-        var other = NewTask("Other");
+        TaskItem other = NewTask("Other");
 
         await tasks.AddAsync(blocker, CancellationToken.None);
         await tasks.AddAsync(dependent, CancellationToken.None);
@@ -239,7 +239,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         IProjectRepository projects = scope.ServiceProvider.GetRequiredService<IProjectRepository>();
         IUnitOfWork uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        Guid projectId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
         var project = new Project
         {
             Id = projectId,
@@ -363,8 +363,8 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         IAiSessionRepository sessions = scope.ServiceProvider.GetRequiredService<IAiSessionRepository>();
         IUnitOfWork uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-        Guid conversationId = Guid.NewGuid();
-        Guid sessionId = Guid.NewGuid();
+        var conversationId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
         DateTimeOffset now = DateTimeOffset.UtcNow;
 
         await conversations.AddAsync(new AiConversation
@@ -464,7 +464,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         await conversations.AddAsync(olderConv, CancellationToken.None);
         await conversations.AddAsync(newerConv, CancellationToken.None);
 
-        Guid sessionId = Guid.NewGuid();
+        var sessionId = Guid.NewGuid();
         await sessions.AddAsync(new AiSession
         {
             Id = sessionId,

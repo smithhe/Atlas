@@ -24,8 +24,8 @@ public sealed class DeleteRiskHistoryEntryCommandHandlerTests
     [Fact]
     public async Task Handle_WhenEntryExists_Removes()
     {
-        Guid riskId = Guid.NewGuid();
-        Guid entryId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
         var risk = new Risk
         {
             Id = riskId,

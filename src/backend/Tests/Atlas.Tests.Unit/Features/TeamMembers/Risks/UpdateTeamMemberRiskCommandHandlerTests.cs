@@ -24,8 +24,8 @@ public sealed class UpdateTeamMemberRiskCommandHandlerTests
     [Fact]
     public async Task Handle_WhenRiskExists_Updates()
     {
-        Guid memberId = Guid.NewGuid();
-        Guid riskId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
         var risk = new TeamMemberRisk
         {
             Id = riskId,
@@ -55,7 +55,7 @@ public sealed class UpdateTeamMemberRiskCommandHandlerTests
     [Fact]
     public async Task Handle_WhenRiskMissing_ReturnsFalse()
     {
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var member = new TeamMember { Id = memberId, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "" };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
 
