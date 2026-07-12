@@ -13,7 +13,7 @@ public sealed class GetTeamMemberByIdQueryHandlerTests
     public async Task Handle_WhenIncludeDetails_UsesDetails()
     {
         var team = new Mock<ITeamMemberRepository>();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var member = new TeamMember { Id = id, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "" };
         team.Setup(t => t.GetByIdWithDetailsAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(member);
 

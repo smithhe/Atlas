@@ -18,7 +18,7 @@ public sealed class AddAzureWorkItemLocalNoteEndpointTests : IClassFixture<Atlas
         using AtlasWebApplicationFactory isolated = new();
         HttpClient client = isolated.CreateClient();
 
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         const int workItemId = 4242;
 
         using (IServiceScope scope = isolated.Services.CreateScope())
@@ -104,7 +104,7 @@ public sealed class AddAzureWorkItemLocalNoteEndpointTests : IClassFixture<Atlas
         using AtlasWebApplicationFactory isolated = new();
         HttpClient client = isolated.CreateClient();
 
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         using (IServiceScope scope = isolated.Services.CreateScope())
         {
             AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();

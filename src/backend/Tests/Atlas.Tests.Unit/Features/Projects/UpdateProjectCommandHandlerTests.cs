@@ -20,7 +20,7 @@ public sealed class UpdateProjectCommandHandlerTests
     public async Task Handle_SyncsTags_RemovesStaleAddsNew()
     {
         var projects = new FakeProjectRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         projects.Seed(new Project
         {
             Id = id,
@@ -51,7 +51,7 @@ public sealed class UpdateProjectCommandHandlerTests
     public async Task Handle_SyncsLinks_CaseInsensitiveDedupe()
     {
         var projects = new FakeProjectRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         projects.Seed(new Project
         {
             Id = id,

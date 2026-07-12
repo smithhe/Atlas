@@ -26,7 +26,7 @@ public sealed class SetRiskTeamMembersCommandHandlerTests
     public async Task Handle_WhenMemberMissing_Throws()
     {
         var risks = new FakeRiskRepository();
-        Guid riskId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
         risks.Seed(NewRisk(riskId));
 
         var handler = new SetRiskTeamMembersCommandHandler(
@@ -45,8 +45,8 @@ public sealed class SetRiskTeamMembersCommandHandlerTests
     {
         var risks = new FakeRiskRepository();
         var team = new FakeTeamMemberRepository();
-        Guid riskId = Guid.NewGuid();
-        Guid memberId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
 
         team.Seed(new TeamMember
         {
@@ -80,9 +80,9 @@ public sealed class SetRiskTeamMembersCommandHandlerTests
     {
         var risks = new FakeRiskRepository();
         var team = new FakeTeamMemberRepository();
-        Guid riskId = Guid.NewGuid();
-        Guid memberA = Guid.NewGuid();
-        Guid memberB = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
+        var memberA = Guid.NewGuid();
+        var memberB = Guid.NewGuid();
 
         risks.Seed(NewRisk(riskId));
         team.Seed(new TeamMember { Id = memberA, Name = "Ada", Role = "Engineer", StatusDot = StatusDot.Green });

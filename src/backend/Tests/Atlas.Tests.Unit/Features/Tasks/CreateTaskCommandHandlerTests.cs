@@ -34,7 +34,7 @@ public sealed class CreateTaskCommandHandlerTests
     [Fact]
     public async Task Handle_WhenValid_CreatesTaskWithDependencies()
     {
-        Guid blockerId = Guid.NewGuid();
+        var blockerId = Guid.NewGuid();
         _tasks.Setup(t => t.ExistsAsync(blockerId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         TaskItem? captured = null;
@@ -58,7 +58,7 @@ public sealed class CreateTaskCommandHandlerTests
     [Fact]
     public async Task Handle_WhenBlockerMissing_Throws()
     {
-        Guid missingBlocker = Guid.NewGuid();
+        var missingBlocker = Guid.NewGuid();
         _tasks.Setup(t => t.ExistsAsync(missingBlocker, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
         Func<Task> act = () => _handler.Handle(ValidCommand([missingBlocker]), CancellationToken.None);

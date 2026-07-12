@@ -24,8 +24,8 @@ public sealed class UpdateRiskHistoryEntryCommandHandlerTests
     [Fact]
     public async Task Handle_WhenEntryExists_UpdatesText()
     {
-        Guid riskId = Guid.NewGuid();
-        Guid entryId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
         var entry = new RiskHistoryEntry { Id = entryId, RiskId = riskId, Text = "Old", CreatedAt = DateTimeOffset.UtcNow };
         var risk = new Risk
         {
@@ -49,7 +49,7 @@ public sealed class UpdateRiskHistoryEntryCommandHandlerTests
     [Fact]
     public async Task Handle_WhenEntryMissing_ReturnsFalse()
     {
-        Guid riskId = Guid.NewGuid();
+        var riskId = Guid.NewGuid();
         var risk = new Risk { Id = riskId, Title = "R", Status = RiskStatus.Open, Severity = SeverityLevel.Low, Description = "", Evidence = "", LastUpdatedAt = DateTimeOffset.UtcNow };
         _risks.Setup(r => r.GetByIdWithDetailsAsync(riskId, It.IsAny<CancellationToken>())).ReturnsAsync(risk);
 

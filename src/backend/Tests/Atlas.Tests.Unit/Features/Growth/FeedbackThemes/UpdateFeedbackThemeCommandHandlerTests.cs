@@ -23,8 +23,8 @@ public sealed class UpdateFeedbackThemeCommandHandlerTests
     [Fact]
     public async Task Handle_WhenThemeExists_Updates()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid themeId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var themeId = Guid.NewGuid();
         var theme = new GrowthFeedbackTheme { Id = themeId, GrowthId = growthId, Title = "Old", Description = "D" };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), FeedbackThemes = [theme] };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
@@ -39,7 +39,7 @@ public sealed class UpdateFeedbackThemeCommandHandlerTests
     [Fact]
     public async Task Handle_WhenThemeMissing_ReturnsFalse()
     {
-        Guid growthId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid() };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
 

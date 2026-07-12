@@ -20,7 +20,7 @@ public sealed class SetGrowthSkillsInProgressCommandHandlerTests
     public async Task Handle_TrimsDeduplicatesPreservesOrder()
     {
         var growth = new FakeGrowthRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         growth.Seed(new Domain.Entities.Growth { Id = id, TeamMemberId = Guid.NewGuid() });
 
         var handler = new SetGrowthSkillsInProgressCommandHandler(growth, new FakeUnitOfWork());
@@ -38,7 +38,7 @@ public sealed class SetGrowthSkillsInProgressCommandHandlerTests
     public async Task Handle_RemovesStaleSkills()
     {
         var growth = new FakeGrowthRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var plan = new Domain.Entities.Growth
         {
             Id = id,

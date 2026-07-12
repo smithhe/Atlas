@@ -63,7 +63,7 @@ public sealed class GrowthRepository : IGrowthRepository
             return;
         }
 
-        List<GrowthSkillInProgress> ordered = plan.SkillsInProgress
+        var ordered = plan.SkillsInProgress
             .OrderBy(x => x.SortOrder)
             .ThenBy(x => x.Value, StringComparer.Ordinal)
             .ToList();

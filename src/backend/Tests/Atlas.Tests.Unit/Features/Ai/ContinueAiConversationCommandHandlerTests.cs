@@ -11,8 +11,8 @@ public sealed class ContinueAiConversationCommandHandlerTests
     public async Task Handle_ReturnsTurnSessionIdFromService()
     {
         var service = new Mock<IAiConversationService>();
-        Guid conversationId = Guid.NewGuid();
-        Guid turnId = Guid.NewGuid();
+        var conversationId = Guid.NewGuid();
+        var turnId = Guid.NewGuid();
         service.Setup(s => s.ContinueConversationAsync(conversationId, "Follow up", It.IsAny<CancellationToken>()))
             .ReturnsAsync(turnId);
 

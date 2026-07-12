@@ -23,8 +23,8 @@ public sealed class DeleteFeedbackThemeCommandHandlerTests
     [Fact]
     public async Task Handle_WhenThemeExists_Removes()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid themeId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var themeId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth
         {
             Id = growthId,

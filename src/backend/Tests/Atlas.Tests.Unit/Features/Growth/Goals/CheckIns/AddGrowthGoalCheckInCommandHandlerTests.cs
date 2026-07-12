@@ -24,8 +24,8 @@ public sealed class AddGrowthGoalCheckInCommandHandlerTests
     [Fact]
     public async Task Handle_WhenGoalExists_AddsCheckIn()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid() };
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "G", Description = "D", Status = GrowthGoalStatus.OnTrack };
         _growth.Setup(g => g.GetByIdAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);
