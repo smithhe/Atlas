@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
 import type { Growth, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
+import { withDerivedActivitySnapshot } from '../team'
 import {
   addRiskToProjectLinks,
   addTaskToProjectLinks,
@@ -133,9 +134,10 @@ export function useAppCache() {
         queryKeys.teamMembers,
       )
       if (!cached) return
+      const next = withDerivedActivitySnapshot(member)
       setTeamMembersCache(
         queryClient,
-        cached.team.map((m) => (m.id === member.id ? member : m)),
+        cached.team.map((m) => (m.id === next.id ? next : m)),
         cached.teamMemberRisks,
       )
     },
@@ -144,7 +146,7 @@ export function useAppCache() {
 
   const replaceTeamMembers = useCallback(
     (team: TeamMember[], teamMemberRisks: TeamMemberRisk[]) => {
-      setTeamMembersCache(queryClient, team, teamMemberRisks)
+      setTeamMembersCache(queryClient, team.map(withDerivedActivitySnapshot), teamMemberRisks)
     },
     [queryClient],
   )

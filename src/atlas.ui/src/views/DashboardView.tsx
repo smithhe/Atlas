@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
 import { useAppData } from '../app/queries/hooks'
 import { formatDurationFromMinutes, parseDurationText } from '../app/duration'
@@ -159,7 +159,8 @@ export function DashboardView() {
     // Team
     for (const m of team) {
       const freshnessDays = daysSince(m.activitySnapshot.lastUpdatedIso)
-      const hasBaselineSignal = Boolean(m.activitySnapshot.lastUpdatedIso) && m.notes.length > 0
+      // Baseline = any derived activity (notes and/or Azure work-item changes), not notes-only.
+      const hasBaselineSignal = Boolean(m.activitySnapshot.lastUpdatedIso)
       const missingBaseline = !hasBaselineSignal
 
       const freshnessText =
@@ -297,12 +298,12 @@ export function DashboardView() {
           to: `/team/${m.id}`,
         })
       }
-      if (m.notes.length === 0) {
+      if (!m.activitySnapshot.lastUpdatedIso) {
         drift.push({
           key: `drift-team-nobaseline-${m.id}`,
           tag: 'Team',
           title: m.name,
-          detail: 'No baseline notes yet',
+          detail: 'No activity yet',
           to: `/team/${m.id}`,
         })
       }
@@ -479,22 +480,32 @@ export function DashboardView() {
             <div className="cardTitle">Team Pulse</div>
           </header>
           <div className="list">
-            {dashboard.teamPulse.map((m) => {
-              const d = dashboard.daysSince(m.activitySnapshot.lastUpdatedIso)
-              const freshnessText =
-                d === undefined ? 'no update yet' : d > 7 ? 'no update this week' : `updated ${d}d ago`
-              const freshnessTone = d === undefined ? 'pillToneBad' : d > 7 ? 'pillToneBad' : d >= 4 ? 'pillToneWarn' : 'pillToneOk'
-              return (
-                <button key={m.id} className="listRow listRowBtn" onClick={() => nav(`/team/${m.id}`)} type="button">
-                  <span className={`dot dot-${m.statusDot.toLowerCase()}`} />
-                  <div className="listMain">
-                    <div className="listTitle">{m.name}</div>
-                    <div className="listMeta">{m.currentFocus}</div>
-                  </div>
-                  <div className={`pill ${freshnessTone}`}>{freshnessText}</div>
-                </button>
-              )
-            })}
+            {dashboard.teamPulse.length === 0 ? (
+              <div className="dashboardEmpty">
+                No team members imported yet.{' '}
+                <Link className="crumbLink" to="/settings/azure-import">
+                  Import from Azure DevOps
+                </Link>
+                .
+              </div>
+            ) : (
+              dashboard.teamPulse.map((m) => {
+                const d = dashboard.daysSince(m.activitySnapshot.lastUpdatedIso)
+                const freshnessText =
+                  d === undefined ? 'no update yet' : d > 7 ? 'no update this week' : `updated ${d}d ago`
+                const freshnessTone = d === undefined ? 'pillToneBad' : d > 7 ? 'pillToneBad' : d >= 4 ? 'pillToneWarn' : 'pillToneOk'
+                return (
+                  <button key={m.id} className="listRow listRowBtn" onClick={() => nav(`/team/${m.id}`)} type="button">
+                    <span className={`dot dot-${m.statusDot.toLowerCase()}`} />
+                    <div className="listMain">
+                      <div className="listTitle">{m.name}</div>
+                      <div className="listMeta">{m.currentFocus}</div>
+                    </div>
+                    <div className={`pill ${freshnessTone}`}>{freshnessText}</div>
+                  </button>
+                )
+              })
+            )}
           </div>
         </section>
 

@@ -1,5 +1,6 @@
 import type { Confidence, Growth, GrowthGoalActionState, GrowthGoalCheckInSignal, GrowthGoalStatus, Priority, ProductOwner, Project, Risk, Settings, Task, TeamMember, TeamMemberRisk } from '../types'
 import { loadDefaultAiPanelOpen } from '../localSettings'
+import { deriveActivitySnapshot } from '../team'
 
 export interface SettingsDto {
   staleDays: number
@@ -122,6 +123,7 @@ interface TeamMemberAzureWorkItemDto {
   ticketUrl: string
   projectId: string
   localNotes: TeamMemberAzureWorkItemLocalNoteDto[]
+  changedDateUtc?: string | null
 }
 export interface TeamMemberDto {
   id: string
@@ -295,6 +297,7 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     assignedTo: w.assignedTo ?? undefined,
     ticketUrl: w.ticketUrl,
     projectId: w.projectId,
+    changedDateUtc: w.changedDateUtc ?? undefined,
     localNotes: (w.localNotes ?? []).map((n) => ({
       id: n.id,
       createdIso: n.createdAt,
@@ -318,6 +321,7 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     activitySnapshot: { bullets: [], lastUpdatedIso: undefined, quickTags: undefined },
     azureItems,
   }
+  member.activitySnapshot = deriveActivitySnapshot(member)
 
   const memberRisks: TeamMemberRisk[] = (dto.risks ?? []).map((r) => ({
     id: r.id,

@@ -1,3 +1,7 @@
+/**
+ * Browser-local preferences that are not part of the server Settings API.
+ * `defaultAiPanelOpen` is intentionally localStorage-only in v1 (not cross-browser).
+ */
 const DEFAULT_AI_PANEL_OPEN_KEY = 'atlas.defaultAiPanelOpen'
 
 export function loadDefaultAiPanelOpen(): boolean {

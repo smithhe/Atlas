@@ -42,18 +42,14 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 | Area | Status |
 |---|---|
 | Tasks / Risks / Projects CRUD | Built and wired |
-| Team members, notes, signals, member risks, growth | Built; some UI fields not persisted |
-| Dashboard heuristics | Built; limited by empty `activitySnapshot` |
+| Team members, notes, signals, member risks, growth | Built; note ADO/PR fields persist; Team Pulse derived |
+| Dashboard heuristics | Built; Team Pulse uses derived `activitySnapshot` |
 | Azure DevOps setup, sync, import, linking | Built; config/naming and a few UX gaps remain |
 | AI panel (Dashboard + Tasks) | Built; other views show unsupported actions |
 | Backend tests (unit / functional / integration) + CI | In place |
 | Frontend tests | None |
 | Docker / Compose | Not started |
 | Auth | Explicitly deferred (and excluded here) |
-
-Open note (`NotesForLater.txt`):
-
-> Current Focus is on team members but only used on the dashboard page, we need to update the backend to set this or remove it
 
 ---
 
@@ -77,40 +73,40 @@ Open note (`NotesForLater.txt`):
 
 ### 1.1 Team `activitySnapshot` / Team Pulse — **locked: derive**
 
-- [ ] Implement derivation (API mapper or UI mapper) per rules in Decisions.
-- [ ] Stop hardcoding empty `activitySnapshot` in `mappers.ts`.
-- [ ] Verify Dashboard Team Pulse / drift cards update when notes/signals/Azure data change.
-- [ ] Resolve `NotesForLater.txt` (delete after implementation).
+- [x] Implement derivation (API mapper or UI mapper) per rules in Decisions.
+- [x] Stop hardcoding empty `activitySnapshot` in `mappers.ts`.
+- [x] Verify Dashboard Team Pulse / drift cards update when notes/signals/Azure data change.
+- [x] Resolve `NotesForLater.txt` (delete after implementation).
 
 ### 1.2 Team note ADO / PR fields — **locked: persist**
 
-- [ ] Add optional `AdoWorkItemId` / `PrUrl` to `TeamNote` + EF config + migration.
-- [ ] Extend create/update note commands, validators, DTOs, mappers.
-- [ ] Wire UI create/edit forms to send/receive the fields.
-- [ ] Add functional tests for note create/update including these fields.
+- [x] Add optional `AdoWorkItemId` / `PrUrl` to `TeamNote` + EF config + migration.
+- [x] Extend create/update note commands, validators, DTOs, mappers.
+- [x] Wire UI create/edit forms to send/receive the fields.
+- [x] Add functional tests for note create/update including these fields.
 
 ### 1.3 Azure work item enriched fields — **locked: defer**
 
-- [ ] No sync expansion for PRs/history/time in v1.
+- [x] No sync expansion for PRs/history/time in v1.
 - [ ] Optional later: cosmetic cleanup so UI doesn’t imply fields Atlas never populates (only if it confuses during use).
 
 ### 1.4 Team member provenance — **locked: Azure import only**
 
-- [ ] Document that team members come from Azure user import (setup + settings/import flows).
-- [ ] Do **not** add manual create/delete UI.
-- [ ] Ensure UI copy / empty states don’t suggest manual member creation.
-- [ ] Keep backend create endpoint for import/tests; no need to remove API unless it causes confusion.
+- [x] Document that team members come from Azure user import (setup + settings/import flows).
+- [x] Do **not** add manual create/delete UI.
+- [x] Ensure UI copy / empty states don’t suggest manual member creation.
+- [x] Keep backend create endpoint for import/tests; no need to remove API unless it causes confusion.
 
 ### 1.5 Settings consistency
 
-- [ ] Document `defaultAiPanelOpen` as localStorage-only (or move to `Settings` if you want cross-browser portability — not required for v1).
-- [ ] Keep theme “Dark (locked)” or remove the control until themes exist.
+- [x] Document `defaultAiPanelOpen` as localStorage-only (or move to `Settings` if you want cross-browser portability — not required for v1).
+- [x] Keep theme “Dark (locked)” or remove the control until themes exist.
 
 ### Acceptance
 
-- Reload after editing team notes does not lose ADO/PR fields.
-- Dashboard team section matches the confirmed pulse strategy.
-- No UI path implies manual team-member creation.
+- [x] Reload after editing team notes does not lose ADO/PR fields.
+- [x] Dashboard team section matches the confirmed pulse strategy.
+- [x] No UI path implies manual team-member creation.
 
 ---
 
@@ -258,9 +254,9 @@ Phase 7  Broader frontend UI tests + CI
 
 ## Concrete first tickets
 
-1. **Derive `activitySnapshot` / Team Pulse**; clear `NotesForLater.txt`.
-2. **Persist team note `adoWorkItemId` / `prUrl`** (entity → API → UI → tests).
-3. **Document Azure-import-only members**; align empty states / copy.
+1. ~~**Derive `activitySnapshot` / Team Pulse**; clear `NotesForLater.txt`.~~ **Done (Phase 1.1)**
+2. ~~**Persist team note `adoWorkItemId` / `prUrl`** (entity → API → UI → tests).~~ **Done (Phase 1.2)**
+3. ~~**Document Azure-import-only members**; align empty states / copy.~~ **Done (Phase 1.4)**
 4. **Normalize Azure PAT config key** + sync UX improvements.
 5. **Implement global search + Quick Add**.
 6. **AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.
@@ -283,13 +279,13 @@ Phase 7  Broader frontend UI tests + CI
 | Topic | Location |
 |---|---|
 | Cloud/local agent notes | `AGENTS.md` |
-| Azure sync flow | `docs/azure-devops-sync-flow.md` |
-| Open product note | `NotesForLater.txt` |
+| Azure sync flow + team member provenance | `docs/azure-devops-sync-flow.md` |
 | API entry | `src/backend/Api/Atlas.Api/Program.cs` |
 | AI scopes | `src/backend/Core/Atlas.Application/Abstractions/Ai/AiViewScope.cs` |
-| Empty activity snapshot | `src/atlas.ui/src/app/api/mappers.ts` |
-| Team note entity (missing ADO/PR) | `src/backend/Core/Atlas.Domain/Entities/TeamNote.cs` |
+| Derived activity snapshot | `src/atlas.ui/src/app/team.ts` (`deriveActivitySnapshot`) |
+| Team note entity (ADO/PR fields) | `src/backend/Core/Atlas.Domain/Entities/TeamNote.cs` |
 | Azure WI entity (core fields only) | `src/backend/Core/Atlas.Domain/Entities/AzureWorkItem.cs` |
+| Browser-local AI panel pref | `src/atlas.ui/src/app/localSettings.ts` |
 | Query invalidation scopes | `src/atlas.ui/src/app/queries/invalidateAppQueries.ts` |
 | Backend CI | `.github/workflows/backend-tests.yml` |
 | Bruno collections | `bruno/Atlas/` |

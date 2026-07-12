@@ -141,20 +141,34 @@ export function TeamView() {
         {!isFocusMode ? (
           <section className="pane paneTeamLeft" aria-label="Team member list">
             <div className="list listCard">
-              {team.map((m) => (
-                <button
-                  key={m.id}
-                  className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
-                  onClick={() => selectTeamMember(m.id)}
-                  onDoubleClick={() => navigate(`/team/${m.id}`)}
-                >
-                  <div className="listMain">
-                    <div className="listTitle">{m.name}</div>
-                    <div className="listMeta">{m.role ?? '—'}</div>
-                  </div>
-                  <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-label={`${m.statusDot} status`} />
-                </button>
-              ))}
+              {team.length === 0 ? (
+                <div className="muted pad">
+                  No team members yet. Import from{' '}
+                  <Link className="crumbLink" to="/setup">
+                    Azure Setup
+                  </Link>{' '}
+                  or{' '}
+                  <Link className="crumbLink" to="/settings/azure-import">
+                    Settings → Azure Import
+                  </Link>
+                  .
+                </div>
+              ) : (
+                team.map((m) => (
+                  <button
+                    key={m.id}
+                    className={`listRow listRowBtn ${m.id === selectedTeamMemberId ? 'listRowActive' : ''}`}
+                    onClick={() => selectTeamMember(m.id)}
+                    onDoubleClick={() => navigate(`/team/${m.id}`)}
+                  >
+                    <div className="listMain">
+                      <div className="listTitle">{m.name}</div>
+                      <div className="listMeta">{m.role ?? '—'}</div>
+                    </div>
+                    <span className={`dot dot-${m.statusDot.toLowerCase()}`} aria-label={`${m.statusDot} status`} />
+                  </button>
+                ))
+              )}
             </div>
           </section>
         ) : null}
@@ -162,7 +176,23 @@ export function TeamView() {
         <section className="pane paneTeamCenter" aria-label="Member detail">
           {!selected ? (
             <div className="card pad">
-              <div className="muted">Select a team member.</div>
+              <div className="muted">
+                {team.length === 0 ? (
+                  <>
+                    No team members yet. Import from{' '}
+                    <Link className="crumbLink" to="/setup">
+                      Azure Setup
+                    </Link>{' '}
+                    or{' '}
+                    <Link className="crumbLink" to="/settings/azure-import">
+                      Settings → Azure Import
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  'Select a team member.'
+                )}
+              </div>
             </div>
           ) : (
             <MemberDetail

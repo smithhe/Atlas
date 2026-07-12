@@ -42,7 +42,8 @@ public sealed record TeamMemberAzureWorkItemDto(
     string? AssignedTo,
     string TicketUrl,
     Guid ProjectId,
-    IReadOnlyList<TeamMemberAzureWorkItemLocalNoteDto> LocalNotes);
+    IReadOnlyList<TeamMemberAzureWorkItemLocalNoteDto> LocalNotes,
+    DateTimeOffset? ChangedDateUtc = null);
 
 public sealed record TeamMemberListItemDto(
     Guid Id,

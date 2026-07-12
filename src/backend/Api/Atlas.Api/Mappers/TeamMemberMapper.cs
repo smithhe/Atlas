@@ -70,7 +70,8 @@ internal static class TeamMemberMapper
                     x.AzureWorkItem.AssignedToUniqueName,
                     x.AzureWorkItem.Url,
                     x.ProjectId,
-                    teamMemberAzureWorkItemLocalNoteDtos ?? []);
+                    teamMemberAzureWorkItemLocalNoteDtos ?? [],
+                    x.AzureWorkItem.ChangedDateUtc);
             })
             .ToList();
 
