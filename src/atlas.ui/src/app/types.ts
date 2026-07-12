@@ -63,6 +63,8 @@ export interface AzureItem {
   ticketUrl?: string
   prUrls?: string[]
   commitsUrl?: string
+  /** Azure DevOps ChangedDate when available from sync. */
+  changedDateUtc?: string
 
   /**
    * Local-only fields (not sourced from Azure DevOps sync; safe to keep even after sync exists).

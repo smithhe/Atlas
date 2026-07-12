@@ -4,7 +4,7 @@ import { useProjects, useRisks, useTasks, useTeam } from '../app/queries/hooks'
 import { useSelectedRisk, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { Risk, RiskStatus, TeamMember } from '../app/types'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { Markdown } from '../components/Markdown'
 import { Modal } from '../components/Modal'
 import {
@@ -601,7 +601,13 @@ function RiskDetail({
               {isEditing ? (
                 <div className="list listCard risksLinkedListCard">
                   {teamMemberOptions.length === 0 ? (
-                    <div className="muted pad">No team members available.</div>
+                    <div className="muted pad">
+                      Import team members from Azure DevOps first (
+                      <Link className="crumbLink" to="/settings/azure-import">
+                        Settings → Azure Import
+                      </Link>
+                      ).
+                    </div>
                   ) : (
                     teamMemberOptions.map((m) => (
                       <label key={m.id} className="listRow" style={{ cursor: 'pointer' }}>

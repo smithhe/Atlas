@@ -144,6 +144,7 @@ export function SettingsView() {
           <label className="field">
             <div className="fieldLabel">Theme</div>
             <input className="input" value="Dark (locked)" readOnly />
+            <div className="mutedSmall">Light theme is not available in v1.</div>
           </label>
 
           <label className="field span2">
@@ -165,6 +166,7 @@ export function SettingsView() {
               <option value="off">Off (closed)</option>
               <option value="on">On (open)</option>
             </select>
+            <div className="mutedSmall">Saved in this browser only (localStorage), not with Save settings.</div>
           </label>
 
           <label className="field span2">

@@ -30,3 +30,9 @@ flowchart TD
 - `AzureProductOwnerMapping` is intentionally many-to-one to `ProductOwner`.
 - Import dedupes Product Owners by display name (case-insensitive), so two Azure identities can resolve to one local Product Owner record.
 - `AzureUniqueName` is still unique per mapping row, so one Azure identity cannot be imported twice.
+
+## Team member provenance
+
+- Team members are created **only via Azure user import** (`Azure Setup` → choose project/team, or `Settings → Azure Import`, then `POST /azure-devops/team/import`).
+- There is **no** manual create/delete team-member UI in v1. After import, you can edit profile, signals, notes, risks, and growth for a member.
+- Backend `POST /team-members` remains for import internals and tests; the UI does not expose it for day-to-day use.
