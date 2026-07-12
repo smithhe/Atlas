@@ -14,6 +14,8 @@ public sealed class TeamNoteConfiguration : IEntityTypeConfiguration<TeamNote>
         builder.Property(x => x.LastModifiedAt);
         builder.Property(x => x.Title);
         builder.Property(x => x.Text).IsRequired();
+        builder.Property(x => x.AdoWorkItemId).HasMaxLength(64);
+        builder.Property(x => x.PrUrl).HasMaxLength(2000);
         builder.Property(x => x.PinnedOrder);
 
         builder.HasIndex(x => new { x.TeamMemberId, x.PinnedOrder });

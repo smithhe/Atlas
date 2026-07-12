@@ -30,12 +30,24 @@ public sealed class UpdateTeamNoteCommandHandlerTests
         var member = new TeamMember { Id = memberId, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "", Notes = [note] };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
 
-        bool ok = await _handler.Handle(new UpdateTeamNoteCommand(memberId, noteId, NoteType.Standup, "T", "New", 0), CancellationToken.None);
+        bool ok = await _handler.Handle(
+            new UpdateTeamNoteCommand(
+                memberId,
+                noteId,
+                NoteType.Standup,
+                "T",
+                "New",
+                0,
+                "98765",
+                "https://dev.azure.com/org/project/_git/repo/pullrequest/9"),
+            CancellationToken.None);
 
         ok.Should().BeTrue();
         note.Text.Should().Be("New");
         note.Type.Should().Be(NoteType.Standup);
         note.PinnedOrder.Should().Be(0);
+        note.AdoWorkItemId.Should().Be("98765");
+        note.PrUrl.Should().Be("https://dev.azure.com/org/project/_git/repo/pullrequest/9");
     }
 
     [Fact]

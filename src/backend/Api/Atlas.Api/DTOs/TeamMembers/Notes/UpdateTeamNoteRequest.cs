@@ -8,5 +8,7 @@ public sealed record UpdateTeamNoteRequest(
     NoteType Type,
     string? Title,
     string Text,
-    int? PinnedOrder);
+    int? PinnedOrder,
+    string? AdoWorkItemId = null,
+    string? PrUrl = null);
 

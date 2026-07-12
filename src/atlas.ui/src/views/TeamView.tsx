@@ -373,10 +373,14 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
   const [newTag, setNewTag] = useState<NoteTag>('Quick')
   const [newTitle, setNewTitle] = useState('')
   const [newText, setNewText] = useState('')
+  const [newAdoWorkItemId, setNewAdoWorkItemId] = useState('')
+  const [newPrUrl, setNewPrUrl] = useState('')
 
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editTab, setEditTab] = useState<'Write' | 'Preview'>('Write')
   const [draftText, setDraftText] = useState('')
+  const [draftAdoWorkItemId, setDraftAdoWorkItemId] = useState('')
+  const [draftPrUrl, setDraftPrUrl] = useState('')
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const editInputMaxHeightPx = 360
 
@@ -389,6 +393,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
       tag: note.tag,
       title: note.title,
       text: note.text,
+      adoWorkItemId: note.adoWorkItemId,
+      prUrl: note.prUrl,
     })
     return { ...note, id }
   }
@@ -398,6 +404,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
       tag: note.tag,
       title: note.title,
       text: note.text,
+      adoWorkItemId: note.adoWorkItemId,
+      prUrl: note.prUrl,
     })
   }
 
@@ -710,6 +718,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
           setSelectedNoteId(undefined)
           setIsEditOpen(false)
           setDraftText('')
+          setDraftAdoWorkItemId('')
+          setDraftPrUrl('')
           setEditTab('Write')
         }}
         footer={
@@ -722,7 +732,15 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                     onClick={() => {
                       void (async () => {
                         const nowIso = new Date().toISOString()
-                        const updated = { ...selectedNote, text: draftText, lastModifiedIso: nowIso }
+                        const ado = draftAdoWorkItemId.trim()
+                        const pr = draftPrUrl.trim()
+                        const updated = {
+                          ...selectedNote,
+                          text: draftText,
+                          adoWorkItemId: ado || undefined,
+                          prUrl: pr || undefined,
+                          lastModifiedIso: nowIso,
+                        }
                         try {
                           await saveNote(updated)
                           const nextNotes = member.notes.map((x) => (x.id === selectedNote.id ? updated : x))
@@ -741,6 +759,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                     onClick={() => {
                       setIsEditOpen(false)
                       setDraftText('')
+                      setDraftAdoWorkItemId('')
+                      setDraftPrUrl('')
                       setEditTab('Write')
                     }}
                   >
@@ -753,6 +773,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                   onClick={() => {
                     setIsEditOpen(true)
                     setDraftText(selectedNote.text)
+                    setDraftAdoWorkItemId(selectedNote.adoWorkItemId ?? '')
+                    setDraftPrUrl(selectedNote.prUrl ?? '')
                     setEditTab('Write')
                   }}
                 >
@@ -777,6 +799,26 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
 
             {isEditOpen ? (
               <div className="noteEdit">
+                <div className="fieldGrid2" style={{ marginBottom: 12 }}>
+                  <label className="field">
+                    <div className="fieldLabel">ADO work item id (optional)</div>
+                    <input
+                      className="input"
+                      value={draftAdoWorkItemId}
+                      onChange={(e) => setDraftAdoWorkItemId(e.target.value)}
+                      placeholder="e.g., 12345"
+                    />
+                  </label>
+                  <label className="field">
+                    <div className="fieldLabel">PR URL (optional)</div>
+                    <input
+                      className="input"
+                      value={draftPrUrl}
+                      onChange={(e) => setDraftPrUrl(e.target.value)}
+                      placeholder="https://…"
+                    />
+                  </label>
+                </div>
                 <div className="noteEditTabs">
                   <button className={`btn btnGhost ${editTab === 'Write' ? 'noteEditTabActive' : ''}`} onClick={() => setEditTab('Write')}>
                     Write
@@ -840,6 +882,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
           setIsNewOpen(false)
           setNewTitle('')
           setNewText('')
+          setNewAdoWorkItemId('')
+          setNewPrUrl('')
         }}
         footer={
           <div className="row" style={{ marginTop: 0 }}>
@@ -849,6 +893,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                 void (async () => {
                   if (!newText.trim()) return
                   const title = newTitle.trim()
+                  const ado = newAdoWorkItemId.trim()
+                  const pr = newPrUrl.trim()
                   const draft: TeamNote = {
                     id: newId('note'),
                     createdIso: new Date().toISOString(),
@@ -856,6 +902,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                     tag: newTag,
                     title: title || undefined,
                     text: newText.trim(),
+                    adoWorkItemId: ado || undefined,
+                    prUrl: pr || undefined,
                   }
                   try {
                     const saved = await createNote(draft)
@@ -863,6 +911,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                     setIsNewOpen(false)
                     setNewTitle('')
                     setNewText('')
+                    setNewAdoWorkItemId('')
+                    setNewPrUrl('')
                   } catch (err) {
                     reportSaveError(err, 'Unable to create note right now. Please try again.')
                   }
@@ -877,6 +927,8 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
                 setIsNewOpen(false)
                 setNewTitle('')
                 setNewText('')
+                setNewAdoWorkItemId('')
+                setNewPrUrl('')
               }}
             >
               Cancel
@@ -902,6 +954,24 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="e.g., 1:1 follow-ups, Standup recap…"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">ADO work item id (optional)</div>
+            <input
+              className="input"
+              value={newAdoWorkItemId}
+              onChange={(e) => setNewAdoWorkItemId(e.target.value)}
+              placeholder="e.g., 12345"
+            />
+          </label>
+          <label className="field">
+            <div className="fieldLabel">PR URL (optional)</div>
+            <input
+              className="input"
+              value={newPrUrl}
+              onChange={(e) => setNewPrUrl(e.target.value)}
+              placeholder="https://…"
             />
           </label>
           <label className="field">

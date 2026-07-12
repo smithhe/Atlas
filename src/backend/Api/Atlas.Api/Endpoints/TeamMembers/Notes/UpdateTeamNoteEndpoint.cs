@@ -25,7 +25,17 @@ public sealed class UpdateTeamNoteEndpoint : Endpoint<UpdateTeamNoteRequest>
         Guid noteId = Route<Guid>("noteId");
         req = req with { TeamMemberId = teamMemberId, NoteId = noteId };
 
-        var ok = await _mediator.Send(new UpdateTeamNoteCommand(req.TeamMemberId, req.NoteId, req.Type, req.Title, req.Text, req.PinnedOrder), ct);
+        var ok = await _mediator.Send(
+            new UpdateTeamNoteCommand(
+                req.TeamMemberId,
+                req.NoteId,
+                req.Type,
+                req.Title,
+                req.Text,
+                req.PinnedOrder,
+                req.AdoWorkItemId,
+                req.PrUrl),
+            ct);
         if (!ok)
         {
             await Send.NotFoundAsync(ct);

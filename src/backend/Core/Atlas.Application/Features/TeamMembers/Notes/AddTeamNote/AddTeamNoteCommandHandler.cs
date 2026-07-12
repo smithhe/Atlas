@@ -32,7 +32,9 @@ public sealed class AddTeamNoteCommandHandler : IRequestHandler<AddTeamNoteComma
             CreatedAt = DateTimeOffset.UtcNow,
             Type = request.Type,
             Title = request.Title,
-            Text = request.Text
+            Text = request.Text,
+            AdoWorkItemId = request.AdoWorkItemId,
+            PrUrl = request.PrUrl
         };
 
         await _team.AddNoteAsync(note, cancellationToken);

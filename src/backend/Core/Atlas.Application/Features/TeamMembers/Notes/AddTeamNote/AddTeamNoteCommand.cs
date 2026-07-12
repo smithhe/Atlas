@@ -6,5 +6,7 @@ public sealed record AddTeamNoteCommand(
     Guid TeamMemberId,
     NoteType Type,
     string? Title,
-    string Text) : IRequest<Guid>;
+    string Text,
+    string? AdoWorkItemId = null,
+    string? PrUrl = null) : IRequest<Guid>;
 

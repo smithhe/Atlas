@@ -47,6 +47,8 @@ export function TeamNoteDetailView() {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftTag, setDraftTag] = useState<NoteTag>('Quick')
   const [draftText, setDraftText] = useState('')
+  const [draftAdoWorkItemId, setDraftAdoWorkItemId] = useState('')
+  const [draftPrUrl, setDraftPrUrl] = useState('')
 
   // Keep drafts in sync when navigating between notes (but don't clobber active edits).
   useEffect(() => {
@@ -55,6 +57,8 @@ export function TeamNoteDetailView() {
     setDraftTitle(note.title ?? '')
     setDraftTag(note.tag)
     setDraftText(note.text)
+    setDraftAdoWorkItemId(note.adoWorkItemId ?? '')
+    setDraftPrUrl(note.prUrl ?? '')
   }, [isEditing, note])
 
   function beginEdit() {
@@ -62,6 +66,8 @@ export function TeamNoteDetailView() {
     setDraftTitle(note.title ?? '')
     setDraftTag(note.tag)
     setDraftText(note.text)
+    setDraftAdoWorkItemId(note.adoWorkItemId ?? '')
+    setDraftPrUrl(note.prUrl ?? '')
     setIsEditing(true)
   }
 
@@ -70,6 +76,8 @@ export function TeamNoteDetailView() {
     setDraftTitle(note.title ?? '')
     setDraftTag(note.tag)
     setDraftText(note.text)
+    setDraftAdoWorkItemId(note.adoWorkItemId ?? '')
+    setDraftPrUrl(note.prUrl ?? '')
     setIsEditing(false)
   }
 
@@ -77,11 +85,15 @@ export function TeamNoteDetailView() {
     if (!member || !note) return
     const nowIso = new Date().toISOString()
     const nextTitle = draftTitle.trim()
+    const ado = draftAdoWorkItemId.trim()
+    const pr = draftPrUrl.trim()
     const updated = {
       ...note,
       title: nextTitle ? nextTitle : undefined,
       tag: draftTag,
       text: draftText,
+      adoWorkItemId: ado || undefined,
+      prUrl: pr || undefined,
       lastModifiedIso: nowIso,
     }
 
@@ -91,6 +103,8 @@ export function TeamNoteDetailView() {
           tag: updated.tag,
           title: updated.title,
           text: updated.text,
+          adoWorkItemId: updated.adoWorkItemId,
+          prUrl: updated.prUrl,
         })
         const nextNotes = member.notes.map((n) => (n.id === note.id ? updated : n))
         cache.updateTeamMember({ ...member, notes: nextNotes })
@@ -204,6 +218,40 @@ export function TeamNoteDetailView() {
                 <div className="noteDetailReadonly">
                   <span className={`chip chipTag chipTag-${note.tag.toLowerCase()}`}>{note.tag}</span>
                 </div>
+              )}
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">ADO work item id</div>
+              {isEditing ? (
+                <input
+                  className="input"
+                  value={draftAdoWorkItemId}
+                  onChange={(e) => setDraftAdoWorkItemId(e.target.value)}
+                  placeholder="e.g., 12345"
+                />
+              ) : (
+                <div className="noteDetailReadonly">{note.adoWorkItemId ?? '—'}</div>
+              )}
+            </label>
+
+            <label className="field">
+              <div className="fieldLabel">PR URL</div>
+              {isEditing ? (
+                <input
+                  className="input"
+                  value={draftPrUrl}
+                  onChange={(e) => setDraftPrUrl(e.target.value)}
+                  placeholder="https://…"
+                />
+              ) : note.prUrl ? (
+                <div className="noteDetailReadonly">
+                  <a href={note.prUrl} target="_blank" rel="noreferrer">
+                    {note.prUrl}
+                  </a>
+                </div>
+              ) : (
+                <div className="noteDetailReadonly">—</div>
               )}
             </label>
           </div>

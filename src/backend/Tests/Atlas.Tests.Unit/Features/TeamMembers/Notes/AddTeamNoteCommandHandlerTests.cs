@@ -31,11 +31,15 @@ public sealed class AddTeamNoteCommandHandlerTests
             .Callback<TeamNote, CancellationToken>((n, _) => captured = n)
             .Returns(Task.CompletedTask);
 
-        Guid id = await _handler.Handle(new AddTeamNoteCommand(member.Id, NoteType.Standup, "Title", "Text"), CancellationToken.None);
+        Guid id = await _handler.Handle(
+            new AddTeamNoteCommand(member.Id, NoteType.Standup, "Title", "Text", "12345", "https://dev.azure.com/org/project/_git/repo/pullrequest/1"),
+            CancellationToken.None);
 
         id.Should().NotBe(Guid.Empty);
         captured!.Text.Should().Be("Text");
         captured.Type.Should().Be(NoteType.Standup);
+        captured.AdoWorkItemId.Should().Be("12345");
+        captured.PrUrl.Should().Be("https://dev.azure.com/org/project/_git/repo/pullrequest/1");
     }
 
     [Fact]

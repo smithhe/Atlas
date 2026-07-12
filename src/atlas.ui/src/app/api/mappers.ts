@@ -91,6 +91,8 @@ interface TeamNoteDto {
   title?: string | null
   text: string
   pinnedOrder?: number | null
+  adoWorkItemId?: string | null
+  prUrl?: string | null
 }
 interface TeamMemberRiskDto {
   id: string
@@ -277,6 +279,8 @@ export function mapTeamMember(dto: TeamMemberDto): { member: TeamMember; memberR
     tag: n.type,
     title: n.title ?? undefined,
     text: n.text,
+    adoWorkItemId: n.adoWorkItemId ?? undefined,
+    prUrl: n.prUrl ?? undefined,
   }))
 
   const pinnedNoteIds = (dto.notes ?? [])

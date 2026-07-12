@@ -68,13 +68,15 @@ export async function updateTeamMemberSignals(
 
 export async function addTeamNote(
   memberId: string,
-  request: { tag: NoteTag; title?: string; text: string },
+  request: { tag: NoteTag; title?: string; text: string; adoWorkItemId?: string; prUrl?: string },
 ): Promise<string> {
   const res = await postJson<{ id: string }>(`/team-members/${memberId}/notes`, {
     teamMemberId: memberId,
     type: request.tag,
     title: request.title ?? null,
     text: request.text,
+    adoWorkItemId: request.adoWorkItemId ?? null,
+    prUrl: request.prUrl ?? null,
   })
   return res.id
 }
@@ -82,7 +84,7 @@ export async function addTeamNote(
 export async function updateTeamNote(
   memberId: string,
   noteId: string,
-  request: { tag: NoteTag; title?: string; text: string; pinnedOrder?: number | null },
+  request: { tag: NoteTag; title?: string; text: string; pinnedOrder?: number | null; adoWorkItemId?: string; prUrl?: string },
 ): Promise<void> {
   await putJson<void>(`/team-members/${memberId}/notes/${noteId}`, {
     teamMemberId: memberId,
@@ -91,6 +93,8 @@ export async function updateTeamNote(
     title: request.title ?? null,
     text: request.text,
     pinnedOrder: request.pinnedOrder ?? null,
+    adoWorkItemId: request.adoWorkItemId ?? null,
+    prUrl: request.prUrl ?? null,
   })
 }
 
