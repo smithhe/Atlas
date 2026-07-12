@@ -29,12 +29,27 @@ public sealed class TeamMemberSubResourcesEndpointTests : IClassFixture<AtlasWeb
 
         AddTeamNoteResponse? note = await (await _client.PostJsonAsync(
             $"/team-members/{member.Id}/notes",
-            new AddTeamNoteRequest(member.Id, NoteType.Standup, "Standup", "Shipped tests"))).ReadJsonAsync<AddTeamNoteResponse>();
+            new AddTeamNoteRequest(
+                member.Id,
+                NoteType.Standup,
+                "Standup",
+                "Shipped tests",
+                "12345",
+                "https://dev.azure.com/org/project/_git/repo/pullrequest/1")))
+            .ReadJsonAsync<AddTeamNoteResponse>();
         Assert.NotNull(note);
 
         HttpResponseMessage updateNote = await _client.PutJsonAsync(
             $"/team-members/{member.Id}/notes/{note.Id}",
-            new UpdateTeamNoteRequest(member.Id, note.Id, NoteType.Standup, "Standup", "Shipped more tests", null));
+            new UpdateTeamNoteRequest(
+                member.Id,
+                note.Id,
+                NoteType.Standup,
+                "Standup",
+                "Shipped more tests",
+                null,
+                "67890",
+                "https://dev.azure.com/org/project/_git/repo/pullrequest/2"));
         Assert.Equal(HttpStatusCode.NoContent, updateNote.StatusCode);
 
         HttpResponseMessage pinNotes = await _client.PutJsonAsync(
@@ -91,6 +106,8 @@ public sealed class TeamMemberSubResourcesEndpointTests : IClassFixture<AtlasWeb
         Assert.Single(loaded.Notes);
         Assert.Equal("Shipped more tests", loaded.Notes[0].Text);
         Assert.Equal(0, loaded.Notes[0].PinnedOrder);
+        Assert.Equal("67890", loaded.Notes[0].AdoWorkItemId);
+        Assert.Equal("https://dev.azure.com/org/project/_git/repo/pullrequest/2", loaded.Notes[0].PrUrl);
         Assert.Single(loaded.Risks);
         Assert.Equal(TeamMemberRiskSeverity.Low, loaded.Risks[0].Severity);
         Assert.Equal("America/Chicago", loaded.Profile.TimeZone);

@@ -34,6 +34,27 @@ public sealed class AddTeamNoteCommandValidatorTests
         Assert.True(result.IsValid);
     }
 
+    [Fact]
+    public void Validate_WhenPrUrlIsInvalid_HasValidationError()
+    {
+        ValidationResult result = _validator.Validate(ValidCommand() with { PrUrl = "not-a-url" });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.PropertyName == nameof(AddTeamNoteCommand.PrUrl));
+    }
+
+    [Fact]
+    public void Validate_WhenAdoAndPrArePresent_Passes()
+    {
+        ValidationResult result = _validator.Validate(ValidCommand() with
+        {
+            AdoWorkItemId = "42",
+            PrUrl = "https://dev.azure.com/org/project/_git/repo/pullrequest/1"
+        });
+
+        Assert.True(result.IsValid);
+    }
+
     private static AddTeamNoteCommand ValidCommand() => new(
         TeamMemberId: Guid.NewGuid(),
         Type: NoteType.Standup,

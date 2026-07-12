@@ -15,6 +15,16 @@ public sealed class TeamNote : Entity
     public string Text { get; set; } = string.Empty;
 
     /// <summary>
+    /// Optional Azure DevOps work item id for quick cross-linking from notes.
+    /// </summary>
+    public string? AdoWorkItemId { get; set; }
+
+    /// <summary>
+    /// Optional pull request URL reference for quick cross-linking from notes.
+    /// </summary>
+    public string? PrUrl { get; set; }
+
+    /// <summary>
     /// Optional pinned ordering (lower comes first). When null, the note is not pinned.
     /// </summary>
     public int? PinnedOrder { get; set; }

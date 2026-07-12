@@ -25,7 +25,9 @@ internal static class TeamMemberMapper
                 n.Type,
                 n.Title,
                 n.Text,
-                n.PinnedOrder))
+                n.PinnedOrder,
+                n.AdoWorkItemId,
+                n.PrUrl))
             .ToList();
 
         var risks = m.Risks

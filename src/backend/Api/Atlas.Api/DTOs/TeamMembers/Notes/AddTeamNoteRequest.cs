@@ -6,5 +6,7 @@ public sealed record AddTeamNoteRequest(
     Guid TeamMemberId,
     NoteType Type,
     string? Title,
-    string Text);
+    string Text,
+    string? AdoWorkItemId = null,
+    string? PrUrl = null);
 

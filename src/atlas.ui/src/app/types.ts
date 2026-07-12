@@ -47,7 +47,6 @@ export interface TeamNote {
   text: string
   /**
    * Optional Azure DevOps work item reference for quick cross-linking from notes.
-   * (Local-only for now; safe to keep even after sync exists.)
    */
   adoWorkItemId?: Id
   /**

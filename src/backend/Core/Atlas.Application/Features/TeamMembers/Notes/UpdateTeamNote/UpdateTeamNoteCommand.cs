@@ -8,5 +8,7 @@ public sealed record UpdateTeamNoteCommand(
     NoteType Type,
     string? Title,
     string Text,
-    int? PinnedOrder) : IRequest<bool>;
+    int? PinnedOrder,
+    string? AdoWorkItemId = null,
+    string? PrUrl = null) : IRequest<bool>;
 

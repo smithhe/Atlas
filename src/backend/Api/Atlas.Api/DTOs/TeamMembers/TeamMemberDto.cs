@@ -12,7 +12,9 @@ public sealed record TeamNoteDto(
     NoteType Type,
     string? Title,
     string Text,
-    int? PinnedOrder);
+    int? PinnedOrder,
+    string? AdoWorkItemId = null,
+    string? PrUrl = null);
 
 public sealed record TeamMemberRiskDto(
     Guid Id,

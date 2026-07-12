@@ -24,7 +24,9 @@ public sealed class AddTeamNoteEndpoint : Endpoint<AddTeamNoteRequest, AddTeamNo
         Guid teamMemberId = Route<Guid>("teamMemberId");
         req = req with { TeamMemberId = teamMemberId };
 
-        Guid id = await _mediator.Send(new AddTeamNoteCommand(req.TeamMemberId, req.Type, req.Title, req.Text), ct);
+        Guid id = await _mediator.Send(
+            new AddTeamNoteCommand(req.TeamMemberId, req.Type, req.Title, req.Text, req.AdoWorkItemId, req.PrUrl),
+            ct);
         if (id == Guid.Empty)
         {
             await Send.NotFoundAsync(ct);

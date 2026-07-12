@@ -36,6 +36,8 @@ public sealed class UpdateTeamNoteCommandHandler : IRequestHandler<UpdateTeamNot
         note.Title = request.Title;
         note.Text = request.Text;
         note.PinnedOrder = request.PinnedOrder;
+        note.AdoWorkItemId = request.AdoWorkItemId;
+        note.PrUrl = request.PrUrl;
         note.LastModifiedAt = DateTimeOffset.UtcNow;
 
         await _uow.SaveChangesAsync(cancellationToken);
