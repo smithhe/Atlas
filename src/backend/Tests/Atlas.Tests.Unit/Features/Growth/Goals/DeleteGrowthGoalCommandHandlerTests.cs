@@ -24,8 +24,8 @@ public sealed class DeleteGrowthGoalCommandHandlerTests
     [Fact]
     public async Task Handle_WhenGoalExists_Removes()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
         var plan = new Domain.Entities.Growth
         {
             Id = growthId,

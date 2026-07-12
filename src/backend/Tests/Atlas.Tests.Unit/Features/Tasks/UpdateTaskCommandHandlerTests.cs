@@ -19,11 +19,11 @@ public sealed class UpdateTaskCommandHandlerTests
     public async Task Handle_WhenDependencyCycleDetected_Throws()
     {
         var tasks = new FakeTaskRepository();
-        Guid taskA = Guid.NewGuid();
-        Guid taskB = Guid.NewGuid();
+        var taskA = Guid.NewGuid();
+        var taskB = Guid.NewGuid();
 
-        var a = NewTask(taskA, "A");
-        var b = NewTask(taskB, "B");
+        TaskItem a = NewTask(taskA, "A");
+        TaskItem b = NewTask(taskB, "B");
         a.BlockedBy.Add(new TaskDependency { Id = Guid.NewGuid(), DependentTaskId = taskA, BlockerTaskId = taskB });
         tasks.Seed(a);
         tasks.Seed(b);
@@ -39,7 +39,7 @@ public sealed class UpdateTaskCommandHandlerTests
     public async Task Handle_WhenValid_UpdatesTask()
     {
         var tasks = new FakeTaskRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         tasks.Seed(NewTask(id, "Before"));
 
         var handler = new UpdateTaskCommandHandler(tasks, new FakeUnitOfWork());
@@ -54,9 +54,9 @@ public sealed class UpdateTaskCommandHandlerTests
     public async Task Handle_WhenRemovingBlockers_ClearsDependencies()
     {
         var tasks = new FakeTaskRepository();
-        Guid taskId = Guid.NewGuid();
-        Guid blockerId = Guid.NewGuid();
-        var task = NewTask(taskId, "Dependent");
+        var taskId = Guid.NewGuid();
+        var blockerId = Guid.NewGuid();
+        TaskItem task = NewTask(taskId, "Dependent");
         task.BlockedBy.Add(new TaskDependency
         {
             Id = Guid.NewGuid(),
@@ -79,7 +79,7 @@ public sealed class UpdateTaskCommandHandlerTests
     public async Task Handle_WhenBlockerMissingOnUpdate_Throws()
     {
         var tasks = new FakeTaskRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         tasks.Seed(NewTask(id, "Task"));
 
         var handler = new UpdateTaskCommandHandler(tasks, new FakeUnitOfWork());
@@ -91,7 +91,7 @@ public sealed class UpdateTaskCommandHandlerTests
     public async Task Handle_IgnoresSelfDependency()
     {
         var tasks = new FakeTaskRepository();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         tasks.Seed(NewTask(id, "Task"));
 
         var handler = new UpdateTaskCommandHandler(tasks, new FakeUnitOfWork());

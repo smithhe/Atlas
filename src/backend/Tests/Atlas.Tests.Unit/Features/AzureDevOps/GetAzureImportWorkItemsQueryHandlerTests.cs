@@ -34,7 +34,7 @@ public sealed class GetAzureImportWorkItemsQueryHandlerTests
             IsEnabled = true
         };
 
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var workItems = new FakeAzureWorkItemRepository();
         workItems.Items.Add(new AzureWorkItem
         {
@@ -87,8 +87,8 @@ public sealed class GetAzureImportWorkItemsQueryHandlerTests
             IsEnabled = true
         };
 
-        Guid linkedId = Guid.NewGuid();
-        Guid unlinkedId = Guid.NewGuid();
+        var linkedId = Guid.NewGuid();
+        var unlinkedId = Guid.NewGuid();
         var sharedLinks = new List<AzureWorkItemLink>();
         var links = new FakeAzureWorkItemLinkRepository(sharedLinks);
         var workItems = new FakeAzureWorkItemRepository(sharedLinks);

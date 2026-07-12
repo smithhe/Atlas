@@ -108,7 +108,7 @@ public sealed class RunAzureSyncCommandHandlerTests
         AzureConnection connection = NewConnection();
         var connections = new FakeAzureConnectionRepository { Singleton = connection };
         var workItems = new FakeAzureWorkItemRepository();
-        Guid existingId = Guid.NewGuid();
+        var existingId = Guid.NewGuid();
         workItems.Items.Add(new AzureWorkItem
         {
             Id = existingId,

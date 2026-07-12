@@ -36,8 +36,8 @@ public sealed class SetProjectTeamMembersCommandHandlerTests
     [Fact]
     public async Task Handle_WhenTeamMemberMissing_Throws()
     {
-        Guid projectId = Guid.NewGuid();
-        Guid missingMember = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var missingMember = Guid.NewGuid();
         var project = new Project { Id = projectId, Name = "P", Summary = "S" };
         _projects.Setup(p => p.GetByIdWithDetailsAsync(projectId, It.IsAny<CancellationToken>())).ReturnsAsync(project);
         _team.Setup(t => t.ExistsAsync(missingMember, It.IsAny<CancellationToken>())).ReturnsAsync(false);
@@ -50,10 +50,10 @@ public sealed class SetProjectTeamMembersCommandHandlerTests
     [Fact]
     public async Task Handle_WhenValid_SyncsMembership()
     {
-        Guid projectId = Guid.NewGuid();
-        Guid keep = Guid.NewGuid();
-        Guid add = Guid.NewGuid();
-        Guid remove = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var keep = Guid.NewGuid();
+        var add = Guid.NewGuid();
+        var remove = Guid.NewGuid();
         var project = new Project
         {
             Id = projectId,

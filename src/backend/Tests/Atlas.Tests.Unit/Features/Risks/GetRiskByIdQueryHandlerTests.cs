@@ -13,7 +13,7 @@ public sealed class GetRiskByIdQueryHandlerTests
     public async Task Handle_WhenIncludeDetails_UsesDetails()
     {
         var risks = new Mock<IRiskRepository>();
-        Guid id = Guid.NewGuid();
+        var id = Guid.NewGuid();
         var risk = new Risk { Id = id, Title = "R", Status = RiskStatus.Open, Severity = SeverityLevel.Medium, Description = "", Evidence = "", LastUpdatedAt = DateTimeOffset.UtcNow };
         risks.Setup(r => r.GetByIdWithDetailsAsync(id, It.IsAny<CancellationToken>())).ReturnsAsync(risk);
 

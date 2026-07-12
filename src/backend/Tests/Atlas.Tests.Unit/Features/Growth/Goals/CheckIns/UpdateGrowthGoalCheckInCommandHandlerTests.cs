@@ -24,9 +24,9 @@ public sealed class UpdateGrowthGoalCheckInCommandHandlerTests
     [Fact]
     public async Task Handle_WhenCheckInExists_Updates()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
-        Guid checkInId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
+        var checkInId = Guid.NewGuid();
         var checkIn = new GrowthGoalCheckIn { Id = checkInId, GrowthGoalId = goalId, Date = DateOnly.FromDateTime(DateTime.UtcNow), Signal = GrowthGoalCheckInSignal.Mixed, Note = "Old" };
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "G", Description = "D", Status = GrowthGoalStatus.OnTrack, CheckIns = [checkIn] };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), Goals = [goal] };
@@ -43,8 +43,8 @@ public sealed class UpdateGrowthGoalCheckInCommandHandlerTests
     [Fact]
     public async Task Handle_WhenCheckInMissing_ReturnsFalse()
     {
-        Guid growthId = Guid.NewGuid();
-        Guid goalId = Guid.NewGuid();
+        var growthId = Guid.NewGuid();
+        var goalId = Guid.NewGuid();
         var goal = new GrowthGoal { Id = goalId, GrowthId = growthId, Title = "G", Description = "D", Status = GrowthGoalStatus.OnTrack };
         var plan = new Domain.Entities.Growth { Id = growthId, TeamMemberId = Guid.NewGuid(), Goals = [goal] };
         _growth.Setup(g => g.GetByIdWithDetailsAsync(growthId, It.IsAny<CancellationToken>())).ReturnsAsync(plan);

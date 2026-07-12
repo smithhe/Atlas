@@ -24,7 +24,7 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenLinkedWorkItem_AddsNote()
     {
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var workItem = new AzureWorkItem { Id = Guid.NewGuid(), WorkItemId = 42, Title = "WI", State = "Active", WorkItemType = "Bug", AreaPath = "A", IterationPath = "I", ChangedDateUtc = DateTimeOffset.UtcNow, Url = "https://example.com" };
         var member = new TeamMember
         {
@@ -53,7 +53,7 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenNotLinked_ReturnsEmptyGuid()
     {
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         var member = new TeamMember { Id = memberId, Name = "Ada", Role = "Eng", StatusDot = StatusDot.Green, CurrentFocus = "" };
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync(member);
 
@@ -66,7 +66,7 @@ public sealed class AddAzureWorkItemLocalNoteCommandHandlerTests
     [Fact]
     public async Task Handle_WhenMemberMissing_ReturnsEmptyGuid()
     {
-        Guid memberId = Guid.NewGuid();
+        var memberId = Guid.NewGuid();
         _team.Setup(t => t.GetByIdWithDetailsAsync(memberId, It.IsAny<CancellationToken>())).ReturnsAsync((TeamMember?)null);
 
         Guid id = await _handler.Handle(new AddAzureWorkItemLocalNoteCommand(memberId, 42, "x"), CancellationToken.None);
