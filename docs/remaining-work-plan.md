@@ -11,6 +11,7 @@
 | Topic | Decision |
 |---|---|
 | Primary daily use | Equal mix of personal EM cockpit **and** Azure DevOps–centric team views |
+| Team Pulse / `activitySnapshot` | **Derive** from notes, signals, `currentFocus`, and Azure work items (no new persisted snapshot fields) |
 | Team note ADO / PR fields | **Persist** in backend; keep UI |
 | Extra Azure WI fields (PRs, history, time) | **Leave as-is** (low priority) |
 | Team member provenance | **Azure import only** — document; no manual create UI |
@@ -22,17 +23,7 @@
 | OpenAI in local v1 | **Required** — guide key setup clearly when missing |
 | Frontend test bar | **Broader UI test coverage** (not smoke-only) |
 
-### Pending confirmation — Team Pulse / `activitySnapshot`
-
-**Recommendation: Derive for v1 (Option A), do not add new persisted snapshot fields yet.**
-
-Why this fits your answers:
-
-- You want equal EM + Azure usage → derive from notes, signals, `currentFocus`, and linked Azure work items so Dashboard stays honest without a second place to edit “activity.”
-- Cheaper than schema + edit UI, and it automatically improves as Azure sync / notes improve.
-- Avoids another stale field you must remember to update.
-
-**Proposed derivation rules (for confirmation):**
+### Team Pulse derivation rules (locked)
 
 1. `lastUpdatedIso` = latest of: most recent note `LastModifiedAt`/`CreatedAt`, signal-related update timestamps if available, most recent linked Azure work item `ChangedDateUtc`.
 2. `bullets` (max ~3–5):
@@ -42,9 +33,7 @@ Why this fits your answers:
    - Latest note title/type (e.g. “1:1 · 3 days ago”)
 3. If nothing meaningful exists, Dashboard Team Pulse shows an empty/quiet state (not fake data).
 
-**Not recommended for v1:** persisting curated snapshot bullets (Option B) — add later only if derived pulse feels too mechanical.
-
-> **Confirm before implementation:** Reply **yes to derive (A)** or **prefer persist (B)** / **hide Team Pulse (C)**.
+Do **not** add persisted curated snapshot fields in v1; revisit only if derived pulse feels too mechanical.
 
 ---
 
@@ -72,7 +61,7 @@ Open note (`NotesForLater.txt`):
 
 1. Every visible control either works end-to-end or is removed/disabled.
 2. UI ↔ API ↔ DB round-trips are honest (no display-only fields that silently drop on reload).
-3. Dashboard Team Pulse reflects derived (or confirmed alternative) activity — not hardcoded empties.
+3. Dashboard Team Pulse uses **derived** `activitySnapshot` (quiet empty state when no signal).
 4. Team members are Azure-import-only; docs and UI match that.
 5. Shell **search** and **Quick Add** work for core entities.
 6. AI contexts exist for **Dashboard, Tasks, Team, Risks, Projects, Settings**; Insert Draft writes into the active editor.
@@ -86,16 +75,12 @@ Open note (`NotesForLater.txt`):
 
 **Goal:** Eliminate silent data loss and dashboard emptiness before packaging.
 
-### 1.1 Team `activitySnapshot` / Team Pulse
+### 1.1 Team `activitySnapshot` / Team Pulse — **locked: derive**
 
-**Status:** Recommendation above — **awaiting your confirmation**.
-
-Work items (after confirmation):
-
-- [ ] Implement chosen approach (derive / persist / hide).
+- [ ] Implement derivation (API mapper or UI mapper) per rules in Decisions.
 - [ ] Stop hardcoding empty `activitySnapshot` in `mappers.ts`.
 - [ ] Verify Dashboard Team Pulse / drift cards update when notes/signals/Azure data change.
-- [ ] Resolve `NotesForLater.txt` (implement decision; delete the note).
+- [ ] Resolve `NotesForLater.txt` (delete after implementation).
 
 ### 1.2 Team note ADO / PR fields — **locked: persist**
 
@@ -273,7 +258,7 @@ Phase 7  Broader frontend UI tests + CI
 
 ## Concrete first tickets
 
-1. **Confirm Team Pulse approach** (recommend derive) → implement; clear `NotesForLater.txt`.
+1. **Derive `activitySnapshot` / Team Pulse**; clear `NotesForLater.txt`.
 2. **Persist team note `adoWorkItemId` / `prUrl`** (entity → API → UI → tests).
 3. **Document Azure-import-only members**; align empty states / copy.
 4. **Normalize Azure PAT config key** + sync UX improvements.
