@@ -147,21 +147,24 @@ public sealed class RunAzureSyncCommandHandlerTests
         AzureConnection connection = NewConnection();
         var connections = new FakeAzureConnectionRepository { Singleton = connection };
         var syncStates = new FakeAzureSyncStateRepository();
+        // Mirrors production AzureDevOpsClient missing-PAT InvalidOperationException message.
         var client = new StubAzureDevOpsClient
         {
-            QueryException = new InvalidOperationException("ADO unavailable")
+            QueryException = new InvalidOperationException(
+                "Azure DevOps PAT is not configured. Set AzureDevopsToken in user-secrets, appsettings, or environment.")
         };
 
         RunAzureSyncCommandHandler handler = CreateHandler(connections, client, syncStates: syncStates);
         RunAzureSyncResult result = await handler.Handle(new RunAzureSyncCommand(), CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("ADO unavailable", result.Error);
+        Assert.Contains("AzureDevopsToken", result.Error);
+        Assert.Contains("PAT is not configured", result.Error);
 
         AzureSyncState? state = await syncStates.GetByConnectionIdAsync(connection.Id, CancellationToken.None);
         Assert.NotNull(state);
         Assert.Equal(SyncRunStatus.Failed, state.LastRunStatus);
-        Assert.Equal("ADO unavailable", state.LastError);
+        Assert.Contains("AzureDevopsToken", state.LastError);
     }
 
     private static RunAzureSyncCommandHandler CreateHandler(

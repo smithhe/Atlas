@@ -80,6 +80,7 @@ export function AzureImportView() {
 
   async function onImportUsers() {
     setError(null)
+    setProductOwnerWarning(null)
     setImportingUsers(true)
     try {
       const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
@@ -126,6 +127,7 @@ export function AzureImportView() {
   async function onLinkWorkItems() {
     if (!projectId || selectedWorkItems.size === 0) return
     setError(null)
+    setProductOwnerWarning(null)
     setLinkingWorkItems(true)
     try {
       await linkAzureWorkItems([...selectedWorkItems], projectId, teamMemberId || undefined)

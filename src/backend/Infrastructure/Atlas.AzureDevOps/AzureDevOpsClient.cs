@@ -14,21 +14,22 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         "System.AssignedTo"
     ];
 
+    private const string MissingPatMessage =
+        "Azure DevOps PAT is not configured. Set AzureDevopsToken in user-secrets, appsettings, or environment.";
+
     private readonly HttpClient _httpClient;
-    private readonly string _patToken;
+    private readonly string? _patToken;
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     public AzureDevOpsClient(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
         var pat = configuration["AzureDevopsToken"];
-        if (string.IsNullOrWhiteSpace(pat))
-        {
-            throw new InvalidOperationException(
-                "Azure DevOps PAT is not configured. Set AzureDevopsToken in user-secrets, appsettings, or environment.");
-        }
-
-        _patToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}"));
+        // Defer throw until first Azure call so DI/handler resolution succeeds and callers
+        // (e.g. RunAzureSync catch path) can return an actionable client-readable message.
+        _patToken = string.IsNullOrWhiteSpace(pat)
+            ? null
+            : Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}"));
     }
 
     public async Task<IReadOnlyList<AzureProjectSummary>> ListProjectsAsync(string baseUrl, string organization, CancellationToken cancellationToken = default)
@@ -176,6 +177,11 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
+        if (_patToken is null)
+        {
+            throw new InvalidOperationException(MissingPatMessage);
+        }
+
         var req = new HttpRequestMessage(method, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Basic", _patToken);
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

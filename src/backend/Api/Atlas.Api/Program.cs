@@ -107,6 +107,27 @@ else
     app.UseHttpsRedirection();
 }
 
+// Surface missing Azure PAT (and similar) as a client-readable JSON body instead of a bare 500.
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (InvalidOperationException ex) when (
+        ex.Message.Contains("AzureDevopsToken", StringComparison.Ordinal) ||
+        ex.Message.Contains("Azure DevOps PAT", StringComparison.Ordinal))
+    {
+        if (context.Response.HasStarted)
+        {
+            throw;
+        }
+
+        context.Response.Clear();
+        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+    }
+});
 
 app.UseFastEndpoints();
 
