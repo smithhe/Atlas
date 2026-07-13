@@ -1,0 +1,28 @@
+meta {
+  name: CreateConversation
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/ai/conversations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "Summarize this view",
+    "view": "Dashboard",
+    "actionId": null,
+    "taskId": null,
+    "projectId": null,
+    "riskId": null,
+    "teamMemberId": null
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

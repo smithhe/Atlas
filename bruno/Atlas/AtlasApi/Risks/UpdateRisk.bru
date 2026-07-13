@@ -1,0 +1,27 @@
+meta {
+  name: UpdateRisk
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/risks/00000000-0000-0000-0000-000000000000
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Updated risk",
+    "status": "Watching",
+    "severity": "High",
+    "projectId": null,
+    "description": "Updated description",
+    "evidence": "Updated evidence"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,28 @@
+meta {
+  name: ImportProductOwners
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/azure-devops/product-owners/import
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "users": [
+      {
+        "displayName": "Example Product Owner",
+        "uniqueName": "po@company.com",
+        "descriptor": null
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

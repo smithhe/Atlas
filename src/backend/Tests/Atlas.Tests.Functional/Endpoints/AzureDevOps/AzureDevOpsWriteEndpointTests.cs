@@ -140,11 +140,42 @@ public sealed class AzureDevOpsWriteEndpointTests : IClassFixture<AtlasWebApplic
         ImportAzureProductOwnersResultDto? result = await response.ReadJsonAsync<ImportAzureProductOwnersResultDto>();
         Assert.NotNull(result);
         Assert.Equal(1, result.ProductOwnersCreated);
+        Assert.NotNull(result.ReusedProductOwnerNames);
+        Assert.Empty(result.ReusedProductOwnerNames);
 
         HttpResponseMessage owners = await client.GetAsync("/product-owners");
         IReadOnlyList<ProductOwnerListItemDto>? list = await owners.ReadJsonAsync<IReadOnlyList<ProductOwnerListItemDto>>();
         Assert.NotNull(list);
         Assert.Contains(list, o => o.Name == "Product Owner One");
+    }
+
+    [Fact]
+    public async Task ImportAzureProductOwners_WhenDisplayNameExists_ReportsReusedNames()
+    {
+        using AtlasWebApplicationFactory isolated = new();
+        HttpClient client = isolated.CreateClient();
+
+        await client.PostJsonAsync(
+            "/azure-devops/product-owners/import",
+            new ImportAzureProductOwnersRequest(
+            [
+                new AzureUserSelectionDto("Shared Owner", "po1@example.com", null)
+            ]));
+
+        ImportAzureProductOwnersResultDto? result = await (await client.PostJsonAsync(
+            "/azure-devops/product-owners/import",
+            new ImportAzureProductOwnersRequest(
+            [
+                new AzureUserSelectionDto("Shared Owner", "po2@example.com", null)
+            ])))
+            .ReadJsonAsync<ImportAzureProductOwnersResultDto>();
+
+        Assert.NotNull(result);
+        Assert.Equal(0, result.ProductOwnersCreated);
+        Assert.Equal(1, result.MappingsCreated);
+        ReusedProductOwnerNameDto reused = Assert.Single(result.ReusedProductOwnerNames);
+        Assert.Equal("Shared Owner", reused.DisplayName);
+        Assert.Equal("po2@example.com", reused.AzureUniqueName);
     }
 
     [Fact]
@@ -165,6 +196,8 @@ public sealed class AzureDevOpsWriteEndpointTests : IClassFixture<AtlasWebApplic
         Assert.NotNull(result);
         Assert.Equal(0, result.ProductOwnersCreated);
         Assert.Equal(0, result.MappingsCreated);
+        Assert.NotNull(result.ReusedProductOwnerNames);
+        Assert.Empty(result.ReusedProductOwnerNames);
     }
 
     [Fact]

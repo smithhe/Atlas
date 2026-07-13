@@ -1,0 +1,16 @@
+meta {
+  name: GetGrowthByTeamMember
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/team-members/00000000-0000-0000-0000-000000000000/growth
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

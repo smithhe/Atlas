@@ -34,6 +34,7 @@ export function AzureImportView() {
   const [importingProductOwners, setImportingProductOwners] = useState(false)
   const [linkingWorkItems, setLinkingWorkItems] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [productOwnerWarning, setProductOwnerWarning] = useState<string | null>(null)
 
   const teamById = useMemo(() => new Map(team.map((m) => [m.id, m])), [team])
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects])
@@ -96,15 +97,25 @@ export function AzureImportView() {
 
   async function onImportProductOwners() {
     setError(null)
+    setProductOwnerWarning(null)
     setImportingProductOwners(true)
     try {
       const selected = users.filter((u) => selectedUsers.has(u.uniqueName))
-      await importAzureProductOwners(selected)
+      const result = await importAzureProductOwners(selected)
       const refreshedProductOwners = await listProductOwners()
       cache.replaceProductOwners(refreshedProductOwners)
       const selectedSet = new Set(selected.map((u) => u.uniqueName.trim().toLowerCase()))
       setUsers((prev) => prev.filter((u) => !selectedSet.has(u.uniqueName.trim().toLowerCase())))
       setSelectedUsers(new Set())
+      const reused = result.reusedProductOwnerNames ?? []
+      if (reused.length > 0) {
+        const details = reused
+          .map((r) => `${r.displayName} (${r.azureUniqueName})`)
+          .join(', ')
+        setProductOwnerWarning(
+          `${reused.length} product owner${reused.length === 1 ? '' : 's'} reused existing names: ${details}`,
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to import product owners')
     } finally {
@@ -149,6 +160,11 @@ export function AzureImportView() {
       {error ? (
         <div className="card pad" style={{ marginBottom: 12 }}>
           <div className="textBad">Error: {error}</div>
+        </div>
+      ) : null}
+      {productOwnerWarning ? (
+        <div className="card pad" style={{ marginBottom: 12 }}>
+          <div className="textWarn">{productOwnerWarning}</div>
         </div>
       ) : null}
 

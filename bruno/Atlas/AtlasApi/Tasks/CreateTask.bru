@@ -1,0 +1,33 @@
+meta {
+  name: CreateTask
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/tasks
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Example task",
+    "priority": "Medium",
+    "status": "NotStarted",
+    "assigneeId": null,
+    "projectId": null,
+    "riskId": null,
+    "dueDate": null,
+    "dependencyTaskIds": [],
+    "estimatedDurationText": "2h",
+    "estimateConfidence": "Medium",
+    "actualDurationText": null,
+    "notes": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

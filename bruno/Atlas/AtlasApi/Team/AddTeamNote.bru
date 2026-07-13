@@ -1,0 +1,26 @@
+meta {
+  name: AddTeamNote
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/team-members/00000000-0000-0000-0000-000000000000/notes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "Progress",
+    "title": "Example note",
+    "text": "Note body",
+    "adoWorkItemId": null,
+    "prUrl": null
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

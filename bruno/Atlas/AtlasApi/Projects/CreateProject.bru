@@ -1,0 +1,31 @@
+meta {
+  name: CreateProject
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/projects
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Example project",
+    "summary": "Short summary",
+    "description": null,
+    "status": "Active",
+    "health": "Green",
+    "targetDate": null,
+    "priority": "Medium",
+    "productOwnerId": null,
+    "tags": [],
+    "links": []
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

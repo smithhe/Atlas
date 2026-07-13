@@ -24,7 +24,8 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         var pat = configuration["AzureDevopsToken"];
         if (string.IsNullOrWhiteSpace(pat))
         {
-            throw new InvalidOperationException("Azure DevOps PAT is not configured. Set AzureDevOps:Pat in user-secrets.");
+            throw new InvalidOperationException(
+                "Azure DevOps PAT is not configured. Set AzureDevopsToken in user-secrets, appsettings, or environment.");
         }
 
         _patToken = Convert.ToBase64String(Encoding.ASCII.GetBytes($":{pat}"));

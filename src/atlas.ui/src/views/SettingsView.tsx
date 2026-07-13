@@ -8,6 +8,7 @@ import { getAzureConnection, getAzureSyncState, runAzureSync, updateAzureConnect
 import type { AzureConnectionDto, AzureSyncStateDto } from '../app/api/azureDevOps'
 import { updateSettings } from '../app/api/settings'
 import { saveDefaultAiPanelOpen } from '../app/localSettings'
+import { formatReadableDateTime } from '../app/utils'
 import { LoadingButton } from '../components/LoadingButton'
 import { LoadingOverlay } from '../components/LoadingOverlay'
 
@@ -33,6 +34,7 @@ export function SettingsView() {
   const [azureConnectionLoading, setAzureConnectionLoading] = useState(false)
   const [azureConnectionSaving, setAzureConnectionSaving] = useState(false)
   const [azureError, setAzureError] = useState<string | null>(null)
+  const [azureSyncMessage, setAzureSyncMessage] = useState<string | null>(null)
   const [syncState, setSyncState] = useState<AzureSyncStateDto | null>(null)
   const [syncRunning, setSyncRunning] = useState(false)
   const [syncStateLoading, setSyncStateLoading] = useState(false)
@@ -90,6 +92,7 @@ export function SettingsView() {
 
   async function onSaveAzureConnection() {
     setAzureError(null)
+    setAzureSyncMessage(null)
     if (!azureConnection.projectId.trim() || !azureConnection.teamId.trim()) {
       setAzureError('Project ID and Team ID are required. Use Azure Setup to select a project and team.')
       return
@@ -106,10 +109,34 @@ export function SettingsView() {
   }
 
   async function onSyncNow() {
-    setSyncRunning(true)
     setAzureError(null)
+    setAzureSyncMessage(null)
+
+    if (!azureConnection.organization.trim() || !azureConnection.projectId.trim()) {
+      setAzureError(
+        'Azure sync needs Organization and Project ID first. Use Azure Setup or fill them in Settings.',
+      )
+      return
+    }
+
+    setSyncRunning(true)
     try {
-      await runAzureSync()
+      const result = await runAzureSync()
+      if (!result.succeeded) {
+        setAzureError(
+          result.error?.trim() ||
+            'Azure sync failed. Check AzureDevopsToken (user-secrets, appsettings, or environment) and connection settings.',
+        )
+      } else if (result.error?.trim()) {
+        // Soft failure: Succeeded:true with an Error message (e.g. connection not configured).
+        setAzureError(result.error)
+      } else {
+        setAzureSyncMessage(
+          result.itemsUpserted === 1
+            ? 'Sync succeeded · 1 work item upserted'
+            : `Sync succeeded · ${result.itemsUpserted} work items upserted`,
+        )
+      }
       await invalidateAppQueries(['teamMembers', 'projects', 'tasks'])
       setSyncStateLoading(true)
       const state = await getAzureSyncState()
@@ -121,6 +148,14 @@ export function SettingsView() {
       setSyncStateLoading(false)
     }
   }
+
+  const syncInProgress = syncRunning || syncState?.lastRunStatus === 'Running'
+  const lastCompletedLabel = syncState?.lastCompletedAtUtc
+    ? formatReadableDateTime(syncState.lastCompletedAtUtc)
+    : 'Never'
+  const lastAttemptedLabel = syncState?.lastAttemptedAtUtc
+    ? formatReadableDateTime(syncState.lastAttemptedAtUtc)
+    : null
 
   return (
     <div className="page">
@@ -285,10 +320,10 @@ export function SettingsView() {
             className="btn btnSecondary btnWide"
             onClick={onSyncNow}
             loading={syncRunning}
-            spinnerLabel="Running sync"
-            disabled={!azureLoaded}
+            spinnerLabel="Syncing…"
+            disabled={!azureLoaded || syncInProgress}
           >
-            Sync now
+            {syncInProgress ? 'Syncing…' : 'Sync now'}
           </LoadingButton>
           <button
             type="button"
@@ -308,12 +343,32 @@ export function SettingsView() {
             {azureError}
           </div>
         ) : null}
+        {azureSyncMessage ? (
+          <div className="mutedSmall mt-xs">
+            {azureSyncMessage}
+          </div>
+        ) : null}
 
           <LoadingOverlay isLoading={syncStateLoading} label="Loading sync history" spinnerSize="sm">
             {syncState ? (
               <div className="muted mt-md">
-                Last sync: {syncState.lastCompletedAtUtc ?? 'Never'} • Status: {syncState.lastRunStatus}
-                {syncState.lastError ? ` • Error: ${syncState.lastError}` : ''}
+                {syncInProgress ? (
+                  <span className="textWarn">Syncing…</span>
+                ) : (
+                  <>
+                    Last sync: {lastCompletedLabel}
+                    {lastAttemptedLabel ? ` · Last attempt: ${lastAttemptedLabel}` : ''}
+                    {' · '}
+                    Status:{' '}
+                    <span className={syncStatusClass(syncState.lastRunStatus)}>{syncState.lastRunStatus}</span>
+                    {syncState.lastError ? (
+                      <>
+                        {' · '}
+                        <span className="textBad">Error: {syncState.lastError}</span>
+                      </>
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : (
               <div className="muted mt-md">No sync history yet.</div>
@@ -325,10 +380,21 @@ export function SettingsView() {
   )
 }
 
+function syncStatusClass(status: string) {
+  switch (status) {
+    case 'Failed':
+      return 'textBad'
+    case 'Running':
+      return 'textWarn'
+    case 'Succeeded':
+      return 'mutedSmall'
+    default:
+      return ''
+  }
+}
+
 function clampInt(value: string, min: number, max: number) {
   const n = Number.parseInt(value, 10)
   if (Number.isNaN(n)) return min
   return Math.max(min, Math.min(max, n))
 }
-
-

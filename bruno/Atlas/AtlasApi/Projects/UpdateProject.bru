@@ -1,0 +1,31 @@
+meta {
+  name: UpdateProject
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/projects/00000000-0000-0000-0000-000000000000
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Updated project",
+    "summary": "Updated summary",
+    "description": null,
+    "status": "Active",
+    "health": "Yellow",
+    "targetDate": null,
+    "priority": "High",
+    "productOwnerId": null,
+    "tags": [],
+    "links": []
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
