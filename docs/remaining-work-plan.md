@@ -116,16 +116,16 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ### Work items
 
-- [ ] Fix PAT config key mismatch (`AzureDevopsToken` vs error text `AzureDevOps:Pat`). One name across config, Compose env, Bruno, docs.
-- [ ] Surface product-owner duplicate-name skips in UI (backend TODO).
-- [ ] Improve sync UX: last sync time, in-progress state, clear errors when PAT/org/project misconfigured.
-- [ ] Confirm area-path scoping + watermark vs `docs/azure-devops-sync-flow.md`; update doc if drifted.
-- [ ] Expand Bruno beyond Settings/Azure to Tasks, Risks, Projects, Team, Growth, AI.
+- [x] Fix PAT config key mismatch (`AzureDevopsToken` vs error text `AzureDevOps:Pat`). One name across config, Compose env, Bruno, docs.
+- [x] Surface product-owner duplicate-name skips in UI (backend TODO).
+- [x] Improve sync UX: last sync time, in-progress state, clear errors when PAT/org/project misconfigured.
+- [x] Confirm area-path scoping + watermark vs `docs/azure-devops-sync-flow.md`; update doc if drifted.
+- [x] Expand Bruno beyond Settings/Azure to Tasks, Risks, Projects, Team, Growth, AI.
 
 ### Acceptance
 
-- With PAT set, setup → sync → import → link works cleanly.
-- Without PAT, non-Azure CRUD still works; Azure flows fail with actionable messages.
+- [x] With PAT set, setup → sync → import → link works cleanly.
+- [x] Without PAT, non-Azure CRUD still works; Azure flows fail with actionable messages.
 
 ---
 
@@ -257,7 +257,7 @@ Phase 7  Broader frontend UI tests + CI
 1. ~~**Derive `activitySnapshot` / Team Pulse**; clear `NotesForLater.txt`.~~ **Done (Phase 1.1)**
 2. ~~**Persist team note `adoWorkItemId` / `prUrl`** (entity → API → UI → tests).~~ **Done (Phase 1.2)**
 3. ~~**Document Azure-import-only members**; align empty states / copy.~~ **Done (Phase 1.4)**
-4. **Normalize Azure PAT config key** + sync UX improvements.
+4. ~~**Normalize Azure PAT config key** + sync UX improvements.~~ **Done (Phase 2)**
 5. **Implement global search + Quick Add**.
 6. **AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.
 7. **Docker Compose** + `--profile demo` seeder.

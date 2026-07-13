@@ -1,0 +1,22 @@
+meta {
+  name: UpdateFocusAreas
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/growth/00000000-0000-0000-0000-000000000000/focus-areas
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "focusAreasMarkdown": "- Focus area one\n- Focus area two"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

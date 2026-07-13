@@ -1,0 +1,25 @@
+meta {
+  name: UpdateTeamMember
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/team-members/00000000-0000-0000-0000-000000000000
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Updated Member",
+    "role": "Senior Engineer",
+    "statusDot": "Yellow",
+    "currentFocus": "Shipping Atlas Phase 2"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

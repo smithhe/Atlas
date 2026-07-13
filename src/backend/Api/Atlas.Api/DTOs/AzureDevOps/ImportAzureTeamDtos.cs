@@ -15,8 +15,14 @@ public sealed record ImportAzureTeamResultDto(
 
 public sealed record ImportAzureProductOwnersRequest(IReadOnlyList<AzureUserSelectionDto> Users);
 
+public sealed record ReusedProductOwnerNameDto(
+    string DisplayName,
+    string AzureUniqueName,
+    Guid ExistingProductOwnerId);
+
 public sealed record ImportAzureProductOwnersResultDto(
     int UsersAdded,
     int UsersUpdated,
     int ProductOwnersCreated,
-    int MappingsCreated);
+    int MappingsCreated,
+    IReadOnlyList<ReusedProductOwnerNameDto> ReusedProductOwnerNames);

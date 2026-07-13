@@ -1,0 +1,27 @@
+meta {
+  name: CreateRisk
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/risks
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Example risk",
+    "status": "Open",
+    "severity": "Medium",
+    "projectId": null,
+    "description": "Describe the risk",
+    "evidence": ""
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

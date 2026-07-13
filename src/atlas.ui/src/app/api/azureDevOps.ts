@@ -26,13 +26,27 @@ export type AzureSyncStateDto = {
   lastError?: string | null
 }
 
-type AzureSyncResultDto = {
+export type AzureSyncResultDto = {
   succeeded: boolean
   itemsFetched: number
   itemsUpserted: number
   lastChangedUtc?: string | null
   lastWorkItemId?: number | null
   error?: string | null
+}
+
+export type ReusedProductOwnerNameDto = {
+  displayName: string
+  azureUniqueName: string
+  existingProductOwnerId: string
+}
+
+export type ImportAzureProductOwnersResultDto = {
+  usersAdded: number
+  usersUpdated: number
+  productOwnersCreated: number
+  mappingsCreated: number
+  reusedProductOwnerNames: ReusedProductOwnerNameDto[]
 }
 
 export type AzureImportWorkItemDto = {
@@ -92,8 +106,8 @@ export function importAzureTeam(users: AzureUserDto[]): Promise<void> {
   return postJson<void>('/azure-devops/team/import', { users })
 }
 
-export function importAzureProductOwners(users: AzureUserDto[]): Promise<void> {
-  return postJson<void>('/azure-devops/product-owners/import', { users })
+export function importAzureProductOwners(users: AzureUserDto[]): Promise<ImportAzureProductOwnersResultDto> {
+  return postJson<ImportAzureProductOwnersResultDto>('/azure-devops/product-owners/import', { users })
 }
 
 export function getAzureSyncState(): Promise<AzureSyncStateDto | null> {

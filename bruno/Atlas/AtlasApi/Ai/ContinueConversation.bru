@@ -1,0 +1,22 @@
+meta {
+  name: ContinueConversation
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{atlasApiBaseUrl}}/ai/conversations/00000000-0000-0000-0000-000000000000/messages
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "Tell me more"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

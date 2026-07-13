@@ -32,6 +32,9 @@ public sealed class ImportAzureProductOwnersEndpoint
             result.UsersAdded,
             result.UsersUpdated,
             result.ProductOwnersCreated,
-            result.MappingsCreated), ct);
+            result.MappingsCreated,
+            result.ReusedProductOwnerNames
+                .Select(x => new ReusedProductOwnerNameDto(x.DisplayName, x.AzureUniqueName, x.ExistingProductOwnerId))
+                .ToList()), ct);
     }
 }

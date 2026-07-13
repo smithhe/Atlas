@@ -1,0 +1,33 @@
+meta {
+  name: UpdateTask
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{atlasApiBaseUrl}}/tasks/00000000-0000-0000-0000-000000000000
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "title": "Updated task",
+    "priority": "High",
+    "status": "InProgress",
+    "assigneeId": null,
+    "projectId": null,
+    "riskId": null,
+    "dueDate": null,
+    "dependencyTaskIds": [],
+    "estimatedDurationText": "3h",
+    "estimateConfidence": "High",
+    "actualDurationText": null,
+    "notes": "Updated notes"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

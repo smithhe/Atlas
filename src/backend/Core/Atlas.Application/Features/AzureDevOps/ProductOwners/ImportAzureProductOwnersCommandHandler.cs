@@ -46,7 +46,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
 
         if (normalized.Count == 0)
         {
-            return new ImportAzureProductOwnersResult(0, 0, 0, 0);
+            return new ImportAzureProductOwnersResult(0, 0, 0, 0, []);
         }
 
         await using IUnitOfWorkTransaction tx = await _uow.BeginTransactionAsync(cancellationToken);
@@ -66,6 +66,7 @@ public sealed class ImportAzureProductOwnersCommandHandler
         var usersUpdated = 0;
         var productOwnersCreated = 0;
         var mappingsCreated = 0;
+        var reusedProductOwnerNames = new List<ReusedProductOwnerName>();
 
         foreach (AzureProductOwnerSelection selection in normalized)
         {
@@ -122,7 +123,10 @@ public sealed class ImportAzureProductOwnersCommandHandler
                 // Name-based ProductOwner dedupe is intentional. Keep creating a mapping
                 // for each distinct Azure identity so future imports can still detect
                 // that this Azure user has already been processed.
-                // TODO: Surface a UI warning when duplicate Product Owner names are skipped.
+                reusedProductOwnerNames.Add(new ReusedProductOwnerName(
+                    preferredName,
+                    selection.UniqueName,
+                    productOwner.Id));
             }
 
             var mapping = new AzureProductOwnerMapping
@@ -144,7 +148,8 @@ public sealed class ImportAzureProductOwnersCommandHandler
             usersAdded,
             usersUpdated,
             productOwnersCreated,
-            mappingsCreated);
+            mappingsCreated,
+            reusedProductOwnerNames);
     }
 
     private static string NormalizeUniqueName(string value)

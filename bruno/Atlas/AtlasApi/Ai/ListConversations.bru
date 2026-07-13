@@ -1,0 +1,16 @@
+meta {
+  name: ListConversations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/ai/conversations
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

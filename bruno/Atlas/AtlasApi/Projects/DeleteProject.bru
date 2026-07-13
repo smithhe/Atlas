@@ -1,0 +1,16 @@
+meta {
+  name: DeleteProject
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{atlasApiBaseUrl}}/projects/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

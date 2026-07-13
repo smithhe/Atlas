@@ -27,6 +27,7 @@ public sealed class ImportAzureProductOwnersCommandHandlerTests
 
         Assert.Equal(0, result.ProductOwnersCreated);
         Assert.Equal(0, result.MappingsCreated);
+        Assert.Empty(result.ReusedProductOwnerNames);
         Assert.Empty(productOwners.Owners);
     }
 
@@ -48,6 +49,7 @@ public sealed class ImportAzureProductOwnersCommandHandlerTests
         Assert.Equal(1, result.UsersAdded);
         Assert.Equal(1, result.ProductOwnersCreated);
         Assert.Equal(1, result.MappingsCreated);
+        Assert.Empty(result.ReusedProductOwnerNames);
         Assert.Equal("Ada Lovelace", productOwners.Owners[0].Name);
         Assert.Equal(productOwners.Owners[0].Id, mappings.Mappings[0].ProductOwnerId);
     }
@@ -71,6 +73,10 @@ public sealed class ImportAzureProductOwnersCommandHandlerTests
         Assert.Equal(1, result.MappingsCreated);
         Assert.Single(productOwners.Owners);
         Assert.Equal(productOwners.Owners[0].Id, mappings.Mappings[0].ProductOwnerId);
+        ReusedProductOwnerName reused = Assert.Single(result.ReusedProductOwnerNames);
+        Assert.Equal("Ada Lovelace", reused.DisplayName);
+        Assert.Equal("ada2@example.com", reused.AzureUniqueName);
+        Assert.Equal(productOwners.Owners[0].Id, reused.ExistingProductOwnerId);
     }
 
     [Fact]
@@ -104,6 +110,7 @@ public sealed class ImportAzureProductOwnersCommandHandlerTests
 
         Assert.Equal(1, result.UsersUpdated);
         Assert.Equal(0, result.MappingsCreated);
+        Assert.Empty(result.ReusedProductOwnerNames);
         Assert.Single(mappings.Mappings);
     }
 

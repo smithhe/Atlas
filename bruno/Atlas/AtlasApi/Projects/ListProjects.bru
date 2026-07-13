@@ -1,0 +1,16 @@
+meta {
+  name: ListProjects
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{atlasApiBaseUrl}}/projects
+  body: none
+  auth: none
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
