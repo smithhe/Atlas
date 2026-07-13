@@ -29,6 +29,55 @@ export function toApiUrl(path: string): string {
   return `${apiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`
 }
 
+async function errorMessageFromResponse(res: Response, url: string): Promise<string> {
+  const fallback = `HTTP ${res.status} for ${url}`
+  let text: string
+  try {
+    text = await res.text()
+  } catch {
+    return fallback
+  }
+
+  const trimmed = text.trim()
+  if (!trimmed) return fallback
+
+  try {
+    const json = JSON.parse(trimmed) as Record<string, unknown>
+    const fromErrors = firstErrorFromPayload(json.errors)
+    if (fromErrors) return fromErrors
+
+    for (const key of ['detail', 'title', 'message'] as const) {
+      const value = json[key]
+      if (typeof value === 'string' && value.trim() && value !== 'One or more errors occurred!') {
+        return value.trim()
+      }
+    }
+  } catch {
+    // Non-JSON body: use plain text when present.
+  }
+
+  return trimmed || fallback
+}
+
+function firstErrorFromPayload(errors: unknown): string | null {
+  if (!errors || typeof errors !== 'object') return null
+
+  for (const value of Object.values(errors as Record<string, unknown>)) {
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (Array.isArray(value)) {
+      const first = value.find((item) => typeof item === 'string' && item.trim())
+      if (typeof first === 'string') return first.trim()
+    }
+  }
+
+  return null
+}
+
+async function throwHttpError(res: Response, url: string): Promise<never> {
+  const message = await errorMessageFromResponse(res, url)
+  throw new HttpError({ status: res.status, url, message })
+}
+
 export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   const url = toApiUrl(path)
   const res = await fetch(url, {
@@ -41,7 +90,7 @@ export async function getJson<T>(path: string, init?: RequestInit): Promise<T> {
   })
 
   if (!res.ok) {
-    throw new HttpError({ status: res.status, url })
+    await throwHttpError(res, url)
   }
 
   return (await res.json()) as T
@@ -61,7 +110,7 @@ async function sendJson<T>(path: string, method: 'POST' | 'PUT', body: unknown, 
   })
 
   if (!res.ok) {
-    throw new HttpError({ status: res.status, url })
+    await throwHttpError(res, url)
   }
 
   if (res.status === 204) {
@@ -91,7 +140,6 @@ export async function deleteJson(path: string, init?: RequestInit): Promise<void
   })
 
   if (!res.ok) {
-    throw new HttpError({ status: res.status, url })
+    await throwHttpError(res, url)
   }
 }
-
