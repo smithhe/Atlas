@@ -129,18 +129,18 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ---
 
-## Phase 3 — Shell: Search + Quick Add — **locked: implement both**
+## Phase 3 — Shell: Search + Quick Add — **locked: implement both** — **done**
 
 ### Work items
 
-- [ ] **Global search:** client-side search over hydrated tasks, risks, people (and projects if cheap); navigate to the selected entity.
-- [ ] **Quick Add:** modal/flow to create Task, Risk, or Team Note from anywhere (member picker for notes).
-- [ ] Remove Settings “command palette coming later” / placeholder help copy once search covers the need (or replace with a short “use search” hint).
-- [ ] Clean `NotFoundView` AI placeholder.
+- [x] **Global search:** client-side search over hydrated tasks, risks, people (and projects if cheap); navigate to the selected entity.
+- [x] **Quick Add:** modal/flow to create Task, Risk, or Team Note from anywhere (member picker for notes).
+- [x] Remove Settings “command palette coming later” / placeholder help copy once search covers the need (or replace with a short “use search” hint).
+- [x] Clean `NotFoundView` AI placeholder.
 
 ### Acceptance
 
-- Top bar search and Quick Add are real workflows, not placeholders.
+- [x] Top bar search and Quick Add are real workflows, not placeholders.
 
 ---
 
@@ -258,7 +258,7 @@ Phase 7  Broader frontend UI tests + CI
 2. ~~**Persist team note `adoWorkItemId` / `prUrl`** (entity → API → UI → tests).~~ **Done (Phase 1.2)**
 3. ~~**Document Azure-import-only members**; align empty states / copy.~~ **Done (Phase 1.4)**
 4. ~~**Normalize Azure PAT config key** + sync UX improvements.~~ **Done (Phase 2)**
-5. **Implement global search + Quick Add**.
+5. ~~**Implement global search + Quick Add**.~~ **Done (Phase 3)**
 6. **AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.
 7. **Docker Compose** + `--profile demo` seeder.
 8. **Broader Playwright UI suite** + frontend CI job.

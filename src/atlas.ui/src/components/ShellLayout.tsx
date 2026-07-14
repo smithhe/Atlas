@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AiPanel } from './AiPanel'
+import { GlobalSearch } from './GlobalSearch'
+import { QuickAddModal } from './QuickAddModal'
 import { useAi } from '../app/state/AiState'
 import { useAppHydration } from '../app/queries/hooks'
 import { LoadingOverlay } from './LoadingOverlay'
@@ -31,7 +33,7 @@ export function ShellLayout() {
   const ai = useAi()
   const isHydrating = useAppHydration()
   const loc = useLocation()
-  const [search, setSearch] = useState('')
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
   const contextTitle = useMemo(() => routeToContextTitle(loc.pathname), [loc.pathname])
@@ -69,16 +71,10 @@ export function ShellLayout() {
           </div>
         </div>
         <div className="topBarCenter">
-          <input
-            className="searchInput"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search tasks, risks, people…"
-            aria-label="Search"
-          />
+          <GlobalSearch />
         </div>
         <div className="topBarRight">
-          <button className="btn btnSecondary" onClick={() => ai.appendOutput('\n(+ Quick Add: placeholder)\n')}>
+          <button className="btn btnSecondary" onClick={() => setQuickAddOpen(true)}>
             + Quick Add
           </button>
           <button className="btn" onClick={() => ai.setIsOpen(!ai.state.isOpen)}>
@@ -139,8 +135,8 @@ export function ShellLayout() {
 
         <AiPanel />
       </div>
+
+      <QuickAddModal isOpen={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
     </div>
   )
 }
-
-
