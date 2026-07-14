@@ -85,7 +85,10 @@ export function TeamView() {
   }, [ai.setContext])
 
   useEffect(() => {
-    if (!memberId) return
+    if (!memberId) {
+      selectTeamMember(undefined)
+      return
+    }
     selectTeamMember(memberId)
   }, [memberId, selectTeamMember])
 
@@ -390,6 +393,7 @@ function isRiskNote(note: TeamNote) {
 }
 
 function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<NoteTag | 'All'> }) {
+  const ai = useAi()
   const cache = useAppCache()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -413,6 +417,34 @@ function MemberNotesTab({ member, tags }: { member: TeamMember; tags: Array<Note
   const [draftPrUrl, setDraftPrUrl] = useState('')
   const editTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const editInputMaxHeightPx = 360
+
+  useEffect(() => {
+    if (isEditOpen) {
+      ai.registerDraftTarget({
+        label: 'note body',
+        insert: (text) => {
+          setDraftText((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
+        },
+      })
+      return () => {
+        ai.registerDraftTarget(null)
+      }
+    }
+
+    if (isNewOpen) {
+      ai.registerDraftTarget({
+        label: 'note body',
+        insert: (text) => {
+          setNewText((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
+        },
+      })
+      return () => {
+        ai.registerDraftTarget(null)
+      }
+    }
+
+    ai.registerDraftTarget(null)
+  }, [ai, isEditOpen, isNewOpen])
 
   function updateNotes(nextNotes: TeamNote[]) {
     cache.updateTeamMember({ ...member, notes: nextNotes })
