@@ -210,7 +210,7 @@ export function SettingsView() {
               - Tab / Shift+Tab: move focus
               {'\n'}- Enter: activate buttons
               {'\n'}- Top bar search: find tasks, risks, people, and projects
-              {'\n'}- Quick Add: create a task, risk, or team note from anywhere
+              {'\n'}- Quick Add: create a task, risk, or team note from any main view
             </div>
           </label>
 
