@@ -209,7 +209,8 @@ export function SettingsView() {
             <div className="placeholderBox">
               - Tab / Shift+Tab: move focus
               {'\n'}- Enter: activate buttons
-              {'\n'}- Command palette: (coming later)
+              {'\n'}- Top bar search: find tasks, risks, people, and projects
+              {'\n'}- Quick Add: create a task, risk, or team note from anywhere
             </div>
           </label>
 
