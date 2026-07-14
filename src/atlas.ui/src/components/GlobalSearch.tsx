@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData, useAppHydration } from '../app/queries/hooks'
 import { useSelectionActions } from '../app/state/SelectionState'
@@ -139,7 +140,7 @@ export function GlobalSearch() {
     inputRef.current?.blur()
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Escape') {
       if (showResults) {
         e.preventDefault()
@@ -169,6 +170,14 @@ export function GlobalSearch() {
     }
   }
 
+  useEffect(() => {
+    if (!showResults) return
+    const activeId = results[activeIndex]?.id
+    if (!activeId) return
+    const active = document.getElementById(`${listId}-${activeId}`)
+    active?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, listId, showResults, results[activeIndex]?.id])
+
   return (
     <div className="globalSearch" ref={rootRef}>
       <input
@@ -184,6 +193,7 @@ export function GlobalSearch() {
         placeholder="Search tasks, risks, people, projects…"
         aria-label="Search"
         aria-autocomplete="list"
+        aria-haspopup="listbox"
         aria-controls={showResults ? listId : undefined}
         aria-expanded={showResults}
         aria-activedescendant={showResults && results[activeIndex] ? `${listId}-${results[activeIndex].id}` : undefined}

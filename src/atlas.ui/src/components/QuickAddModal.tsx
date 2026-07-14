@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createRisk } from '../app/api/risks'
 import { createTask } from '../app/api/tasks'
@@ -112,9 +113,15 @@ export function QuickAddModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       }
 
       const text = noteText.trim()
-      if (!memberId || !text) return
+      if (!memberId || !text) {
+        window.alert('Select a team member and enter note text before creating.')
+        return
+      }
       const member = team.find((m) => m.id === memberId)
-      if (!member) return
+      if (!member) {
+        window.alert('That team member is no longer available. Refresh and try again.')
+        return
+      }
 
       const title = noteTitle.trim()
       const ado = noteAdo.trim()
@@ -156,6 +163,13 @@ export function QuickAddModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   const canCreate =
     kind === 'task' || kind === 'risk' || (kind === 'note' && Boolean(memberId) && Boolean(noteText.trim()))
+
+  function onTitleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && canCreate && !saving) {
+      e.preventDefault()
+      void handleCreate()
+    }
+  }
 
   return (
     <Modal
@@ -201,6 +215,7 @@ export function QuickAddModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               className="input"
               value={taskTitle}
               onChange={(e) => setTaskTitle(e.target.value)}
+              onKeyDown={onTitleKeyDown}
               placeholder="New task"
               autoFocus
             />
@@ -217,6 +232,7 @@ export function QuickAddModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
               className="input"
               value={riskTitle}
               onChange={(e) => setRiskTitle(e.target.value)}
+              onKeyDown={onTitleKeyDown}
               placeholder="New risk"
               autoFocus
             />
