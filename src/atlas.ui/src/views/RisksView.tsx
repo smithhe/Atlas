@@ -103,7 +103,7 @@ export function RisksView() {
     ai.setContext('Context: Risks', [
       { id: 'summarize-impact', label: 'Summarize impact' },
       { id: 'suggest-mitigations', label: 'Suggest mitigations' },
-      { id: 'why-matters', label: 'Explain “why this matters” (draft)' },
+      { id: 'why-matters', label: 'Explain “why this matters”' },
     ])
   }, [ai.setContext])
 

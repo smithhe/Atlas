@@ -40,7 +40,7 @@ export function SettingsView() {
   const [syncStateLoading, setSyncStateLoading] = useState(false)
 
   useEffect(() => {
-    ai.setContext('Context: Settings', [{ id: 'settings-help', label: 'Explain settings (placeholder)' }])
+    ai.setContext('Context: Settings', [{ id: 'settings-help', label: 'Explain settings' }])
   }, [ai.setContext])
 
   useEffect(() => {

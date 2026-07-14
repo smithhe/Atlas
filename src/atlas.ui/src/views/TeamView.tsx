@@ -80,7 +80,7 @@ export function TeamView() {
     ai.setContext('Context: Team', [
       { id: 'summarize-patterns', label: 'Summarize patterns (frequent blockers)' },
       { id: 'growth-areas', label: 'Highlight growth areas' },
-      { id: 'cite-notes', label: 'Cite specific notes (draft)' },
+      { id: 'cite-notes', label: 'Cite specific notes' },
     ])
   }, [ai.setContext])
 

@@ -45,7 +45,7 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 | Team members, notes, signals, member risks, growth | Built; note ADO/PR fields persist; Team Pulse derived |
 | Dashboard heuristics | Built; Team Pulse uses derived `activitySnapshot` |
 | Azure DevOps setup, sync, import, linking | Built; config/naming and a few UX gaps remain |
-| AI panel (Dashboard + Tasks) | Built; other views show unsupported actions |
+| AI panel (all main surfaces) | Built for Dashboard, Tasks, Team, Risks, Projects, Settings; Insert Draft + missing-key setup UX |
 | Backend tests (unit / functional / integration) + CI | In place |
 | Frontend tests | None |
 | Docker / Compose | Not started |
@@ -144,25 +144,25 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ---
 
-## Phase 4 — AI full coverage — **locked: all main surfaces**
+## Phase 4 — AI full coverage — **locked: all main surfaces** — **done**
 
 **Goal:** AI is a first-class assistant across the app; OpenAI key is required for that experience.
 
 ### Work items
 
-- [ ] Extend `AiViewScope` with Team, Risks, Projects, Settings (keep Dashboard, Tasks).
-- [ ] Implement `IAiPromptContextBuilder` for each new scope; register in `Program.cs`.
-- [ ] Extend frontend `resolveView()` / AI state so those views are supported.
-- [ ] Remove “(draft)” / “not supported” dead ends on shipped actions.
-- [ ] **Insert Draft:** insert latest AI response into the active editor target (task description or note body); define clear fallback when no editor is focused (e.g. disable button or show “focus a field first”).
-- [ ] **OpenAI required UX:** when API key missing, AI panel shows setup steps (env var / user-secrets / Compose `.env`) instead of a vague failure.
-- [ ] Optional: true token streaming vs buffered chunking (polish; not blocking if UX is acceptable).
+- [x] Extend `AiViewScope` with Team, Risks, Projects, Settings (keep Dashboard, Tasks).
+- [x] Implement `IAiPromptContextBuilder` for each new scope; register in `Program.cs`.
+- [x] Extend frontend `resolveView()` / AI state so those views are supported.
+- [x] Remove “(draft)” / “not supported” dead ends on shipped actions.
+- [x] **Insert Draft:** insert latest AI response into the active editor target (task description or note body); define clear fallback when no editor is focused (e.g. disable button or show “focus a field first”).
+- [x] **OpenAI required UX:** when API key missing, AI panel shows setup steps (env var / user-secrets / Compose `.env`) instead of a vague failure.
+- [ ] Optional: true token streaming vs buffered chunking (polish; not blocking if UX is acceptable). **Skipped for this phase** — buffered chunking remains.
 
 ### Acceptance
 
-- Every main nav surface can start a grounded AI conversation.
-- Insert Draft mutates the focused editor content.
-- Missing OpenAI key produces a clear local setup guide.
+- [x] Every main nav surface can start a grounded AI conversation.
+- [x] Insert Draft mutates the focused editor content.
+- [x] Missing OpenAI key produces a clear local setup guide.
 
 ---
 
@@ -259,7 +259,7 @@ Phase 7  Broader frontend UI tests + CI
 3. ~~**Document Azure-import-only members**; align empty states / copy.~~ **Done (Phase 1.4)**
 4. ~~**Normalize Azure PAT config key** + sync UX improvements.~~ **Done (Phase 2)**
 5. ~~**Implement global search + Quick Add**.~~ **Done (Phase 3)**
-6. **AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.
+6. ~~**AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.~~ **Done (Phase 4)**
 7. **Docker Compose** + `--profile demo` seeder.
 8. **Broader Playwright UI suite** + frontend CI job.
 

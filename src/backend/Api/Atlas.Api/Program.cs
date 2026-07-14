@@ -88,6 +88,11 @@ builder.Services.AddScoped<AiPromptContextResolver>();
 builder.Services.AddScoped<IChatModelClient, OpenAiChatModelClient>();
 builder.Services.AddScoped<IAiPromptContextBuilder, DashboardPromptContextBuilder>();
 builder.Services.AddScoped<IAiPromptContextBuilder, TasksPromptContextBuilder>();
+builder.Services.AddScoped<IAiPromptContextBuilder, TeamPromptContextBuilder>();
+builder.Services.AddScoped<IAiPromptContextBuilder, RisksPromptContextBuilder>();
+builder.Services.AddScoped<IAiPromptContextBuilder, ProjectsPromptContextBuilder>();
+builder.Services.AddScoped<IAiPromptContextBuilder, SettingsPromptContextBuilder>();
+
 
 WebApplication app = builder.Build();
 

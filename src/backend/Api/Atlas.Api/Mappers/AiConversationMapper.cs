@@ -60,8 +60,12 @@ public static class AiConversationMapper
 
     private static AiViewScope ParseView(string view)
     {
-        return Enum.TryParse(view, ignoreCase: true, out AiViewScope parsed)
-            ? parsed
-            : AiViewScope.Dashboard;
+        if (Enum.TryParse(view, ignoreCase: true, out AiViewScope parsed) && Enum.IsDefined(parsed))
+        {
+            return parsed;
+        }
+
+        // Unknown / legacy values only — known scopes (Team, Risks, Projects, Settings, …) parse above.
+        return AiViewScope.Dashboard;
     }
 }

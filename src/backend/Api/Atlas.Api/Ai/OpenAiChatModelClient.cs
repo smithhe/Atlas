@@ -28,7 +28,7 @@ public sealed class OpenAiChatModelClient : IChatModelClient
     {
         if (string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            yield return "OpenAI is not configured. Add OpenAI:ApiKey in user secrets or environment variables.";
+            yield return "OpenAI is not configured. Set OpenAI__ApiKey (environment), or run: dotnet user-secrets set \"OpenAI:ApiKey\" \"<key>\" in the Atlas.Api project, or add OpenAI__ApiKey=... to Compose .env.";
             yield break;
         }
 

@@ -34,6 +34,20 @@ public sealed class CreateAiConversationCommandValidatorTests
         Assert.True(result.IsValid);
     }
 
+    [Theory]
+    [InlineData(AiViewScope.Dashboard)]
+    [InlineData(AiViewScope.Tasks)]
+    [InlineData(AiViewScope.Team)]
+    [InlineData(AiViewScope.Risks)]
+    [InlineData(AiViewScope.Projects)]
+    [InlineData(AiViewScope.Settings)]
+    public void Validate_WhenViewIsKnownScope_Passes(AiViewScope view)
+    {
+        ValidationResult result = _validator.Validate(ValidCommand() with { View = view });
+
+        Assert.True(result.IsValid);
+    }
+
     private static CreateAiConversationCommand ValidCommand() => new(
         Prompt: "Summarize delivery risks",
         View: AiViewScope.Dashboard,

@@ -26,6 +26,11 @@ export interface AiTranscriptTurn {
   response: string
 }
 
+export interface AiDraftTarget {
+  insert: (text: string) => void
+  label?: string
+}
+
 interface AiState {
   isOpen: boolean
   contextTitle: string
@@ -42,6 +47,8 @@ interface AiState {
   isContextSupported: boolean
   contextSupportMessage?: string
   panelWidthPx?: number
+  draftTargetLabel?: string
+  hasDraftTarget: boolean
 }
 
 interface AiApi {
@@ -50,6 +57,8 @@ interface AiApi {
   setPanelWidthPx: (px: number | undefined) => void
   setContext: (contextTitle: string, actions: AiAction[]) => void
   setPromptDraft: (text: string) => void
+  registerDraftTarget: (target: AiDraftTarget | null) => void
+  insertDraft: (text: string) => boolean
   loadConversations: () => void
   openConversation: (conversationId: string) => void
   startNewSession: () => void
@@ -80,6 +89,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>(undefined)
   const [promptDraft, setPromptDraft] = useState<string>('')
   const [panelWidthPx, setPanelWidthPx] = useState<number | undefined>(undefined)
+  const [draftTarget, setDraftTarget] = useState<AiDraftTarget | null>(null)
   const userChangedIsOpenRef = useRef(false)
   const appliedStartupPreferenceRef = useRef(false)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -87,6 +97,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const actionsRef = useRef<AiAction[]>(actions)
   const contextTitleRef = useRef<string>(contextTitle)
   const activeConversationIdRef = useRef<string | undefined>(activeConversationId)
+  const draftTargetRef = useRef<AiDraftTarget | null>(null)
 
   useEffect(() => {
     actionsRef.current = actions
@@ -159,12 +170,31 @@ export function AiProvider({ children }: { children: ReactNode }) {
     const lower = title.toLowerCase()
     if (lower.includes('tasks')) return 'Tasks'
     if (lower.includes('dashboard')) return 'Dashboard'
+    if (lower.includes('team')) return 'Team'
+    if (lower.includes('risks') || lower.includes('risk')) return 'Risks'
+    if (lower.includes('projects') || lower.includes('project')) return 'Projects'
+    if (lower.includes('settings')) return 'Settings'
     return undefined
   }, [])
 
   const resolvedView = resolveView(contextTitle)
   const isContextSupported = Boolean(resolvedView)
-  const contextSupportMessage = isContextSupported ? undefined : 'AI context is currently available for Dashboard and Tasks.'
+  const contextSupportMessage = isContextSupported
+    ? undefined
+    : 'AI context is available for Dashboard, Tasks, Team, Risks, Projects, and Settings.'
+
+  const registerDraftTarget = useCallback((target: AiDraftTarget | null) => {
+    draftTargetRef.current = target
+    setDraftTarget(target)
+  }, [])
+
+  const insertDraft = useCallback((text: string) => {
+    const target = draftTargetRef.current
+    const trimmed = text.trim()
+    if (!target || !trimmed) return false
+    target.insert(trimmed)
+    return true
+  }, [])
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -290,7 +320,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     if (!view) {
       setIsOpenState(true)
       setStatus('Unsupported context')
-      setNotice('AI context is currently available for Dashboard and Tasks.')
+      setNotice('AI context is available for Dashboard, Tasks, Team, Risks, Projects, and Settings.')
       return
     }
 
@@ -371,11 +401,15 @@ export function AiProvider({ children }: { children: ReactNode }) {
         isContextSupported,
         contextSupportMessage,
         panelWidthPx,
+        draftTargetLabel: draftTarget?.label,
+        hasDraftTarget: Boolean(draftTarget),
       },
       setIsOpen,
       setPanelWidthPx,
       setContext,
       setPromptDraft,
+      registerDraftTarget,
+      insertDraft,
       loadConversations,
       openConversation,
       startNewSession,
@@ -393,6 +427,8 @@ export function AiProvider({ children }: { children: ReactNode }) {
       contextSupportMessage,
       contextTitle,
       conversations,
+      draftTarget,
+      insertDraft,
       isContextSupported,
       isLoadingHistory,
       isOpen,
@@ -402,6 +438,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
       openConversation,
       panelWidthPx,
       promptDraft,
+      registerDraftTarget,
       runAction,
       sendPrompt,
       setContext,

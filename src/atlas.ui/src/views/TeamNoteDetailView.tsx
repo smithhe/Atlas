@@ -61,6 +61,24 @@ export function TeamNoteDetailView() {
     setDraftPrUrl(note.prUrl ?? '')
   }, [isEditing, note])
 
+  useEffect(() => {
+    if (!isEditing) {
+      ai.registerDraftTarget(null)
+      return
+    }
+
+    ai.registerDraftTarget({
+      label: 'note body',
+      insert: (text) => {
+        setDraftText((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${text}` : text))
+      },
+    })
+
+    return () => {
+      ai.registerDraftTarget(null)
+    }
+  }, [ai, isEditing, noteId])
+
   function beginEdit() {
     if (!note) return
     setDraftTitle(note.title ?? '')
@@ -257,7 +275,11 @@ export function TeamNoteDetailView() {
           </div>
 
           {isEditing ? (
-            <textarea className="textarea noteDetailTextarea" value={draftText} onChange={(e) => setDraftText(e.target.value)} />
+            <textarea
+              className="textarea noteDetailTextarea"
+              value={draftText}
+              onChange={(e) => setDraftText(e.target.value)}
+            />
           ) : (
             <div className="noteText noteBody noteDetailBody">
               <Markdown text={note.text} />
