@@ -45,6 +45,28 @@ public sealed class AiEndpointTests : IClassFixture<AtlasWebApplicationFactory>
     }
 
     [Fact]
+    public async Task CreateAiConversation_WithTeamView_ReturnsAccepted()
+    {
+        CreateAiConversationRequest request = new(
+            Prompt: "Summarize team patterns",
+            View: AiViewScope.Team,
+            ActionId: null,
+            TaskId: null,
+            ProjectId: null,
+            RiskId: null,
+            TeamMemberId: null);
+
+        HttpResponseMessage response = await _client.PostJsonAsync("/ai/conversations", request);
+
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+
+        CreateAiConversationResponse? created = await response.ReadJsonAsync<CreateAiConversationResponse>();
+        Assert.NotNull(created);
+        Assert.NotEqual(Guid.Empty, created.ConversationId);
+        Assert.NotEqual(Guid.Empty, created.TurnSessionId);
+    }
+
+    [Fact]
     public async Task GetAiConversation_WhenMissing_ReturnsNotFound()
     {
         HttpResponseMessage response = await _client.GetAsync($"/ai/conversations/{Guid.NewGuid()}");

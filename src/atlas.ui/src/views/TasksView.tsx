@@ -64,7 +64,7 @@ export function TasksView() {
     ai.setContext('Context: Tasks', [
       { id: 'suggest-next-task', label: 'Suggest Next Task' },
       { id: 'summarize-week', label: 'Summarize Incomplete Work (week)' },
-      { id: 'reprioritize', label: 'Reprioritize suggestions (draft)' },
+      { id: 'reprioritize', label: 'Reprioritize suggestions' },
     ])
   }, [ai.setContext])
 
@@ -508,6 +508,7 @@ function TaskDetail({
   projectOptions: string[]
   riskOptions: string[]
 }) {
+  const ai = useAi()
   const cache = useAppCache()
   const tasks = useTasks()
   const team = useTeam()
@@ -552,11 +553,34 @@ function TaskDetail({
     })
   }
 
+  const updateRef = useRef(update)
+  updateRef.current = update
+
   useEffect(() => {
     // Switching selection should default back to view mode (prevents "sticky edit" across tasks).
     setIsEditing(autoEditOnOpen)
     setAddBlockerText('')
   }, [autoEditOnOpen, task.id])
+
+  useEffect(() => {
+    if (!isEditing) {
+      ai.registerDraftTarget(null)
+      return
+    }
+
+    ai.registerDraftTarget({
+      label: 'task notes',
+      insert: (text) => {
+        const current = notesRef.current?.value ?? ''
+        const next = current.trim() ? `${current.trimEnd()}\n\n${text}` : text
+        updateRef.current({ notes: next })
+      },
+    })
+
+    return () => {
+      ai.registerDraftTarget(null)
+    }
+  }, [ai, isEditing, task.id])
 
   function formatLastTouched(iso: string) {
     const d = new Date(iso)

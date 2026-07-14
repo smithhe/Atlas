@@ -31,8 +31,8 @@ export function ProjectsView() {
 
   useEffect(() => {
     ai.setContext('Context: Projects', [
-      { id: 'project-summary', label: 'Summarize project status (draft)' },
-      { id: 'identify-risks', label: 'Identify risks (draft)' },
+      { id: 'project-summary', label: 'Summarize project status' },
+      { id: 'identify-risks', label: 'Identify risks' },
     ])
   }, [ai.setContext])
 

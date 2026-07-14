@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
 import { Markdown } from './Markdown'
 
@@ -11,6 +11,10 @@ function CopyIcon() {
   )
 }
 
+function isOpenAiNotConfigured(text: string): boolean {
+  return text.includes('OpenAI is not configured')
+}
+
 export function AiPanel() {
   const ai = useAi()
   const {
@@ -19,6 +23,8 @@ export function AiPanel() {
     contextSupportMessage,
     contextTitle,
     conversations,
+    draftTargetLabel,
+    hasDraftTarget,
     isContextSupported,
     isLoadingHistory,
     isOpen,
@@ -34,6 +40,20 @@ export function AiPanel() {
 
   const lastTurn = turns.length > 0 ? turns[turns.length - 1] : undefined
   const shouldStickToBottom = isRunning || (lastTurn !== undefined && !lastTurn.response.trim())
+  const latestAssistantText = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i -= 1) {
+      const text = turns[i]?.response?.trim()
+      if (text) return text
+    }
+    return ''
+  }, [turns])
+
+  const showOpenAiSetup = useMemo(() => {
+    if (notice && isOpenAiNotConfigured(notice)) return true
+    return turns.some((turn) => isOpenAiNotConfigured(turn.response))
+  }, [notice, turns])
+
+  const canInsertDraft = hasDraftTarget && Boolean(latestAssistantText) && !isOpenAiNotConfigured(latestAssistantText)
 
   useEffect(() => {
     if (!shouldStickToBottom) return
@@ -55,12 +75,39 @@ export function AiPanel() {
     }
   }
 
+  function handleInsertDraft() {
+    if (!canInsertDraft) {
+      if (!hasDraftTarget) {
+        ai.appendOutput('\nEdit a task note or note body first.\n')
+      }
+      return
+    }
+
+    const inserted = ai.insertDraft(latestAssistantText)
+    if (!inserted) {
+      ai.appendOutput('\nEdit a task note or note body first.\n')
+    }
+  }
+
   return (
     <aside className="aiPanel" aria-label="AI panel">
       <div className="aiPanelHeader">
         <div className="aiPanelTitle">{contextTitle}</div>
         <div className="aiPanelHeaderActions">
-          <button className="btn btnSecondary" onClick={() => ai.appendOutput('\n(Insert Draft action can be wired next.)\n')}>
+          <button
+            className="btn btnSecondary"
+            disabled={!canInsertDraft}
+            title={
+              !hasDraftTarget
+                ? 'Edit a field first'
+                : !latestAssistantText
+                  ? 'No assistant response to insert'
+                  : draftTargetLabel
+                    ? `Insert into ${draftTargetLabel}`
+                    : 'Insert Draft'
+            }
+            onClick={handleInsertDraft}
+          >
             Insert Draft
           </button>
           <button className="btn btnGhost" onClick={() => ai.startNewSession()} disabled={isRunning}>
@@ -82,8 +129,28 @@ export function AiPanel() {
             {activeConversationId ? ' · In conversation' : ''}
           </div>
           {contextSupportMessage ? <div className="mutedSmall">{contextSupportMessage}</div> : null}
+          {!hasDraftTarget ? <div className="mutedSmall">Insert Draft: edit a task note or note body first</div> : null}
           {notice ? <div className="aiPanelNotice">{notice}</div> : null}
         </div>
+
+        {showOpenAiSetup ? (
+          <div className="aiPanelSetupGuide" role="status">
+            <div className="aiPanelSetupTitle">OpenAI API key required</div>
+            <div className="mutedSmall">Atlas AI needs an OpenAI key. Configure one of these, then restart the API:</div>
+            <ul className="aiPanelSetupList">
+              <li>
+                Environment variable: <code>OpenAI__ApiKey</code>
+              </li>
+              <li>
+                User secrets in the Atlas.Api project:{' '}
+                <code>dotnet user-secrets set &quot;OpenAI:ApiKey&quot; &quot;&lt;key&gt;&quot;</code>
+              </li>
+              <li>
+                Compose <code>.env</code>: <code>OpenAI__ApiKey=...</code>
+              </li>
+            </ul>
+          </div>
+        ) : null}
 
         <div ref={scrollRef} className="aiPanelScroll" role="log" aria-label="AI conversation" aria-live="polite">
           {turns.length === 0 ? (

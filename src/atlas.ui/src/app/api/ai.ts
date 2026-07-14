@@ -1,6 +1,6 @@
 import { getJson, postJson, toApiUrl } from './client'
 
-export type AiView = 'Dashboard' | 'Tasks'
+export type AiView = 'Dashboard' | 'Tasks' | 'Team' | 'Risks' | 'Projects' | 'Settings'
 
 export interface CreateAiConversationRequest {
   prompt: string
