@@ -5,7 +5,7 @@ using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.Projects;
 
-public sealed class ListProjectsEndpoint : EndpointWithoutRequest<IReadOnlyList<ProjectListItemDto>>
+public sealed class ListProjectsEndpoint : EndpointWithoutRequest<IReadOnlyList<ProjectDto>>
 {
     private readonly IMediator _mediator;
 
@@ -24,8 +24,7 @@ public sealed class ListProjectsEndpoint : EndpointWithoutRequest<IReadOnlyList<
     public override async Task HandleAsync(CancellationToken ct)
     {
         IReadOnlyList<Project> projects = await _mediator.Send(new ListProjectsQuery(), ct);
-        var dtos = projects.Select(ProjectMapper.ToListItemDto).ToList();
+        var dtos = projects.Select(ProjectMapper.ToDto).ToList();
         await Send.OkAsync(dtos, ct);
     }
 }
-

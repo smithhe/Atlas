@@ -3,11 +3,8 @@ import type { TeamMember, TeamMemberRisk, NoteTag, LoadSignal, DeliverySignal, S
 import type { TeamMemberDto } from './mappers'
 import { mapTeamMember } from './mappers'
 
-type TeamMemberListItemDto = { id: string }
-
 export async function loadTeamMembers(): Promise<{ team: TeamMember[]; teamMemberRisks: TeamMemberRisk[] }> {
-  const list = await getJson<TeamMemberListItemDto[]>('/team-members')
-  const teamMemberDtos = await Promise.all(list.map((m) => getJson<TeamMemberDto>(`/team-members/${m.id}`)))
+  const teamMemberDtos = await getJson<TeamMemberDto[]>('/team-members')
 
   const team: TeamMember[] = []
   const teamMemberRisks: TeamMemberRisk[] = []

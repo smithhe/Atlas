@@ -30,6 +30,7 @@ export function setTeamMembersCache(
   queryClient.setQueryData(queryKeys.teamMembers, { team, teamMemberRisks })
 }
 
+/** Optimistic-only: growth mutations update this cache directly; no invalidateAppQueries scope. */
 export function setGrowthCache(queryClient: QueryClient, memberId: string, growth: Growth | null) {
   queryClient.setQueryData(queryKeys.growth(memberId), growth)
 }

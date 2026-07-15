@@ -32,11 +32,11 @@ public sealed class AzureDevOpsImportWorkflowIntegrationTests : IClassFixture<At
         Assert.NotNull(import);
         Assert.Equal(1, import.TeamMembersCreated);
 
-        IReadOnlyList<TeamMemberListItemDto>? members = await (await client.GetAsync("/team-members"))
-            .ReadJsonAsync<IReadOnlyList<TeamMemberListItemDto>>();
+        IReadOnlyList<TeamMemberDto>? members = await (await client.GetAsync("/team-members"))
+            .ReadJsonAsync<IReadOnlyList<TeamMemberDto>>();
         Assert.NotNull(members);
         Assert.Contains(members, m => m.Name == "Ada Lovelace");
-        TeamMemberListItemDto ada = members.First(m => m.Name == "Ada Lovelace");
+        TeamMemberDto ada = members.First(m => m.Name == "Ada Lovelace");
 
         IReadOnlyList<AzureImportWorkItemDto>? unlinked = await (await client.GetAsync("/azure-devops/import/work-items"))
             .ReadJsonAsync<IReadOnlyList<AzureImportWorkItemDto>>();

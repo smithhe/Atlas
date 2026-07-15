@@ -18,24 +18,19 @@ import {
 } from '../api/mappers'
 import { loadTeamMembers } from '../api/teamMembers'
 
-type ProjectListItemDto = { id: string }
-type RiskListItemDto = { id: string }
-
 export async function fetchSettings(): Promise<Settings> {
   const dto = await getJson<SettingsDto>('/settings')
   return mapSettings(dto)
 }
 
 export async function fetchProjects(): Promise<Project[]> {
-  const list = await getJson<ProjectListItemDto[]>('/projects')
-  const dtos = await Promise.all(list.map((p) => getJson<ProjectDto>(`/projects/${p.id}`)))
+  const dtos = await getJson<ProjectDto[]>('/projects')
   return dtos.map(mapProject)
 }
 
 export async function fetchRisks(projects: Project[]): Promise<Risk[]> {
   const projectNameById = new Map(projects.map((p) => [p.id, p.name] as const))
-  const list = await getJson<RiskListItemDto[]>('/risks')
-  const dtos = await Promise.all(list.map((r) => getJson<RiskDto>(`/risks/${r.id}`)))
+  const dtos = await getJson<RiskDto[]>('/risks')
   return dtos.map((r) => mapRisk(r, { projectNameById }))
 }
 

@@ -23,6 +23,35 @@ public sealed class RisksEndpointTests : IClassFixture<AtlasWebApplicationFactor
     }
 
     [Fact]
+    public async Task ListRisks_ReturnsFullRiskDtos()
+    {
+        string title = $"List-{Guid.NewGuid():N}";
+        CreateRiskResponse? created = await (await _client.PostJsonAsync(
+            "/risks",
+            new CreateRiskRequest(
+                Title: title,
+                Status: RiskStatus.Open,
+                Severity: SeverityLevel.High,
+                ProjectId: null,
+                Description: "Schedule pressure",
+                Evidence: "Slipping milestones")))
+            .ReadJsonAsync<CreateRiskResponse>();
+        Assert.NotNull(created);
+
+        IReadOnlyList<RiskDto>? risks = await (await _client.GetAsync("/risks"))
+            .ReadJsonAsync<IReadOnlyList<RiskDto>>();
+        Assert.NotNull(risks);
+
+        RiskDto listed = Assert.Single(risks, r => r.Id == created.Id);
+        Assert.Equal(title, listed.Title);
+        Assert.Equal("Schedule pressure", listed.Description);
+        Assert.Equal("Slipping milestones", listed.Evidence);
+        Assert.NotNull(listed.LinkedTaskIds);
+        Assert.NotNull(listed.LinkedTeamMemberIds);
+        Assert.NotNull(listed.History);
+    }
+
+    [Fact]
     public async Task CreateGetUpdateDeleteRisk_CompletesCrudFlow()
     {
         string title = $"Risk-{Guid.NewGuid():N}";

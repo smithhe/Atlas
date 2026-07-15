@@ -3,6 +3,14 @@ import { useCallback } from 'react'
 import type { QueryClient } from '@tanstack/react-query'
 import { queryKeys } from './queryKeys'
 
+/**
+ * Invalidation scopes for shared app lists.
+ *
+ * Growth is intentionally omitted: UI mutations always write the per-member
+ * `['growth', memberId]` cache via `setGrowthCache` / `useAppCache.updateGrowth`
+ * (optimistic-only). Azure import/sync does not mutate growth plans, so those
+ * flows do not need a growth scope either.
+ */
 export type AppQueryScope = 'settings' | 'tasks' | 'risks' | 'projects' | 'teamMembers' | 'productOwners'
 
 const scopeToKey: Record<AppQueryScope, readonly string[]> = {

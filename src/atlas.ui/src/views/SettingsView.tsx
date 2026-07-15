@@ -137,7 +137,8 @@ export function SettingsView() {
             : `Sync succeeded · ${result.itemsUpserted} work items upserted`,
         )
       }
-      await invalidateAppQueries(['teamMembers', 'projects', 'tasks'])
+      // Sync upserts Azure work items linked to team members; projects/tasks are unchanged.
+      await invalidateAppQueries(['teamMembers'])
       setSyncStateLoading(true)
       const state = await getAzureSyncState()
       setSyncState(state)

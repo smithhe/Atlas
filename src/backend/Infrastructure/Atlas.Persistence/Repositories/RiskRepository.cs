@@ -30,6 +30,10 @@ public sealed class RiskRepository : IRiskRepository
     public async Task<IReadOnlyList<Risk>> ListAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Risks
+            .Include(x => x.Project)
+            .Include(x => x.Tasks)
+            .Include(x => x.LinkedTeamMembers)
+            .Include(x => x.History)
             .OrderByDescending(x => x.LastUpdatedAt)
             .ToListAsync(cancellationToken);
     }

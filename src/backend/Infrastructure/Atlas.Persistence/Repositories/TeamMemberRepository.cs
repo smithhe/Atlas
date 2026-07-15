@@ -33,6 +33,13 @@ public sealed class TeamMemberRepository : ITeamMemberRepository
     public async Task<IReadOnlyList<TeamMember>> ListAsync(CancellationToken cancellationToken = default)
     {
         return await _db.TeamMembers
+            .Include(x => x.Notes)
+            .Include(x => x.Risks)
+            .Include(x => x.Projects)
+            .Include(x => x.LinkedRisks)
+            .Include(x => x.AzureWorkItemLinks)
+                .ThenInclude(x => x.AzureWorkItem)
+            .Include(x => x.AzureWorkItemLocalNotes)
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
     }
