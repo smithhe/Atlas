@@ -23,6 +23,40 @@ public sealed class ProjectsEndpointTests : IClassFixture<AtlasWebApplicationFac
     }
 
     [Fact]
+    public async Task ListProjects_ReturnsFullProjectDtos()
+    {
+        string name = $"List-{Guid.NewGuid():N}";
+        CreateProjectResponse? created = await (await _client.PostJsonAsync(
+            "/projects",
+            new CreateProjectRequest(
+                Name: name,
+                Summary: "Summary",
+                Description: "Description",
+                Status: ProjectStatus.Active,
+                Health: HealthSignal.Green,
+                TargetDate: null,
+                Priority: Priority.Medium,
+                ProductOwnerId: null,
+                Tags: ["atlas"],
+                Links: [new ProjectLinkDto("Docs", "https://example.com/docs")])))
+            .ReadJsonAsync<CreateProjectResponse>();
+        Assert.NotNull(created);
+
+        IReadOnlyList<ProjectDto>? projects = await (await _client.GetAsync("/projects"))
+            .ReadJsonAsync<IReadOnlyList<ProjectDto>>();
+        Assert.NotNull(projects);
+
+        ProjectDto listed = Assert.Single(projects, p => p.Id == created.Id);
+        Assert.Equal(name, listed.Name);
+        Assert.Equal("Description", listed.Description);
+        Assert.Contains(listed.Tags, t => t.Value == "atlas");
+        Assert.Single(listed.Links);
+        Assert.NotNull(listed.LinkedTaskIds);
+        Assert.NotNull(listed.LinkedRiskIds);
+        Assert.NotNull(listed.TeamMemberIds);
+    }
+
+    [Fact]
     public async Task CreateGetUpdateDeleteProject_CompletesCrudFlow()
     {
         string name = $"Project-{Guid.NewGuid():N}";

@@ -96,7 +96,7 @@ public sealed class AzureDevOpsWriteEndpointTests : IClassFixture<AtlasWebApplic
         Assert.Equal(1, result.MappingsCreated);
 
         HttpResponseMessage members = await client.GetAsync("/team-members");
-        IReadOnlyList<TeamMemberListItemDto>? list = await members.ReadJsonAsync<IReadOnlyList<TeamMemberListItemDto>>();
+        IReadOnlyList<TeamMemberDto>? list = await members.ReadJsonAsync<IReadOnlyList<TeamMemberDto>>();
         Assert.NotNull(list);
         Assert.Contains(list, m => m.Name == "Ada Lovelace");
     }
@@ -249,10 +249,10 @@ public sealed class AzureDevOpsWriteEndpointTests : IClassFixture<AtlasWebApplic
         Assert.NotNull(import);
         Assert.Equal(1, import.TeamMembersCreated);
 
-        IReadOnlyList<TeamMemberListItemDto>? members = await (await client.GetAsync("/team-members"))
-            .ReadJsonAsync<IReadOnlyList<TeamMemberListItemDto>>();
+        IReadOnlyList<TeamMemberDto>? members = await (await client.GetAsync("/team-members"))
+            .ReadJsonAsync<IReadOnlyList<TeamMemberDto>>();
         Assert.NotNull(members);
-        TeamMemberListItemDto memberA = Assert.Single(members, m => m.Name == "Ada Lovelace");
+        TeamMemberDto memberA = Assert.Single(members, m => m.Name == "Ada Lovelace");
 
         // Member B is the explicit override target (no mapping to the assignee).
         CreateTeamMemberResponse? memberB = await (await client.PostJsonAsync(

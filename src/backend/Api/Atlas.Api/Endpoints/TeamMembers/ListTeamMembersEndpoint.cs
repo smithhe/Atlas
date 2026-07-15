@@ -5,7 +5,7 @@ using Atlas.Domain.Entities;
 
 namespace Atlas.Api.Endpoints.TeamMembers;
 
-public sealed class ListTeamMembersEndpoint : Endpoint<ListTeamMembersRequest, IReadOnlyList<TeamMemberListItemDto>>
+public sealed class ListTeamMembersEndpoint : Endpoint<ListTeamMembersRequest, IReadOnlyList<TeamMemberDto>>
 {
     private readonly IMediator _mediator;
 
@@ -31,7 +31,7 @@ public sealed class ListTeamMembersEndpoint : Endpoint<ListTeamMembersRequest, I
             members = members.Where(m => set.Contains(m.Id)).ToList();
         }
 
-        var dtos = members.Select(TeamMemberMapper.ToListItemDto).ToList();
+        var dtos = members.Select(TeamMemberMapper.ToDto).ToList();
         await Send.OkAsync(dtos, ct);
     }
 }

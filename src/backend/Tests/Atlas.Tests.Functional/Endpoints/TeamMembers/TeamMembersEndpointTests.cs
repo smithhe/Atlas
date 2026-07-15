@@ -23,6 +23,29 @@ public sealed class TeamMembersEndpointTests : IClassFixture<AtlasWebApplication
     }
 
     [Fact]
+    public async Task ListTeamMembers_ReturnsFullTeamMemberDtos()
+    {
+        string name = $"List-{Guid.NewGuid():N}";
+        CreateTeamMemberResponse? created = await (await _client.PostJsonAsync(
+            "/team-members",
+            new CreateTeamMemberRequest(name, "Engineer", StatusDot.Green)))
+            .ReadJsonAsync<CreateTeamMemberResponse>();
+        Assert.NotNull(created);
+
+        IReadOnlyList<TeamMemberDto>? members = await (await _client.GetAsync("/team-members"))
+            .ReadJsonAsync<IReadOnlyList<TeamMemberDto>>();
+        Assert.NotNull(members);
+
+        TeamMemberDto listed = Assert.Single(members, m => m.Id == created.Id);
+        Assert.Equal(name, listed.Name);
+        Assert.NotNull(listed.Profile);
+        Assert.NotNull(listed.Signals);
+        Assert.NotNull(listed.Notes);
+        Assert.NotNull(listed.Risks);
+        Assert.NotNull(listed.AzureWorkItems);
+    }
+
+    [Fact]
     public async Task CreateGetUpdateDeleteTeamMember_CompletesCrudFlow()
     {
         string name = $"Member-{Guid.NewGuid():N}";

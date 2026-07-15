@@ -230,6 +230,14 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         loaded.AzureWorkItemLinks.Should().ContainSingle();
         loaded.AzureWorkItemLinks[0].AzureWorkItem.Should().NotBeNull();
         loaded.AzureWorkItemLinks[0].AzureWorkItem!.WorkItemId.Should().Be(501);
+
+        IReadOnlyList<TeamMember> listed = await team.ListAsync(CancellationToken.None);
+        TeamMember fromList = listed.Should().ContainSingle(m => m.Id == member.Id).Subject;
+        fromList.Notes.Should().ContainSingle();
+        fromList.Risks.Should().ContainSingle();
+        fromList.AzureWorkItemLinks.Should().ContainSingle();
+        fromList.AzureWorkItemLinks[0].AzureWorkItem.Should().NotBeNull();
+        fromList.AzureWorkItemLinks[0].AzureWorkItem!.WorkItemId.Should().Be(501);
     }
 
     [Fact]
@@ -258,6 +266,11 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         loaded.Should().NotBeNull();
         loaded!.Tags.Should().ContainSingle(t => t.Value == "alpha");
         loaded.Links.Should().ContainSingle(l => l.Label == "Docs");
+
+        IReadOnlyList<Project> listed = await projects.ListAsync(CancellationToken.None);
+        Project fromList = listed.Should().ContainSingle(p => p.Id == projectId).Subject;
+        fromList.Tags.Should().ContainSingle(t => t.Value == "alpha");
+        fromList.Links.Should().ContainSingle(l => l.Label == "Docs");
     }
 
     [Fact]
@@ -295,6 +308,10 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
         Risk? loaded = await risks.GetByIdWithDetailsAsync(risk.Id, CancellationToken.None);
         loaded.Should().NotBeNull();
         loaded!.History.Should().ContainSingle(h => h.Text == "Noted");
+
+        IReadOnlyList<Risk> listed = await risks.ListAsync(CancellationToken.None);
+        Risk fromList = listed.Should().ContainSingle(r => r.Id == risk.Id).Subject;
+        fromList.History.Should().ContainSingle(h => h.Text == "Noted");
     }
 
     [Fact]

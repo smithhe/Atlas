@@ -166,16 +166,18 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ---
 
-## Phase 5 — Frontend data-layer cleanup
+## Phase 5 — Frontend data-layer cleanup — **done**
 
-- [ ] Add `growth` to `AppQueryScope` / `invalidateAppQueries` (or document optimistic-only growth updates).
-- [ ] Reduce N+1 list→detail fetches for projects/risks/team members.
-- [ ] Remove deprecated `loadInitialState.ts` when unused.
-- [ ] Audit cache updates after Azure import/sync.
+- [x] Add `growth` to `AppQueryScope` / `invalidateAppQueries` (or document optimistic-only growth updates).
+- [x] Reduce N+1 list→detail fetches for projects/risks/team members.
+- [x] Remove deprecated `loadInitialState.ts` when unused.
+- [x] Audit cache updates after Azure import/sync.
 
 ### Acceptance
 
-- No stale growth/team data after common mutations; no dead deprecated loaders.
+- [x] No stale growth/team data after common mutations; no dead deprecated loaders.
+
+**Notes:** Growth stays optimistic-only (`setGrowthCache` / `useAppCache.updateGrowth`); list endpoints for projects/risks/team members now return full detail DTOs (matching tasks); Azure sync invalidates `teamMembers` only.
 
 ---
 
@@ -260,8 +262,9 @@ Phase 7  Broader frontend UI tests + CI
 4. ~~**Normalize Azure PAT config key** + sync UX improvements.~~ **Done (Phase 2)**
 5. ~~**Implement global search + Quick Add**.~~ **Done (Phase 3)**
 6. ~~**AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.~~ **Done (Phase 4)**
-7. **Docker Compose** + `--profile demo` seeder.
-8. **Broader Playwright UI suite** + frontend CI job.
+7. ~~**Frontend query-layer cleanup** (growth optimistic-only docs, list-with-details, remove `loadInitialState`, Azure cache audit).~~ **Done (Phase 5)**
+8. **Docker Compose** + `--profile demo` seeder.
+9. **Broader Playwright UI suite** + frontend CI job.
 
 ---
 

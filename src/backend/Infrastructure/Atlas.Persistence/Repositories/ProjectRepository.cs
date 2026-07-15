@@ -32,6 +32,12 @@ public sealed class ProjectRepository : IProjectRepository
     public async Task<IReadOnlyList<Project>> ListAsync(CancellationToken cancellationToken = default)
     {
         return await _db.Projects
+            .Include(x => x.ProductOwner)
+            .Include(x => x.Tags)
+            .Include(x => x.Links)
+            .Include(x => x.TeamMembers)
+            .Include(x => x.Tasks)
+            .Include(x => x.Risks)
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
     }
