@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/Directory.Build.props src/
+COPY src/backend/Api/Atlas.Api/Atlas.Api.csproj src/backend/Api/Atlas.Api/
+COPY src/backend/Core/Atlas.Application/Atlas.Application.csproj src/backend/Core/Atlas.Application/
+COPY src/backend/Core/Atlas.Domain/Atlas.Domain.csproj src/backend/Core/Atlas.Domain/
+COPY src/backend/Infrastructure/Atlas.Persistence/Atlas.Persistence.csproj src/backend/Infrastructure/Atlas.Persistence/
+COPY src/backend/Infrastructure/Atlas.AzureDevOps/Atlas.AzureDevOps.csproj src/backend/Infrastructure/Atlas.AzureDevOps/
+
+RUN dotnet restore src/backend/Api/Atlas.Api/Atlas.Api.csproj
+
+COPY src/backend/ src/backend/
+
+RUN dotnet publish src/backend/Api/Atlas.Api/Atlas.Api.csproj \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/publish .
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=5 \
+  CMD curl -fsS http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "Atlas.Api.dll"]

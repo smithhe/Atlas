@@ -33,3 +33,15 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Docker
+
+The UI image is built from the repo root (`Dockerfile.ui` + `docker compose`). See [docs/docker.md](../../docs/docker.md).
+
+```bash
+# from repo root
+docker compose up --build
+# UI: http://localhost:5173/#/dashboard
+```
+
+`VITE_API_BASE_URL` is passed as a Docker build arg (default `http://localhost:5012`) so the browser calls the host-mapped API.

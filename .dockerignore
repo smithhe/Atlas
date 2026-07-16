@@ -1,0 +1,27 @@
+.git
+.github
+.vs
+.vscode
+.idea
+**/.DS_Store
+
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/TestResults/
+**/coverage/
+
+**/*.user
+**/*.suo
+**/appsettings.*.local.json
+
+bruno/
+docs/
+**/README.md
+AGENTS.md
+
+# Keep UI lockfile/source; ignore local env
+src/atlas.ui/.env
+src/atlas.ui/.env.local
+src/atlas.ui/.env.*.local
