@@ -1,0 +1,89 @@
+name: atlas
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-atlas}
+      POSTGRES_USER: ${POSTGRES_USER:-atlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - atlas-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One-shot seeder used only with: docker compose --profile demo up
+  demo-seed:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["dotnet", "Atlas.Api.dll", "--seed-demo"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__AtlasDb: Host=db;Port=5432;Database=${POSTGRES_DB:-atlas};Username=${POSTGRES_USER:-atlas};Password=${POSTGRES_PASSWORD:-change-me}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:-http://localhost:5173}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_1:-http://127.0.0.1:5173}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__AtlasDb: Host=db;Port=5432;Database=${POSTGRES_DB:-atlas};Username=${POSTGRES_USER:-atlas};Password=${POSTGRES_PASSWORD:-change-me}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_0:-http://localhost:5173}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_1:-http://127.0.0.1:5173}
+      AzureDevopsToken: ${AzureDevopsToken:-}
+      OpenAI__ApiKey: ${OpenAI__ApiKey:-}
+      OpenAI__Model: ${OpenAI__Model:-gpt-4.1-mini}
+      OpenAI__BaseUrl: ${OpenAI__BaseUrl:-https://api.openai.com/v1}
+      Ai__MaxPromptChars: ${Ai__MaxPromptChars:-4000}
+      Ai__MaxContextChars: ${Ai__MaxContextChars:-12000}
+      Ai__MaxConcurrentSessions: ${Ai__MaxConcurrentSessions:-4}
+      Atlas__SeedDemo: ${ATLAS_SEED_DEMO:-false}
+    ports:
+      - "${API_PORT:-5012}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      demo-seed:
+        condition: service_completed_successfully
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:5012}
+    ports:
+      - "${UI_PORT:-5173}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  atlas-pgdata:

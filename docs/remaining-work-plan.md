@@ -48,7 +48,7 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 | AI panel (all main surfaces) | Built for Dashboard, Tasks, Team, Risks, Projects, Settings; Insert Draft + missing-key setup UX |
 | Backend tests (unit / functional / integration) + CI | In place |
 | Frontend tests | None |
-| Docker / Compose | Not started |
+| Docker / Compose | Done — `docker compose up --build`; demo via `--profile demo` |
 | Auth | Explicitly deferred (and excluded here) |
 
 ---
@@ -181,26 +181,28 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ---
 
-## Phase 6 — Local Docker packaging — **after product honesty**
+## Phase 6 — Local Docker packaging — **after product honesty** — **done**
 
 **Goal:** One-command local run.
 
 ### Work items
 
-- [ ] `Dockerfile` for `Atlas.Api` (multi-stage publish).
-- [ ] `Dockerfile` for `atlas.ui` (build + static serve via nginx/caddy).
-- [ ] `docker-compose.yml`: `db`, `api`, `ui` with healthchecks and env wiring.
-- [ ] `.env.example` for DB, CORS, Azure PAT, **required** `OpenAI__ApiKey`, model/base URL, `Ai__*`.
-- [ ] Schema strategy: apply EF migrations on API startup (or init container) for Compose; document vs `EnsureCreated()` in bare Development.
-- [ ] Health endpoint(s) for Compose.
-- [ ] Docs: `docker compose up --build`, Azure optional, OpenAI required for AI, hash routes.
-- [ ] **`--profile demo`:** wire `DevDatabaseSeeder` (currently empty) to seed demo tasks/risks/projects/members/notes when profile enabled.
+- [x] `Dockerfile` for `Atlas.Api` (multi-stage publish).
+- [x] `Dockerfile` for `atlas.ui` (build + static serve via nginx/caddy).
+- [x] `docker-compose.yml`: `db`, `api`, `ui` with healthchecks and env wiring.
+- [x] `.env.example` for DB, CORS, Azure PAT, **required** `OpenAI__ApiKey`, model/base URL, `Ai__*`.
+- [x] Schema strategy: apply EF migrations on API startup (or init container) for Compose; document vs `EnsureCreated()` in bare Development.
+- [x] Health endpoint(s) for Compose.
+- [x] Docs: `docker compose up --build`, Azure optional, OpenAI required for AI, hash routes.
+- [x] **`--profile demo`:** wire `DevDatabaseSeeder` (currently empty) to seed demo tasks/risks/projects/members/notes when profile enabled.
 
 ### Acceptance
 
-- Fresh machine with Docker runs Atlas.
-- `docker compose --profile demo up` yields usable demo data.
-- Default (no demo profile) starts empty aside from schema.
+- [x] Fresh machine with Docker runs Atlas.
+- [x] `docker compose --profile demo up` yields usable demo data.
+- [x] Default (no demo profile) starts empty aside from schema.
+
+**Notes:** Root `Dockerfile.api` / `Dockerfile.ui` + `docker-compose.yml`; demo seeding via profile-only `demo-seed` one-shot (`--seed-demo`) with optional `depends_on` on `api` (Compose v2.24+). Guide: `docs/docker.md`. Automated coverage: API Release build + `HealthEndpointTests`. End-to-end `docker compose` smoke needs a Docker engine on the machine running the commands.
 
 ---
 
@@ -263,7 +265,7 @@ Phase 7  Broader frontend UI tests + CI
 5. ~~**Implement global search + Quick Add**.~~ **Done (Phase 3)**
 6. ~~**AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.~~ **Done (Phase 4)**
 7. ~~**Frontend query-layer cleanup** (growth optimistic-only docs, list-with-details, remove `loadInitialState`, Azure cache audit).~~ **Done (Phase 5)**
-8. **Docker Compose** + `--profile demo` seeder.
+8. ~~**Docker Compose** + `--profile demo` seeder.~~ **Done (Phase 6)**
 9. **Broader Playwright UI suite** + frontend CI job.
 
 ---

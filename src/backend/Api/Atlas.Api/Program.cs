@@ -4,8 +4,12 @@ using Atlas.Application.Abstractions.Time;
 using Atlas.Api.Ai;
 using Atlas.Application.Abstractions.Ai;
 using Atlas.Application.Features.Ai.Context;
+using Atlas.Persistence.Seeding;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+bool seedDemoOnly = args.Any(static argument =>
+    string.Equals(argument, "--seed-demo", StringComparison.OrdinalIgnoreCase));
 
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -96,19 +100,71 @@ builder.Services.AddScoped<IAiPromptContextBuilder, SettingsPromptContextBuilder
 
 WebApplication app = builder.Build();
 
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
+
+    if (app.Environment.IsDevelopment() && !seedDemoOnly)
+    {
+        // Bare local `dotnet run`: create tables without requiring migrate apply.
+        // Docker Compose / non-Development uses Migrate() instead — do not mix on the same DB.
+        db.Database.EnsureCreated();
+    }
+    else
+    {
+        db.Database.Migrate();
+    }
+
+    bool seedDemo = seedDemoOnly
+        || app.Configuration.GetValue("Atlas:SeedDemo", false)
+        || string.Equals(
+            Environment.GetEnvironmentVariable("ATLAS_SEED_DEMO"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    if (seedDemo)
+    {
+        await DevDatabaseSeeder.SeedAsync(db);
+    }
+}
+
+if (seedDemoOnly)
+{
+    return;
+}
+
 app.UseCors("UiCors");
+
+// Liveness/readiness for Compose — registered before HTTPS redirection so HTTP probes succeed in containers.
+app.MapGet("/health", async (AtlasDbContext db, CancellationToken cancellationToken) =>
+{
+    try
+    {
+        bool canConnect = await db.Database.CanConnectAsync(cancellationToken);
+        if (!canConnect)
+        {
+            return Results.Json(new { status = "Unhealthy" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return Results.Ok(new { status = "Healthy" });
+    }
+    catch
+    {
+        return Results.Json(new { status = "Unhealthy" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwaggerGen();
-
-    // For local/dev: create tables without migrations.
-    using IServiceScope scope = app.Services.CreateScope();
-    AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
-    db.Database.EnsureCreated();
 }
-else
+else if (!string.Equals(
+    Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+    "true",
+    StringComparison.OrdinalIgnoreCase))
 {
+    // Skip HTTPS redirection inside containers (Compose serves HTTP on 8080).
     app.UseHttpsRedirection();
 }
 
