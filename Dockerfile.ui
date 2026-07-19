@@ -1,5 +1,4 @@
-# syntax=docker/dockerfile:1
-
+# Classic builder works if BuildKit overlay fails: DOCKER_BUILDKIT=0 COMPOSE_BAKE=false
 FROM node:22-alpine AS build
 WORKDIR /app
 

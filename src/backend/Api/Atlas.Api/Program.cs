@@ -104,16 +104,44 @@ if (!app.Environment.IsEnvironment("Testing"))
 {
     using IServiceScope scope = app.Services.CreateScope();
     AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
+    ILogger startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Atlas.Api.Startup");
 
-    if (app.Environment.IsDevelopment() && !seedDemoOnly)
+    // Compose healthchecks can report Postgres ready before it accepts app connections.
+    const int maxAttempts = 15;
+    const int delayMilliseconds = 2000;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++)
     {
-        // Bare local `dotnet run`: create tables without requiring migrate apply.
-        // Docker Compose / non-Development uses Migrate() instead — do not mix on the same DB.
-        db.Database.EnsureCreated();
-    }
-    else
-    {
-        db.Database.Migrate();
+        try
+        {
+            startupLogger.LogInformation(
+                "Database schema attempt {Attempt}/{MaxAttempts}…",
+                attempt,
+                maxAttempts);
+
+            if (app.Environment.IsDevelopment() && !seedDemoOnly)
+            {
+                // Bare local `dotnet run`: create tables without requiring migrate apply.
+                // Docker Compose / non-Development uses Migrate() instead — do not mix on the same DB.
+                db.Database.EnsureCreated();
+            }
+            else
+            {
+                db.Database.Migrate();
+            }
+
+            break;
+        }
+        catch (Exception ex) when (attempt < maxAttempts && IsTransientDbStartupException(ex))
+        {
+            startupLogger.LogWarning(
+                ex,
+                "Database not ready (attempt {Attempt}/{MaxAttempts}); retrying in {DelayMs}ms.",
+                attempt,
+                maxAttempts,
+                delayMilliseconds);
+            await Task.Delay(delayMilliseconds);
+        }
     }
 
     bool seedDemo = seedDemoOnly
@@ -193,3 +221,25 @@ app.Use(async (context, next) =>
 app.UseFastEndpoints();
 
 app.Run();
+
+static bool IsTransientDbStartupException(Exception exception)
+{
+    for (Exception? current = exception; current is not null; current = current.InnerException)
+    {
+        if (current is Npgsql.NpgsqlException npgsql)
+        {
+            // Timeout / connection refused while Postgres is still coming up.
+            if (npgsql.IsTransient || npgsql.InnerException is TimeoutException or System.Net.Sockets.SocketException)
+            {
+                return true;
+            }
+        }
+
+        if (current is TimeoutException or System.Net.Sockets.SocketException)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

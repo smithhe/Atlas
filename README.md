@@ -4,19 +4,21 @@ Local engineering-manager cockpit (React UI + ASP.NET Core API + Postgres).
 
 ## Quick start (Docker)
 
-Requires Docker Compose **v2.24+** (`docker compose version`).
+Requires Docker Compose **v2** (`docker compose version`). Compose **v2.24+** recommended.
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
+If BuildKit/Bake fails: `COMPOSE_BAKE=false DOCKER_BUILDKIT=0 docker compose up --build`
+
 - UI: http://localhost:5173/#/dashboard
 - API: http://localhost:5012/health
 
-Demo data: `docker compose --profile demo up --build`
+Demo data: `docker compose --profile demo up --build` (seed runs in parallel; refresh if UI loads empty)
 
-Full details: [docs/docker.md](docs/docker.md).
+Full details and troubleshooting: [docs/docker.md](docs/docker.md).
 
 ## Local development (without Docker)
 

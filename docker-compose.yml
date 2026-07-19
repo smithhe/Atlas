@@ -19,6 +19,8 @@ services:
       start_period: 10s
 
   # One-shot seeder used only with: docker compose --profile demo up
+  # Runs in parallel with api (api no longer depends_on demo-seed). Seeding is idempotent;
+  # demo data appears after this job completes.
   demo-seed:
     profiles: ["demo"]
     build:
@@ -51,15 +53,15 @@ services:
       Ai__MaxPromptChars: ${Ai__MaxPromptChars:-4000}
       Ai__MaxContextChars: ${Ai__MaxContextChars:-12000}
       Ai__MaxConcurrentSessions: ${Ai__MaxConcurrentSessions:-4}
+      # Prefer: docker compose --profile demo (runs demo-seed). Or:
+      # ATLAS_SEED_DEMO=true docker compose up --build
       Atlas__SeedDemo: ${ATLAS_SEED_DEMO:-false}
     ports:
       - "${API_PORT:-5012}:8080"
     depends_on:
       db:
         condition: service_healthy
-      demo-seed:
-        condition: service_completed_successfully
-        required: false
+    restart: on-failure:5
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
       interval: 10s
