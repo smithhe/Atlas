@@ -2,21 +2,26 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY src/Directory.Build.props src/
-COPY src/backend/Api/Atlas.Api/Atlas.Api.csproj src/backend/Api/Atlas.Api/
-COPY src/backend/Core/Atlas.Application/Atlas.Application.csproj src/backend/Core/Atlas.Application/
-COPY src/backend/Core/Atlas.Domain/Atlas.Domain.csproj src/backend/Core/Atlas.Domain/
-COPY src/backend/Infrastructure/Atlas.Persistence/Atlas.Persistence.csproj src/backend/Infrastructure/Atlas.Persistence/
-COPY src/backend/Infrastructure/Atlas.AzureDevOps/Atlas.AzureDevOps.csproj src/backend/Infrastructure/Atlas.AzureDevOps/
+# Keep Api/Core/Infrastructure layout (project references use ..\..\..) but avoid
+# nesting under /src/src/backend/... which can trigger MSB3552 (**/*.resx as literal).
+COPY src/Directory.Build.props ./
+COPY src/backend/Api/Atlas.Api/Atlas.Api.csproj Api/Atlas.Api/
+COPY src/backend/Core/Atlas.Application/Atlas.Application.csproj Core/Atlas.Application/
+COPY src/backend/Core/Atlas.Domain/Atlas.Domain.csproj Core/Atlas.Domain/
+COPY src/backend/Infrastructure/Atlas.Persistence/Atlas.Persistence.csproj Infrastructure/Atlas.Persistence/
+COPY src/backend/Infrastructure/Atlas.AzureDevOps/Atlas.AzureDevOps.csproj Infrastructure/Atlas.AzureDevOps/
 
-RUN dotnet restore src/backend/Api/Atlas.Api/Atlas.Api.csproj
+RUN dotnet restore Api/Atlas.Api/Atlas.Api.csproj
 
-COPY src/backend/ src/backend/
+COPY src/backend/Api/Atlas.Api/ Api/Atlas.Api/
+COPY src/backend/Core/Atlas.Application/ Core/Atlas.Application/
+COPY src/backend/Core/Atlas.Domain/ Core/Atlas.Domain/
+COPY src/backend/Infrastructure/Atlas.Persistence/ Infrastructure/Atlas.Persistence/
+COPY src/backend/Infrastructure/Atlas.AzureDevOps/ Infrastructure/Atlas.AzureDevOps/
 
-RUN dotnet publish src/backend/Api/Atlas.Api/Atlas.Api.csproj \
+RUN dotnet publish Api/Atlas.Api/Atlas.Api.csproj \
     -c Release \
-    -o /app/publish \
-    --no-restore
+    -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

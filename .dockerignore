@@ -7,10 +7,15 @@
 
 **/bin/
 **/obj/
+**/bin\\/
+**/obj\\/
 **/node_modules/
 **/dist/
 **/TestResults/
 **/coverage/
+
+# Not needed for API/UI images
+src/backend/Tests/
 
 **/*.user
 **/*.suo
