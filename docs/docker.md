@@ -25,6 +25,8 @@ COMPOSE_BAKE=false DOCKER_BUILDKIT=0 docker compose up --build
 
 Default startup applies EF migrations (with retries while Postgres becomes reachable) and leaves the database empty (schema only).
 
+**First-run tip:** Open http://localhost:5173 and click **Continue** — that opens the dashboard. Azure DevOps is optional (login also has **Azure Setup**; setup has **Skip for now**). For sample projects/tasks/risks/members, use the demo profile below.
+
 If host port `5432` is already in use (local Postgres), set `POSTGRES_PORT` in `.env` (for example `5433`).
 
 If you change `API_PORT` or `UI_PORT`, keep `VITE_API_BASE_URL` and `CORS_ORIGIN_*` aligned, then rebuild (`docker compose up --build`). Changing `VITE_API_BASE_URL` requires rebuilding the `ui` image.
