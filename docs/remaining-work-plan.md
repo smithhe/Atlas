@@ -47,8 +47,8 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 | Azure DevOps setup, sync, import, linking | Built; config/naming and a few UX gaps remain |
 | AI panel (all main surfaces) | Built for Dashboard, Tasks, Team, Risks, Projects, Settings; Insert Draft + missing-key setup UX |
 | Backend tests (unit / functional / integration) + CI | In place |
-| Frontend tests | None |
-| Docker / Compose | Done — `docker compose up --build`; demo via `--profile demo` |
+| Frontend tests | Playwright e2e suite + lint/build CI (Phase 7) |
+| Docker / Compose | Done — `docker compose up --build`; demo via `--profile demo`; `scripts/compose-smoke.sh` |
 | Auth | Explicitly deferred (and excluded here) |
 
 ---
@@ -206,7 +206,7 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ---
 
-## Phase 7 — Quality & operability
+## Phase 7 — Quality & operability — **done**
 
 ### Already done
 
@@ -215,8 +215,8 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 
 ### Remaining — **broader UI coverage**
 
-- [ ] Frontend lint + `npm run build` in CI.
-- [ ] Playwright (or equivalent) suite covering broader flows, not just one smoke:
+- [x] Frontend lint + `npm run build` in CI.
+- [x] Playwright (or equivalent) suite covering broader flows, not just one smoke:
   - Continue → dashboard
   - Create/edit task, risk, project
   - Team note with ADO/PR fields round-trip
@@ -224,8 +224,8 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
   - Quick Add creates an item
   - AI panel: missing-key guidance; with key mocked/stubbed, conversation start on multiple views
   - Insert Draft into a focused editor (stubbed AI response OK)
-- [ ] Compose smoke script (health + one CRUD path) optional alongside UI suite.
-- [ ] Secrets only via Compose/env — never baked into images.
+- [x] Compose smoke script (health + one CRUD path) optional alongside UI suite.
+- [x] Secrets only via Compose/env — never baked into images. *(Verified: `Dockerfile.api` / `Dockerfile.ui` copy no secrets; runtime env via Compose/`.env` — see `docs/docker.md`.)*
 
 ### Explicitly deferred
 
@@ -251,7 +251,7 @@ Phase 5  Query-layer cleanup
    │
 Phase 6  Docker Compose + optional --profile demo seed
    │
-Phase 7  Broader frontend UI tests + CI
+Phase 7  Broader frontend UI tests + CI — **done**
 ```
 
 ---
@@ -266,7 +266,7 @@ Phase 7  Broader frontend UI tests + CI
 6. ~~**AI scopes for Team / Risks / Projects / Settings** + Insert Draft + missing-key setup UX.~~ **Done (Phase 4)**
 7. ~~**Frontend query-layer cleanup** (growth optimistic-only docs, list-with-details, remove `loadInitialState`, Azure cache audit).~~ **Done (Phase 5)**
 8. ~~**Docker Compose** + `--profile demo` seeder.~~ **Done (Phase 6)**
-9. **Broader Playwright UI suite** + frontend CI job.
+9. ~~**Broader Playwright UI suite** + frontend CI job.~~ **Done (Phase 7)**
 
 ---
 
@@ -293,5 +293,7 @@ Phase 7  Broader frontend UI tests + CI
 | Browser-local AI panel pref | `src/atlas.ui/src/app/localSettings.ts` |
 | Query invalidation scopes | `src/atlas.ui/src/app/queries/invalidateAppQueries.ts` |
 | Backend CI | `.github/workflows/backend-tests.yml` |
+| Frontend CI (lint/build + Playwright) | `.github/workflows/frontend-ci.yml` |
+| Compose smoke | `scripts/compose-smoke.sh` |
 | Bruno collections | `bruno/Atlas/` |
 | Seeder stub | `src/backend/Infrastructure/Atlas.Persistence/Seeding/DevDatabaseSeeder.cs` |

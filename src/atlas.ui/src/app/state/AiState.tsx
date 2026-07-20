@@ -97,6 +97,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const actionsRef = useRef<AiAction[]>(actions)
   const contextTitleRef = useRef<string>(contextTitle)
   const activeConversationIdRef = useRef<string | undefined>(activeConversationId)
+  const activeTurnIdRef = useRef<string | null>(activeTurnId)
   const draftTargetRef = useRef<AiDraftTarget | null>(null)
 
   useEffect(() => {
@@ -107,6 +108,10 @@ export function AiProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId
   }, [activeConversationId])
+
+  useEffect(() => {
+    activeTurnIdRef.current = activeTurnId
+  }, [activeTurnId])
 
   useEffect(() => {
     if (isHydrating || appliedStartupPreferenceRef.current || userChangedIsOpenRef.current) return
@@ -152,6 +157,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     closeStream()
     setTurns([])
     setActiveTurnId(null)
+    activeTurnIdRef.current = null
     setEvents([])
     setNotice('')
     setActiveConversationId(undefined)
@@ -206,7 +212,17 @@ export function AiProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const onSessionEvent = useCallback((evt: AiSessionEventDto) => {
-    setEvents((prev) => mergeEvent(prev, evt))
+    const turnId = activeTurnIdRef.current
+    setEvents((prev) => {
+      const next = mergeEvent(prev, evt)
+      // Apply response immediately so batched SSE (stub / fast streams) still
+      // land on the turn before a terminal event clears activeTurnId.
+      if (turnId) {
+        const response = renderEvents(next)
+        setTurns((turns) => turns.map((turn) => (turn.id === turnId ? { ...turn, response } : turn)))
+      }
+      return next
+    })
 
     if (evt.status) {
       if (evt.status === 'gathering_context') setStatus('Gathering context...')
@@ -332,6 +348,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     setStatus('Starting...')
     setTurns((prev) => [...prev, nextTurn])
     setActiveTurnId(turnId)
+    activeTurnIdRef.current = turnId
     setEvents([])
     setNotice('')
 

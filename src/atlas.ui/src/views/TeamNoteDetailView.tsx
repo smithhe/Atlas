@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useTeam } from '../app/queries/hooks'
+import { useAppHydration, useTeam } from '../app/queries/hooks'
 import { useSelectedTeamMember, useSelectionActions } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { NoteTag } from '../app/types'
@@ -16,6 +16,7 @@ export function TeamNoteDetailView() {
   const { selectTeamMember } = useSelectionActions()
   const cache = useAppCache()
   const navigate = useNavigate()
+  const isHydrating = useAppHydration()
   const { memberId, noteId } = useParams<{ memberId: string; noteId: string }>()
   const team = useTeam()
   const member = useSelectedTeamMember()
@@ -33,10 +34,11 @@ export function TeamNoteDetailView() {
   }, [memberId, selectTeamMember])
 
   useEffect(() => {
-    if (!memberId) return
+    // Wait for hydration — an empty team array on first paint must not bounce to /team.
+    if (!memberId || isHydrating) return
     const exists = team.some((m) => m.id === memberId)
     if (!exists) navigate('/team', { replace: true })
-  }, [memberId, navigate, team])
+  }, [isHydrating, memberId, navigate, team])
 
   const note = useMemo(() => {
     if (!member || !noteId) return undefined
