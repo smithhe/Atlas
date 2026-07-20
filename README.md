@@ -13,7 +13,7 @@ docker compose up --build
 
 If BuildKit/Bake fails: `COMPOSE_BAKE=false DOCKER_BUILDKIT=0 docker compose up --build`
 
-- UI: http://localhost:5173/#/dashboard
+- UI: http://localhost:5173 — click **Continue** (Azure optional)
 - API: http://localhost:5012/health
 
 Demo data: `docker compose --profile demo up --build` (seed runs in parallel; refresh if UI loads empty)

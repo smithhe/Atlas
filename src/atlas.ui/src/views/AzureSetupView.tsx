@@ -271,7 +271,10 @@ export function AzureSetupView() {
                 Connect your Azure DevOps organization, choose a project and team, then import members.
               </div>
             </div>
-            <div className="pageHeaderRight">
+            <div className="pageHeaderRight" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className="btn btnSecondary" type="button" onClick={() => navigate('/dashboard')}>
+                Skip for now
+              </button>
               <span className="pill toneInfo">
                 <span className="btnContent">
                   {stepLabel}
