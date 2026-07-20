@@ -56,7 +56,7 @@ docker compose --profile demo up --build
 |---|---|
 | Port `5432` already allocated | Set `POSTGRES_PORT=5433` (or another free port) in `.env`. |
 | Build fails with Bake / BuildKit / overlay errors | `COMPOSE_BAKE=false DOCKER_BUILDKIT=0 docker compose up --build` |
-| API exits during migrate / Npgsql timeout to `db:5432` | API retries migrate up to ~30s and restarts on failure (`restart: on-failure:5`). Check `docker compose logs api`. |
+| API exits during migrate / Npgsql timeout | API connects via `host.docker.internal` (host-published Postgres port) and retries migrate up to ~30s (`restart: on-failure:5`). Check `docker compose logs api`. If host port `5432` is taken, set `POSTGRES_PORT` in `.env`. |
 | UI empty after `--profile demo` | Wait for `demo-seed` to exit 0, then refresh; or use `ATLAS_SEED_DEMO=true`. |
 | Old Compose without profiles | Upgrade to Compose v2 (`docker compose version`). |
 
