@@ -34,6 +34,25 @@ npm run build
 npm run preview
 ```
 
+## Lint
+
+```bash
+npm run lint
+```
+
+## End-to-end (Playwright)
+
+Requires the Atlas API on `http://localhost:5012` (Postgres `atlas` / `atlas` / `change-me`). Leave `OpenAI__ApiKey` empty for the missing-key AI guidance test; other AI flows stub the conversation/SSE endpoints.
+
+```bash
+# API in another terminal (from repo root):
+#   ATLAS_SEED_DEMO=true dotnet run --project src/backend/Api/Atlas.Api --launch-profile http
+
+npm run test:e2e
+```
+
+CI runs lint + build and a separate Playwright job (see `.github/workflows/frontend-ci.yml`).
+
 ## Docker
 
 The UI image is built from the repo root (`Dockerfile.ui` + `docker compose`). See [docs/docker.md](../../docs/docker.md).

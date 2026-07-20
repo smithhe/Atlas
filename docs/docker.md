@@ -99,3 +99,15 @@ The UI uses a hash router. After Compose is up, open:
 
 - `Dockerfile.api` — multi-stage .NET 10 publish, listens on `8080`
 - `Dockerfile.ui` — Vite build + nginx static serve on port `80`
+
+Secrets (`OpenAI__ApiKey`, `AzureDevopsToken`, DB password) are injected at runtime via Compose/`.env` only — they are not baked into either image.
+
+## Compose smoke
+
+With Compose up (`docker compose up --build` or `--profile demo`):
+
+```bash
+./scripts/compose-smoke.sh
+```
+
+Checks API `/health`, UI `/health`, then creates a task via the API and GETs it. Override `API_URL` / `UI_URL` if you changed ports. Use `SKIP_UI_HEALTH=1` when only the API is running.
