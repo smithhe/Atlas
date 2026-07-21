@@ -45,11 +45,11 @@ test.describe('Team note ADO/PR round-trip', () => {
     await expect(page).toHaveURL(new RegExp(`#/team/${member.id}/notes/`))
     const noteUrl = page.url()
     await page.reload()
-    await expect(page.getByLabel('Search')).toBeEnabled({ timeout: 30_000 })
+    await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
     // If a race still bounced us, reopen the note once data is ready.
     if (!page.url().includes('/notes/')) {
       await page.goto(noteUrl)
-      await expect(page.getByLabel('Search')).toBeEnabled({ timeout: 30_000 })
+      await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
     }
     await expect(page.getByLabel('Note fields').getByText(adoId)).toBeVisible({ timeout: 30_000 })
     await expect(page.getByRole('link', { name: prUrl })).toBeVisible()

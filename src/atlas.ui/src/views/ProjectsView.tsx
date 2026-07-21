@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAi } from '../app/state/AiState'
-import { useProductOwners, useProjects, useRisks, useTasks, useTeam } from '../app/queries/hooks'
+import { useProductOwners, useProjects, useProjectsQuery, useRisks, useTasks, useTeam } from '../app/queries/hooks'
 import { useSelectedProject, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { HealthSignal, Priority, ProductOwner, Project, ProjectStatus, TaskStatus } from '../app/types'
@@ -22,6 +22,7 @@ export function ProjectsView() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId?: string }>()
   const projects = useProjects()
+  const projectsQuery = useProjectsQuery()
   const { selectedProjectId } = useSelectionState()
   const selected = useSelectedProject()
   const isFocusMode = !!projectId
@@ -42,11 +43,13 @@ export function ProjectsView() {
   }, [selectProject, projectId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
+  // Wait until projects have loaded so an empty cache on first paint does not bounce away.
   useEffect(() => {
     if (!projectId) return
+    if (!projectsQuery.isSuccess) return
     const exists = projects.some((p) => p.id === projectId)
     if (!exists) navigate('/projects', { replace: true })
-  }, [navigate, projectId, projects])
+  }, [navigate, projectId, projects, projectsQuery.isSuccess])
 
   async function handleAddProject() {
     if (isCreatingProject) return
