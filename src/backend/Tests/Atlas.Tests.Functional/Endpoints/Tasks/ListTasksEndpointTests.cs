@@ -36,6 +36,8 @@ public sealed class ListTasksEndpointTests : IClassFixture<AtlasWebApplicationFa
         Assert.NotNull(tasks);
         Assert.Single(tasks);
         Assert.Equal(first.Id, tasks[0].Id);
+        Assert.False(string.IsNullOrWhiteSpace(tasks[0].Title));
+        Assert.StartsWith("First-", tasks[0].Title);
     }
 
     [Fact]

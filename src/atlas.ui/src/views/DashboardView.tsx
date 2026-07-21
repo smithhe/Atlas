@@ -365,7 +365,7 @@ export function DashboardView() {
           </header>
 
           <div className="list">
-            <div className="dashboardGroup">
+            <div className="dashboardGroup" data-testid="dashboard-needs-action">
               <div className="dashboardGroupHeader">
                 <div className="dashboardGroupTitle">Needs Action</div>
                 <div className="mutedSmall">Things you should decide/unblock</div>
@@ -419,7 +419,7 @@ export function DashboardView() {
           </div>
         </section>
 
-        <section className="card">
+        <section className="card" data-testid="dashboard-commitment">
           <header className="cardHeader">
             <div className="cardTitle">Commitment View</div>
           </header>

@@ -8,7 +8,7 @@ test.describe('Risks CRUD', () => {
     await expect(page.locator('h2.pageTitle', { hasText: 'Risks' })).toBeVisible()
 
     const title = await uniqueTitle('E2E Risk')
-    await page.getByRole('button', { name: 'Add risk' }).click()
+    await page.getByRole('button', { name: 'Add risk', exact: true }).click()
 
     const list = page.getByLabel('Risk list')
     await expect(list.getByText('New risk').first()).toBeVisible({ timeout: 20_000 })

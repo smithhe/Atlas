@@ -27,6 +27,8 @@ public sealed class TeamMemberSubResourcesEndpointTests : IClassFixture<AtlasWeb
             .ReadJsonAsync<CreateTeamMemberResponse>();
         Assert.NotNull(member);
 
+        const string createAdoWorkItemId = "12345";
+        const string createPrUrl = "https://dev.azure.com/org/project/_git/repo/pullrequest/1";
         AddTeamNoteResponse? note = await (await _client.PostJsonAsync(
             $"/team-members/{member.Id}/notes",
             new AddTeamNoteRequest(
@@ -34,10 +36,18 @@ public sealed class TeamMemberSubResourcesEndpointTests : IClassFixture<AtlasWeb
                 NoteType.Standup,
                 "Standup",
                 "Shipped tests",
-                "12345",
-                "https://dev.azure.com/org/project/_git/repo/pullrequest/1")))
+                createAdoWorkItemId,
+                createPrUrl)))
             .ReadJsonAsync<AddTeamNoteResponse>();
         Assert.NotNull(note);
+
+        // Create → GET must round-trip ADO/PR before any update.
+        TeamMemberDto? afterCreate = await (await _client.GetAsync($"/team-members/{member.Id}"))
+            .ReadJsonAsync<TeamMemberDto>();
+        Assert.NotNull(afterCreate);
+        Assert.Single(afterCreate.Notes);
+        Assert.Equal(createAdoWorkItemId, afterCreate.Notes[0].AdoWorkItemId);
+        Assert.Equal(createPrUrl, afterCreate.Notes[0].PrUrl);
 
         HttpResponseMessage updateNote = await _client.PutJsonAsync(
             $"/team-members/{member.Id}/notes/{note.Id}",

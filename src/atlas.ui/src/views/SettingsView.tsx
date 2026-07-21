@@ -170,6 +170,8 @@ export function SettingsView() {
               className="input"
               type="number"
               min={1}
+              data-testid="settings-stale-days"
+              aria-label="Stale threshold (days)"
               value={settings.staleDays}
               onChange={(e) =>
                 cache.updateSettings({ ...settings, staleDays: clampInt(e.target.value, 1, 365) })

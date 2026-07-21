@@ -69,7 +69,8 @@ export function TeamView() {
   const isFocusMode = !!memberId
   const routeTab = useMemo(() => getActiveTab(location.pathname), [location.pathname])
   const [localTab, setLocalTab] = useState<MemberTab>('overview')
-  const { isFetching: refreshingTeam } = useTeamMembersQuery()
+  const teamMembersQuery = useTeamMembersQuery()
+  const refreshingTeam = teamMembersQuery.isFetching
   const activeTab = isFocusMode ? routeTab : localTab
   const memberName = useMemo(() => {
     if (!memberId) return undefined
@@ -93,11 +94,13 @@ export function TeamView() {
   }, [memberId, selectTeamMember])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
+  // Wait until team members have loaded so an empty cache on first paint does not bounce away.
   useEffect(() => {
     if (!memberId) return
+    if (!teamMembersQuery.isSuccess) return
     const exists = team.some((m) => m.id === memberId)
     if (!exists) navigate('/team', { replace: true })
-  }, [memberId, navigate, team])
+  }, [memberId, navigate, team, teamMembersQuery.isSuccess])
 
   return (
     <div className="page">

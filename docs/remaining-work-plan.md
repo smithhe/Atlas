@@ -227,6 +227,19 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 - [x] Compose smoke script (health + one CRUD path) optional alongside UI suite.
 - [x] Secrets only via Compose/env — never baked into images. *(Verified: `Dockerfile.api` / `Dockerfile.ui` copy no secrets; runtime env via Compose/`.env` — see `docs/docker.md`.)*
 
+### Follow-on (same Phase 7 quality bar)
+
+Playwright suite deepened beyond the original checklist (still chromium / workers 1; AI coverage left unchanged):
+
+- [x] Persist + reload for task / risk / project (list + detail)
+- [x] Focus URL (`/:id`) + reload + Exit focus
+- [x] Search kinds: task, risk, person (API-seeded)
+- [x] Quick Add: task, risk, team note
+- [x] Delete smoke (task)
+- [x] Dashboard Needs Action → entity route (API-seeded open risk)
+- [x] Settings stale-days Save → reload
+- [x] Shell primary nav titles + Not Found → Back to Dashboard
+
 ### Explicitly deferred
 
 - Authentication / authorization

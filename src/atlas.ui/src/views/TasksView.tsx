@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useProjects, useRisks, useSettings, useTasks, useTeam } from '../app/queries/hooks'
+import { useProjects, useRisks, useSettings, useTasks, useTasksQuery, useTeam } from '../app/queries/hooks'
 import { useSelectedTask, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { Priority, Task, TaskStatus } from '../app/types'
@@ -17,6 +17,7 @@ export function TasksView() {
   const navigate = useNavigate()
   const { taskId } = useParams<{ taskId?: string }>()
   const tasks = useTasks()
+  const tasksQuery = useTasksQuery()
   const settings = useSettings()
   const projects = useProjects()
   const risks = useRisks()
@@ -157,11 +158,13 @@ export function TasksView() {
   }, [selectTask, taskId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
+  // Wait until tasks have loaded so an empty cache on first paint does not bounce away.
   useEffect(() => {
     if (!taskId) return
+    if (!tasksQuery.isSuccess) return
     const exists = tasks.some((t) => t.id === taskId)
     if (!exists) navigate('/tasks', { replace: true })
-  }, [navigate, taskId, tasks])
+  }, [navigate, taskId, tasks, tasksQuery.isSuccess])
 
   // If there are >5 tasks, cap list height to exactly 5 rows so the 6th+ scrolls (regardless of window size).
   useLayoutEffect(() => {

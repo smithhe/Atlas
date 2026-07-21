@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useAi } from '../app/state/AiState'
-import { useProjects, useRisks, useTasks, useTeam } from '../app/queries/hooks'
+import { useProjects, useRisks, useRisksQuery, useTasks, useTeam } from '../app/queries/hooks'
 import { useSelectedRisk, useSelectionActions, useSelectionState } from '../app/state/SelectionState'
 import { useAppCache } from '../app/queries/useAppCache'
 import type { Risk, RiskStatus, TeamMember } from '../app/types'
@@ -84,6 +84,7 @@ export function RisksView() {
   const navigate = useNavigate()
   const { riskId } = useParams<{ riskId?: string }>()
   const risks = useRisks()
+  const risksQuery = useRisksQuery()
   const projects = useProjects()
   const { selectedRiskId } = useSelectionState()
   const selected = useSelectedRisk()
@@ -126,11 +127,13 @@ export function RisksView() {
   }, [selectRisk, riskId])
 
   // If we entered focus mode with an unknown ID, fall back to list view.
+  // Wait until risks have loaded so an empty cache on first paint does not bounce away.
   useEffect(() => {
     if (!riskId) return
+    if (!risksQuery.isSuccess) return
     const exists = risks.some((r) => r.id === riskId)
     if (!exists) navigate('/risks', { replace: true })
-  }, [navigate, riskId, risks])
+  }, [navigate, riskId, risks, risksQuery.isSuccess])
 
   // If there are >5 risks, cap list height to exactly 5 rows so the 6th+ scrolls (regardless of window size).
   useLayoutEffect(() => {

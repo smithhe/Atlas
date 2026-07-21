@@ -10,7 +10,7 @@ export async function continueToDashboard(page: Page): Promise<void> {
   await expect(page.locator('h2.pageTitle', { hasText: 'Dashboard' })).toBeVisible({ timeout: 30_000 })
   // Hydration overlay should clear (nav + search usable).
   await expect(page.getByRole('navigation', { name: 'Primary navigation' })).toBeVisible()
-  await expect(page.getByLabel('Search')).toBeEnabled({ timeout: 30_000 })
+  await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
 }
 
 export async function openNav(page: Page, label: string): Promise<void> {
