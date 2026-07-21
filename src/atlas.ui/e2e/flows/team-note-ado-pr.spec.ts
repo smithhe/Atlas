@@ -29,7 +29,16 @@ test.describe('Team note ADO/PR round-trip', () => {
     await modal.locator('.fieldLabel', { hasText: 'ADO work item id' }).locator('..').locator('input').fill(adoId)
     await modal.locator('.fieldLabel', { hasText: 'PR URL' }).locator('..').locator('input').fill(prUrl)
     await modal.locator('.fieldLabel', { hasText: /^Note$/ }).locator('..').locator('textarea').fill('Note body with ADO/PR fields.')
+
+    const createWait = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/team-members/${member.id}/notes`) &&
+        r.request().method() === 'POST' &&
+        r.ok(),
+      { timeout: 20_000 },
+    )
     await modal.getByRole('button', { name: 'Create' }).click()
+    await createWait
 
     await expect(page.getByText(noteTitle)).toBeVisible({ timeout: 20_000 })
     const noteRow = page.locator('.memberNotesRow', { hasText: noteTitle })
@@ -45,8 +54,9 @@ test.describe('Team note ADO/PR round-trip', () => {
     await expect(page).toHaveURL(new RegExp(`#/team/${member.id}/notes/`))
     const noteUrl = page.url()
     await page.reload()
+    // Primary path: wait for shell hydration before asserting note fields.
     await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
-    // If a race still bounced us, reopen the note once data is ready.
+    // Safety net only if a rare bounce still occurs after hydration.
     if (!page.url().includes('/notes/')) {
       await page.goto(noteUrl)
       await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
