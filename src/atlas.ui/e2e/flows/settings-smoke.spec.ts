@@ -15,7 +15,13 @@ test.describe('Settings smoke', () => {
       const input = page.getByTestId('settings-stale-days')
       await expect(input).toBeVisible()
       await input.fill(String(nextStaleDays))
+
+      const saveWait = page.waitForResponse(
+        (r) => r.url().includes('/settings') && r.request().method() === 'PUT' && r.ok(),
+        { timeout: 20_000 },
+      )
       await page.getByRole('button', { name: 'Save settings' }).click()
+      await saveWait
 
       await page.reload()
       await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
