@@ -26,9 +26,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: process.env.CI ? 'npm run preview -- --host 127.0.0.1 --port 5173' : 'npm run dev -- --host 127.0.0.1 --port 5173',
+    command:
+      'dotnet run --project ../frontend/Atlas.Ui/Atlas.Ui.csproj --launch-profile http',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 })

@@ -437,25 +437,25 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 
 ### Phase 1 — Umbrella + plan
 
-- [ ] Branch `cursor/blazor-wasm-frontend-82c4`; this plan committed.
+- [x] Branch `cursor/blazor-wasm-frontend-82c4`; this plan committed.
 - **Exit:** Plan accepted; React frozen.
 
 ### Phase 2 — Scaffold Blazor WASM + **umbrella CI**
 
-- [ ] `src/frontend/Atlas.Ui` in `src/Atlas.sln`; placeholder page; CSS stub; **target framework / SDK 10.0.x**
-- [ ] `ApiBaseUrl` config; **launchSettings / run command pinned to port 5173**
-- [ ] **`src/atlas.ui/e2e/flows/blazor-host.spec.ts`** — smoke spec verifying Blazor host on 5173
-- [ ] **`tests/e2e/playwright-ported.txt`** with first line `e2e/flows/blazor-host.spec.ts` (never empty)
-- [ ] **`tests/e2e/run-ported-playwright.sh`** — fails on empty manifest; no bare `playwright test`
-- [ ] **`playwright.config.ts`** in `src/atlas.ui`: `webServer.command` → Blazor host on 5173
-- [ ] **Umbrella CI workflow live:** `dotnet` **10.0.x** + Blazor build + Playwright job (`npm ci` in `src/atlas.ui`; `bash tests/e2e/run-ported-playwright.sh` from repo root)
-- [ ] Optional umbrella-only Compose profile `blazor`
+- [x] `src/frontend/Atlas.Ui` in `src/Atlas.sln`; placeholder page; CSS stub; **target framework / SDK 10.0.x**
+- [x] `ApiBaseUrl` config; **launchSettings / run command pinned to port 5173**
+- [x] **`src/atlas.ui/e2e/flows/blazor-host.spec.ts`** — smoke spec verifying Blazor host on 5173
+- [x] **`tests/e2e/playwright-ported.txt`** with first line `e2e/flows/blazor-host.spec.ts` (never empty)
+- [x] **`tests/e2e/run-ported-playwright.sh`** — fails on empty manifest; no bare `playwright test`
+- [x] **`playwright.config.ts`** in `src/atlas.ui`: `webServer.command` → Blazor host on 5173
+- [x] **Umbrella CI workflow live:** `dotnet` **10.0.x** + Blazor build + Playwright job (`npm ci` in `src/atlas.ui`; `bash tests/e2e/run-ported-playwright.sh` from repo root)
+- [ ] Optional umbrella-only Compose profile `blazor` *(skipped in Phase 2 PR)*
 
 **Exit:**
 
-- [ ] `dotnet build` succeeds; WASM loads on **5173**; API + CORS ok
+- [x] `dotnet build` succeeds; WASM loads on **5173**; API + CORS ok
 - [ ] **Umbrella CI green on Phase 2 PR** — `blazor-host.spec.ts` passes via runner script
-- [ ] Playwright config points at Blazor host (not React preview)
+- [x] Playwright config points at Blazor host (not React preview)
 
 ### Phase 3 — OpenAPI + cache skeleton + **React visual baseline**
 
@@ -557,4 +557,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-After Phase 1 acceptance: cut `cursor/blazor-wasm-scaffold-82c4` and execute **Phase 2** (including umbrella CI and 5173 test host).
+Phase 2 scaffold is on `cursor/blazor-wasm-scaffold-82c4`. After merge to the umbrella: cut `cursor/blazor-wasm-openapi-82c4` (or equivalent) and execute **Phase 3**.
