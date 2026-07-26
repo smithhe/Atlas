@@ -480,7 +480,7 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 | Mapping stubs | `src/frontend/Atlas.Ui/Mapping/` (`ApiMappers`, `Duration`, `Tones`, `TeamLogic`) |
 | Cache skeleton | `src/frontend/Atlas.Ui/Services/AppCacheService.cs` — `IsHydrating` + projects→risks→tasks gates |
 | Sample call | `Home.razor` lists tasks via `AppCacheService` |
-| React baseline | `docs/migration-screenshots/react-baseline/` — regenerate with `bash scripts/capture-react-baseline.sh` |
+| React baseline | `docs/migration-screenshots/react-baseline/` — regenerate with `bash scripts/capture-react-baseline.sh`. Includes team note detail + tasks split/focus; work-item/member-risk/growth detail are seed gaps (see baseline README). |
 ### Phase 4 — Shell, path routes, CSS, hash shim
 
 - [ ] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
