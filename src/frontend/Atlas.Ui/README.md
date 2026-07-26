@@ -1,11 +1,12 @@
 # Atlas.Ui (Blazor WebAssembly)
 
-Phase 2 scaffold for the React → Blazor WASM migration. Feature pages land in later phases.
+Phase 3: OpenAPI/NSwag client, mapping stubs, cache hydration skeleton, and sample list-tasks on Home.
 
 ## Prerequisites
 
 - .NET SDK **10.0.x**
-- Atlas API on **http://localhost:5012** (optional for the placeholder page; required once API calls are wired)
+- Atlas API on **http://localhost:5012**
+- Postgres for API / OpenAPI export (default `localhost:5432`, `atlas` / `change-me`)
 
 ## Run (pinned host port **5173**)
 
@@ -23,7 +24,31 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
 ## Configuration
 
-`ApiBaseUrl` is read from `wwwroot/appsettings*.json` (default `http://localhost:5012`) and applied to the shared `HttpClient`.
+`ApiBaseUrl` is read from `wwwroot/appsettings*.json` (default `http://localhost:5012`) and applied to `HttpClient` + the generated `AtlasApiClient`.
+
+## OpenAPI / NSwag
+
+Regenerate committed OpenAPI + C# client (Postgres required):
+
+```bash
+bash scripts/regenerate-openapi.sh
+```
+
+- Spec: `openapi/atlas.v1.json` (see `openapi/README.md`)
+- Client: `Api/Generated/AtlasApiClient.cs` (SSE events path excluded)
+- Config: `nswag.json`
+
+## Cache / hydration
+
+`Services/AppCacheService` mirrors React query topology (`IsHydrating`, projects → risks → tasks). Home shows a sample task list from the cache.
+
+## React visual baseline
+
+Phase 3 parity screenshots live at [`docs/migration-screenshots/react-baseline/`](../../../docs/migration-screenshots/react-baseline/). Regenerate with:
+
+```bash
+bash scripts/capture-react-baseline.sh
+```
 
 ## Playwright
 
