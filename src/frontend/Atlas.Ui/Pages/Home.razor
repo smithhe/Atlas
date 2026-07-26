@@ -1,8 +1,45 @@
 ﻿@page "/"
+@using Atlas.Ui.Services
+@inject AppCacheService Cache
+@implements IDisposable
 
 <PageTitle>Atlas</PageTitle>
 
 <main class="placeholder">
     <h1>Atlas</h1>
     <p>Blazor WebAssembly host scaffold (Phase 2).</p>
+
+    @if (Cache.IsHydrating)
+    {
+        <p class="sample-api">Loading tasks…</p>
+    }
+    else if (!string.IsNullOrEmpty(Cache.LastError) && Cache.Tasks.Count == 0)
+    {
+        <p class="sample-api">Could not load tasks: @Cache.LastError</p>
+    }
+    else
+    {
+        <p class="sample-api">Tasks loaded: @Cache.Tasks.Count</p>
+        @if (Cache.Tasks.Count > 0)
+        {
+            <ul class="sample-api-list">
+                @foreach (var task in Cache.Tasks.Take(8))
+                {
+                    <li>@task.Title</li>
+                }
+            </ul>
+        }
+    }
 </main>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnCacheChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
+}

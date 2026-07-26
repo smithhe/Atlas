@@ -1,0 +1,8 @@
+{
+  "route": "/#/dashboard",
+  "viewport": "1440x900",
+  "transferSizeBytes": 259592,
+  "ttiMs": 581,
+  "measuredAt": "2026-07-26T22:14:18.932Z",
+  "notes": "Hard reload of dashboard with CDP Network.setCacheDisabled. TTI = reload start until Dashboard title visible and Search enabled. Transfer size = sum of Network.loadingFinished encodedDataLength."
+}

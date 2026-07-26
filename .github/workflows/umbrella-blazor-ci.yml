@@ -26,9 +26,45 @@ jobs:
       - name: Build Blazor WASM
         run: dotnet build src/frontend/Atlas.Ui/Atlas.Ui.csproj --no-restore -c Release
 
+  openapi-drift:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: atlas
+          POSTGRES_PASSWORD: change-me
+          POSTGRES_DB: atlas
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atlas -d atlas"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      ConnectionStrings__AtlasDb: Host=localhost;Port=5432;Database=atlas;Username=atlas;Password=change-me
+      ASPNETCORE_ENVIRONMENT: Development
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore API
+        run: dotnet restore src/backend/Api/Atlas.Api/Atlas.Api.csproj
+
+      - name: OpenAPI drift check
+        run: bash scripts/check-openapi-drift.sh
+
   playwright-ported:
     runs-on: ubuntu-latest
-    needs: [blazor-build]
+    needs: [blazor-build, openapi-drift]
 
     services:
       postgres:
