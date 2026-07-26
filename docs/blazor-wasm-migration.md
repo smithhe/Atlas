@@ -2,281 +2,559 @@
 
 ## Goal
 
-Replace `src/atlas.ui` (React/Vite) with a Blazor WebAssembly frontend that talks to the existing ASP.NET Core API, preserving feature parity for core Atlas flows (tasks, projects, risks, team, settings, AI assistant) and the Docker/nginx hosting model.
+Replace `src/atlas.ui` (React/Vite) with a Blazor WebAssembly frontend that talks to the existing ASP.NET Core API, preserving feature parity for core Atlas flows (tasks, projects, risks, team, settings, AI assistant) and the **Docker/nginx** hosting model.
+
+Remote agents must keep UI look and behavior as close to identical as practical. Visual parity is **manually approved** against route/state checklists and before/after screenshots — **not** gated by automated pixel diff.
+
+---
 
 ## Decisions (locked)
 
 | Topic | Decision |
 | --- | --- |
-| **Merge to `main`** | Only once React is fully removed and Blazor is the sole frontend. No early scaffolding merge to `main`. |
-| **API types** | **OpenAPI codegen** via **NSwag** from FastEndpoints Swagger (see Phase 3). |
-| **Routing** | **Path-based** Blazor routing (`/dashboard`, not `/#/dashboard`). Matches Blazor templates and conventions; nginx already has SPA `try_files` fallback. |
-| **React removal** | **Hard delete** `src/atlas.ui` in a **standalone commit** (easy `git revert` / checkout restore). |
+| **Merge to `main`** | Only once React is fully removed and Blazor is the sole frontend. |
+| **Parity baseline** | **React development is frozen** at umbrella-branch creation (`cursor/blazor-wasm-frontend-82c4`). No ongoing React sync. |
+| **Parity acceptance** | Manual review + screenshots. **No pixel-diff gate.** |
+| **Visual baseline timing** | Complete React screenshot baseline **no later than end of Phase 3**, before Phase 4. |
+| **API types** | OpenAPI codegen via **NSwag** from FastEndpoints Swagger (Phase 3). |
+| **Routing** | **Path-based** Blazor routing (`/dashboard`, not `/#/dashboard`). |
+| **Legacy hash URLs** | Temporary **client-side** shim `/#/…` → `/…` ([Legacy hash URL shim](#legacy-hash-url-shim)). |
+| **Hosting** | **Docker/nginx only.** No Azure Static Web Apps. |
+| **React removal** | **Hard delete** `src/atlas.ui` in a **standalone commit**. |
+| **Phase sequencing** | **Team (Phase 6) before AI (Phase 7).** |
+| **Tests** | Playwright ported **progressively each phase** — not deferred to cutover. |
+| **Umbrella CI** | **Mandatory in Phase 2.** Every later phase PR runs Blazor build + available Playwright flows. Phase 8 **extends/finalizes** CI — does not introduce it. |
+| **Dev/test host port** | Blazor dev and Playwright host pinned to **5173** (match existing CORS and Compose `UI_PORT`). |
+| **.NET SDK** | Blazor project and CI use **.NET SDK 10.0.x** (match `backend-tests.yml` / repo today). |
+| **Playwright home** | Phases 2–7: config + deps in **`src/atlas.ui`**; cumulative manifest in **`tests/e2e/`**. Phase 8: relocate all e2e assets to **`tests/e2e/`** before React delete. |
+
+### Defaults preserved
+
+| Topic | Default |
+| --- | --- |
+| Styling | Reuse global CSS/classes (`index.css`, `App.css`); **no component library** |
+| Auth | **Out of scope** — login/setup stubs |
+| Playwright | **All 14 flows** ported to path URLs |
+| Settings | Preserve `localStorage` key `atlas.defaultAiPanelOpen` |
+| Markdown | **Sanitized Markdig** + syntax highlighting — intentional security improvement vs React `react-markdown` (rendering differences require **manual acceptance**, not exact React parity) |
+| AI streaming | **EventSource via JS interop** — outside NSwag |
 
 ### Why path-based routing
 
-Blazor’s default and documented model is path routing (`@page "/tasks"`, `NavigationManager`). Hash routing was a React SPA choice for static hosts without rewrite rules; Atlas nginx already serves `index.html` for unknown paths (`docker/nginx/default.conf`), so path routing is the better fit. Docs, Playwright, and bookmarks will move from `/#/...` to `/...` at cutover (no dual-mode hash shim unless we discover a hard requirement later).
+Blazor defaults to path routing. nginx already has SPA `try_files` (`docker/nginx/default.conf`). The hash shim is a **temporary** client-side bridge only; fragments are invisible to nginx.
+
+---
 
 ## Branch strategy
 
 | Branch | Role |
 | --- | --- |
-| `cursor/blazor-wasm-frontend-82c4` | **Umbrella feature branch.** All Blazor work merges here first. **Does not merge to `main` until Phase 8 cutover** (React deleted, Blazor-only). |
-| `cursor/blazor-wasm-<phase>-82c4` | Short-lived phase branches cut from the umbrella (e.g. `cursor/blazor-wasm-scaffold-82c4`). PRs target the umbrella branch. |
-| `main` | Unchanged until the umbrella lands as a single cutover (Blazor in, React gone). |
+| `cursor/blazor-wasm-frontend-82c4` | **Umbrella.** All Blazor work merges here until Phase 8 cutover to `main`. |
+| `cursor/blazor-wasm-<phase>-82c4` | Phase branches; **PRs target umbrella**. |
+| `main` | React-only until Phase 8 merge. |
 
-**Phase 1 (this change):** create `cursor/blazor-wasm-frontend-82c4` and land this plan. Later phases stem off this branch.
+Optional Blazor compose profile on umbrella only — must not ship to `main` early.
 
-Until cutover on the umbrella, React remains the only path used by `main` / default Compose. Optional Blazor compose profile may exist **on the umbrella only** for local comparison — it must not ship to `main` early.
+---
 
-## Current baseline (why this plan looks like this)
+## Current baseline (repo facts)
 
-- Small–medium SPA: ~14k LOC under `src/atlas.ui/src`, ~25 routes, ~9 shared components, Playwright e2e only.
-- Thin stack: React Router **hash** routing, TanStack Query, native `fetch`, global CSS — no component library, charts, DnD, or real auth.
-- Hotspots: `TeamView.tsx` (~2.2k LOC), React Query cache coherence, AI SSE (`EventSource`), markdown rendering.
-- Backend: FastEndpoints + `FastEndpoints.Swagger` (NSwag-backed). Swagger UI/JSON only when `IsDevelopment()`; Compose runs Production (no live `/swagger`). UI hand-maintains TS DTOs/mappers today.
-- Compose: `ui` service builds `Dockerfile.ui` → nginx on port 80 (`UI_PORT` → 5173); API on 5012.
+- ~14k LOC under `src/atlas.ui/src`, **roughly two dozen** route patterns in `src/atlas.ui/src/app/router.tsx`, ~9 shared components, Playwright e2e only.
+- React Router **hash** routing (`createHashRouter`); TanStack Query; native `fetch`; global CSS.
+- Hotspots: `TeamView.tsx`, `useAppCache.ts` / `cacheUpdates.ts`, AI SSE, markdown.
+- Backend: FastEndpoints **8.1.0** + `FastEndpoints.Swagger`. `SwaggerDocument()` + `UseSwaggerGen()` in Development only. Compose Production → no live `/swagger`.
+- **OpenAPI export not wired.** No `ExportSwaggerDocsAndExitAsync` in `Program.cs`. No committed OpenAPI JSON, no NSwag config.
+- **Startup requires Postgres today:** `Program.cs` runs `EnsureCreated()` / `Migrate()` and optional demo seed **before** `UseFastEndpoints()` — export wiring inherits this unless Phase 3 adds an early export path.
+- Compose: `Dockerfile.ui` (React/Vite → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
+- nginx: SPA fallback; **no `Cache-Control` headers** today.
+- CI today: `frontend-ci.yml` on **`main` only** — React lint/build + Playwright.
 
-## Non-goals (for this migration)
+---
 
-- Rewriting the API or domain model.
-- Adding SSO/auth (still stub; design Blazor-friendly later).
-- Frontend unit-test / coverage gates (match current Atlas conventions).
-- SignalR rewrite of AI streaming unless SSE proves painful in WASM (prefer keep `/ai/sessions/{id}/events` first).
-- Pixel-perfect redesign; port existing CSS variables / `App.css` structure where practical.
-- Preserving hash URLs long-term (path routing is intentional).
+## Non-goals
+
+- API/domain rewrite; SSO/auth; frontend unit-test gates; SignalR AI rewrite; pixel-diff tooling; Azure Static Web Apps; long-term hash URLs.
+
+---
 
 ## Success criteria
 
-- Blazor WASM app serves the same user journeys as React for: login/setup stub, dashboard, tasks, projects, risks, team (notes / work items / growth), settings, Azure import, AI panel.
-- Routes use path-based URLs (`/dashboard`, `/tasks`, `/team/...`, etc.).
-- `docker compose up --build` builds and serves the Blazor UI (nginx static host).
-- Frontend CI builds Blazor and runs an updated Playwright suite against it.
-- `src/atlas.ui` hard-deleted in a standalone commit; umbrella then merges to `main`.
+- [ ] Same user journeys as frozen React baseline: login/setup stub, dashboard, tasks, projects, risks, team, settings, Azure import, AI panel.
+- [ ] Path-based URLs; Docker/nginx serves Blazor; umbrella CI green from Phase 2 onward.
+- [ ] React visual baseline captured by **end of Phase 3**; Phase 4–7 PRs compare Blazor against it.
+- [ ] Manual parity sign-off per phase; Playwright in `tests/e2e/`; `src/atlas.ui` deleted in standalone commit; umbrella merges to `main`.
 
 ---
 
-## Phase 1 — Umbrella branch + plan *(this PR)*
+## Remote-agent operating protocol
 
-**Outcome:** Long-lived branch `cursor/blazor-wasm-frontend-82c4` exists; this document is the source of truth.
+### Branch, scope, prerequisites
 
-**Work:**
+- Phase PRs → **`cursor/blazor-wasm-frontend-82c4`** only.
+- One phase per PR unless plan allows sub-PRs.
+- Edit only files required for current phase deliverables.
+- **Do not start Phase 7 until Phase 6 is merged.**
+- React on `main` stays untouched; on umbrella, change React only for Playwright URL migration tied to Blazor hosting.
 
-- Create branch from `main`.
-- Add `docs/blazor-wasm-migration.md`.
-- No application code changes.
-
-**Exit:** Branch pushed; plan reviewed/accepted before scaffolding.
-
----
-
-## Phase 2 — Scaffold Blazor WASM (umbrella only; React untouched on `main`)
-
-**Branch from:** `cursor/blazor-wasm-frontend-82c4` → e.g. `cursor/blazor-wasm-scaffold-82c4`
-
-**Outcome:** Empty-but-runnable Blazor WASM project in the solution on the umbrella branch; React still present and default for any `main` builds.
-
-**Work:**
-
-- Add project under e.g. `src/frontend/Atlas.Ui` (Blazor WASM, .NET aligned with API SDK).
-- Add to `src/Atlas.sln`.
-- Minimal shell: layout, one placeholder page, `wwwroot` CSS variables stub.
-- Configuration: `ApiBaseUrl` via `appsettings.json` / `wwwroot/appsettings.json` (replaces `VITE_API_BASE_URL`).
-- Local run story documented (API `dotnet run` + `dotnet run` on WASM project).
-- Optional **on umbrella only**: compose profile `blazor` that builds WASM → nginx **without** changing default `ui` service behavior that `main` relies on.
-
-**Exit:** `dotnet build` succeeds; WASM loads in browser against local API origin (update CORS allowlist if Blazor uses a new port).
-
-**Risks:** WASM download size vs Vite SPA; document expected first-load behavior early.
-
----
-
-## Phase 3 — OpenAPI (NSwag) client & cache skeleton
-
-**Branch from:** umbrella (after Phase 2 merge)
-
-**Outcome:** Typed HTTP access to Atlas API via generated client; no hand-duplicated TS-style mappers.
-
-### Why NSwag (not Kiota / `dotnet-openapi`)
-
-- API already uses **FastEndpoints.Swagger**, which is **NSwag-backed** — one OpenAPI pipeline, not a second Microsoft `MapOpenApi` stack (`Microsoft.AspNetCore.OpenApi` is referenced but unused today).
-- Offline export is supported by FastEndpoints (`--export-swagger-docs` / `ExportSwaggerDocsAndExitAsync`), which matters because **Swagger is Development-only** and Compose/Production has no `/swagger/v1/swagger.json`.
-- Generated C# clients fit Blazor WASM `HttpClient` registration cleanly.
-- Kiota / `Microsoft.Extensions.ApiDescription.Client` would add a parallel toolchain with little benefit here.
-
-### Work
-
-- Add a documented regenerate path, e.g.:
-  1. Export OpenAPI from the API project (Dev export or FastEndpoints export-on-build).
-  2. Commit `openapi/atlas.v1.json` (or equivalent) under the frontend or a `contracts` folder.
-  3. Run NSwag to generate C# client + DTOs into `Atlas.Ui` (or `Atlas.Ui.Client`).
-- Align generator settings with API JSON: System.Text.Json, camelCase properties, **string enums** (`JsonStringEnumConverter` → values like `NotStarted`, `Medium`).
-- Register generated client with Blazor `HttpClient` + `ApiBaseUrl`.
-- Port problem-details / error parsing from `src/atlas.ui/src/app/api/client.ts` (wrapper around generated calls if needed).
-- **SSE exception:** `GET /ai/sessions/{id}/events` (`text/event-stream`) stays hand-written (interop or streaming); do not expect NSwag CRUD generation to cover it.
-- Replace React Query with an explicit **app state / cache service** skeleton (scoped WASM services + invalidate/refetch helpers for linked entities: tasks ↔ projects ↔ risks). Feature phases fill it in.
-
-**Exit:** Sample call (e.g. list tasks) works from a Blazor page; OpenAPI artifact + generate script/docs checked in; regenerate instructions in the frontend README.
-
----
-
-## Phase 4 — Shell, path routing, styling port
-
-**Branch from:** umbrella
-
-**Outcome:** App chrome and route map match React shell feature-for-feature; URLs are path-based; pages are stubs.
-
-**Work:**
-
-- Port `ShellLayout`, nav, global search/quick-add **shell slots** (stubs OK).
-- Map routes from `src/atlas.ui/src/app/router.tsx` (~25 paths) to Blazor `@page` / `Router` **without** the hash prefix (`/tasks`, `/tasks/{taskId}`, `/team/...`, etc.).
-- Port `index.css` / `App.css` class structure into Blazor `wwwroot` (keep class names to reduce churn).
-- Login / setup stub pages equivalent to current “auth later” behavior.
-- Theme hook (dark default; light still unavailable — match Settings behavior).
-- Note deep-link / docs updates needed at cutover (`/#/x` → `/x`).
-
-**Exit:** Navigating path routes renders stubs inside the shell; CSS looks recognizably Atlas.
-
----
-
-## Phase 5 — Core CRUD feature parity
-
-**Branch from:** umbrella (may split into sub-PRs: tasks, projects, risks, dashboard, settings)
-
-**Outcome:** Primary CRUD surfaces work without Team hub or AI.
-
-**Suggested order:**
-
-1. **Tasks** (list + detail routes) — template for forms, modals, cache invalidation.
-2. **Projects** and **Risks** — same patterns; linked-entity updates exercise the cache service.
-3. **Dashboard** — read-only aggregates/lists.
-4. **Settings** + **Azure setup / import** — connection probe and import flows.
-
-**Work per feature:**
-
-- Port view behavior from corresponding `src/atlas.ui/src/views/*`.
-- Prefer generated NSwag client for HTTP; keep UI-only view models thin.
-- Reuse shared Blazor components (Modal, Spinner, LoadingButton) as needed.
-- Keep server validation as source of truth; light client required-field checks only.
-- Add/adjust Playwright flows against **path** URLs as features land (or batch late on the umbrella).
-
-**Exit:** Manual smoke on `/tasks`, `/projects`, `/risks`, `/dashboard`, `/settings` (+ setup/import) matches React for happy paths and basic errors.
-
----
-
-## Phase 6 — Team hub (highest rewrite surface)
-
-**Branch from:** umbrella
-
-**Outcome:** Team member overview, notes, Azure work items, member risks, growth goals/detail.
-
-**Work:**
-
-- Decompose React `TeamView.tsx` monolith into Blazor components/pages by tab/route (`notes`, `work-items`, `risks`, `growth`, goal detail).
-- Port nested **path** routing and deep links.
-- Member overview and growth goal detail as separate components (avoid one 2k-line razor file).
-- Ensure cache/state updates cover team-linked mutations.
-
-**Exit:** Full `/team/**` journey parity; no dependency on React Team view.
-
-**Risks:** Largest regression surface; prefer smaller PR slices per tab if the umbrella review gets unwieldy.
-
----
-
-## Phase 7 — AI assistant (SSE + markdown)
-
-**Branch from:** umbrella
-
-**Outcome:** Shell-wide AI panel with streaming session events and markdown transcripts.
-
-**Work:**
-
-- Port `AiState` / `AiPanel` behavior: open/close, resize, session lifecycle, transcript assembly.
-- Consume `/ai/sessions/{id}/events` via JS interop `EventSource` **or** `HttpClient` streaming — pick one approach and document it; prefer minimal backend change. **Outside NSwag generation.**
-- Markdown: Markdig (or equivalent) + GFM-ish subset + syntax highlighting strategy; explicit HTML sanitization.
-- `localStorage` (or Blazor protected local storage) for panel default-open setting.
-
-**Exit:** AI panel streams and renders comparable to React; e2e stubs for SSE updated.
-
-**Risks:** Reconnect/terminal event edge cases; XSS if markdown sanitization is incomplete.
-
----
-
-## Phase 8 — CI, Docker cutover, delete React, merge to `main`
-
-**Branch from:** umbrella → **one merge to `main` when ready**
-
-**Outcome:** Blazor is the only frontend on `main`; React hard-deleted.
-
-**Work (order matters for restore-friendliness):**
-
-1. Point `Dockerfile.ui` (or replace it) at Blazor publish output + nginx SPA fallback (**required** for path routing).
-2. Update `docker-compose.yml` (`ApiBaseUrl` instead of `VITE_API_BASE_URL`).
-3. Update CORS allowed origins if the UI origin/port changes.
-4. Rewrite `.github/workflows/frontend-ci.yml`: restore/build WASM; Playwright against Blazor DOM; drop UI `npm ci`.
-5. Update `docs/docker.md`, frontend README, `AGENTS.md` (path URLs, Blazor commands).
-6. Final Playwright full suite + compose smoke on the umbrella.
-7. **Standalone commit:** hard-delete `src/atlas.ui` (and React-only Docker/npm leftovers). Message clearly e.g. `Remove React UI (src/atlas.ui).` — restore via `git revert <sha>` or `git checkout <sha>^ -- src/atlas.ui`.
-8. Merge umbrella → `main`.
-
-**Exit:** `main` serves Blazor only; React gone in one revertible commit; docs and CI consistent.
-
----
-
-## Cross-cutting concerns
-
-### State instead of TanStack Query
-
-Design a small **Atlas UI store** (scoped services in WASM):
-
-- Query-like methods: `GetTasksAsync`, etc., with in-memory lists.
-- Explicit `Invalidate*` / patch helpers for linked entities (port intent of `cacheUpdates.ts` / `useAppCache.ts`, not the React API).
-- Prefer correctness (refetch after mutation) over clever optimistic graphs until parity is proven.
-
-### Auth (future)
-
-Login remains a stub. When SSO arrives, decide WASM-friendly pattern (tokens in memory vs BFF) and CORS/`AllowCredentials` once — do not bolt cookie auth onto anonymous `fetch` assumptions.
-
-### Testing strategy (Atlas conventions)
-
-| Layer | Expectation |
+| Phase | Prerequisite on umbrella |
 | --- | --- |
-| Handler unit / functional / integration | Unchanged (API). |
-| Frontend unit tests | Not required for migration. |
-| Playwright | Rewrite against Blazor DOM and **path** URLs; keep API/AI fixtures pattern from current e2e. |
-| Manual smoke | Per-phase route checklist in each PR’s **Testing instructions**. |
+| 2 | Phase 1 accepted |
+| 3 | Phase 2 exit criteria (incl. CI live) |
+| 4 | Phase 3 exit criteria (incl. **React visual baseline complete**) |
+| 5 | Phase 4: shell + hash shim + first Playwright ports |
+| 6 | Phase 5 CRUD parity + related Playwright |
+| 7 | **Phase 6 merged** |
+| 8 | Phases 5–7 complete; manifest lists `blazor-host` + all 14 ported flows |
 
-### Rollback
+### Required validation (every phase PR)
 
-- **Before merge to `main`:** React remains on `main`; discard or fix the umbrella.
-- **After merge:** Revert the umbrella merge, or revert the standalone React-delete commit and temporarily restore the old `ui` image/tag if needed.
+1. **Umbrella CI green** — Blazor build + progressively ported Playwright (see [CI strategy](#ci-strategy)).
+2. **OpenAPI drift check** — from Phase 3 onward.
+3. **Manual parity** — screenshots vs fixed React baseline (Phase 4+) + checklist (see [Visual parity](#visual--behavioral-parity)).
+
+### Handoff format
+
+Files changed; tests/commands run; screenshot artifact links; known parity deviations; blockers.
+
+### Confirmed commands today
+
+```bash
+dotnet run --project src/backend/Api/Atlas.Api/Atlas.Api.csproj --launch-profile http
+cd src/atlas.ui && npm ci && npm run test:e2e   # main-branch React baseline only
+dotnet restore src/Atlas.sln && dotnet test src/Atlas.sln --no-restore --verbosity normal
+docker compose up --build   # Phase 8 cutover validation
+```
+
+### Introduced by migration (do not assume until landed)
+
+- FastEndpoints export after `Program.cs` wiring + regenerate script
+- OpenAPI drift CI step
+- Blazor `webServer.command` on port **5173** in `src/atlas.ui/playwright.config.ts` (Phases 2–7)
+- **`tests/e2e/run-ported-playwright.sh`** — manifest runner (Phases 2–7); fails if manifest empty; **never** bare `playwright test`
+- `src/atlas.ui/e2e/flows/blazor-host.spec.ts` — Phase 2 smoke spec; first manifest entry
+- `dotnet publish` Blazor → nginx `Dockerfile.ui`
+
+---
+
+## Visual & behavioral parity
+
+### Acceptance
+
+- Human-approved against checklist + screenshots. No pixel-diff tooling.
+- Deviations listed in PR handoff.
+
+### React baseline capture (**mandatory by end of Phase 3**)
+
+Capture **before Phase 4 starts**. React remains in repo until Phase 8 standalone delete — baseline is taken from React, not Blazor.
+
+| Viewport | Size |
+| --- | --- |
+| Desktop | **1440×900** |
+| Tablet | **1100×800** |
+| Narrow | **700×900** |
+
+**Storage:** committed path (e.g. `docs/migration-screenshots/react-baseline/`) **or** CI artifact uploaded from umbrella workflow — must be **remotely accessible** to phase agents without local React runs.
+
+**Capture environment:** API with demo seed (`ATLAS_SEED_DEMO=true`), same data CI Playwright uses; Playwright Chromium; hash URLs (`/#/…`) as React serves today.
+
+### Checklist routes/states
+
+| Area | Route / state |
+| --- | --- |
+| Login | `/` (index login) and `/login` — form visible |
+| Setup | `/setup` — Azure setup stub |
+| Dashboard | `/dashboard` |
+| Tasks | `/tasks`; `/tasks/{id}` split; `/tasks/{id}` focus |
+| Projects | `/projects`; `/projects/{id}?tab=overview\|tasks\|risks` |
+| Risks | `/risks`; `/risks/{id}` focus |
+| Team | `/team`; member tabs; note/work-item/risk/growth detail routes |
+| Settings | `/settings`; `/settings/azure-import` |
+| Shell | Global search open; Quick Add modal |
+| System | Hydration overlay; empty list; validation/server error |
+| AI (Phase 7+) | Panel closed/open; streaming transcript |
+
+### Phase 4–7 PR evidence
+
+- Blazor screenshots for routes touched in the phase, same viewports.
+- Compare against **fixed Phase 3 React baseline** — not re-captured React.
+- Mark each row: **match**, **minor deviation** (describe), or **N/A**.
+
+Phase 8 **verifies baseline completeness** only — must not create the baseline for the first time.
+
+---
+
+## Parity inventory (hidden behavior)
+
+| Area | React source | Required Blazor behavior |
+| --- | --- | --- |
+| **SelectionState** | `state/SelectionState.tsx` | In-memory task/risk/team/project IDs; not persisted |
+| **Hydration gates** | `queries/hooks.ts` | See [Cache / state design](#cache--state-design); `IsHydrating` + redirect guards |
+| **Tasks/Risks focus** | `TasksView.tsx`, `RisksView.tsx` | Focus mode; exit returns to list |
+| **Projects `?tab=`** | `ProjectsView.tsx` | Preserve query on focus enter/exit; edit pins `tab=overview` |
+| **Team paths** | `TeamView.tsx` | Tab paths + detail child routes |
+| **Team redirect** | `TeamNoteDetailView.tsx` | Invalid `memberId` → `/team` after hydration |
+| **GlobalSearch** | `GlobalSearch.tsx` | Max 12; keyboard nav; `aria-label="Search"`; disabled while hydrating |
+| **Modal / Quick Add** | `Modal.tsx`, `QuickAddModal.tsx` | Escape; focus; native `alert` validation |
+| **Native dialogs** | Tasks/Risks/Projects views | `confirm` delete; `alert` errors; `prompt` new project name |
+| **A11y / responsive** | Shell, `App.css` | Nav/search/AI labels; breakpoints **700** and **1100** |
+| **AI panel** | `AiState.tsx`, `AiPanel.tsx` | Resize, overlay, SSE, scroll-stick, selection context |
+| **localStorage** | `localSettings.ts` | `atlas.defaultAiPanelOpen` only |
+| **404** | `NotFoundView` | Unknown paths |
+
+---
+
+## Cache / state design
+
+Port intent from `useAppCache.ts`, `cacheUpdates.ts`, `invalidateAppQueries.ts` via scoped WASM services.
+
+### Hydration topology (match React query dependencies)
+
+React starts these **in parallel** on app load:
+
+- **settings**, **projects**, **productOwners**, **team**
+
+**Dependent loads:**
+
+- **risks** — starts only after **projects** succeed (`enabled: projectsQuery.isSuccess`); needs project names for mapping.
+- **tasks** — starts only after **projects and risks** succeed; needs both for mapping.
+
+```text
+Independent parallel roots (start together):
+  settings
+  projects ──► risks ──► tasks
+  productOwners
+  team                         (no dependency edge into tasks)
+
+Only projects → risks → tasks form a chain. Team is a separate root.
+```
+
+**Blazor implementation:**
+
+1. Mirror dependency gates — do not fetch risks until projects loaded; do not fetch tasks until projects **and** risks loaded.
+2. **`IsHydrating`** = any of settings, projects, productOwners, team, risks, or tasks initial load still in flight (risks/tasks count as hydrating while waiting on prerequisites **or** fetching).
+3. Shell spinner, `LoadingOverlay`, disabled search, deferred AI default-open, and redirect guards (invalid team member) all wait for `IsHydrating == false`.
+4. Preserve parallel starts for the four independent roots — do not serialize settings before projects unless a real dependency exists.
+
+### Mutations
+
+- **Refetch-after-mutation** preferred over optimistic updates until parity proven.
+- Port link/unlink/rename repairs from `cacheUpdates.ts`.
+- Azure import → broad invalidate (match `invalidateAppQueries.ts`).
+
+---
+
+## OpenAPI / NSwag
+
+### Current state
+
+- `Program.cs`: `AddFastEndpoints()`, `SwaggerDocument()` (bare call — **document name not customized**), `UseSwaggerGen()` in Development only.
+- **Not implemented:** export call, `--export-swagger-docs` handling, committed artifact, NSwag config.
+
+### FastEndpoints 8.1.0 export (verified API shape)
+
+Atlas uses **`FastEndpoints.Swagger`**, not `FastEndpoints.OpenApi`. Phase 3 wires:
+
+```csharp
+app.UseFastEndpoints();
+
+await app.ExportSwaggerDocsAndExitAsync(/* document name(s) — see below */);
+
+app.Run();
+```
+
+**Critical details:**
+
+| Item | Requirement |
+| --- | --- |
+| **Method args** | Pass configured **document name string(s)** — e.g. `"v1"` — **not** `args`. Names must match `SwaggerDocument()` registration. |
+| **Placement** | Immediately **after** `app.UseFastEndpoints()`, before `app.Run()`. |
+| **Activation** | `dotnet run --export-swagger-docs true` sets configuration that triggers export-then-exit (FastEndpoints reads export flag from configuration). |
+| **Document name** | Confirm from `.SwaggerDocument(...)` — today bare `SwaggerDocument()` uses FastEndpoints default; inspect export output filename or add explicit `DocumentSettings` if ambiguous. |
+| **Default export path** | FastEndpoints 8.1 default: **`wwwroot/openapi`** under the API project — **verify filename on first export** (document name may suffix the file). |
+| **Committed artifact** | **`openapi/atlas.v1.json`** — set `<SwaggerExportPath>` in `Atlas.Api.csproj` **or** copy/rename in the introduced regenerate script. |
+
+**Do not document a final script/command until Phase 3 adds and tests it.** Phase 3 acceptance criteria define success.
+
+### Database prerequisite
+
+**Today:** export wiring runs after DB `EnsureCreated()` / `Migrate()` in `Program.cs` — **Postgres required** for `dotnet run --export-swagger-docs true` unless changed.
+
+**Phase 3 must either:**
+
+- Document and CI-test export with Postgres (same as Playwright job), **or**
+- Implement an **early export path** that skips DB initialization when export configuration is active — and test on fresh clone.
+
+### Phase 3 deliverables & acceptance
+
+| Deliverable | Acceptance |
+| --- | --- |
+| Export wired per API shape above | Export produces JSON; process exits 0 with `--export-swagger-docs true` |
+| Committed `openapi/atlas.v1.json` | Matches export output after script normalization |
+| Regenerate script | Deterministic; documented in PR; runs on fresh clone |
+| NSwag client + mapping layer | Stubs for `mappers.ts`, `duration.ts`, `tones.ts`, `team.ts` |
+| Cache skeleton | `IsHydrating` with correct dependency gates |
+| CI drift check | Fails PR if committed artifact drifts without intentional update |
+| Sample Blazor HTTP call | e.g. list tasks via generated client |
+
+**SSE exception:** `GET /ai/sessions/{id}/events` — hand-written EventSource interop; not NSwag.
+
+---
+
+## Playwright path migration
+
+React uses hash URLs. Blazor uses paths. Update **every** hash reference when porting each flow.
+
+### Files with hash URLs today (search all when porting)
+
+| File | Patterns to update |
+| --- | --- |
+| `e2e/fixtures/app.ts` | `page.goto('/#/')` → path entry (e.g. `/` or `/login`) |
+| `e2e/flows/login-dashboard.spec.ts` | `toHaveURL(/#\/dashboard/)` |
+| `e2e/flows/focus-url.spec.ts` | `toHaveURL` with `#/tasks/...` (3 assertions) |
+| `e2e/flows/quick-add.spec.ts` | `toHaveURL` for tasks, risks, team notes |
+| `e2e/flows/search.spec.ts` | `toHaveURL` for tasks, risks, team |
+| `e2e/flows/dashboard-nav.spec.ts` | `toHaveURL` for risks detail |
+| `e2e/flows/shell-nav.spec.ts` | `goto('/#/this-route-does-not-exist')`, dashboard URL assert |
+| `e2e/flows/team-note-ado-pr.spec.ts` | `toHaveURL` for note detail; `page.goto(noteUrl)` after reload |
+
+Also grep `e2e/` for `#/`, `goto(`, and `toHaveURL` when porting — no hash assertions may remain on Blazor target.
+
+**Phase 4 explicit deliverable:** convert `e2e/fixtures/app.ts` (`page.goto('/#/')` and any hash helpers) **before** flow specs — downstream specs import this fixture.
+
+### Phase 2: Blazor test host on 5173
+
+The Blazor project **must** expose a confirmed command serving HTTP on **127.0.0.1:5173**, e.g.:
+
+- `Properties/launchSettings.json` profile with `applicationUrl` including port **5173**, run via `dotnet run --project <wasm-csproj> --launch-profile <profile>`, **or**
+- `dotnet run` with `--urls http://127.0.0.1:5173`, **or**
+- Serve `dotnet publish` output via a static server on 5173.
+
+**Phase 2 deliverable:** pin the Blazor host command in the WASM project README and set `src/atlas.ui/playwright.config.ts` `webServer.command` to that command (replacing React `npm run preview` / `npm run dev`). Keep `PLAYWRIGHT_BASE_URL=http://localhost:5173` and API CORS on 5173 — **do not change API port**. Config and `package.json` Playwright deps **stay in `src/atlas.ui` until Phase 8 relocation**.
+
+### Progressive spec selection (Phases 2–7)
+
+Umbrella CI runs **only manifest-listed specs**. **Bare `playwright test` (no explicit file list) is prohibited before Phase 8** — an empty or omitted list would silently run all legacy React-targeted specs.
+
+| Item | Detail |
+| --- | --- |
+| **Manifest file** | `tests/e2e/playwright-ported.txt` — one spec path per line, **relative to `src/atlas.ui`** (e.g. `e2e/flows/blazor-host.spec.ts`, `e2e/flows/login-dashboard.spec.ts`) |
+| **Manifest rule** | **Never empty.** Minimum one entry from Phase 2 onward. |
+| **Phase 2 seed spec** | `src/atlas.ui/e2e/flows/blazor-host.spec.ts` — verifies Blazor host loads / bootstrap shell on 5173; **first manifest line**; stays in the cumulative suite through Phase 7 (remove or replace only if equivalent coverage exists elsewhere). |
+| **Runner script** | Introduce **`tests/e2e/run-ported-playwright.sh`** (Phase 2): invoke as **`bash tests/e2e/run-ported-playwright.sh`** from **repo root** (do not assume executable bit or shebang); reads manifest; **exits non-zero if missing, empty, or whitespace-only**; `cd src/atlas.ui` and runs `npx playwright test` with explicit paths from the manifest — **never** bare `playwright test`. |
+| **Growth rule** | Each porting phase **appends** new paths; earlier entries (including `blazor-host.spec.ts`) stay unless deliberately replaced. |
+| **Phase 8** | Relocate smoke spec with all other e2e assets; relocated **`tests/e2e/package.json` must define `"test:e2e"`** (e.g. `"playwright test"`); delete manifest + runner filter; **`npm ci` in `tests/e2e/`**; bare **`npm run test:e2e`** / full suite allowed from `tests/e2e/` only. |
+
+### Phases 2–7 CI setup (exact)
+
+Playwright config and Node dependencies remain under **`src/atlas.ui`** until Phase 8:
+
+```yaml
+# Umbrella Playwright job (Phases 2–7) — illustrative
+- name: Install Playwright deps
+  working-directory: src/atlas.ui
+  run: npm ci
+
+- name: Install Playwright browsers
+  working-directory: src/atlas.ui
+  run: npx playwright install --with-deps chromium
+
+- name: Run ported Playwright specs
+  run: bash tests/e2e/run-ported-playwright.sh   # repo root; NOT bare playwright test
+```
+
+- **`npm ci`** in `src/atlas.ui` every Playwright job (temporary Playwright home Phases 2–7).
+- Playwright executes with **`working-directory: src/atlas.ui`** (via runner script `cd`).
+- Manifest resolved from **`tests/e2e/playwright-ported.txt`** (runner reads `../../tests/e2e/...` from `src/atlas.ui` or absolute from repo root).
+- `playwright.config.ts` stays in `src/atlas.ui`; **`webServer.command`** points at Blazor on **5173**.
+
+---
+
+## CI strategy
+
+### Today (`main` only)
+
+- `frontend-ci.yml`: React lint/build + Playwright.
+- `backend-tests.yml`: `dotnet test src/Atlas.sln`.
+
+### Umbrella CI — **mandatory Phase 2 deliverable**
+
+Add or extend workflow(s) triggered on **pull requests targeting `cursor/blazor-wasm-frontend-82c4`** (and pushes to umbrella):
+
+| Job | From | Detail |
+| --- | --- | --- |
+| Blazor build | Phase 2 | `dotnet build` WASM project / solution; **SDK 10.0.x** (`setup-dotnet@v4`) |
+| Playwright | Phase 2 | API + Postgres + demo seed; **`npm ci`** in `src/atlas.ui`; **`bash tests/e2e/run-ported-playwright.sh`** from repo root (manifest paths relative to `src/atlas.ui`); Blazor `webServer` on 5173 — must pass |
+| OpenAPI drift | Phase 3 | Diff export vs `openapi/atlas.v1.json` |
+| Blazor publish | Phase 8 | Add `dotnet publish` Release |
+| React npm | Phase 8 | Remove React lint/build from frontend CI on `main` |
+
+**No "document only" escape hatch** — workflow files merged in Phase 2; later phases extend job steps.
+
+### Playwright port schedule (all 14 flows)
+
+| Phase | Flows |
+| --- | --- |
+| 4 | `login-dashboard`, `shell-nav`, `dashboard-nav` |
+| 5 | `tasks-crud`, `risks-crud`, `projects-crud`, `quick-add`, `search`, `focus-url`, `delete-smoke`, `settings-smoke`, `persist-reload` |
+| 6 | `team-note-ado-pr` |
+| 7 | `ai-panel` |
+| 8 | Full suite + compose smoke + deep-link refresh |
+
+---
+
+## Build / delivery (Docker / nginx only)
+
+**Phase 8** replaces `Dockerfile.ui` with Blazor `dotnet publish` → `nginx:1.27-alpine`; keep `UI_PORT:-5173` → container 80.
+
+| Topic | Detail |
+| --- | --- |
+| API base URL | Dev: `wwwroot/appsettings.Development.json` → `http://localhost:5012`; Compose: replace `VITE_API_BASE_URL` |
+| CORS | Keep **5173** origins |
+| nginx cache (add Phase 8) | Long cache fingerprinted `/_framework/*`; short/no cache `index.html`, `blazor.boot.json`; gzip; brotli only if publish emits `.br` |
+| Deep-link smoke | Refresh `/tasks/{id}`, `/team/{id}/notes`, `/projects/{id}?tab=tasks` |
+| Docs | Phase 8: `docs/docker.md`, Blazor README, `AGENTS.md` — path URLs |
+| Rollback | Record last React image/tag/SHA; standalone delete commit; `git revert` restore |
+
+---
+
+## Legacy hash URL shim
+
+Fragments (`/#/dashboard`) are **never sent to nginx** — only client code can read them.
+
+**Phase 4:** early startup detects `#/…`, rewrites to path via `history.replaceState` / `NavigationManager`.
+
+**Removal** (all required): path URLs in docs/Playwright under `tests/e2e/`; no `/#/` in repo docs; grace period sign-off; dedicated removal PR.
+
+---
+
+## Performance
+
+Record React baseline (transfer size, time-to-interactive at `/dashboard`) during Phase 3 baseline work. Phase 8 compares Blazor cold load — **document variance**, no invented numeric budget. Evaluate trimming/lazy load if regressed.
+
+---
+
+## Phases
+
+### Phase 1 — Umbrella + plan
+
+- [ ] Branch `cursor/blazor-wasm-frontend-82c4`; this plan committed.
+- **Exit:** Plan accepted; React frozen.
+
+### Phase 2 — Scaffold Blazor WASM + **umbrella CI**
+
+- [ ] `src/frontend/Atlas.Ui` in `src/Atlas.sln`; placeholder page; CSS stub; **target framework / SDK 10.0.x**
+- [ ] `ApiBaseUrl` config; **launchSettings / run command pinned to port 5173**
+- [ ] **`src/atlas.ui/e2e/flows/blazor-host.spec.ts`** — smoke spec verifying Blazor host on 5173
+- [ ] **`tests/e2e/playwright-ported.txt`** with first line `e2e/flows/blazor-host.spec.ts` (never empty)
+- [ ] **`tests/e2e/run-ported-playwright.sh`** — fails on empty manifest; no bare `playwright test`
+- [ ] **`playwright.config.ts`** in `src/atlas.ui`: `webServer.command` → Blazor host on 5173
+- [ ] **Umbrella CI workflow live:** `dotnet` **10.0.x** + Blazor build + Playwright job (`npm ci` in `src/atlas.ui`; `bash tests/e2e/run-ported-playwright.sh` from repo root)
+- [ ] Optional umbrella-only Compose profile `blazor`
+
+**Exit:**
+
+- [ ] `dotnet build` succeeds; WASM loads on **5173**; API + CORS ok
+- [ ] **Umbrella CI green on Phase 2 PR** — `blazor-host.spec.ts` passes via runner script
+- [ ] Playwright config points at Blazor host (not React preview)
+
+### Phase 3 — OpenAPI + cache skeleton + **React visual baseline**
+
+- [ ] Export wired (`ExportSwaggerDocsAndExitAsync` after `UseFastEndpoints`; document name confirmed)
+- [ ] `openapi/atlas.v1.json` + regenerate script + NSwag client + mapping stubs
+- [ ] Cache skeleton with hydration dependency gates
+- [ ] CI OpenAPI drift check added to umbrella workflow
+- [ ] **Complete React visual baseline** (all checklist routes/states, 3 viewports, stored in repo or CI artifact with capture env documented)
+
+**Exit:**
+
+- [ ] Export + regenerate tested on fresh clone (Postgres or early-export path documented)
+- [ ] Sample Blazor API call works; drift check green
+- [ ] **React baseline artifact complete and linked in umbrella README or workflow** — **blocks Phase 4**
+
+### Phase 4 — Shell, path routes, CSS, hash shim
+
+- [ ] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
+- [ ] Shell, nav, search/quick-add stubs; login + `/setup`; dark theme
+- [ ] Hash shim
+- [ ] **Path conversion:** `e2e/fixtures/app.ts` first, then `login-dashboard`, `shell-nav`, `dashboard-nav` (all hash refs updated)
+- [ ] Append ported specs to `tests/e2e/playwright-ported.txt` (paths like `e2e/flows/login-dashboard.spec.ts`)
+- [ ] Blazor screenshots vs **Phase 3 React baseline**
+
+**Exit:** Path stubs + CSS recognizable; shim works; 3 Playwright flows green; parity evidence for shell routes.
+
+### Phase 5 — Core CRUD
+
+- [ ] **UI rollout order** (not hydration order): tasks → projects/risks → dashboard → settings/Azure — implement surfaces in this sequence for reviewability; cache hydration gates remain projects → risks → tasks regardless
+- [ ] Modals; cache invalidation; native dialogs
+- [ ] Playwright Phase 5 flows ported; append paths to `tests/e2e/playwright-ported.txt`
+- [ ] Screenshots vs baseline for CRUD/modal/empty/error states
+
+**Exit:** CRUD smoke parity; Phase 5 Playwright green.
+
+### Phase 6 — Team hub *(blocks Phase 7)*
+
+- [ ] Decomposed team pages; `team.ts` logic; `team-note-ado-pr` Playwright ported; append to manifest
+- [ ] Team screenshots vs baseline
+
+**Exit:** Full `/team/**` parity; **merged before Phase 7 starts**.
+
+### Phase 7 — AI assistant
+
+**Prerequisite:** Phase 6 merged.
+
+- [ ] AI panel + EventSource interop; **sanitized Markdig** (document rendering diffs vs React in handoff)
+- [ ] `ai-panel` Playwright ported; append to manifest
+
+**Exit:** Streaming parity; markdown security accepted manually; `ai-panel` green; manifest lists `blazor-host.spec.ts` + all 14 ported flows.
+
+### Phase 8 — Cutover to `main`
+
+**Extends/finalizes CI and Docker — does not introduce umbrella CI.**
+
+**Order is strict — do not delete `src/atlas.ui` until step 5 passes:**
+
+1. [ ] Verify React baseline artifact complete (do not create anew)
+2. [ ] **Relocate Playwright** from `src/atlas.ui` to **`tests/e2e/`**:
+   - Move `e2e/` (flows, fixtures, **`blazor-host.spec.ts`**, and all ported specs), `playwright.config.ts`, and a **minimal** `package.json` / lockfile with only Playwright scripts/deps — **`package.json` must include `"test:e2e": "playwright test"`** (or equivalent full-suite script)
+   - Fix `testDir`, import paths, and `webServer.command` (Blazor on 5173) in relocated config
+   - Delete `tests/e2e/playwright-ported.txt` and **`tests/e2e/run-ported-playwright.sh`** — Phase 8 runs full suite via **`npm run test:e2e`** from `tests/e2e/` (allowed only after relocation)
+3. [ ] **Update CI:** `npm ci` with **`working-directory: tests/e2e`**; `cache-dependency-path: tests/e2e/package-lock.json`; SDK **10.0.x**; add Blazor publish job; remove `src/atlas.ui` Playwright steps
+4. [ ] Blazor `Dockerfile.ui`; compose env; nginx cache headers; docs path URL updates; performance comparison doc; rollback SHA recorded
+5. [ ] **Full validation** (all must pass before React delete):
+   - **`npm run test:e2e`** from `tests/e2e/` with **`working-directory: tests/e2e`** — requires relocated `package.json` **`test:e2e`** script; full suite green (including relocated `blazor-host.spec.ts`)
+   - `docker compose up --build` smoke
+   - Deep-link refresh cases
+6. [ ] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
+7. [ ] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
+8. [ ] Merge umbrella → `main`; schedule hash shim removal
+
+**Exit:** `main` Blazor-only via Docker/nginx; Playwright in `tests/e2e/`; full suite green; CI green; manual full checklist sign-off.
 
 ---
 
 ## Phase dependency graph
 
 ```text
-Phase 1  umbrella + plan
+Phase 1  plan + freeze React
     │
-Phase 2  Blazor scaffold (umbrella only)
+Phase 2  scaffold + umbrella CI (mandatory)
     │
-Phase 3  NSwag OpenAPI client + cache skeleton
+Phase 3  OpenAPI + cache + React visual baseline ── blocks Phase 4
     │
-Phase 4  Shell + path routes + CSS port
+Phase 4  shell + paths + hash shim + Playwright (3)
     │
-    ├─► Phase 5  CRUD features (tasks → projects/risks → dashboard/settings)
+Phase 5  CRUD + Playwright (9)
     │
-    ├─► Phase 6  Team hub          (after shell + cache; can overlap late Phase 5)
+Phase 6  Team + Playwright          ◄── MUST merge before Phase 7
     │
-    └─► Phase 7  AI panel + SSE    (after shell; independent of Team if needed)
-            │
-        Phase 8  CI + Docker cutover + hard-delete React (standalone commit) → merge umbrella to main
+Phase 7  AI + Playwright
+    │
+Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delete React → main
+         └── hash shim removal (follow-up)
 ```
-
-Phases 6 and 7 may proceed in parallel after Phase 4–5 foundations land, as long as both merge into the umbrella and resolve shell conflicts deliberately.
 
 ---
 
 ## Immediate next step
 
-After this Phase 1 PR is accepted: cut `cursor/blazor-wasm-scaffold-82c4` from `cursor/blazor-wasm-frontend-82c4` and execute **Phase 2**.
+After Phase 1 acceptance: cut `cursor/blazor-wasm-scaffold-82c4` and execute **Phase 2** (including umbrella CI and 5173 test host).
