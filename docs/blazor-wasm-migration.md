@@ -454,7 +454,7 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 **Exit:**
 
 - [x] `dotnet build` succeeds; WASM loads on **5173**; API + CORS ok
-- [ ] **Umbrella CI green on Phase 2 PR** — `blazor-host.spec.ts` passes via runner script
+- [x] **Umbrella CI green on Phase 2 PR** — `blazor-host.spec.ts` passes via runner script
 - [x] Playwright config points at Blazor host (not React preview)
 
 ### Phase 3 — OpenAPI + cache skeleton + **React visual baseline**
