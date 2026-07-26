@@ -63,11 +63,12 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 - React Router **hash** routing (`createHashRouter`); TanStack Query; native `fetch`; global CSS.
 - Hotspots: `TeamView.tsx`, `useAppCache.ts` / `cacheUpdates.ts`, AI SSE, markdown.
 - Backend: FastEndpoints **8.1.0** + `FastEndpoints.Swagger`. `SwaggerDocument()` + `UseSwaggerGen()` in Development only. Compose Production → no live `/swagger`.
-- **OpenAPI export not wired.** No `ExportSwaggerDocsAndExitAsync` in `Program.cs`. No committed OpenAPI JSON, no NSwag config.
-- **Startup requires Postgres today:** `Program.cs` runs `EnsureCreated()` / `Migrate()` and optional demo seed **before** `UseFastEndpoints()` — export wiring inherits this unless Phase 3 adds an early export path.
+- **OpenAPI export wired (Phase 3):** `ExportSwaggerDocsAndExitAsync("v1")` after `UseFastEndpoints()`. Committed artifact `openapi/atlas.v1.json`; regenerate via `bash scripts/regenerate-openapi.sh` (**Postgres required**).
+- **Startup requires Postgres today:** `Program.cs` runs `EnsureCreated()` / `Migrate()` and optional demo seed **before** `UseFastEndpoints()` — export inherits this (no early-export skip-DB path).
 - Compose: `Dockerfile.ui` (React/Vite → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
 - nginx: SPA fallback; **no `Cache-Control` headers** today.
-- CI today: `frontend-ci.yml` on **`main` only** — React lint/build + Playwright.
+- CI today: `frontend-ci.yml` on **`main` only** — React lint/build + Playwright. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + OpenAPI drift + Playwright).
+- React visual baseline: `docs/migration-screenshots/react-baseline/` (Phase 3).
 
 ---
 
@@ -459,18 +460,30 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 
 ### Phase 3 — OpenAPI + cache skeleton + **React visual baseline**
 
-- [ ] Export wired (`ExportSwaggerDocsAndExitAsync` after `UseFastEndpoints`; document name confirmed)
-- [ ] `openapi/atlas.v1.json` + regenerate script + NSwag client + mapping stubs
-- [ ] Cache skeleton with hydration dependency gates
-- [ ] CI OpenAPI drift check added to umbrella workflow
-- [ ] **Complete React visual baseline** (all checklist routes/states, 3 viewports, stored in repo or CI artifact with capture env documented)
+- [x] Export wired (`ExportSwaggerDocsAndExitAsync` after `UseFastEndpoints`; document name confirmed)
+- [x] `openapi/atlas.v1.json` + regenerate script + NSwag client + mapping stubs
+- [x] Cache skeleton with hydration dependency gates
+- [x] CI OpenAPI drift check added to umbrella workflow
+- [x] **Complete React visual baseline** (all checklist routes/states, 3 viewports, stored in repo or CI artifact with capture env documented)
 
 **Exit:**
 
-- [ ] Export + regenerate tested on fresh clone (Postgres or early-export path documented)
-- [ ] Sample Blazor API call works; drift check green
-- [ ] **React baseline artifact complete and linked in umbrella README or workflow** — **blocks Phase 4**
+- [x] Export + regenerate tested on fresh clone (Postgres or early-export path documented)
+- [x] Sample Blazor API call works; drift check green
+- [x] **React baseline artifact complete and linked in umbrella README or workflow** — **blocks Phase 4**
 
+### Phase 3 notes (landed)
+
+| Item | Location / command |
+| --- | --- |
+| OpenAPI export | `await app.ExportSwaggerDocsAndExitAsync("v1");` after `UseFastEndpoints()` — **Postgres required** (no early-export skip-DB) |
+| Regenerate | `bash scripts/regenerate-openapi.sh` (default DB `localhost:5432` / `atlas` / `change-me`) |
+| Drift CI | `openapi-drift` job in `.github/workflows/umbrella-blazor-ci.yml` → `bash scripts/check-openapi-drift.sh` |
+| NSwag client | `src/frontend/Atlas.Ui/Api/Generated/`; SSE `/ai/sessions/{id}/events` excluded from codegen |
+| Mapping stubs | `src/frontend/Atlas.Ui/Mapping/` (`ApiMappers`, `Duration`, `Tones`, `TeamLogic`) |
+| Cache skeleton | `src/frontend/Atlas.Ui/Services/AppCacheService.cs` — `IsHydrating` + projects→risks→tasks gates |
+| Sample call | `Home.razor` lists tasks via `AppCacheService` |
+| React baseline | `docs/migration-screenshots/react-baseline/` — regenerate with `bash scripts/capture-react-baseline.sh` |
 ### Phase 4 — Shell, path routes, CSS, hash shim
 
 - [ ] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
@@ -557,4 +570,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 2 scaffold is on `cursor/blazor-wasm-scaffold-82c4`. After merge to the umbrella: cut `cursor/blazor-wasm-openapi-82c4` (or equivalent) and execute **Phase 3**.
+Phase 3 OpenAPI + cache skeleton + React visual baseline is complete on `cursor/blazor-wasm-openapi-e0de`. After merge to the umbrella: cut a Phase 4 branch and execute **shell, path routes, CSS, hash shim, and first Playwright ports**.

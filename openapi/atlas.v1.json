@@ -1,0 +1,5313 @@
+{
+  "components": {
+    "schemas": {
+      "AtlasApiDTOsAiAiConversationDetailDto": {
+        "additionalProperties": false,
+        "properties": {
+          "ActionId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ConversationId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "CreatedAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "TaskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "TeamMemberId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Turns": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAiAiConversationTurnDto"
+            },
+            "type": "array"
+          },
+          "UpdatedAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "View": {
+            "$ref": "#/components/schemas/AtlasApplicationAbstractionsAiAiViewScope"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiAiConversationListItemDto": {
+        "additionalProperties": false,
+        "properties": {
+          "ActionId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ConversationId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "CreatedAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "IsTerminal": {
+            "type": "boolean"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "TaskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "TeamMemberId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "TurnCount": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "UpdatedAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "View": {
+            "$ref": "#/components/schemas/AtlasApplicationAbstractionsAiAiViewScope"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiAiConversationTurnDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Events": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAiAiSessionEventDto"
+            },
+            "type": "array"
+          },
+          "IsTerminal": {
+            "type": "boolean"
+          },
+          "Prompt": {
+            "type": "string"
+          },
+          "SessionId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "TurnIndex": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiAiSessionEventDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Delta": {
+            "nullable": true,
+            "type": "string"
+          },
+          "EventId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "IsTerminal": {
+            "type": "boolean"
+          },
+          "Message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "OccurredAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Sequence": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "SessionId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Status": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiContinueAiConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Prompt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiContinueAiConversationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "TurnSessionId": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiCreateAiConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ActionId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Prompt": {
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "TaskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "TeamMemberId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "View": {
+            "$ref": "#/components/schemas/AtlasApplicationAbstractionsAiAiViewScope"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiCreateAiConversationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "ConversationId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "TurnSessionId": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAiGetAiConversationRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAiListAiConversationsRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureConnectionDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AreaPath": {
+            "type": "string"
+          },
+          "IsEnabled": {
+            "type": "boolean"
+          },
+          "Organization": {
+            "type": "string"
+          },
+          "Project": {
+            "type": "string"
+          },
+          "ProjectId": {
+            "type": "string"
+          },
+          "TeamId": {
+            "type": "string"
+          },
+          "TeamName": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AreaPath": {
+            "type": "string"
+          },
+          "AssignedToUniqueName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ChangedDateUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "IterationPath": {
+            "type": "string"
+          },
+          "State": {
+            "type": "string"
+          },
+          "SuggestedTeamMemberId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Url": {
+            "type": "string"
+          },
+          "WorkItemId": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "WorkItemType": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureOrganizationRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureProjectDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureSyncResultDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ItemsFetched": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "ItemsUpserted": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "LastChangedUtc": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LastWorkItemId": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "Succeeded": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureSyncStateDto": {
+        "additionalProperties": false,
+        "properties": {
+          "LastAttemptedAtUtc": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LastCompletedAtUtc": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "LastRunStatus": {
+            "type": "string"
+          },
+          "LastSuccessfulChangedUtc": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LastSuccessfulWorkItemId": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamAreaPathDto": {
+        "additionalProperties": false,
+        "properties": {
+          "IncludeChildren": {
+            "type": "boolean"
+          },
+          "Value": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto": {
+        "additionalProperties": false,
+        "properties": {
+          "DefaultValue": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Values": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureTeamAreaPathDto"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamMembersRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureTeamsRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureUserDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Descriptor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "DisplayName": {
+            "type": "string"
+          },
+          "UniqueName": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsAzureUserSelectionDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Descriptor": {
+            "nullable": true,
+            "type": "string"
+          },
+          "DisplayName": {
+            "type": "string"
+          },
+          "UniqueName": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Users": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureUserSelectionDto"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto": {
+        "additionalProperties": false,
+        "properties": {
+          "MappingsCreated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "ProductOwnersCreated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "ReusedProductOwnerNames": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsReusedProductOwnerNameDto"
+            },
+            "type": "array"
+          },
+          "UsersAdded": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "UsersUpdated": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsImportAzureTeamRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Users": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureUserSelectionDto"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsImportAzureTeamResultDto": {
+        "additionalProperties": false,
+        "properties": {
+          "MappingsCreated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "TeamMembersCreated": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "UsersAdded": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "UsersUpdated": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "AzureWorkItemIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "TeamMemberId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsReusedProductOwnerNameDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AzureUniqueName": {
+            "type": "string"
+          },
+          "DisplayName": {
+            "type": "string"
+          },
+          "ExistingProductOwnerId": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "AreaPath": {
+            "type": "string"
+          },
+          "IsEnabled": {
+            "type": "boolean"
+          },
+          "Organization": {
+            "type": "string"
+          },
+          "Project": {
+            "type": "string"
+          },
+          "ProjectId": {
+            "type": "string"
+          },
+          "TeamId": {
+            "type": "string"
+          },
+          "TeamName": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthEnsureGrowthForTeamMemberRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "GrowthId": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "ObservedSinceLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthFeedbackThemesDeleteFeedbackThemeRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "ObservedSinceLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Evidence": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "State": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalActionState"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsActionsDeleteGrowthGoalActionRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsActionsUpdateGrowthGoalActionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Evidence": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "State": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalActionState"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Category": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "StartDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalStatus"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Date": {
+            "format": "date",
+            "type": "string"
+          },
+          "Note": {
+            "type": "string"
+          },
+          "Signal": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalCheckInSignal"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsCheckInsDeleteGrowthGoalCheckInRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Date": {
+            "format": "date",
+            "type": "string"
+          },
+          "Note": {
+            "type": "string"
+          },
+          "Signal": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalCheckInSignal"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsDeleteGrowthGoalRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGoalsUpdateGrowthGoalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Category": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "ProgressPercent": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "StartDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalStatus"
+          },
+          "SuccessCriteria": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "Summary": {
+            "nullable": true,
+            "type": "string"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGrowthDto": {
+        "additionalProperties": false,
+        "properties": {
+          "FeedbackThemes": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthFeedbackThemeDto"
+            },
+            "type": "array"
+          },
+          "FocusAreasMarkdown": {
+            "type": "string"
+          },
+          "Goals": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthGoalDto"
+            },
+            "type": "array"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "SkillsInProgress": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "TeamMemberId": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGrowthFeedbackThemeDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "ObservedSinceLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGrowthGoalActionDto": {
+        "additionalProperties": false,
+        "properties": {
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Evidence": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "State": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalActionState"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGrowthGoalCheckInDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Date": {
+            "format": "date",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Note": {
+            "type": "string"
+          },
+          "Signal": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalCheckInSignal"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthGrowthGoalDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Actions": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthGoalActionDto"
+            },
+            "type": "array"
+          },
+          "Category": {
+            "nullable": true,
+            "type": "string"
+          },
+          "CheckIns": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthGoalCheckInDto"
+            },
+            "type": "array"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LastUpdatedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "ProgressPercent": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "StartDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsGrowthGoalStatus"
+          },
+          "SuccessCriteria": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "Summary": {
+            "nullable": true,
+            "type": "string"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "SkillsInProgress": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "FocusAreasMarkdown": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProductOwnersListProductOwnersRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsProductOwnersProductOwnerListItemDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsCreateProjectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Health": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsHealthSignal"
+              }
+            ]
+          },
+          "Links": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectLinkDto"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "ProductOwnerId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsProjectStatus"
+              }
+            ]
+          },
+          "Summary": {
+            "type": "string"
+          },
+          "Tags": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsCreateProjectResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsDeleteProjectRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsGetProjectRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsProjectDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Health": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsHealthSignal"
+              }
+            ]
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LastUpdatedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LinkedRiskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "LinkedTaskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "Links": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectLinkDto"
+            },
+            "type": "array"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "ProductOwnerId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsProjectStatus"
+              }
+            ]
+          },
+          "Summary": {
+            "type": "string"
+          },
+          "Tags": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectTagDto"
+            },
+            "type": "array"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "TeamMemberIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsProjectLinkDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Label": {
+            "type": "string"
+          },
+          "Url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsProjectTagDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Value": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsSetProjectTeamMembersRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "TeamMemberIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsProjectsUpdateProjectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Health": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsHealthSignal"
+              }
+            ]
+          },
+          "Links": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectLinkDto"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Priority": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+              }
+            ]
+          },
+          "ProductOwnerId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AtlasDomainEnumsProjectStatus"
+              }
+            ]
+          },
+          "Summary": {
+            "type": "string"
+          },
+          "Tags": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "TargetDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksCreateRiskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "Evidence": {
+            "type": "string"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsSeverityLevel"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksCreateRiskResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksDeleteRiskRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksGetRiskRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksHistoryAddRiskHistoryEntryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksHistoryDeleteRiskHistoryEntryRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksHistoryUpdateRiskHistoryEntryRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksRiskDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "Evidence": {
+            "type": "string"
+          },
+          "History": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsRisksRiskHistoryEntryDto"
+            },
+            "type": "array"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LastUpdatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "LinkedTaskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "LinkedTeamMemberIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsSeverityLevel"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksRiskHistoryEntryDto": {
+        "additionalProperties": false,
+        "properties": {
+          "CreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksSetRiskTeamMembersRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "TeamMemberIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsRisksUpdateRiskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Description": {
+            "type": "string"
+          },
+          "Evidence": {
+            "type": "string"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsSeverityLevel"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsSettingsSettingsDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AzureDevOpsBaseUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "DefaultAiManualOnly": {
+            "type": "boolean"
+          },
+          "StaleDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "Theme": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTheme"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsSettingsUpdateSettingsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "AzureDevOpsBaseUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "DefaultAiManualOnly": {
+            "type": "boolean"
+          },
+          "StaleDays": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "Theme": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTheme"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksCreateTaskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ActualDurationText": {
+            "nullable": true,
+            "type": "string"
+          },
+          "AssigneeId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "DependencyTaskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "EstimateConfidence": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsConfidence"
+          },
+          "EstimatedDurationText": {
+            "type": "string"
+          },
+          "Notes": {
+            "type": "string"
+          },
+          "Priority": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTaskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksCreateTaskResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksDeleteTaskRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksGetTaskRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksListTasksRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksTaskDto": {
+        "additionalProperties": false,
+        "properties": {
+          "ActualDurationText": {
+            "nullable": true,
+            "type": "string"
+          },
+          "AssigneeId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "DependencyTaskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "EstimateConfidence": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsConfidence"
+          },
+          "EstimatedDurationText": {
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LastTouchedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Notes": {
+            "type": "string"
+          },
+          "Priority": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTaskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTasksUpdateTaskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ActualDurationText": {
+            "nullable": true,
+            "type": "string"
+          },
+          "AssigneeId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "DependencyTaskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "DueDate": {
+            "format": "date",
+            "nullable": true,
+            "type": "string"
+          },
+          "EstimateConfidence": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsConfidence"
+          },
+          "EstimatedDurationText": {
+            "type": "string"
+          },
+          "Notes": {
+            "type": "string"
+          },
+          "Priority": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsPriority"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTaskStatus"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "CreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersCreateTeamMemberRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Role": {
+            "nullable": true,
+            "type": "string"
+          },
+          "StatusDot": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsStatusDot"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersCreateTeamMemberResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersDeleteTeamMemberRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersGetTeamMemberRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersListTeamMembersRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "AdoWorkItemId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "PrUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Text": {
+            "type": "string"
+          },
+          "Title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsNoteType"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersNotesDeleteTeamNoteRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersNotesSetPinnedNotesRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "NoteIdsInOrder": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersNotesUpdateTeamNoteRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "AdoWorkItemId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "PinnedOrder": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "PrUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Text": {
+            "type": "string"
+          },
+          "Title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsNoteType"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersProfileUpdateTeamMemberProfileRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "TimeZone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "TypicalHours": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "CurrentAction": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "FirstNoticedDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "ImpactArea": {
+            "type": "string"
+          },
+          "LinkedGlobalRiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskType": {
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskSeverity"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Trend": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskTrend"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersRisksDeleteTeamMemberRiskRequest": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersRisksUpdateTeamMemberRiskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "CurrentAction": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "FirstNoticedDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "ImpactArea": {
+            "type": "string"
+          },
+          "LastReviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LinkedGlobalRiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskType": {
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskSeverity"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Trend": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskTrend"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersSignalsUpdateTeamMemberSignalsRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "Delivery": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsDeliverySignal"
+          },
+          "Load": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsLoadSignal"
+          },
+          "SupportNeeded": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsSupportNeededSignal"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberAzureWorkItemDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AssignedTo": {
+            "nullable": true,
+            "type": "string"
+          },
+          "ChangedDateUtc": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "Id": {
+            "type": "string"
+          },
+          "LocalNotes": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberAzureWorkItemLocalNoteDto"
+            },
+            "type": "array"
+          },
+          "ProjectId": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Status": {
+            "type": "string"
+          },
+          "TicketUrl": {
+            "type": "string"
+          },
+          "Title": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberAzureWorkItemLocalNoteDto": {
+        "additionalProperties": false,
+        "properties": {
+          "CreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "Text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AzureWorkItems": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberAzureWorkItemDto"
+            },
+            "type": "array"
+          },
+          "CurrentFocus": {
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LinkedGlobalRiskIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Notes": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamNoteDto"
+            },
+            "type": "array"
+          },
+          "Profile": {
+            "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberProfileDto"
+          },
+          "ProjectIds": {
+            "items": {
+              "format": "guid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "Risks": {
+            "items": {
+              "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberRiskDto"
+            },
+            "type": "array"
+          },
+          "Role": {
+            "type": "string"
+          },
+          "Signals": {
+            "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberSignalsDto"
+          },
+          "StatusDot": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsStatusDot"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberProfileDto": {
+        "additionalProperties": false,
+        "properties": {
+          "TimeZone": {
+            "nullable": true,
+            "type": "string"
+          },
+          "TypicalHours": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberRiskDto": {
+        "additionalProperties": false,
+        "properties": {
+          "CurrentAction": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "FirstNoticedDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "ImpactArea": {
+            "type": "string"
+          },
+          "LastReviewedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "LinkedGlobalRiskId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          },
+          "RiskType": {
+            "type": "string"
+          },
+          "Severity": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskSeverity"
+          },
+          "Status": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskStatus"
+          },
+          "Title": {
+            "type": "string"
+          },
+          "Trend": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsTeamMemberRiskTrend"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamMemberSignalsDto": {
+        "additionalProperties": false,
+        "properties": {
+          "Delivery": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsDeliverySignal"
+          },
+          "Load": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsLoadSignal"
+          },
+          "SupportNeeded": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsSupportNeededSignal"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersTeamNoteDto": {
+        "additionalProperties": false,
+        "properties": {
+          "AdoWorkItemId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "CreatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "Id": {
+            "format": "guid",
+            "type": "string"
+          },
+          "LastModifiedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "PinnedOrder": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "PrUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Text": {
+            "type": "string"
+          },
+          "Title": {
+            "nullable": true,
+            "type": "string"
+          },
+          "Type": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsNoteType"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApiDTOsTeamMembersUpdateTeamMemberRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "CurrentFocus": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Role": {
+            "nullable": true,
+            "type": "string"
+          },
+          "StatusDot": {
+            "$ref": "#/components/schemas/AtlasDomainEnumsStatusDot"
+          }
+        },
+        "type": "object"
+      },
+      "AtlasApplicationAbstractionsAiAiViewScope": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Dashboard",
+          "Tasks",
+          "Team",
+          "Risks",
+          "Projects",
+          "Settings"
+        ]
+      },
+      "AtlasDomainEnumsConfidence": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      "AtlasDomainEnumsDeliverySignal": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "AtRisk",
+          "OnTrack",
+          "Blocked"
+        ]
+      },
+      "AtlasDomainEnumsGrowthGoalActionState": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Planned",
+          "InProgress",
+          "Complete"
+        ]
+      },
+      "AtlasDomainEnumsGrowthGoalCheckInSignal": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Positive",
+          "Mixed",
+          "Concern"
+        ]
+      },
+      "AtlasDomainEnumsGrowthGoalStatus": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "OnTrack",
+          "NeedsAttention",
+          "Completed"
+        ]
+      },
+      "AtlasDomainEnumsHealthSignal": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Green",
+          "Yellow",
+          "Red"
+        ]
+      },
+      "AtlasDomainEnumsLoadSignal": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Light",
+          "Normal",
+          "Heavy"
+        ]
+      },
+      "AtlasDomainEnumsNoteType": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Blocker",
+          "Progress",
+          "Concern",
+          "Praise",
+          "Standup",
+          "Quick"
+        ]
+      },
+      "AtlasDomainEnumsPriority": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High",
+          "Critical"
+        ]
+      },
+      "AtlasDomainEnumsProjectStatus": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Active",
+          "Paused",
+          "Completed"
+        ]
+      },
+      "AtlasDomainEnumsRiskStatus": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Open",
+          "Watching",
+          "Resolved"
+        ]
+      },
+      "AtlasDomainEnumsSeverityLevel": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      "AtlasDomainEnumsStatusDot": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Green",
+          "Yellow",
+          "Red"
+        ]
+      },
+      "AtlasDomainEnumsSupportNeededSignal": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      "AtlasDomainEnumsTaskStatus": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "NotStarted",
+          "InProgress",
+          "Blocked",
+          "Done"
+        ]
+      },
+      "AtlasDomainEnumsTeamMemberRiskSeverity": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Low",
+          "Medium",
+          "High"
+        ]
+      },
+      "AtlasDomainEnumsTeamMemberRiskStatus": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Open",
+          "Mitigating",
+          "Resolved"
+        ]
+      },
+      "AtlasDomainEnumsTeamMemberRiskTrend": {
+        "description": "",
+        "enum": [
+          0,
+          1,
+          2
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Improving",
+          "Stable",
+          "Worsening"
+        ]
+      },
+      "AtlasDomainEnumsTheme": {
+        "description": "",
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "x-enumNames": [
+          "Dark",
+          "Light"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "JWTBearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "Enter a JWT token to authorize the requests...",
+        "scheme": "Bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Atlas.Api",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/ai/conversations": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAiListAiConversationsEndpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Take",
+            "schema": {
+              "format": "int32",
+              "nullable": true,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAiAiConversationListItemDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List recent AI conversations",
+        "tags": [
+          "Ai"
+        ]
+      },
+      "post": {
+        "operationId": "AtlasApiEndpointsAiCreateAiConversationEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAiCreateAiConversationRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "CreateAiConversationRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAiCreateAiConversationResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Start a new AI conversation",
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/ai/conversations/{conversationId}": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAiGetAiConversationEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAiAiConversationDetailDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get an AI conversation with all turns",
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/ai/conversations/{conversationId}/messages": {
+      "post": {
+        "operationId": "AtlasApiEndpointsAiContinueAiConversationEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAiContinueAiConversationRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "ContinueAiConversationRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAiContinueAiConversationResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Continue an AI conversation with a new message",
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/ai/sessions/{sessionId}/events": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAiAiSessionEventsEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Stream AI session events over SSE",
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/azure-devops/connection": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureConnectionDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get Azure DevOps connection settings (singleton)",
+        "tags": [
+          "Azure-Devops"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateAzureConnectionRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update Azure DevOps connection settings (singleton)",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/import/link": {
+      "post": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsLinkAzureWorkItemsEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "LinkAzureWorkItemsRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "format": "int32",
+                  "type": "integer"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Bulk link Azure work items to a local project",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/import/users": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureUserDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List imported Azure DevOps users",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/import/work-items": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListAzureImportWorkItemsEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List Azure work items awaiting import/linking",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/product-owners/import": {
+      "post": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "ImportAzureProductOwnersRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Import selected Azure users into local product owners",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/projects": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListAzureProjectsEndpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureProjectDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List Azure DevOps projects for an organization",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/sync": {
+      "post": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsRunAzureSyncEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureSyncResultDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Run Azure DevOps sync now",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/sync-state": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsGetAzureSyncStateEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureSyncStateDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get Azure DevOps sync state",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/team-area-paths": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListAzureTeamAreaPathsEndpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ProjectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "TeamName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List Azure DevOps team area paths (team settings)",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/team/import": {
+      "post": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsImportAzureTeamRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "ImportAzureTeamRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsImportAzureTeamResultDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Import selected Azure users into local team members",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/teams": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListAzureTeamsEndpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ProjectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureTeamDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List Azure DevOps teams for a project",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/azure-devops/users": {
+      "get": {
+        "operationId": "AtlasApiEndpointsAzureDevOpsListAzureUsersEndpoint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "Organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "ProjectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "TeamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsAzureDevOpsAzureUserDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List Azure DevOps users for an organization",
+        "tags": [
+          "Azure-Devops"
+        ]
+      }
+    },
+    "/growth/{growthId}": {
+      "get": {
+        "operationId": "AtlasApiEndpointsGrowthGetGrowthEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a growth plan by id",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/feedback-themes": {
+      "post": {
+        "operationId": "AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddFeedbackThemeRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a feedback theme to a growth plan",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/feedback-themes/{themeId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsGrowthFeedbackThemesDeleteFeedbackThemeEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "themeId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a feedback theme from a growth plan",
+        "tags": [
+          "Growth"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthFeedbackThemesUpdateFeedbackThemeEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "themeId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateFeedbackThemeRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a feedback theme on a growth plan",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/focus-areas": {
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthUpdateGrowthFocusAreasEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateGrowthFocusAreasRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update growth plan focus areas markdown",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals": {
+      "post": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddGrowthGoalRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a goal to a growth plan",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals/{goalId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsDeleteGrowthGoalEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsUpdateGrowthGoalEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsUpdateGrowthGoalRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateGrowthGoalRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals/{goalId}/actions": {
+      "post": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddGrowthGoalActionRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add an action to a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals/{goalId}/actions/{actionId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsActionsDeleteGrowthGoalActionEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "actionId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete an action from a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsActionsUpdateGrowthGoalActionEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "actionId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsActionsUpdateGrowthGoalActionRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateGrowthGoalActionRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update an action on a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals/{goalId}/check-ins": {
+      "post": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddGrowthGoalCheckInRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a check-in to a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/goals/{goalId}/check-ins/{checkInId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsCheckInsDeleteGrowthGoalCheckInEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkInId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a check-in from a growth goal",
+        "tags": [
+          "Growth"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthGoalsCheckInsUpdateGrowthGoalCheckInEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "goalId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkInId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateGrowthGoalCheckInRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a growth goal check-in",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/growth/{growthId}/skills-in-progress": {
+      "put": {
+        "operationId": "AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "growthId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "SetGrowthSkillsInProgressRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Set a growth plan's ordered skills-in-progress list",
+        "tags": [
+          "Growth"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "GetHealth",
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/product-owners": {
+      "get": {
+        "operationId": "AtlasApiEndpointsProductOwnersListProductOwnersEndpoint",
+        "parameters": [
+          {
+            "explode": true,
+            "in": "query",
+            "name": "Ids",
+            "schema": {
+              "items": {
+                "format": "guid",
+                "type": "string"
+              },
+              "nullable": true,
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsProductOwnersProductOwnerListItemDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List product owners",
+        "tags": [
+          "Product-Owners"
+        ]
+      }
+    },
+    "/projects": {
+      "get": {
+        "operationId": "AtlasApiEndpointsProjectsListProjectsEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List projects",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "AtlasApiEndpointsProjectsCreateProjectEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsProjectsCreateProjectRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "CreateProjectRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsProjectsCreateProjectResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Create a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsProjectsDeleteProjectEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "AtlasApiEndpointsProjectsGetProjectEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsProjectsProjectDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a project by id",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsProjectsUpdateProjectEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsProjectsUpdateProjectRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateProjectRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{id}/team-members": {
+      "put": {
+        "operationId": "AtlasApiEndpointsProjectsSetProjectTeamMembersEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsProjectsSetProjectTeamMembersRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "SetProjectTeamMembersRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Set the team-member membership for a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/risks": {
+      "get": {
+        "operationId": "AtlasApiEndpointsRisksListRisksEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsRisksRiskDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List risks",
+        "tags": [
+          "Risks"
+        ]
+      },
+      "post": {
+        "operationId": "AtlasApiEndpointsRisksCreateRiskEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsRisksCreateRiskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "CreateRiskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsRisksCreateRiskResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Create a risk",
+        "tags": [
+          "Risks"
+        ]
+      }
+    },
+    "/risks/{id}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsRisksDeleteRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a risk",
+        "tags": [
+          "Risks"
+        ]
+      },
+      "get": {
+        "operationId": "AtlasApiEndpointsRisksGetRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsRisksRiskDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a risk by id",
+        "tags": [
+          "Risks"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsRisksUpdateRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsRisksUpdateRiskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateRiskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a risk",
+        "tags": [
+          "Risks"
+        ]
+      }
+    },
+    "/risks/{id}/team-members": {
+      "put": {
+        "operationId": "AtlasApiEndpointsRisksSetRiskTeamMembersEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsRisksSetRiskTeamMembersRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "SetRiskTeamMembersRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Set the team-member links for a risk",
+        "tags": [
+          "Risks"
+        ]
+      }
+    },
+    "/risks/{riskId}/history": {
+      "post": {
+        "operationId": "AtlasApiEndpointsRisksHistoryAddRiskHistoryEntryEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "riskId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsRisksHistoryAddRiskHistoryEntryRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddRiskHistoryEntryRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a history entry to a risk",
+        "tags": [
+          "Risks"
+        ]
+      }
+    },
+    "/risks/{riskId}/history/{entryId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsRisksHistoryDeleteRiskHistoryEntryEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "riskId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a risk history entry",
+        "tags": [
+          "Risks"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsRisksHistoryUpdateRiskHistoryEntryEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "riskId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entryId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsRisksHistoryUpdateRiskHistoryEntryRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateRiskHistoryEntryRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a risk history entry",
+        "tags": [
+          "Risks"
+        ]
+      }
+    },
+    "/settings": {
+      "get": {
+        "operationId": "AtlasApiEndpointsSettingsGetSettingsEndpoint",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsSettingsSettingsDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get application settings (singleton)",
+        "tags": [
+          "Settings"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsSettingsUpdateSettingsEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsSettingsUpdateSettingsRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateSettingsRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update application settings (singleton)",
+        "tags": [
+          "Settings"
+        ]
+      }
+    },
+    "/tasks": {
+      "get": {
+        "operationId": "AtlasApiEndpointsTasksListTasksEndpoint",
+        "parameters": [
+          {
+            "explode": true,
+            "in": "query",
+            "name": "Ids",
+            "schema": {
+              "items": {
+                "format": "guid",
+                "type": "string"
+              },
+              "nullable": true,
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsTasksTaskDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List tasks",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "post": {
+        "operationId": "AtlasApiEndpointsTasksCreateTaskEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTasksCreateTaskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "CreateTaskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTasksCreateTaskResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Create a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/tasks/{id}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsTasksDeleteTaskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a task",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "get": {
+        "operationId": "AtlasApiEndpointsTasksGetTaskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTasksTaskDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a task by id",
+        "tags": [
+          "Tasks"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsTasksUpdateTaskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTasksUpdateTaskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTaskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a task",
+        "tags": [
+          "Tasks"
+        ]
+      }
+    },
+    "/team-members": {
+      "get": {
+        "operationId": "AtlasApiEndpointsTeamMembersListTeamMembersEndpoint",
+        "parameters": [
+          {
+            "explode": true,
+            "in": "query",
+            "name": "Ids",
+            "schema": {
+              "items": {
+                "format": "guid",
+                "type": "string"
+              },
+              "nullable": true,
+              "type": "array"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberDto"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "List team members",
+        "tags": [
+          "Team-Members"
+        ]
+      },
+      "post": {
+        "operationId": "AtlasApiEndpointsTeamMembersCreateTeamMemberEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersCreateTeamMemberRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "CreateTeamMemberRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersCreateTeamMemberResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Create a team member",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{id}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsTeamMembersDeleteTeamMemberEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a team member",
+        "tags": [
+          "Team-Members"
+        ]
+      },
+      "get": {
+        "operationId": "AtlasApiEndpointsTeamMembersGetTeamMemberEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersTeamMemberDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a team member by id",
+        "tags": [
+          "Team-Members"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersUpdateTeamMemberRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTeamMemberRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a team member",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/azure-work-items/{workItemId}/notes": {
+      "post": {
+        "operationId": "AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workItemId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddAzureWorkItemLocalNoteRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a local note to a team member Azure work item",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/growth": {
+      "get": {
+        "operationId": "AtlasApiEndpointsGrowthGetGrowthByTeamMemberEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthGrowthDto"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Get a team member's growth plan",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/growth/ensure": {
+      "post": {
+        "operationId": "AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Ensure a growth plan exists for a team member",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/notes": {
+      "post": {
+        "operationId": "AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddTeamNoteRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a team note",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/notes/pins": {
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersNotesSetPinnedNotesEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersNotesSetPinnedNotesRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "SetPinnedNotesRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Set pinned notes ordering",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/notes/{noteId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsTeamMembersNotesDeleteTeamNoteEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "noteId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a team note",
+        "tags": [
+          "Team-Members"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersNotesUpdateTeamNoteEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "noteId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersNotesUpdateTeamNoteRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTeamNoteRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a team note",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/profile": {
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersProfileUpdateTeamMemberProfileRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTeamMemberProfileRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update team member profile",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/risks": {
+      "post": {
+        "operationId": "AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "AddTeamMemberRiskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "Add a team-member-specific risk",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/risks/{teamMemberRiskId}": {
+      "delete": {
+        "operationId": "AtlasApiEndpointsTeamMembersRisksDeleteTeamMemberRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "teamMemberRiskId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Delete a team-member-specific risk",
+        "tags": [
+          "Team-Members"
+        ]
+      },
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "teamMemberRiskId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersRisksUpdateTeamMemberRiskRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTeamMemberRiskRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update a team-member-specific risk",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/signals": {
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersSignalsUpdateTeamMemberSignalsRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "UpdateTeamMemberSignalsRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "Update team member signals",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    }
+  },
+  "x-generator": "NSwag v14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))"
+}
