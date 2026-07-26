@@ -1,7 +1,6 @@
 #Custom files
 Haroldnotes.txt
 
-
 .cursor/
 .vscode/
 
@@ -445,3 +444,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# FastEndpoints OpenAPI export output (committed copy lives in openapi/)
+src/backend/Api/Atlas.Api/wwwroot/openapi/

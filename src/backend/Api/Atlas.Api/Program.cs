@@ -49,7 +49,11 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddFastEndpoints();
-builder.Services.SwaggerDocument();
+builder.Services.SwaggerDocument(o =>
+{
+    // Document name must match ExportSwaggerDocsAndExitAsync("v1").
+    o.DocumentSettings = s => s.DocumentName = "v1";
+});
 
 builder.Services.AddMediatR(cfg =>
 {
@@ -219,6 +223,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseFastEndpoints();
+
+// Phase 3: export OpenAPI then exit when run with `--export-swagger-docs true` (requires Postgres).
+await app.ExportSwaggerDocsAndExitAsync("v1");
 
 app.Run();
 
