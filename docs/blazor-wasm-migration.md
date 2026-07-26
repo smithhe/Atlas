@@ -248,54 +248,52 @@ Only projects → risks → tasks form a chain. Team is a separate root.
 
 ### Current state
 
-- `Program.cs`: `AddFastEndpoints()`, `SwaggerDocument()` (bare call — **document name not customized**), `UseSwaggerGen()` in Development only.
-- **Not implemented:** export call, `--export-swagger-docs` handling, committed artifact, NSwag config.
+- `Program.cs`: `AddFastEndpoints()`, `SwaggerDocument(o => o.DocumentSettings = s => s.DocumentName = "v1")`, `UseSwaggerGen()` in Development only.
+- **Export wired (Phase 3):** `await app.ExportSwaggerDocsAndExitAsync("v1");` immediately after `UseFastEndpoints()`. Activation: `dotnet run … -- --export-swagger-docs true` (or `bash scripts/regenerate-openapi.sh`).
+- **Committed artifact:** `openapi/atlas.v1.json` (normalized from `wwwroot/openapi/v1.json`).
+- **Tooling:** `scripts/regenerate-openapi.sh` (export + NSwag), `scripts/check-openapi-drift.sh`, umbrella CI `openapi-drift` job.
+- **NSwag client:** `src/frontend/Atlas.Ui/nswag.json` → `Api/Generated/AtlasApiClient.cs` (SSE `GET /ai/sessions/{id}/events` stripped before codegen).
+- Compose Production → no live `/swagger` UI (export does not require it).
 
-### FastEndpoints 8.1.0 export (verified API shape)
+### FastEndpoints 8.1.0 export (landed shape)
 
-Atlas uses **`FastEndpoints.Swagger`**, not `FastEndpoints.OpenApi`. Phase 3 wires:
+Atlas uses **`FastEndpoints.Swagger`**, not `FastEndpoints.OpenApi`. Phase 3 uses:
 
 ```csharp
 app.UseFastEndpoints();
 
-await app.ExportSwaggerDocsAndExitAsync(/* document name(s) — see below */);
+await app.ExportSwaggerDocsAndExitAsync("v1");
 
 app.Run();
 ```
 
 **Critical details:**
 
-| Item | Requirement |
+| Item | Status |
 | --- | --- |
-| **Method args** | Pass configured **document name string(s)** — e.g. `"v1"` — **not** `args`. Names must match `SwaggerDocument()` registration. |
+| **Method args** | Document name `"v1"` — matches `SwaggerDocument` `DocumentName`. |
 | **Placement** | Immediately **after** `app.UseFastEndpoints()`, before `app.Run()`. |
-| **Activation** | `dotnet run --export-swagger-docs true` sets configuration that triggers export-then-exit (FastEndpoints reads export flag from configuration). |
-| **Document name** | Confirm from `.SwaggerDocument(...)` — today bare `SwaggerDocument()` uses FastEndpoints default; inspect export output filename or add explicit `DocumentSettings` if ambiguous. |
-| **Default export path** | FastEndpoints 8.1 default: **`wwwroot/openapi`** under the API project — **verify filename on first export** (document name may suffix the file). |
-| **Committed artifact** | **`openapi/atlas.v1.json`** — set `<SwaggerExportPath>` in `Atlas.Api.csproj` **or** copy/rename in the introduced regenerate script. |
-
-**Do not document a final script/command until Phase 3 adds and tests it.** Phase 3 acceptance criteria define success.
+| **Activation** | `--export-swagger-docs true` (FastEndpoints reads export flag from configuration). |
+| **Document name** | Explicit `"v1"` via `DocumentSettings`. |
+| **Default export path** | FastEndpoints 8.1 default: **`wwwroot/openapi/v1.json`** under the API project; regenerate script normalizes to `openapi/atlas.v1.json`. |
+| **Committed artifact** | **`openapi/atlas.v1.json`**. |
+| **Regenerate** | `bash scripts/regenerate-openapi.sh` (Postgres required; binds `ATLAS_OPENAPI_EXPORT_URLS` default `http://127.0.0.1:5055`). |
 
 ### Database prerequisite
 
-**Today:** export wiring runs after DB `EnsureCreated()` / `Migrate()` in `Program.cs` — **Postgres required** for `dotnet run --export-swagger-docs true` unless changed.
-
-**Phase 3 must either:**
-
-- Document and CI-test export with Postgres (same as Playwright job), **or**
-- Implement an **early export path** that skips DB initialization when export configuration is active — and test on fresh clone.
+**Export requires Postgres:** wiring runs after DB `EnsureCreated()` / `Migrate()` in `Program.cs`. Phase 3 documents and CI-tests export with Postgres (umbrella `openapi-drift` job) — **no** early-export skip-DB path.
 
 ### Phase 3 deliverables & acceptance
 
 | Deliverable | Acceptance |
 | --- | --- |
-| Export wired per API shape above | Export produces JSON; process exits 0 with `--export-swagger-docs true` |
+| Export wired per API shape above | Export produces JSON; process exits after `--export-swagger-docs true` |
 | Committed `openapi/atlas.v1.json` | Matches export output after script normalization |
-| Regenerate script | Deterministic; documented in PR; runs on fresh clone |
+| Regenerate script | Deterministic; documented; runs on fresh clone with Postgres |
 | NSwag client + mapping layer | Stubs for `mappers.ts`, `duration.ts`, `tones.ts`, `team.ts` |
 | Cache skeleton | `IsHydrating` with correct dependency gates |
 | CI drift check | Fails PR if committed artifact drifts without intentional update |
-| Sample Blazor HTTP call | e.g. list tasks via generated client |
+| Sample Blazor HTTP call | list tasks via generated client on Home |
 
 **SSE exception:** `GET /ai/sessions/{id}/events` — hand-written EventSource interop; not NSwag.
 
@@ -460,18 +458,17 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 
 ### Phase 3 — OpenAPI + cache skeleton + **React visual baseline**
 
-- [x] Export wired (`ExportSwaggerDocsAndExitAsync` after `UseFastEndpoints`; document name confirmed)
+- [x] Export wired (`ExportSwaggerDocsAndExitAsync` after `UseFastEndpoints`; document name `"v1"` confirmed)
 - [x] `openapi/atlas.v1.json` + regenerate script + NSwag client + mapping stubs
 - [x] Cache skeleton with hydration dependency gates
 - [x] CI OpenAPI drift check added to umbrella workflow
-- [x] **Complete React visual baseline** (all checklist routes/states, 3 viewports, stored in repo or CI artifact with capture env documented)
+- [x] **React visual baseline** committed under `docs/migration-screenshots/react-baseline/` (3 viewports; seed-reachable checklist routes including team note detail; seed-absent nested team details documented as gaps)
 
 **Exit:**
 
-- [x] Export + regenerate tested on fresh clone (Postgres or early-export path documented)
+- [x] Export + regenerate tested with Postgres (no early-export skip-DB)
 - [x] Sample Blazor API call works; drift check green
-- [x] **React baseline artifact complete and linked in umbrella README or workflow** — **blocks Phase 4**
-
+- [x] **React baseline artifact linked** from umbrella README / migration docs — **blocks Phase 4** (gaps for seed-absent routes documented, not claimed complete)
 ### Phase 3 notes (landed)
 
 | Item | Location / command |
