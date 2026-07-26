@@ -28,7 +28,7 @@ jobs:
 
   playwright-ported:
     runs-on: ubuntu-latest
-    needs: []
+    needs: [blazor-build]
 
     services:
       postgres:
