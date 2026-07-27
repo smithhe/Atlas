@@ -131,7 +131,9 @@ public sealed class AppCacheService
         {
             LastError ??= ex.Message;
             SetState(ref _projects, LoadState.Failed);
-            // risks/tasks stay Pending (TanStack isPending while enabled:false).
+            // Dependents cannot load — mark Failed so IsHydrating clears.
+            SetState(ref _risks, LoadState.Failed);
+            SetState(ref _tasks, LoadState.Failed);
         }
     }
 
@@ -183,7 +185,9 @@ public sealed class AppCacheService
     {
         if (_projects != LoadState.Ready)
         {
-            // Stay Pending while prerequisite missing/failed (enabled:false → isPending).
+            // Prerequisite failed/missing — mark Failed so IsHydrating clears.
+            SetState(ref _risks, LoadState.Failed);
+            SetState(ref _tasks, LoadState.Failed);
             return;
         }
 
@@ -201,7 +205,8 @@ public sealed class AppCacheService
         {
             LastError ??= ex.Message;
             SetState(ref _risks, LoadState.Failed);
-            // tasks stay Pending while risks not successful.
+            // Tasks cannot load without risks — mark Failed so IsHydrating clears.
+            SetState(ref _tasks, LoadState.Failed);
         }
     }
 
@@ -209,7 +214,8 @@ public sealed class AppCacheService
     {
         if (_projects != LoadState.Ready || _risks != LoadState.Ready)
         {
-            // Stay Pending while prerequisites missing/failed.
+            // Prerequisites failed/missing — mark Failed so IsHydrating clears.
+            SetState(ref _tasks, LoadState.Failed);
             return;
         }
 

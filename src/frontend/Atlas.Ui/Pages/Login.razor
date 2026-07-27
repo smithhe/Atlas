@@ -1,0 +1,23 @@
+@page "/"
+@page "/login"
+@layout EmptyLayout
+@inject NavigationManager Nav
+
+<PageTitle>Login — Atlas</PageTitle>
+
+<div class="page">
+    <h2 class="pageTitle">Login</h2>
+    <div class="card pad">
+        <p class="muted">
+            Authentication will be added later. Continue opens the app. Azure DevOps setup is optional.
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button class="btn" type="button" @onclick="Continue">Continue</button>
+            <a class="btn btnSecondary" href="/setup">Azure Setup</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    void Continue() => Nav.NavigateTo("/dashboard");
+}

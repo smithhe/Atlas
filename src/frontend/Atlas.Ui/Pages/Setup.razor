@@ -1,0 +1,34 @@
+@page "/setup"
+@layout EmptyLayout
+@inject NavigationManager Nav
+
+<PageTitle>Azure Setup — Atlas</PageTitle>
+
+<div class="entryShell">
+    <header class="entryHeader">
+        <div class="entryHeaderInner">
+            <div class="pageHeader">
+                <div class="pageHeaderLeft">
+                    <h2 class="pageHeaderTitle">Azure Setup</h2>
+                    <div class="pageHeaderSubtitle">
+                        Connect your Azure DevOps organization, choose a project and team, then import members.
+                    </div>
+                </div>
+                <div class="pageHeaderRight" style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn btnSecondary" type="button" @onclick="Skip">Skip for now</button>
+                    <span class="pill toneInfo">Step 1/3 • Project</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="page entryPage">
+        <div class="card pad" style="margin-bottom: 16px">
+            <p class="muted">Azure setup stub — full wizard lands in a later phase. Skip to open the app.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    void Skip() => Nav.NavigateTo("/dashboard");
+}

@@ -1,1 +1,4 @@
 e2e/flows/blazor-host.spec.ts
+e2e/flows/login-dashboard.spec.ts
+e2e/flows/shell-nav.spec.ts
+e2e/flows/dashboard-nav.spec.ts

@@ -7,6 +7,8 @@
     <title>Atlas</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="css/index.css" />
+    <link rel="stylesheet" href="css/atlas-app.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="Atlas.Ui.styles.css" rel="stylesheet" />
@@ -27,6 +29,18 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+    <script>
+        // Legacy hash URL shim: /#/… → /… (Phase 4 temporary bridge).
+        (function () {
+            var hash = location.hash || '';
+            if (hash === '#/' || hash.indexOf('#/') === 0) {
+                var path = hash.slice(1); // strip leading '#'
+                if (path.length === 0) path = '/';
+                var search = location.search || '';
+                history.replaceState(null, '', path + search);
+            }
+        })();
+    </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>
 
