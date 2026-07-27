@@ -4,7 +4,7 @@ import { waitForApiHealthy } from './api'
 /** Login via Continue and wait until the shell has hydrated past the login page. */
 export async function continueToDashboard(page: Page): Promise<void> {
   await waitForApiHealthy()
-  await page.goto('/#/')
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible()
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.locator('h2.pageTitle', { hasText: 'Dashboard' })).toBeVisible({ timeout: 30_000 })

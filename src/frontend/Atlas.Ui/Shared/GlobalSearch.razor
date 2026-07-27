@@ -1,0 +1,46 @@
+@implements IDisposable
+@inject AppCacheService Cache
+
+<div class="globalSearch">
+    <input class="searchInput"
+           role="combobox"
+           aria-label="Search"
+           aria-autocomplete="list"
+           aria-haspopup="listbox"
+           aria-expanded="@(_open ? "true" : "false")"
+           aria-controls="@(_open ? "atlas-search-results" : null)"
+           placeholder="Search tasks, risks, people, projects…"
+           disabled="@Cache.IsHydrating"
+           @bind="_query"
+           @bind:event="oninput"
+           @onfocus="() => _open = true"
+           @onblur="OnBlur" />
+    @if (_open && !string.IsNullOrWhiteSpace(_query))
+    {
+        <div class="searchResults list listCard" id="atlas-search-results" role="listbox" aria-label="Search results">
+            <div class="searchResultsEmpty muted">Search stub — results in Phase 5</div>
+        </div>
+    }
+</div>
+
+@code {
+    string _query = "";
+    bool _open;
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnCacheChanged;
+    }
+
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+
+    async Task OnBlur()
+    {
+        // Allow click on results before closing (stub has no clickable rows).
+        await Task.Delay(100);
+        _open = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
+}

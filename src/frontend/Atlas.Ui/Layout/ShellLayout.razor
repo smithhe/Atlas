@@ -1,0 +1,119 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppCacheService Cache
+@inject NavigationManager Nav
+
+<div class="appShell">
+    <header class="topBar">
+        <div class="topBarLeft">
+            <div class="appTitleRow">
+                <div class="appTitle">Atlas</div>
+                @if (Cache.IsHydrating)
+                {
+                    <span class="spinner spinner-sm spinnerInline topBarSpinner" role="status" aria-label="Loading data"></span>
+                }
+            </div>
+        </div>
+        <div class="topBarCenter">
+            <GlobalSearch />
+        </div>
+        <div class="topBarRight">
+            <button class="btn btnSecondary" type="button" @onclick="OpenQuickAdd">+ Quick Add</button>
+            <button class="btn" type="button" @onclick="ToggleAi">AI ▸</button>
+        </div>
+    </header>
+
+    <div class="@BodyGridClass" style="@AiWidthStyle">
+        <nav class="leftNav" role="navigation" aria-label="Primary navigation">
+            @foreach (var item in NavItems)
+            {
+                <NavLink href="@item.Href" class="navBtn" ActiveClass="navBtnActive">@item.Label</NavLink>
+            }
+        </nav>
+
+        <main class="mainContent" aria-label="Main content">
+            <div class="srOnly" aria-hidden="true">@ContextTitle</div>
+            <div class="loadingOverlayWrap @(Cache.IsHydrating ? "loadingOverlayWrapActive" : null)">
+                <div class="loadingOverlayBody" aria-hidden="@(Cache.IsHydrating ? "true" : null)">
+                    @Body
+                </div>
+                @if (Cache.IsHydrating)
+                {
+                    <div class="loadingOverlay" role="presentation">
+                        <span class="spinner spinner-md" role="status" aria-label="Loading app data"></span>
+                    </div>
+                }
+            </div>
+        </main>
+
+        @if (_aiOpen)
+        {
+            <div class="aiResizer"
+                 role="separator"
+                 aria-orientation="vertical"
+                 aria-label="Resize AI panel"
+                 tabindex="0"></div>
+            <aside class="aiPanel" aria-label="AI panel">
+                <div class="aiPanelHeader">
+                    <div class="aiPanelTitle">AI</div>
+                    <button class="btn btnGhost" type="button" @onclick="CloseAi">Close</button>
+                </div>
+                <div class="aiPanelBody">
+                    <div class="muted">AI assistant stub (Phase 7).</div>
+                </div>
+            </aside>
+        }
+    </div>
+
+    <QuickAddModal IsOpen="_quickAddOpen" OnClose="CloseQuickAdd" />
+</div>
+
+@code {
+    static readonly NavItem[] NavItems =
+    [
+        new("/dashboard", "Dashboard"),
+        new("/tasks", "Tasks"),
+        new("/team", "Team"),
+        new("/risks", "Risks & Mitigation"),
+        new("/projects", "Projects"),
+        new("/settings", "Settings"),
+    ];
+
+    bool _quickAddOpen;
+    bool _aiOpen;
+
+    string BodyGridClass => _aiOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
+    string AiWidthStyle => "--aiWidth: clamp(320px, 26vw, 560px)";
+
+    string ContextTitle
+    {
+        get
+        {
+            var path = new Uri(Nav.Uri).AbsolutePath;
+            if (path.StartsWith("/dashboard", StringComparison.OrdinalIgnoreCase)) return "Context: Dashboard";
+            if (path.StartsWith("/tasks", StringComparison.OrdinalIgnoreCase)) return "Context: Tasks";
+            if (path.StartsWith("/team", StringComparison.OrdinalIgnoreCase)) return "Context: Team";
+            if (path.StartsWith("/risks", StringComparison.OrdinalIgnoreCase)) return "Context: Risks";
+            if (path.StartsWith("/projects", StringComparison.OrdinalIgnoreCase)) return "Context: Projects";
+            if (path.StartsWith("/settings", StringComparison.OrdinalIgnoreCase)) return "Context: Settings";
+            return "Context: Dashboard";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnCacheChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+
+    void OpenQuickAdd() => _quickAddOpen = true;
+    void CloseQuickAdd() => _quickAddOpen = false;
+    void ToggleAi() => _aiOpen = !_aiOpen;
+    void CloseAi() => _aiOpen = false;
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
+
+    sealed record NavItem(string Href, string Label);
+}

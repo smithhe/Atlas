@@ -22,10 +22,10 @@ test.describe('Shell navigation', () => {
 
   test('unknown route shows Not Found and Back to Dashboard', async ({ page }) => {
     await continueToDashboard(page)
-    await page.goto('/#/this-route-does-not-exist')
+    await page.goto('/this-route-does-not-exist')
     await expect(page.locator('h2.pageTitle', { hasText: 'Not Found' })).toBeVisible()
     await page.getByRole('link', { name: 'Back to Dashboard' }).click()
-    await expect(page).toHaveURL(/#\/dashboard/)
+    await expect(page).toHaveURL(/\/dashboard/)
     await expect(page.locator('h2.pageTitle', { hasText: 'Dashboard' })).toBeVisible()
   })
 })

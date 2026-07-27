@@ -1,0 +1,39 @@
+@if (IsOpen)
+{
+    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay">
+        <div class="modalPanel"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="_quickAddTitle"
+             tabindex="-1"
+             @onmousedown:stopPropagation="true">
+            <div class="modalHeader">
+                <div class="modalTitle" id="_quickAddTitle">Quick Add</div>
+                <button class="btn btnGhost" type="button" @onclick="OnClose">Close</button>
+            </div>
+            <div class="modalBody">
+                <div class="chipRow" style="margin-bottom: 14px">
+                    <button type="button" class="chipBtn @(_kind == "task" ? "chipBtnActive" : null)" @onclick='() => _kind = "task"'>Task</button>
+                    <button type="button" class="chipBtn @(_kind == "risk" ? "chipBtnActive" : null)" @onclick='() => _kind = "risk"'>Risk</button>
+                    <button type="button" class="chipBtn @(_kind == "note" ? "chipBtnActive" : null)" @onclick='() => _kind = "note"'>Team note</button>
+                </div>
+                <div class="mutedSmall">Quick Add stub — create flows land in Phase 5.</div>
+            </div>
+            <div class="modalFooter">
+                <div class="row" style="margin-top: 0">
+                    <button class="btn btnSecondary" type="button" disabled>Create</button>
+                    <button class="btn btnGhost" type="button" @onclick="OnClose">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    string _kind = "task";
+
+    Task CloseFromOverlay() => OnClose.InvokeAsync();
+}

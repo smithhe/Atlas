@@ -13,7 +13,7 @@ test.describe('Dashboard navigation', () => {
     await expect(section.getByText(title)).toBeVisible({ timeout: 20_000 })
     await section.getByRole('button', { name: new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click()
 
-    await expect(page).toHaveURL(new RegExp(`#/risks/${id}`))
+    await expect(page).toHaveURL(new RegExp(`/risks/${id}`))
     await expect(page.getByLabel('Risk detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
   })
 })
