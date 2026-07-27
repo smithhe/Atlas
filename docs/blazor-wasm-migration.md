@@ -505,12 +505,27 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 
 ### Phase 5 — Core CRUD
 
-- [ ] **UI rollout order** (not hydration order): tasks → projects/risks → dashboard → settings/Azure — implement surfaces in this sequence for reviewability; cache hydration gates remain projects → risks → tasks regardless
-- [ ] Modals; cache invalidation; native dialogs
-- [ ] Playwright Phase 5 flows ported; append paths to `tests/e2e/playwright-ported.txt`
-- [ ] Screenshots vs baseline for CRUD/modal/empty/error states
+- [x] **UI rollout order** (not hydration order): tasks → projects/risks → dashboard → settings/Azure — implement surfaces in this sequence for reviewability; cache hydration gates remain projects → risks → tasks regardless
+- [x] Modals; cache invalidation; native dialogs
+- [x] Playwright Phase 5 flows ported; append paths to `tests/e2e/playwright-ported.txt`
+- [x] Screenshots vs baseline for CRUD/modal/empty/error states
 
 **Exit:** CRUD smoke parity; Phase 5 Playwright green.
+
+### Phase 5 notes (landed)
+
+| Item | Location / command |
+| --- | --- |
+| Selection + dialogs | `Services/SelectionState.cs`, `BrowserDialogs.cs`, `LocalSettings.cs` |
+| Cache mutations | `Services/AppCacheService.cs` — optimistic patches + refetch-after-mutation; rename/link repairs |
+| Mappers / team pulse | `Mapping/ApiMappers.cs`, `TeamLogic.DeriveActivitySnapshot`, `DisplayLabels` |
+| CRUD pages | `Pages/{Tasks,Risks,Projects,Dashboard,Settings,Team,AzureImport,Setup}.razor` |
+| Search / Quick Add | `Shared/GlobalSearch.razor`, `Shared/QuickAddModal.razor` |
+| NSwag 201 | Generated client accepts HTTP 201 (API creates return Created) — see `AtlasApiClient.Partial.cs` note |
+| Playwright | Manifest adds 9 flows: tasks/risks/projects-crud, quick-add, search, focus-url, delete-smoke, settings-smoke, persist-reload (path URLs) |
+| Screenshots | `docs/migration-screenshots/blazor-phase5/` — regenerate with `bash scripts/capture-blazor-phase5.sh` |
+
+Thin Team (`/team/{id}`, `/team/{id}/notes`) only — full hub is Phase 6. AI panel remains stub (Phase 7).
 
 ### Phase 6 — Team hub *(blocks Phase 7)*
 
@@ -578,4 +593,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 4 shell + path routes + hash shim + first Playwright ports is complete on `cursor/blazor-wasm-shell-6b09`. After merge to the umbrella: cut a Phase 5 branch and execute **core CRUD** (tasks → projects/risks → dashboard → settings/Azure), modals/cache invalidation, and Phase 5 Playwright ports.
+Phase 5 core CRUD + Playwright ports is complete on `cursor/blazor-wasm-phase5-65f1`. After merge to the umbrella: cut a Phase 6 branch and execute the **Team hub** (full tabs/editing) + `team-note-ado-pr` Playwright port.

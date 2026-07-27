@@ -1,28 +1,101 @@
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
 @if (IsOpen)
 {
-    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay">
+    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay" @onkeydown="OnOverlayKey">
         <div class="modalPanel"
              role="dialog"
              aria-modal="true"
              aria-labelledby="_quickAddTitle"
              tabindex="-1"
-             @onmousedown:stopPropagation="true">
+             @onmousedown:stopPropagation="true"
+             @ref="_panel">
             <div class="modalHeader">
                 <div class="modalTitle" id="_quickAddTitle">Quick Add</div>
-                <button class="btn btnGhost" type="button" @onclick="OnClose">Close</button>
+                <button class="btn btnGhost" type="button" @onclick="HandleClose" disabled="@_saving">Close</button>
             </div>
             <div class="modalBody">
                 <div class="chipRow" style="margin-bottom: 14px">
-                    <button type="button" class="chipBtn @(_kind == "task" ? "chipBtnActive" : null)" @onclick='() => _kind = "task"'>Task</button>
-                    <button type="button" class="chipBtn @(_kind == "risk" ? "chipBtnActive" : null)" @onclick='() => _kind = "risk"'>Risk</button>
-                    <button type="button" class="chipBtn @(_kind == "note" ? "chipBtnActive" : null)" @onclick='() => _kind = "note"'>Team note</button>
+                    <button type="button" class="chipBtn @(_kind == "task" ? "chipBtnActive" : null)" @onclick='() => _kind = "task"' disabled="@_saving">Task</button>
+                    <button type="button" class="chipBtn @(_kind == "risk" ? "chipBtnActive" : null)" @onclick='() => _kind = "risk"' disabled="@_saving">Risk</button>
+                    <button type="button" class="chipBtn @(_kind == "note" ? "chipBtnActive" : null)" @onclick='() => _kind = "note"' disabled="@_saving">Team note</button>
                 </div>
-                <div class="mutedSmall">Quick Add stub — create flows land in Phase 5.</div>
+
+                @if (_kind == "task")
+                {
+                    <div class="fieldGrid">
+                        <label class="field">
+                            <div class="fieldLabel">Title</div>
+                            <input class="input" @bind="_taskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New task" />
+                        </label>
+                        <div class="mutedSmall">Creates with Medium priority and Not Started status. Edit details on the task page.</div>
+                    </div>
+                }
+                else if (_kind == "risk")
+                {
+                    <div class="fieldGrid">
+                        <label class="field">
+                            <div class="fieldLabel">Title</div>
+                            <input class="input" @bind="_riskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New risk" />
+                        </label>
+                        <div class="mutedSmall">Creates as Open / Medium severity. Edit details on the risk page.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="fieldGrid">
+                        <label class="field">
+                            <div class="fieldLabel">Team member</div>
+                            <select class="select" @bind="_memberId">
+                                <option value="">Select a member…</option>
+                                @foreach (var m in Cache.Team.OrderBy(x => x.Name))
+                                {
+                                    <option value="@m.Id">@m.Name</option>
+                                }
+                            </select>
+                        </label>
+                        @if (Cache.Team.Count == 0)
+                        {
+                            <div class="mutedSmall">No team members yet. Import from Azure DevOps in Settings.</div>
+                        }
+                        <label class="field">
+                            <div class="fieldLabel">Tag</div>
+                            <select class="select" value="@_noteTag" @onchange="OnNoteTagChange">
+                                @foreach (var t in NoteTags)
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">Title (optional)</div>
+                            <input class="input" @bind="_noteTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">ADO work item id (optional)</div>
+                            <input class="input" @bind="_noteAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">PR URL (optional)</div>
+                            <input class="input" @bind="_notePr" @bind:event="oninput" placeholder="https://…" />
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">Note</div>
+                            <textarea class="textarea" @bind="_noteText" @bind:event="oninput" placeholder="Write your note…"></textarea>
+                        </label>
+                    </div>
+                }
             </div>
             <div class="modalFooter">
                 <div class="row" style="margin-top: 0">
-                    <button class="btn btnSecondary" type="button" disabled>Create</button>
-                    <button class="btn btnGhost" type="button" @onclick="OnClose">Cancel</button>
+                    <button class="btn btnSecondary" type="button" disabled="@(!CanCreate || _saving)" @onclick="HandleCreate">
+                        @(_saving ? "Creating…" : "Create")
+                    </button>
+                    <button class="btn btnGhost" type="button" disabled="@_saving" @onclick="HandleClose">Cancel</button>
                 </div>
             </div>
         </div>
@@ -30,10 +103,168 @@
 }
 
 @code {
+    static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
+
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    ElementReference _panel;
     string _kind = "task";
+    bool _saving;
+    string _taskTitle = "";
+    string _riskTitle = "";
+    string _memberId = "";
+    string _noteTag = "Quick";
+    string _noteTitle = "";
+    string _noteText = "";
+    string _noteAdo = "";
+    string _notePr = "";
 
-    Task CloseFromOverlay() => OnClose.InvokeAsync();
+    bool CanCreate =>
+        _kind is "task" or "risk"
+        || (_kind == "note" && !string.IsNullOrWhiteSpace(_memberId) && !string.IsNullOrWhiteSpace(_noteText));
+
+    void ResetForm()
+    {
+        _kind = "task";
+        _taskTitle = "";
+        _riskTitle = "";
+        _memberId = "";
+        _noteTag = "Quick";
+        _noteTitle = "";
+        _noteText = "";
+        _noteAdo = "";
+        _notePr = "";
+        _saving = false;
+    }
+
+    async Task HandleClose()
+    {
+        if (_saving) return;
+        ResetForm();
+        await OnClose.InvokeAsync();
+    }
+
+    Task CloseFromOverlay() => HandleClose();
+
+    async Task OnOverlayKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await HandleClose();
+    }
+
+    void OnNoteTagChange(ChangeEventArgs e) => _noteTag = e.Value?.ToString() ?? "Quick";
+
+    async Task OnTitleKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && CanCreate && !_saving)
+        {
+            await HandleCreate();
+        }
+    }
+
+    async Task HandleCreate()
+    {
+        if (_saving || !CanCreate) return;
+        _saving = true;
+        try
+        {
+            if (_kind == "task")
+            {
+                var title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
+                var draft = new AtlasTask
+                {
+                    Title = title,
+                    Priority = Priority.Medium,
+                    Status = Models.TaskStatus.NotStarted,
+                    EstimatedDurationText = "1h",
+                    EstimateConfidence = Confidence.Medium,
+                    Notes = "",
+                    DependencyTaskIds = Array.Empty<Guid>(),
+                    LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
+                };
+                var res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
+                var id = res.Id ?? Guid.Empty;
+                draft.Id = id;
+                Cache.AddTask(draft);
+                await Cache.RefetchTasksAsync();
+                ResetForm();
+                await OnClose.InvokeAsync();
+                Nav.NavigateTo($"/tasks/{id}");
+                return;
+            }
+
+            if (_kind == "risk")
+            {
+                var title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
+                var draft = new Risk
+                {
+                    Title = title,
+                    Status = RiskStatus.Open,
+                    Severity = "Medium",
+                    Description = "",
+                    Evidence = "",
+                    LinkedTaskIds = Array.Empty<Guid>(),
+                    LinkedTeamMemberIds = Array.Empty<Guid>(),
+                    History = Array.Empty<RiskHistoryEntry>(),
+                    LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
+                };
+                var res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
+                var id = res.Id ?? Guid.Empty;
+                draft.Id = id;
+                Cache.AddRisk(draft);
+                await Cache.RefetchRisksAsync();
+                ResetForm();
+                await OnClose.InvokeAsync();
+                Nav.NavigateTo($"/risks/{id}");
+                return;
+            }
+
+            if (!Guid.TryParse(_memberId, out var memberId))
+            {
+                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                return;
+            }
+
+            var text = _noteText.Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                return;
+            }
+
+            var member = Cache.Team.FirstOrDefault(m => m.Id == memberId);
+            if (member is null)
+            {
+                await Dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
+                return;
+            }
+
+            Enum.TryParse<NoteTag>(_noteTag, out var tag);
+            var titleOpt = _noteTitle.Trim();
+            var ado = _noteAdo.Trim();
+            var pr = _notePr.Trim();
+            var noteRes = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(memberId, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
+            {
+                Type = ApiMappers.ToApiNoteType(tag),
+                Title = string.IsNullOrEmpty(titleOpt) ? null : titleOpt,
+                Text = text,
+                AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
+                PrUrl = string.IsNullOrEmpty(pr) ? null : pr
+            });
+
+            await Cache.RefetchTeamAsync();
+            Selection.SelectTeamMember(memberId);
+            ResetForm();
+            await OnClose.InvokeAsync();
+            Nav.NavigateTo($"/team/{memberId}/notes");
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync($"Unable to create {(_kind == "note" ? "note" : _kind)} right now. Please try again.");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
 }

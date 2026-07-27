@@ -8,21 +8,114 @@
 @page "/team/{MemberId}/risks/{TeamMemberRiskId}"
 @page "/team/{MemberId}/growth"
 @page "/team/{MemberId}/growth/goals/{GoalId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
 
 <PageTitle>Team — Atlas</PageTitle>
 
 <div class="page">
     <h2 class="pageTitle">Team</h2>
-    <div class="muted">
-        @if (string.IsNullOrEmpty(MemberId))
+
+    @if (string.IsNullOrEmpty(MemberId))
+    {
+        <div class="muted" style="margin-bottom: 12px">Team hub (full tabs in Phase 6). Select a member:</div>
+        <div class="list listCard">
+            @foreach (var m in Cache.Team.OrderBy(x => x.Name))
+            {
+                <button type="button" class="listRow listRowBtn" @onclick="() => GoMember(m.Id)">
+                    <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
+                    <div class="listMain">
+                        <div class="listTitle">@m.Name</div>
+                        <div class="listMeta">@(m.Role ?? "—")@(string.IsNullOrEmpty(m.CurrentFocus) ? "" : $" • {m.CurrentFocus}")</div>
+                    </div>
+                </button>
+            }
+            @if (Cache.Team.Count == 0)
+            {
+                <div class="muted pad">No team members yet.</div>
+            }
+        </div>
+    }
+    else if (Member is null)
+    {
+        @if (Cache.TeamReady)
         {
-            <span>Team hub stub (Phase 6).</span>
+            <div class="muted">Member not found. Redirecting…</div>
         }
         else
         {
-            <span>Team member stub for @MemberId (Phase 6).</span>
+            <div class="muted">Loading member…</div>
         }
-    </div>
+    }
+    else
+    {
+        <div class="card pad" style="margin-bottom: 16px">
+            <div class="detailHeader">
+                <div>
+                    <div class="detailTitle">@Member.Name</div>
+                    <div class="mutedSmall">
+                        @(Member.Role ?? "No role")
+                        @if (!string.IsNullOrEmpty(Member.CurrentFocus))
+                        {
+                            <text> • Focus: @Member.CurrentFocus</text>
+                        }
+                    </div>
+                </div>
+                <div class="pillRow">
+                    <span class="pill">@Member.StatusDot</span>
+                </div>
+            </div>
+            <div class="rowTiny" style="margin-top: 12px">
+                <a class="btn btnGhost" href="@($"/team/{Member.Id}")">Overview</a>
+                <a class="btn btnGhost" href="@($"/team/{Member.Id}/notes")">Notes</a>
+            </div>
+        </div>
+
+        @if (IsNotesRoute)
+        {
+            <div class="card pad">
+                <div class="cardTitle" style="margin-bottom: 12px">Notes</div>
+                <div class="list">
+                    @foreach (var note in Member.Notes.OrderByDescending(n => n.LastModifiedIso ?? n.CreatedIso))
+                    {
+                        <div class="listRow">
+                            <div class="listMain">
+                                <div class="listTitle">@DisplayLabels.GetDerivedTitle(note)</div>
+                                <div class="listMeta">@note.Tag • @DisplayLabels.FormatDateTime(note.LastModifiedIso ?? note.CreatedIso)</div>
+                                <div class="mutedSmall" style="margin-top: 4px">@note.Text</div>
+                            </div>
+                        </div>
+                    }
+                    @if (Member.Notes.Count == 0)
+                    {
+                        <div class="muted pad">No notes yet.</div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card pad">
+                <div class="cardTitle" style="margin-bottom: 8px">Activity</div>
+                @if (Member.ActivitySnapshot.Bullets.Count == 0)
+                {
+                    <div class="muted">No activity snapshot yet.</div>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var b in Member.ActivitySnapshot.Bullets)
+                        {
+                            <li class="muted">@b</li>
+                        }
+                    </ul>
+                }
+                <div class="mutedSmall" style="margin-top: 12px">Full team hub tabs land in Phase 6.</div>
+            </div>
+        }
+    }
 </div>
 
 @code {
@@ -31,4 +124,51 @@
     [Parameter] public string? WorkItemId { get; set; }
     [Parameter] public string? TeamMemberRiskId { get; set; }
     [Parameter] public string? GoalId { get; set; }
+
+    bool IsNotesRoute =>
+        !string.IsNullOrEmpty(MemberId)
+        && new Uri(Nav.Uri).AbsolutePath.Contains("/notes", StringComparison.OrdinalIgnoreCase);
+
+    TeamMember? Member
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(MemberId) || !Guid.TryParse(MemberId, out var id)) return null;
+            return Cache.Team.FirstOrDefault(m => m.Id == id);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(MemberId) && Guid.TryParse(MemberId, out var id))
+        {
+            Selection.SelectTeamMember(id);
+            if (Cache.TeamReady && Member is null)
+            {
+                Nav.NavigateTo("/team", replace: true);
+            }
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (!string.IsNullOrEmpty(MemberId) && Guid.TryParse(MemberId, out var id)
+            && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        StateHasChanged();
+    });
+
+    void GoMember(Guid id) => Nav.NavigateTo($"/team/{id}");
+
+    public void Dispose() => Cache.Changed -= OnChanged;
 }

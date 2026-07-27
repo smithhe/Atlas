@@ -21,6 +21,9 @@ builder.Services.AddScoped<IAtlasApiClient>(sp =>
     return new AtlasApiClient(apiBaseUrl, http);
 });
 
+builder.Services.AddScoped<SelectionState>();
+builder.Services.AddScoped<LocalSettings>();
+builder.Services.AddScoped<BrowserDialogs>();
 builder.Services.AddScoped<AppCacheService>();
 
 WebAssemblyHost host = builder.Build();

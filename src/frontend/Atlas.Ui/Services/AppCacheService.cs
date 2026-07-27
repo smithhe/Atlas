@@ -6,18 +6,20 @@ using Atlas.Ui.Models;
 namespace Atlas.Ui.Services;
 
 /// <summary>
-/// App-wide cache / hydration skeleton mirroring React TanStack query topology.
+/// App-wide cache / hydration mirroring React TanStack query topology.
 /// Parallel roots: settings, projects, productOwners, team.
 /// Chain: projects → risks → tasks.
-/// <see cref="IsHydrating"/> is true while any of the six are still pending
-/// (including waiting on prerequisites — same as TanStack <c>isPending</c> while <c>enabled: false</c>).
+/// Mutations prefer refetch-after-mutation; optimistic patches keep UI snappy for autosave.
 /// </summary>
 public sealed class AppCacheService
 {
     readonly IAtlasApiClient _api;
+    readonly LocalSettings _localSettings;
+    readonly SelectionState _selection;
     readonly object _gate = new();
 
     Task? _hydration;
+    bool _defaultAiPanelOpen;
 
     LoadState _settings = LoadState.Pending;
     LoadState _projects = LoadState.Pending;
@@ -26,9 +28,11 @@ public sealed class AppCacheService
     LoadState _risks = LoadState.Pending;
     LoadState _tasks = LoadState.Pending;
 
-    public AppCacheService(IAtlasApiClient api)
+    public AppCacheService(IAtlasApiClient api, LocalSettings localSettings, SelectionState selection)
     {
         _api = api;
+        _localSettings = localSettings;
+        _selection = selection;
     }
 
     public bool IsHydrating
@@ -45,6 +49,26 @@ public sealed class AppCacheService
                     || _tasks == LoadState.Pending;
             }
         }
+    }
+
+    public bool TasksReady
+    {
+        get { lock (_gate) return _tasks == LoadState.Ready; }
+    }
+
+    public bool RisksReady
+    {
+        get { lock (_gate) return _risks == LoadState.Ready; }
+    }
+
+    public bool ProjectsReady
+    {
+        get { lock (_gate) return _projects == LoadState.Ready; }
+    }
+
+    public bool TeamReady
+    {
+        get { lock (_gate) return _team == LoadState.Ready; }
     }
 
     public Settings? Settings { get; private set; }
@@ -72,24 +96,20 @@ public sealed class AppCacheService
     {
         try
         {
-            // Four independent roots start together.
+            _defaultAiPanelOpen = await _localSettings.LoadDefaultAiPanelOpenAsync();
+
             Task settingsTask = LoadSettingsAsync(cancellationToken);
             Task projectsTask = LoadProjectsAsync(cancellationToken);
             Task productOwnersTask = LoadProductOwnersAsync(cancellationToken);
             Task teamTask = LoadTeamAsync(cancellationToken);
 
             await Task.WhenAll(settingsTask, projectsTask, productOwnersTask, teamTask);
-
-            // risks enabled only after projects succeed
             await LoadRisksAsync(cancellationToken);
-
-            // tasks enabled only after projects AND risks succeed
             await LoadTasksAsync(cancellationToken);
         }
         catch (Exception ex)
         {
             LastError = ex.Message;
-            // Mark anything still pending as failed so IsHydrating becomes false.
             lock (_gate)
             {
                 FailIfPending(ref _settings);
@@ -104,12 +124,364 @@ public sealed class AppCacheService
         }
     }
 
+    public async Task RefetchTasksAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadTasksAsync(cancellationToken);
+    }
+
+    public async Task RefetchRisksAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadRisksAsync(cancellationToken);
+        await LoadTasksAsync(cancellationToken);
+    }
+
+    public async Task RefetchProjectsAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadProjectsAsync(cancellationToken);
+        await LoadRisksAsync(cancellationToken);
+        await LoadTasksAsync(cancellationToken);
+    }
+
+    public async Task RefetchTeamAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadTeamAsync(cancellationToken);
+    }
+
+    public async Task RefetchSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadSettingsAsync(cancellationToken);
+    }
+
+    public void PatchSettings(Settings settings)
+    {
+        Settings = settings;
+        Notify();
+    }
+
+    public void AddTask(AtlasTask task)
+    {
+        Tasks = new[] { task }.Concat(Tasks).ToList();
+        SyncProjectLinkedTaskIds(task);
+        SyncRiskLinkedTaskIds(task);
+        _selection.SelectTask(task.Id);
+        Notify();
+    }
+
+    public void UpdateTask(AtlasTask task)
+    {
+        Tasks = Tasks.Select(t => t.Id == task.Id ? task : t).ToList();
+        SyncProjectLinkedTaskIds(task);
+        SyncRiskLinkedTaskIds(task);
+        Notify();
+    }
+
+    public void RemoveTask(Guid taskId)
+    {
+        Tasks = Tasks.Where(t => t.Id != taskId).ToList();
+        Projects = Projects.Select(p =>
+            p.LinkedTaskIds.Contains(taskId)
+                ? CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != taskId).ToList())
+                : p).ToList();
+        Risks = Risks.Select(r =>
+            r.LinkedTaskIds.Contains(taskId)
+                ? CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != taskId).ToList())
+                : r).ToList();
+        if (_selection.SelectedTaskId == taskId) _selection.SelectTask(null);
+        Notify();
+    }
+
+    public void AddRisk(Risk risk)
+    {
+        Risks = new[] { risk }.Concat(Risks).ToList();
+        SyncProjectLinkedRiskIds(risk);
+        _selection.SelectRisk(risk.Id);
+        Notify();
+    }
+
+    public void UpdateRisk(Risk risk)
+    {
+        var previous = Risks.FirstOrDefault(r => r.Id == risk.Id);
+        Risks = Risks.Select(r => r.Id == risk.Id ? risk : r).ToList();
+        SyncProjectLinkedRiskIds(risk);
+        if (previous is not null && previous.Title != risk.Title)
+        {
+            Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: risk.Title) : t).ToList();
+            foreach (var task in Tasks.Where(t => t.Risk == risk.Title))
+            {
+                SyncRiskLinkedTaskIds(task);
+            }
+        }
+
+        Notify();
+    }
+
+    public void RemoveRisk(Guid riskId)
+    {
+        var previous = Risks.FirstOrDefault(r => r.Id == riskId);
+        Risks = Risks.Where(r => r.Id != riskId).ToList();
+        Projects = Projects.Select(p =>
+            p.LinkedRiskIds.Contains(riskId)
+                ? CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != riskId).ToList())
+                : p).ToList();
+        if (previous is not null)
+        {
+            Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: null, clearRisk: true) : t).ToList();
+        }
+
+        if (_selection.SelectedRiskId == riskId) _selection.SelectRisk(null);
+        Notify();
+    }
+
+    public void AddProject(Project project)
+    {
+        Projects = new[] { project }.Concat(Projects).ToList();
+        _selection.SelectProject(project.Id);
+        Notify();
+    }
+
+    public void UpdateProject(Project project)
+    {
+        var previous = Projects.FirstOrDefault(p => p.Id == project.Id);
+        Projects = Projects.Select(p => p.Id == project.Id ? project : p).ToList();
+        if (previous is not null && previous.Name != project.Name)
+        {
+            Tasks = Tasks.Select(t => t.Project == previous.Name ? CloneTask(t, project: project.Name) : t).ToList();
+            Risks = Risks.Select(r => r.Project == previous.Name ? CloneRisk(r, project: project.Name) : r).ToList();
+        }
+
+        Notify();
+    }
+
+    public void RemoveProject(Guid projectId)
+    {
+        var previous = Projects.FirstOrDefault(p => p.Id == projectId);
+        Projects = Projects.Where(p => p.Id != projectId).ToList();
+        if (previous is not null)
+        {
+            Tasks = Tasks.Select(t => t.Project == previous.Name ? CloneTask(t, project: null, clearProject: true) : t).ToList();
+            Risks = Risks.Select(r => r.Project == previous.Name ? CloneRisk(r, project: null, clearProject: true) : r).ToList();
+        }
+
+        if (_selection.SelectedProjectId == projectId) _selection.SelectProject(null);
+        Notify();
+    }
+
+    public void UpdateTeamMember(TeamMember member)
+    {
+        var next = TeamLogic.WithDerivedActivitySnapshot(member);
+        Team = Team.Select(m => m.Id == next.Id ? next : m).ToList();
+        Notify();
+    }
+
+    public void ReplaceTeamMembers(IReadOnlyList<TeamMember> team, IReadOnlyList<TeamMemberRisk> risks)
+    {
+        Team = team.Select(TeamLogic.WithDerivedActivitySnapshot).ToList();
+        TeamMemberRisks = risks.ToList();
+        Notify();
+    }
+
+    Guid? FindProjectIdByName(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? null : Projects.FirstOrDefault(p => p.Name == name)?.Id;
+
+    Guid? FindRiskIdByTitle(string? title) =>
+        string.IsNullOrWhiteSpace(title) ? null : Risks.FirstOrDefault(r => r.Title == title)?.Id;
+
+    public AtlasApiDTOsTasksCreateTaskRequest ToCreateTaskRequest(AtlasTask task) =>
+        new()
+        {
+            Title = task.Title,
+            Priority = ApiMappers.ToApiPriority(task.Priority),
+            Status = ApiMappers.ToApiTaskStatus(task.Status),
+            AssigneeId = task.AssigneeId,
+            ProjectId = FindProjectIdByName(task.Project),
+            RiskId = FindRiskIdByTitle(task.Risk),
+            DueDate = ParseDate(task.DueDate),
+            DependencyTaskIds = task.DependencyTaskIds.ToList(),
+            EstimatedDurationText = task.EstimatedDurationText,
+            EstimateConfidence = ApiMappers.ToApiConfidence(task.EstimateConfidence),
+            ActualDurationText = task.ActualDurationText,
+            Notes = task.Notes
+        };
+
+    public AtlasApiDTOsTasksUpdateTaskRequest ToUpdateTaskRequest(AtlasTask task) =>
+        new()
+        {
+            Title = task.Title,
+            Priority = ApiMappers.ToApiPriority(task.Priority),
+            Status = ApiMappers.ToApiTaskStatus(task.Status),
+            AssigneeId = task.AssigneeId,
+            ProjectId = FindProjectIdByName(task.Project),
+            RiskId = FindRiskIdByTitle(task.Risk),
+            DueDate = ParseDate(task.DueDate),
+            DependencyTaskIds = task.DependencyTaskIds.ToList(),
+            EstimatedDurationText = task.EstimatedDurationText,
+            EstimateConfidence = ApiMappers.ToApiConfidence(task.EstimateConfidence),
+            ActualDurationText = task.ActualDurationText,
+            Notes = task.Notes
+        };
+
+    public AtlasApiDTOsRisksCreateRiskRequest ToCreateRiskRequest(Risk risk) =>
+        new()
+        {
+            Title = risk.Title,
+            Status = ApiMappers.ToApiRiskStatus(risk.Status),
+            Severity = ApiMappers.ToApiSeverity(risk.Severity),
+            ProjectId = FindProjectIdByName(risk.Project),
+            Description = risk.Description,
+            Evidence = risk.Evidence
+        };
+
+    public AtlasApiDTOsRisksUpdateRiskRequest ToUpdateRiskRequest(Risk risk) =>
+        new()
+        {
+            Title = risk.Title,
+            Status = ApiMappers.ToApiRiskStatus(risk.Status),
+            Severity = ApiMappers.ToApiSeverity(risk.Severity),
+            ProjectId = FindProjectIdByName(risk.Project),
+            Description = risk.Description,
+            Evidence = risk.Evidence
+        };
+
+    public AtlasApiDTOsProjectsCreateProjectRequest ToCreateProjectRequest(Project project) =>
+        new()
+        {
+            Name = project.Name,
+            Summary = project.Summary,
+            Description = project.Description,
+            Status = ApiMappers.ToApiProjectStatus(project.Status),
+            Health = ApiMappers.ToApiHealth(project.Health),
+            TargetDate = ParseDate(project.TargetDateIso),
+            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
+            ProductOwnerId = project.ProductOwnerId,
+            Tags = project.Tags.ToList(),
+            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
+        };
+
+    public AtlasApiDTOsProjectsUpdateProjectRequest ToUpdateProjectRequest(Project project) =>
+        new()
+        {
+            Name = project.Name,
+            Summary = project.Summary,
+            Description = project.Description,
+            Status = ApiMappers.ToApiProjectStatus(project.Status),
+            Health = ApiMappers.ToApiHealth(project.Health),
+            TargetDate = ParseDate(project.TargetDateIso),
+            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
+            ProductOwnerId = project.ProductOwnerId,
+            Tags = project.Tags.ToList(),
+            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
+        };
+
+    static DateTimeOffset? ParseDate(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return null;
+        return DateTimeOffset.TryParse(iso, out var d) ? d : null;
+    }
+
+    void SyncProjectLinkedTaskIds(AtlasTask task)
+    {
+        Projects = Projects.Select(p =>
+        {
+            var shouldInclude = !string.IsNullOrEmpty(task.Project) && p.Name == task.Project;
+            var has = p.LinkedTaskIds.Contains(task.Id);
+            if (shouldInclude && !has)
+                return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Append(task.Id).ToList());
+            if (!shouldInclude && has)
+                return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != task.Id).ToList());
+            return p;
+        }).ToList();
+    }
+
+    void SyncRiskLinkedTaskIds(AtlasTask task)
+    {
+        Risks = Risks.Select(r =>
+        {
+            var shouldInclude = !string.IsNullOrEmpty(task.Risk) && r.Title == task.Risk;
+            var has = r.LinkedTaskIds.Contains(task.Id);
+            if (shouldInclude && !has)
+                return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Append(task.Id).ToList());
+            if (!shouldInclude && has)
+                return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != task.Id).ToList());
+            return r;
+        }).ToList();
+    }
+
+    void SyncProjectLinkedRiskIds(Risk risk)
+    {
+        Projects = Projects.Select(p =>
+        {
+            var shouldInclude = !string.IsNullOrEmpty(risk.Project) && p.Name == risk.Project;
+            var has = p.LinkedRiskIds.Contains(risk.Id);
+            if (shouldInclude && !has)
+                return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Append(risk.Id).ToList());
+            if (!shouldInclude && has)
+                return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != risk.Id).ToList());
+            return p;
+        }).ToList();
+    }
+
+    static AtlasTask CloneTask(AtlasTask t, string? project = null, string? risk = null, bool clearProject = false, bool clearRisk = false) =>
+        new()
+        {
+            Id = t.Id,
+            Title = t.Title,
+            Priority = t.Priority,
+            Status = t.Status,
+            AssigneeId = t.AssigneeId,
+            Project = clearProject ? null : project ?? t.Project,
+            Risk = clearRisk ? null : risk ?? t.Risk,
+            DueDate = t.DueDate,
+            DependencyTaskIds = t.DependencyTaskIds,
+            EstimatedDurationText = t.EstimatedDurationText,
+            EstimateConfidence = t.EstimateConfidence,
+            ActualDurationText = t.ActualDurationText,
+            Notes = t.Notes,
+            LastTouchedIso = t.LastTouchedIso
+        };
+
+    static Project CloneProject(Project p, IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedRiskIds = null) =>
+        new()
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Summary = p.Summary,
+            Description = p.Description,
+            Status = p.Status,
+            Health = p.Health,
+            TargetDateIso = p.TargetDateIso,
+            Priority = p.Priority,
+            ProductOwnerId = p.ProductOwnerId,
+            Tags = p.Tags,
+            Links = p.Links,
+            LastUpdatedIso = p.LastUpdatedIso,
+            LinkedTaskIds = linkedTaskIds ?? p.LinkedTaskIds,
+            LinkedRiskIds = linkedRiskIds ?? p.LinkedRiskIds,
+            TeamMemberIds = p.TeamMemberIds
+        };
+
+    static Risk CloneRisk(Risk r, string? project = null, bool clearProject = false, IReadOnlyList<Guid>? linkedTaskIds = null) =>
+        new()
+        {
+            Id = r.Id,
+            Title = r.Title,
+            Status = r.Status,
+            Severity = r.Severity,
+            Project = clearProject ? null : project ?? r.Project,
+            OwnerId = r.OwnerId,
+            Description = r.Description,
+            Evidence = r.Evidence,
+            LinkedTaskIds = linkedTaskIds ?? r.LinkedTaskIds,
+            LinkedTeamMemberIds = r.LinkedTeamMemberIds,
+            History = r.History,
+            LastUpdatedIso = r.LastUpdatedIso
+        };
+
     async Task LoadSettingsAsync(CancellationToken cancellationToken)
     {
         try
         {
             AtlasApiDTOsSettingsSettingsDto dto = await _api.AtlasApiEndpointsSettingsGetSettingsEndpointAsync(cancellationToken);
-            Settings = ApiMappers.MapSettings(dto);
+            Settings = ApiMappers.MapSettings(dto, _defaultAiPanelOpen);
             SetState(ref _settings, LoadState.Ready);
         }
         catch (Exception ex)
@@ -131,7 +503,6 @@ public sealed class AppCacheService
         {
             LastError ??= ex.Message;
             SetState(ref _projects, LoadState.Failed);
-            // Dependents cannot load — mark Failed so IsHydrating clears.
             SetState(ref _risks, LoadState.Failed);
             SetState(ref _tasks, LoadState.Failed);
         }
@@ -185,7 +556,6 @@ public sealed class AppCacheService
     {
         if (_projects != LoadState.Ready)
         {
-            // Prerequisite failed/missing — mark Failed so IsHydrating clears.
             SetState(ref _risks, LoadState.Failed);
             SetState(ref _tasks, LoadState.Failed);
             return;
@@ -205,7 +575,6 @@ public sealed class AppCacheService
         {
             LastError ??= ex.Message;
             SetState(ref _risks, LoadState.Failed);
-            // Tasks cannot load without risks — mark Failed so IsHydrating clears.
             SetState(ref _tasks, LoadState.Failed);
         }
     }
@@ -214,7 +583,6 @@ public sealed class AppCacheService
     {
         if (_projects != LoadState.Ready || _risks != LoadState.Ready)
         {
-            // Prerequisites failed/missing — mark Failed so IsHydrating clears.
             SetState(ref _tasks, LoadState.Failed);
             return;
         }
