@@ -308,8 +308,7 @@
             };
             var res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
             var id = res.Id ?? Guid.Empty;
-            draft.Id = id;
-            Cache.AddRisk(draft);
+            // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchRisksAsync();
             _autoEditId = id;
             SelectFromList(id);

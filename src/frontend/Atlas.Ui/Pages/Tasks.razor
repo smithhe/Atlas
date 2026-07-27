@@ -333,8 +333,7 @@
             };
             var res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
             var id = res.Id ?? Guid.Empty;
-            draft.Id = id;
-            Cache.AddTask(draft);
+            // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchTasksAsync();
             _autoEditId = id;
             SelectFromList(id);
