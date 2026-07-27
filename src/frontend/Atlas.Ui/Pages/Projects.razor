@@ -395,8 +395,7 @@
             };
             var res = await Api.AtlasApiEndpointsProjectsCreateProjectEndpointAsync(Cache.ToCreateProjectRequest(draft));
             var id = res.Id ?? Guid.Empty;
-            draft.Id = id;
-            Cache.AddProject(draft);
+            // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchProjectsAsync();
             _autoEditId = id;
             SelectFromList(id);
