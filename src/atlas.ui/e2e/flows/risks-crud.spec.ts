@@ -8,7 +8,10 @@ test.describe('Risks CRUD', () => {
     await expect(page.locator('h2.pageTitle', { hasText: 'Risks' })).toBeVisible()
 
     const title = await uniqueTitle('E2E Risk')
-    await page.getByRole('button', { name: 'Add risk', exact: true }).click()
+    const addBtn = page.getByRole('button', { name: 'Add risk', exact: true })
+    await addBtn.click()
+    // Blazor async create: wait until Adding… finishes so selection is stable before list click.
+    await expect(addBtn).toBeEnabled({ timeout: 20_000 })
 
     const list = page.getByLabel('Risk list')
     await expect(list.getByText('New risk').first()).toBeVisible({ timeout: 20_000 })

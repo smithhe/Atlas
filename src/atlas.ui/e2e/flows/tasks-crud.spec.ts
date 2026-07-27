@@ -8,7 +8,10 @@ test.describe('Tasks CRUD', () => {
     await expect(page.locator('h2.pageTitle', { hasText: 'Tasks' })).toBeVisible()
 
     const title = await uniqueTitle('E2E Task')
-    await page.getByRole('button', { name: 'Add task', exact: true }).click()
+    const addBtn = page.getByRole('button', { name: 'Add task', exact: true })
+    await addBtn.click()
+    // Blazor async create: wait until Adding… finishes so selection is stable before list click.
+    await expect(addBtn).toBeEnabled({ timeout: 20_000 })
 
     const list = page.getByLabel('Task list')
     await expect(list.getByText('New task').first()).toBeVisible({ timeout: 20_000 })
