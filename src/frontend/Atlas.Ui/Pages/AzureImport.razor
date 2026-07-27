@@ -1,143 +1,453 @@
 @page "/settings/azure-import"
+@implements IDisposable
 @inject IAtlasApiClient Api
-@inject BrowserDialogs Dialogs
+@inject AppCacheService Cache
 @inject NavigationManager Nav
 
 <PageTitle>Azure Import — Atlas</PageTitle>
 
 <div class="page">
-    <div class="pageTitleRow">
-        <h2 class="pageTitle">Azure DevOps Import</h2>
-        <a class="btn btnGhost" href="/settings">Back to Settings</a>
+    <div class="pageBreadcrumbs">
+        <a class="crumbLink" href="/settings">Settings</a>
+        <span class="crumbSep">/</span>
+        <span class="crumbCurrent">Azure Import</span>
+    </div>
+    <h2 class="pageTitle">Azure DevOps Import</h2>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="card pad" style="margin-bottom: 12px">
+            <div class="textBad">Error: @_error</div>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(_productOwnerWarning))
+    {
+        <div class="card pad" style="margin-bottom: 12px">
+            <div class="textWarn">@_productOwnerWarning</div>
+        </div>
+    }
+
+    <div class="card" style="margin-bottom: 16px">
+        <div class="cardHeader">
+            <div class="cardTitle">Select Azure team members</div>
+            <div class="mutedSmall">@_users.Count available</div>
+        </div>
+        <div class="pad">
+            @if (_loading)
+            {
+                <div class="mutedSmall">Loading Azure import data…</div>
+            }
+            else if (string.IsNullOrWhiteSpace(_connection?.Organization))
+            {
+                <div class="mutedSmall">Set your Azure organization in Settings before importing users.</div>
+            }
+            else if (_users.Count > 0)
+            {
+                <div class="rowTiny" style="margin-top: 10px; align-items: center">
+                    <button type="button" class="btn btnGhost" disabled="@(_users.Count == 0)" @onclick="SelectAllUsers">Select all</button>
+                    <button type="button" class="btn btnGhost" disabled="@(_selectedUsers.Count == 0)" @onclick="ClearSelectedUsers">Clear</button>
+                    <span class="mutedSmall" style="margin-left: auto">@_selectedUsers.Count selected</span>
+                </div>
+                <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
+                    @foreach (var u in _users)
+                    {
+                        var unique = u.UniqueName ?? "";
+                        var selected = _selectedUsers.Contains(unique);
+                        <label class="listRow listRowBtn @(selected ? "listRowActive" : null)" style="cursor: pointer">
+                            <input type="checkbox" checked="@selected" @onchange="e => ToggleUser(unique, e)" />
+                            <div class="listMain">
+                                <div class="listTitle">@(string.IsNullOrEmpty(u.DisplayName) ? unique : u.DisplayName)</div>
+                                @if (!string.IsNullOrEmpty(u.DisplayName))
+                                {
+                                    <div class="listMeta">@unique</div>
+                                }
+                            </div>
+                        </label>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="muted">No new users to import.</div>
+            }
+        </div>
+        <div class="cardFooter">
+            <div class="rowTiny" style="align-items: center">
+                <button class="btn btnWide"
+                        type="button"
+                        disabled="@(_selectedUsers.Count == 0 || _loading || _importingProductOwners || _importingUsers)"
+                        @onclick="OnImportUsers">
+                    @(_importingUsers ? "Importing…" : "Import as team members")
+                </button>
+                <button class="btn btnWide"
+                        type="button"
+                        disabled="@(_selectedUsers.Count == 0 || _loading || _importingUsers || _importingProductOwners)"
+                        @onclick="OnImportProductOwners">
+                    @(_importingProductOwners ? "Importing…" : "Import as product owners")
+                </button>
+                <div class="mutedSmall">Select users once, then import to either target list.</div>
+            </div>
+        </div>
     </div>
 
-    <div class="card pad">
-        <p class="muted">Import team members and product owners from the configured Azure DevOps connection. Live Azure is optional for smoke — unconfigured connection stays disconnected.</p>
-
-        <div class="fieldGrid2" style="margin-top: 16px">
-            <label class="field">
-                <div class="fieldLabel">Organization</div>
-                <input class="input" @bind="_org" @bind:event="oninput" />
-            </label>
-            <label class="field">
-                <div class="fieldLabel">Project ID</div>
-                <input class="input" @bind="_projectId" @bind:event="oninput" />
-            </label>
-            <label class="field">
-                <div class="fieldLabel">Team ID</div>
-                <input class="input" @bind="_teamId" @bind:event="oninput" />
-            </label>
+    <div class="card">
+        <div class="cardHeader">
+            <div class="cardTitle">Work items awaiting import</div>
+            <div class="mutedSmall">@_importWorkItems.Count items</div>
         </div>
-
-        <div class="row mt-lg">
-            <button class="btn btnSecondary" type="button" @onclick="LoadUsers" disabled="@_loading">
-                @(_loading ? "Loading…" : "Load Azure users")
-            </button>
-            <button class="btn" type="button" @onclick="ImportTeam" disabled="@(_importing || _users.Count == 0)">
-                @(_importing ? "Importing…" : "Import team")
-            </button>
-        </div>
-
-        @if (!string.IsNullOrEmpty(_message))
+        @if (_loading)
         {
-            <div class="muted" style="margin-top: 12px">@_message</div>
+            <div class="pad muted">Loading Azure import data…</div>
         }
-
-        @if (_users.Count > 0)
+        else if (_importWorkItems.Count == 0)
         {
-            <div class="list listCard" style="margin-top: 16px">
-                @foreach (var u in _users)
-                {
-                    <div class="listRow">
-                        <div class="listMain">
-                            <div class="listTitle">@u.DisplayName</div>
-                            <div class="listMeta">@u.UniqueName</div>
-                        </div>
+            <div class="pad muted">No work items awaiting import.</div>
+        }
+        else
+        {
+            <div class="pad">
+                <div class="fieldGrid2" style="margin-bottom: 12px">
+                    <label class="field">
+                        <div class="fieldLabel">Target project</div>
+                        <select class="input" value="@_projectId" @onchange="OnProjectChange">
+                            <option value="">Select project</option>
+                            @foreach (var p in Cache.Projects)
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Assign to</div>
+                        <select class="input" value="@_teamMemberId" @onchange="OnTeamMemberChange">
+                            <option value="">Auto-assign from mapping</option>
+                            @foreach (var m in Cache.Team)
+                            {
+                                <option value="@m.Id">@m.Name</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+
+                <div class="rowTiny" style="align-items: center; margin-bottom: 12px">
+                    <button class="btn btnWide"
+                            type="button"
+                            disabled="@(string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0 || _linkingWorkItems)"
+                            @onclick="OnLinkWorkItems">
+                        @(_linkingWorkItems ? "Linking…" : "Link selected")
+                    </button>
+                    <button type="button"
+                            class="btn btnGhost"
+                            disabled="@(_selectedWorkItems.Count == 0 || _linkingWorkItems)"
+                            @onclick="OnIgnoreSelectedWorkItems">
+                        Ignore selected
+                    </button>
+                    <div class="mutedSmall">
+                        @(string.IsNullOrEmpty(_selectedProjectName)
+                            ? "Select a project to link work items."
+                            : $"Linking to {_selectedProjectName}.")
                     </div>
-                }
+                    <span class="mutedSmall" style="margin-left: auto">@_selectedWorkItems.Count selected</span>
+                </div>
+
+                <div class="tableGrid" style="grid-template-columns: 40px 100px 1fr 120px 160px 140px">
+                    <div class="tableCell tableHeader">✓</div>
+                    <div class="tableCell tableHeader">ID</div>
+                    <div class="tableCell tableHeader">Title</div>
+                    <div class="tableCell tableHeader">State</div>
+                    <div class="tableCell tableHeader">Assigned</div>
+                    <div class="tableCell tableHeader">Type</div>
+
+                    @foreach (var item in _importWorkItems)
+                    {
+                        if (item.Id is null) continue;
+                        var itemId = item.Id.Value;
+                        var isSelected = _selectedWorkItems.Contains(itemId);
+                        var assigned = item.SuggestedTeamMemberId is Guid mid
+                            ? Cache.Team.FirstOrDefault(m => m.Id == mid)?.Name
+                            : null;
+                        <div class="tableRow">
+                            <div class="tableCell">
+                                <input type="checkbox" checked="@isSelected" @onchange="e => ToggleWorkItem(itemId, e)" />
+                            </div>
+                            <div class="tableCell">@item.WorkItemId</div>
+                            <div class="tableCell truncate">
+                                @if (!string.IsNullOrEmpty(item.Url))
+                                {
+                                    <a href="@item.Url" target="_blank" rel="noreferrer">@(item.Title ?? "(untitled)")</a>
+                                }
+                                else
+                                {
+                                    @(item.Title ?? "(untitled)")
+                                }
+                            </div>
+                            <div class="tableCell">@item.State</div>
+                            <div class="tableCell">
+                                @if (!string.IsNullOrEmpty(assigned))
+                                {
+                                    @assigned
+                                }
+                                else
+                                {
+                                    <span class="chip chipGhost">Unmatched</span>
+                                }
+                            </div>
+                            <div class="tableCell">@item.WorkItemType</div>
+                        </div>
+                    }
+                </div>
             </div>
         }
     </div>
 </div>
 
 @code {
-    string _org = "";
-    string _projectId = "";
-    string _teamId = "";
-    bool _loading;
-    bool _importing;
-    string? _message;
+    AtlasApiDTOsAzureDevOpsAzureConnectionDto? _connection;
     List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
+    List<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto> _importWorkItems = [];
+    HashSet<Guid> _selectedWorkItems = [];
+    string _projectId = "";
+    string _teamMemberId = "";
+    bool _loading;
+    bool _importingUsers;
+    bool _importingProductOwners;
+    bool _linkingWorkItems;
+    string? _error;
+    string? _productOwnerWarning;
 
-    protected override async Task OnInitializedAsync()
+    string? _selectedProjectName =>
+        Guid.TryParse(_projectId, out var id)
+            ? Cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
+            : null;
+
+    protected override void OnInitialized()
     {
-        try
-        {
-            var conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
-            _org = conn.Organization ?? "";
-            _projectId = conn.ProjectId ?? "";
-            _teamId = conn.TeamId ?? "";
-        }
-        catch (AtlasApiException)
-        {
-            _message = "No Azure connection configured (disconnected mode).";
-        }
+        Cache.Changed += OnCacheChanged;
+        _ = Cache.EnsureHydratedAsync();
+        _ = LoadAsync();
     }
 
-    async Task LoadUsers()
-    {
-        if (_loading) return;
-        if (string.IsNullOrWhiteSpace(_org) || string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
-        {
-            await Dialogs.AlertAsync("Organization, Project ID, and Team ID are required.");
-            return;
-        }
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
 
+    async Task LoadAsync()
+    {
         _loading = true;
-        _message = null;
+        _error = null;
         try
         {
-            var users = await Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(_org, _projectId, _teamId);
-            _users = users.ToList();
-            _message = $"Loaded {_users.Count} users.";
+            AtlasApiDTOsAzureDevOpsAzureConnectionDto? conn = null;
+            try
+            {
+                conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
+            }
+            catch (AtlasApiException ex) when (ex.StatusCode == 404)
+            {
+                _connection = null;
+                _error = "Set Project ID and Team ID in Settings before importing users.";
+                _users = [];
+                _importWorkItems = (await SafeListWorkItemsAsync()).ToList();
+                return;
+            }
+
+            _connection = conn;
+            if (string.IsNullOrWhiteSpace(conn.Organization)
+                || string.IsNullOrWhiteSpace(conn.ProjectId)
+                || string.IsNullOrWhiteSpace(conn.TeamId))
+            {
+                _error = "Set Project ID and Team ID in Settings before importing users.";
+                _users = [];
+            }
+            else
+            {
+                var list = await Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(
+                    conn.Organization!, conn.ProjectId!, conn.TeamId!);
+                var imported = await Api.AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpointAsync();
+                var importedSet = new HashSet<string>(
+                    imported
+                        .Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant())
+                        .Where(s => s.Length > 0),
+                    StringComparer.Ordinal);
+                _users = list
+                    .Where(u => !importedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
+                    .ToList();
+            }
+
+            _importWorkItems = (await SafeListWorkItemsAsync()).ToList();
         }
         catch (Exception ex)
         {
-            _message = ex.Message;
-            _users = [];
+            _error = ex.Message;
         }
         finally
         {
             _loading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
-    async Task ImportTeam()
+    async Task<ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>> SafeListWorkItemsAsync()
     {
-        if (_importing || _users.Count == 0) return;
-        _importing = true;
         try
         {
-            var result = await Api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
-                new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest
-                {
-                    Users = _users.Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
-                    {
-                        DisplayName = u.DisplayName,
-                        UniqueName = u.UniqueName,
-                        Descriptor = u.Descriptor
-                    }).ToList()
-                });
-            _message = $"Imported: {result.TeamMembersCreated} created, {result.UsersAdded} users added.";
+            return await Api.AtlasApiEndpointsAzureDevOpsListAzureImportWorkItemsEndpointAsync();
+        }
+        catch
+        {
+            return Array.Empty<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>();
+        }
+    }
+
+    void SelectAllUsers() =>
+        _selectedUsers = _users
+            .Select(u => u.UniqueName ?? "")
+            .Where(s => s.Length > 0)
+            .ToHashSet(StringComparer.Ordinal);
+
+    void ClearSelectedUsers() => _selectedUsers = new(StringComparer.Ordinal);
+
+    void ToggleUser(string uniqueName, ChangeEventArgs e)
+    {
+        var next = new HashSet<string>(_selectedUsers, StringComparer.Ordinal);
+        if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+            next.Add(uniqueName);
+        else
+            next.Remove(uniqueName);
+        _selectedUsers = next;
+    }
+
+    void ToggleWorkItem(Guid id, ChangeEventArgs e)
+    {
+        var next = new HashSet<Guid>(_selectedWorkItems);
+        if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+            next.Add(id);
+        else
+            next.Remove(id);
+        _selectedWorkItems = next;
+    }
+
+    void OnProjectChange(ChangeEventArgs e) => _projectId = e.Value?.ToString() ?? "";
+    void OnTeamMemberChange(ChangeEventArgs e) => _teamMemberId = e.Value?.ToString() ?? "";
+
+    List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> SelectedUserDtos() =>
+        _users
+            .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
+            .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
+            {
+                DisplayName = u.DisplayName,
+                UniqueName = u.UniqueName,
+                Descriptor = u.Descriptor
+            })
+            .ToList();
+
+    async Task OnImportUsers()
+    {
+        if (_importingUsers || _selectedUsers.Count == 0) return;
+        _error = null;
+        _productOwnerWarning = null;
+        _importingUsers = true;
+        try
+        {
+            var selected = SelectedUserDtos();
+            await Api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
+                new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest { Users = selected });
+            await Cache.RefetchTeamAsync();
+            var selectedSet = new HashSet<string>(
+                selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
+                StringComparer.Ordinal);
+            _users = _users
+                .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
+                .ToList();
+            _selectedUsers = new(StringComparer.Ordinal);
         }
         catch (Exception ex)
         {
-            _message = ex.Message;
-            await Dialogs.AlertAsync("Unable to import team right now. Please try again.");
+            _error = ex.Message;
         }
         finally
         {
-            _importing = false;
+            _importingUsers = false;
         }
     }
+
+    async Task OnImportProductOwners()
+    {
+        if (_importingProductOwners || _selectedUsers.Count == 0) return;
+        _error = null;
+        _productOwnerWarning = null;
+        _importingProductOwners = true;
+        try
+        {
+            var selected = SelectedUserDtos();
+            var result = await Api.AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpointAsync(
+                new AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest { Users = selected });
+            await Cache.RefetchProductOwnersAsync();
+            var selectedSet = new HashSet<string>(
+                selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
+                StringComparer.Ordinal);
+            _users = _users
+                .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
+                .ToList();
+            _selectedUsers = new(StringComparer.Ordinal);
+            var reused = result.ReusedProductOwnerNames?.ToList() ?? [];
+            if (reused.Count > 0)
+            {
+                var details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
+                _productOwnerWarning =
+                    $"{reused.Count} product owner{(reused.Count == 1 ? "" : "s")} reused existing names: {details}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _importingProductOwners = false;
+        }
+    }
+
+    async Task OnLinkWorkItems()
+    {
+        if (_linkingWorkItems || string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0) return;
+        if (!Guid.TryParse(_projectId, out var projectId)) return;
+        _error = null;
+        _productOwnerWarning = null;
+        _linkingWorkItems = true;
+        try
+        {
+            Guid? teamMemberId = Guid.TryParse(_teamMemberId, out var mid) ? mid : null;
+            await Api.AtlasApiEndpointsAzureDevOpsLinkAzureWorkItemsEndpointAsync(
+                new AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest
+                {
+                    AzureWorkItemIds = _selectedWorkItems.ToList(),
+                    ProjectId = projectId,
+                    TeamMemberId = teamMemberId
+                });
+            // Broad invalidate matching React invalidateAppQueries(['teamMembers', 'projects']).
+            await Cache.RefetchTeamAsync();
+            await Cache.RefetchProjectsAsync();
+            _selectedWorkItems = [];
+            _importWorkItems = (await Api.AtlasApiEndpointsAzureDevOpsListAzureImportWorkItemsEndpointAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _linkingWorkItems = false;
+        }
+    }
+
+    void OnIgnoreSelectedWorkItems()
+    {
+        if (_selectedWorkItems.Count == 0) return;
+        _importWorkItems = _importWorkItems
+            .Where(item => item.Id is null || !_selectedWorkItems.Contains(item.Id.Value))
+            .ToList();
+        _selectedWorkItems = [];
+    }
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
 }
