@@ -30,7 +30,7 @@ Full details and troubleshooting: [docs/docker.md](docs/docker.md).
 
 ## OpenAPI
 
-Committed spec: [`openapi/atlas.v1.json`](openapi/atlas.v1.json). Regenerate (Postgres required):
+Committed spec: [`openapi/atlas.v1.json`](openapi/atlas.v1.json). Regenerate (no Postgres required):
 
 ```bash
 bash scripts/regenerate-openapi.sh

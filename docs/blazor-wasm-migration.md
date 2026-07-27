@@ -63,8 +63,8 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 - React Router **hash** routing (`createHashRouter`); TanStack Query; native `fetch`; global CSS.
 - Hotspots: `TeamView.tsx`, `useAppCache.ts` / `cacheUpdates.ts`, AI SSE, markdown.
 - Backend: FastEndpoints **8.1.0** + `FastEndpoints.Swagger`. `SwaggerDocument()` + `UseSwaggerGen()` in Development only. Compose Production → no live `/swagger`.
-- **OpenAPI export wired (Phase 3):** `ExportSwaggerDocsAndExitAsync("v1")` after `UseFastEndpoints()`. Committed artifact `openapi/atlas.v1.json`; regenerate via `bash scripts/regenerate-openapi.sh` (**Postgres required**).
-- **Startup requires Postgres today:** `Program.cs` runs `EnsureCreated()` / `Migrate()` and optional demo seed **before** `UseFastEndpoints()` — export inherits this (no early-export skip-DB path).
+- **OpenAPI export wired (Phase 3):** `ExportSwaggerDocsAndExitAsync("v1")` after `UseFastEndpoints()`. Committed artifact `openapi/atlas.v1.json`; regenerate via `bash scripts/regenerate-openapi.sh` (**no Postgres required** — export uses in-memory EF and skips startup migrations).
+- **Export skip-DB path:** when `export-swagger-docs` configuration is exactly `"true"` (FastEndpoints CLI `--export-swagger-docs true`), `Program.cs` registers in-memory `AtlasDbContext` and skips `EnsureCreated()` / `Migrate()` before export.
 - Compose: `Dockerfile.ui` (React/Vite → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
 - nginx: SPA fallback; **no `Cache-Control` headers** today.
 - CI today: `frontend-ci.yml` on **`main` only** — React lint/build + Playwright. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + OpenAPI drift + Playwright).
@@ -277,11 +277,11 @@ app.Run();
 | **Document name** | Explicit `"v1"` via `DocumentSettings`. |
 | **Default export path** | FastEndpoints 8.1 default: **`wwwroot/openapi/v1.json`** under the API project; regenerate script normalizes to `openapi/atlas.v1.json`. |
 | **Committed artifact** | **`openapi/atlas.v1.json`**. |
-| **Regenerate** | `bash scripts/regenerate-openapi.sh` (Postgres required; binds `ATLAS_OPENAPI_EXPORT_URLS` default `http://127.0.0.1:5055`). |
+| **Regenerate** | `bash scripts/regenerate-openapi.sh` (no Postgres; binds `ATLAS_OPENAPI_EXPORT_URLS` default `http://127.0.0.1:5055`). |
 
 ### Database prerequisite
 
-**Export requires Postgres:** wiring runs after DB `EnsureCreated()` / `Migrate()` in `Program.cs`. Phase 3 documents and CI-tests export with Postgres (umbrella `openapi-drift` job) — **no** early-export skip-DB path.
+**Export does not require Postgres:** when configuration key `export-swagger-docs` is exactly `"true"`, `Program.cs` uses in-memory EF for DI and skips startup `EnsureCreated()` / `Migrate()`. Normal API runs still require Postgres.
 
 ### Phase 3 deliverables & acceptance
 
@@ -289,7 +289,7 @@ app.Run();
 | --- | --- |
 | Export wired per API shape above | Export produces JSON; process exits after `--export-swagger-docs true` |
 | Committed `openapi/atlas.v1.json` | Matches export output after script normalization |
-| Regenerate script | Deterministic; documented; runs on fresh clone with Postgres |
+| Regenerate script | Deterministic; documented; runs on fresh clone without Postgres |
 | NSwag client + mapping layer | Stubs for `mappers.ts`, `duration.ts`, `tones.ts`, `team.ts` |
 | Cache skeleton | `IsHydrating` with correct dependency gates |
 | CI drift check | Fails PR if committed artifact drifts without intentional update |
@@ -466,15 +466,15 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 
 **Exit:**
 
-- [x] Export + regenerate tested with Postgres (no early-export skip-DB)
+- [x] Export + regenerate tested without Postgres (in-memory EF skip-DB path)
 - [x] Sample Blazor API call works; drift check green
 - [x] **React baseline artifact linked** from umbrella README / migration docs — **blocks Phase 4** (gaps for seed-absent routes documented, not claimed complete)
 ### Phase 3 notes (landed)
 
 | Item | Location / command |
 | --- | --- |
-| OpenAPI export | `await app.ExportSwaggerDocsAndExitAsync("v1");` after `UseFastEndpoints()` — **Postgres required** (no early-export skip-DB) |
-| Regenerate | `bash scripts/regenerate-openapi.sh` (default DB `localhost:5432` / `atlas` / `change-me`) |
+| OpenAPI export | `await app.ExportSwaggerDocsAndExitAsync("v1");` after `UseFastEndpoints()` — **no Postgres required** when `export-swagger-docs` is `"true"` |
+| Regenerate | `bash scripts/regenerate-openapi.sh` |
 | Drift CI | `openapi-drift` job in `.github/workflows/umbrella-blazor-ci.yml` → `bash scripts/check-openapi-drift.sh` |
 | NSwag client | `src/frontend/Atlas.Ui/Api/Generated/`; SSE `/ai/sessions/{id}/events` excluded from codegen |
 | Mapping stubs | `src/frontend/Atlas.Ui/Mapping/` (`ApiMappers`, `Duration`, `Tones`, `TeamLogic`) |
