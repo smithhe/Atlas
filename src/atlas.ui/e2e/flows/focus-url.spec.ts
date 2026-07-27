@@ -18,16 +18,16 @@ test.describe('List ↔ detail focus URL', () => {
     await expect(detail.getByText(title)).toBeVisible()
     await detail.getByRole('button', { name: 'Focus' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`#/tasks/${id}`))
+    await expect(page).toHaveURL(new RegExp(`/tasks/${id}`))
     await expect(detail.getByText(title)).toBeVisible()
 
     await page.reload()
     await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
-    await expect(page).toHaveURL(new RegExp(`#/tasks/${id}`))
+    await expect(page).toHaveURL(new RegExp(`/tasks/${id}`))
     await expect(page.getByLabel('Task detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
 
     await page.getByLabel('Task detail editor').getByRole('button', { name: 'Exit focus' }).click()
-    await expect(page).toHaveURL(/#\/tasks\/?$/)
+    await expect(page).toHaveURL(/\/tasks\/?$/)
     await expect(page.getByLabel('Task list').getByText(title)).toBeVisible()
   })
 })

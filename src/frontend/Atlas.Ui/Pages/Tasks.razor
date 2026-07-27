@@ -1,24 +1,439 @@
 @page "/tasks"
 @page "/tasks/{TaskId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
 
 <PageTitle>Tasks — Atlas</PageTitle>
 
-<div class="page">
+<div class="page pageFill">
     <div class="pageTitleRow">
         <h2 class="pageTitle">Tasks</h2>
+        <button class="btn btnSecondary" type="button" @onclick="HandleAddTask" disabled="@_creating">
+            @(_creating ? "Adding…" : "Add task")
+        </button>
     </div>
-    <div class="muted">
-        @if (string.IsNullOrEmpty(TaskId))
+
+    <div class="tasksStack @(IsFocusMode ? "tasksStackFocus" : null) @(!ShowDetail ? "tasksStackNoDetail" : null)">
+        @if (!IsFocusMode)
         {
-            <span>Tasks list stub (Phase 5).</span>
+            <section class="list listCard tasksListRow" aria-label="Task list">
+                @foreach (var t in Cache.Tasks)
+                {
+                    var taskId = t.Id;
+                    var statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
+                    <button type="button"
+                            class="listRow listRowBtn tasksTaskRow @(taskId == Selection.SelectedTaskId ? "listRowActive" : null)"
+                            @onclick="() => SelectFromList(taskId)"
+                            @ondblclick="() => GoFocus(taskId)">
+                        <div class="listMain">
+                            <div class="listTitle listTitleWrap">@t.Title</div>
+                            <div class="listMeta listMetaWrap">
+                                @if (!string.IsNullOrEmpty(t.Project)) { <text> • @t.Project</text> }
+                                @if (!string.IsNullOrEmpty(t.Risk)) { <text> • Risk: @t.Risk</text> }
+                            </div>
+                            <div class="listMeta listMetaWrap">
+                                @(string.IsNullOrEmpty(t.DueDate) ? " " : $"Due {t.DueDate}")
+                            </div>
+                        </div>
+                        <div class="pillRow tasksTaskRowPills">
+                            <div class="pill">@DurationPreview(t.EstimatedDurationText)</div>
+                            <div class="pill @Tones.TaskStatusTone(t.Status)">@statusLabel</div>
+                            <div class="pill @Tones.PriorityTone(t.Priority)">@t.Priority</div>
+                        </div>
+                    </button>
+                }
+                @if (Cache.Tasks.Count == 0)
+                {
+                    <div class="muted pad">No tasks yet.</div>
+                }
+            </section>
         }
-        else
+
+        @if (ShowDetail)
         {
-            <span>Task detail stub for @TaskId (Phase 5).</span>
+            <section class="tasksDetailRow" aria-label="Task detail editor">
+                @if (Selected is null)
+                {
+                    <div class="card pad"><div class="muted">Task not found.</div></div>
+                }
+                else
+                {
+                    <div class="card pad">
+                        <div class="detailHeader">
+                            <div>
+                                <div class="detailTitle">Task Detail</div>
+                                <div class="mutedSmall">Last touched: @DisplayLabels.FormatDateTime(Selected.LastTouchedIso)</div>
+                            </div>
+                            <div class="rowTiny">
+                                @if (!_editing)
+                                {
+                                    <div class="pillRow">
+                                        <span class="pill @Tones.TaskStatusTone(Selected.Status)">@DisplayLabels.FormatTaskStatus(Selected.Status)</span>
+                                        <span class="pill @Tones.PriorityTone(Selected.Priority)">@Selected.Priority</span>
+                                    </div>
+                                }
+                                <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(_editing ? "Done" : "Edit")</button>
+                                <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
+                                    @(_deleting ? "Deleting…" : "Delete")
+                                </button>
+                                @if (IsFocusMode)
+                                {
+                                    <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btnGhost" type="button" @onclick="() => Selection.SelectTask(null)">Close</button>
+                                    <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="fieldGrid2">
+                            @if (_editing)
+                            {
+                                <label class="field span2">
+                                    <div class="fieldLabel">Title</div>
+                                    <input class="input" value="@Selected.Title" @oninput="OnTitleInput" />
+                                </label>
+                            }
+                            else
+                            {
+                                <div class="field span2">
+                                    <div class="fieldLabel">Title</div>
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Title) ? "—" : Selected.Title)</div>
+                                </div>
+                            }
+
+                            <div class="field">
+                                <div class="fieldLabel">Status</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@DisplayLabels.FormatTaskStatus(Selected.Status)" @onchange="OnStatusChange">
+                                        <option value="Not Started">Not Started</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Blocked">Blocked</option>
+                                        <option value="Done">Done</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">
+                                        <span class="pill @Tones.TaskStatusTone(Selected.Status)">@DisplayLabels.FormatTaskStatus(Selected.Status)</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Priority</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@Selected.Priority.ToString()" @onchange="OnPriorityChange">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Critical">Critical</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">
+                                        <span class="pill @Tones.PriorityTone(Selected.Priority)">@Selected.Priority</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Project</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
+                                        <option value="">(None)</option>
+                                        @foreach (var p in Cache.Projects.OrderBy(x => x.Name))
+                                        {
+                                            <option value="@p.Name">@p.Name</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(Selected.Project ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Risk</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(Selected.Risk ?? "")" @onchange="OnRiskChange">
+                                        <option value="">(None)</option>
+                                        @foreach (var r in Cache.Risks.OrderBy(x => x.Title))
+                                        {
+                                            <option value="@r.Title">@r.Title</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(Selected.Risk ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Due date</div>
+                                @if (_editing)
+                                {
+                                    <input class="input" type="date" value="@(Selected.DueDate ?? "")" @onchange="OnDueDateChange" />
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(Selected.DueDate ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Est. duration</div>
+                                @if (_editing)
+                                {
+                                    <input class="input" value="@Selected.EstimatedDurationText" @oninput="OnEstimateInput" />
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@DurationPreview(Selected.EstimatedDurationText)</div>
+                                }
+                            </div>
+
+                            <label class="field span2">
+                                <div class="fieldLabel">Notes</div>
+                                @if (_editing)
+                                {
+                                    <textarea class="textarea" value="@Selected.Notes" @oninput="OnNotesInput"></textarea>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Notes) ? "—" : Selected.Notes)</div>
+                                }
+                            </label>
+                        </div>
+                    </div>
+                }
+            </section>
         }
     </div>
 </div>
 
 @code {
     [Parameter] public string? TaskId { get; set; }
+
+    bool _editing;
+    bool _creating;
+    bool _deleting;
+    Guid? _autoEditId;
+
+    bool IsFocusMode => !string.IsNullOrEmpty(TaskId);
+    bool ShowDetail => IsFocusMode || Selection.SelectedTaskId is not null;
+
+    AtlasTask? Selected
+    {
+        get
+        {
+            Guid? id = IsFocusMode && Guid.TryParse(TaskId, out var focusId)
+                ? focusId
+                : Selection.SelectedTaskId;
+            if (id is null) return null;
+            return Cache.Tasks.FirstOrDefault(t => t.Id == id);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        Selection.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (IsFocusMode && Guid.TryParse(TaskId, out var id))
+        {
+            Selection.SelectTask(id);
+            _editing = _autoEditId == id;
+            if (Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+            {
+                Nav.NavigateTo("/tasks", replace: true);
+            }
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id)
+        {
+            _editing = true;
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (IsFocusMode && Guid.TryParse(TaskId, out var id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+        {
+            Nav.NavigateTo("/tasks", replace: true);
+            return;
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id)
+        {
+            _editing = true;
+        }
+
+        StateHasChanged();
+    });
+
+    void SelectFromList(Guid id)
+    {
+        Selection.SelectTask(id);
+        _editing = _autoEditId == id;
+    }
+
+    void ToggleEdit()
+    {
+        _editing = !_editing;
+        if (!_editing && Selected is not null && _autoEditId == Selected.Id)
+        {
+            _autoEditId = null;
+        }
+    }
+
+    void GoFocus(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+
+    void EnterFocus()
+    {
+        if (Selected is null) return;
+        Nav.NavigateTo($"/tasks/{Selected.Id}");
+    }
+
+    void ExitFocus() => Nav.NavigateTo("/tasks");
+
+    async Task HandleAddTask()
+    {
+        if (_creating) return;
+        _creating = true;
+        try
+        {
+            var draft = new AtlasTask
+            {
+                Title = "New task",
+                Priority = Priority.Medium,
+                Status = Models.TaskStatus.NotStarted,
+                EstimatedDurationText = "1h",
+                EstimateConfidence = Confidence.Medium,
+                Notes = "",
+                DependencyTaskIds = Array.Empty<Guid>(),
+                LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
+            };
+            var res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
+            var id = res.Id ?? Guid.Empty;
+            draft.Id = id;
+            Cache.AddTask(draft);
+            await Cache.RefetchTasksAsync();
+            _autoEditId = id;
+            SelectFromList(id);
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to create task right now. Please try again.");
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    async Task HandleDelete()
+    {
+        if (Selected is null || _deleting) return;
+        var task = Selected;
+        if (!await Dialogs.ConfirmAsync($"Delete task \"{task.Title}\"? This cannot be undone.")) return;
+
+        _deleting = true;
+        try
+        {
+            await Api.AtlasApiEndpointsTasksDeleteTaskEndpointAsync(task.Id);
+            Cache.RemoveTask(task.Id);
+            if (IsFocusMode) Nav.NavigateTo("/tasks", replace: true);
+            if (_autoEditId == task.Id) _autoEditId = null;
+            await Cache.RefetchTasksAsync();
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to delete this task right now. Please try again.");
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    void OnTitleInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, title: e.Value?.ToString() ?? ""));
+    void OnEstimateInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, estimatedDurationText: e.Value?.ToString() ?? ""));
+    void OnNotesInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
+
+    void OnStatusChange(ChangeEventArgs e) =>
+        Persist(EntityClone.Task(Selected!, status: DisplayLabels.ParseTaskStatus(e.Value?.ToString()), setStatus: true));
+
+    void OnPriorityChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<Priority>(e.Value?.ToString(), out var p))
+            Persist(EntityClone.Task(Selected!, priority: p));
+    }
+
+    void OnProjectChange(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        Persist(EntityClone.Task(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
+    }
+
+    void OnRiskChange(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        Persist(EntityClone.Task(Selected!, risk: string.IsNullOrEmpty(v) ? null : v, setRisk: true));
+    }
+
+    void OnDueDateChange(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        Persist(EntityClone.Task(Selected!, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
+    }
+
+    void Persist(AtlasTask next)
+    {
+        Cache.UpdateTask(next);
+        _ = PersistAsync(next);
+    }
+
+    async Task PersistAsync(AtlasTask next)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsTasksUpdateTaskEndpointAsync(next.Id, Cache.ToUpdateTaskRequest(next));
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to save task changes right now. Please try again.");
+        }
+    }
+
+    static string DurationPreview(string text)
+    {
+        var parsed = Duration.ParseDurationText(text);
+        return parsed is null
+            ? (string.IsNullOrWhiteSpace(text) ? "—" : "Invalid")
+            : Duration.FormatDurationFromMinutes(parsed.TotalMinutes);
+    }
+
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        Selection.Changed -= OnChanged;
+    }
 }

@@ -2,76 +2,392 @@
 @page "/risks/{RiskId}"
 @implements IDisposable
 @inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
 
 <PageTitle>Risks — Atlas</PageTitle>
 
-<div class="page">
+<div class="page pageFill">
     <div class="pageTitleRow">
         <h2 class="pageTitle">Risks &amp; Mitigation</h2>
+        <button class="btn btnSecondary" type="button" @onclick="HandleAddRisk" disabled="@_creating">
+            @(_creating ? "Adding…" : "Add risk")
+        </button>
     </div>
 
-    @if (string.IsNullOrEmpty(RiskId))
-    {
-        <div class="muted">Risks list stub (Phase 5).</div>
-        @if (!Cache.IsHydrating && Cache.Risks.Count > 0)
+    <div class="risksStack @(IsFocusMode ? "risksStackFocus" : null) @(!ShowDetail ? "risksStackNoDetail" : null)">
+        @if (!IsFocusMode)
         {
-            <div class="list listCard" style="margin-top: 12px">
-                @foreach (var risk in Cache.Risks.Take(12))
+            <section class="list listCard risksListRow" aria-label="Risk list">
+                @foreach (var r in Cache.Risks)
                 {
-                    <a class="listRow" href="@($"/risks/{risk.Id}")">
+                    var riskId = r.Id;
+                    var riskTitle = r.Title;
+                    var riskStatus = r.Status;
+                    var riskSeverity = r.Severity;
+                    var riskProject = r.Project;
+                    <button type="button"
+                            class="listRow listRowBtn @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
+                            @onclick="() => SelectFromList(riskId)"
+                            @ondblclick="() => GoFocus(riskId)">
                         <div class="listMain">
-                            <div class="listTitle">@risk.Title</div>
-                            <div class="listMeta">@risk.Status • @risk.Severity</div>
+                            <div class="listTitle">@riskTitle</div>
+                            <div class="listMeta">@riskStatus • @riskSeverity@(string.IsNullOrEmpty(riskProject) ? "" : $" • {riskProject}")</div>
                         </div>
-                    </a>
+                        <div class="pillRow">
+                            <span class="pill @Tones.RiskStatusTone(riskStatus)">@riskStatus</span>
+                            <span class="pill @Tones.SeverityTone(riskSeverity)">@riskSeverity</span>
+                        </div>
+                    </button>
                 }
-            </div>
+                @if (Cache.Risks.Count == 0)
+                {
+                    <div class="muted pad">No risks yet.</div>
+                }
+            </section>
         }
-    }
-    else
-    {
-        <section class="risksDetailRow" aria-label="Risk detail editor">
-            @if (Selected is null)
-            {
-                <div class="card pad">
-                    <div class="muted">Risk not found.</div>
-                </div>
-            }
-            else
-            {
-                <div class="card pad">
-                    <div class="listTitle">@Selected.Title</div>
-                    <div class="mutedSmall" style="margin-top: 8px">@Selected.Status • @Selected.Severity</div>
-                    <p class="muted" style="margin-top: 12px">Risk detail stub (Phase 5).</p>
-                </div>
-            }
-        </section>
-    }
+
+        @if (ShowDetail)
+        {
+            <section class="risksDetailRow" aria-label="Risk detail editor">
+                @if (Selected is null)
+                {
+                    <div class="card pad"><div class="muted">Risk not found.</div></div>
+                }
+                else
+                {
+                    <div class="card pad riskDetailCard">
+                        <div class="riskDetailHeader">
+                            <div class="riskDetailHeaderTop">
+                                <div class="riskDetailTitle">@(string.IsNullOrEmpty(Selected.Title) ? "Risk Detail" : Selected.Title)</div>
+                                <div class="riskDetailHeaderRight">
+                                    @if (!_editing)
+                                    {
+                                        <div class="pillRow">
+                                            <span class="pill @Tones.RiskStatusTone(Selected.Status)">@Selected.Status</span>
+                                            <span class="pill @Tones.SeverityTone(Selected.Severity)">@Selected.Severity</span>
+                                        </div>
+                                    }
+                                    <div class="rowTiny">
+                                        <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(_editing ? "Done" : "Edit")</button>
+                                        <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
+                                            @(_deleting ? "Deleting…" : "Delete")
+                                        </button>
+                                        @if (IsFocusMode)
+                                        {
+                                            <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btnGhost" type="button" @onclick="() => Selection.SelectRisk(null)">Close</button>
+                                            <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mutedSmall">Last updated: @DisplayLabels.FormatDateTime(Selected.LastUpdatedIso)</div>
+                        </div>
+
+                        <div class="fieldGrid2">
+                            @if (_editing)
+                            {
+                                <label class="field span2">
+                                    <div class="fieldLabel">Title</div>
+                                    <input class="input" value="@Selected.Title" @oninput="OnTitleInput" />
+                                </label>
+                            }
+
+                            <div class="field">
+                                <div class="fieldLabel">Status</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@Selected.Status.ToString()" @onchange="OnStatusChange">
+                                        <option value="Open">Open</option>
+                                        <option value="Watching">Watching</option>
+                                        <option value="Resolved">Resolved</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">
+                                        <span class="pill @Tones.RiskStatusTone(Selected.Status)">@Selected.Status</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Severity</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@Selected.Severity" @onchange="OnSeverityChange">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">
+                                        <span class="pill @Tones.SeverityTone(Selected.Severity)">@Selected.Severity</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Project</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
+                                        <option value="">(None)</option>
+                                        @foreach (var p in Cache.Projects.OrderBy(x => x.Name))
+                                        {
+                                            <option value="@p.Name">@p.Name</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(Selected.Project ?? "—")</div>
+                                }
+                            </div>
+
+                            <label class="field span2">
+                                <div class="fieldLabel">Description</div>
+                                @if (_editing)
+                                {
+                                    <textarea class="textarea" value="@Selected.Description" @oninput="OnDescriptionInput"></textarea>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Description) ? "—" : Selected.Description)</div>
+                                }
+                            </label>
+
+                            <label class="field span2">
+                                <div class="fieldLabel">Evidence</div>
+                                @if (_editing)
+                                {
+                                    <textarea class="textarea" value="@Selected.Evidence" @oninput="OnEvidenceInput"></textarea>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Evidence) ? "—" : Selected.Evidence)</div>
+                                }
+                            </label>
+                        </div>
+
+                        @if (Selected.History.Count > 0)
+                        {
+                            <div class="mt-lg">
+                                <div class="cardTitle" style="margin-bottom: 8px">History</div>
+                                <div class="list">
+                                    @foreach (var h in Selected.History.OrderByDescending(x => x.CreatedIso))
+                                    {
+                                        <div class="listRow">
+                                            <div class="listMain">
+                                                <div class="listTitle">@h.Text</div>
+                                                <div class="listMeta">@DisplayLabels.FormatDateTime(h.CreatedIso)</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    </div>
 </div>
 
 @code {
     [Parameter] public string? RiskId { get; set; }
 
+    bool _editing;
+    bool _creating;
+    bool _deleting;
+    Guid? _autoEditId;
+
+    bool IsFocusMode => !string.IsNullOrEmpty(RiskId);
+    bool ShowDetail => IsFocusMode || Selection.SelectedRiskId is not null;
+
     Risk? Selected
     {
         get
         {
-            if (string.IsNullOrEmpty(RiskId) || !Guid.TryParse(RiskId, out var id))
-            {
-                return null;
-            }
-
+            Guid? id = IsFocusMode && Guid.TryParse(RiskId, out var focusId)
+                ? focusId
+                : Selection.SelectedRiskId;
+            if (id is null) return null;
             return Cache.Risks.FirstOrDefault(r => r.Id == id);
         }
     }
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnCacheChanged;
+        Cache.Changed += OnChanged;
+        Selection.Changed += OnChanged;
         _ = Cache.EnsureHydratedAsync();
     }
 
-    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    protected override void OnParametersSet()
+    {
+        if (IsFocusMode && Guid.TryParse(RiskId, out var id))
+        {
+            Selection.SelectRisk(id);
+            _editing = _autoEditId == id;
+            if (Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+            {
+                Nav.NavigateTo("/risks", replace: true);
+            }
+        }
 
-    public void Dispose() => Cache.Changed -= OnCacheChanged;
+        if (Selected is not null && _autoEditId == Selected.Id)
+        {
+            _editing = true;
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (IsFocusMode && Guid.TryParse(RiskId, out var id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+        {
+            Nav.NavigateTo("/risks", replace: true);
+            return;
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id)
+        {
+            _editing = true;
+        }
+
+        StateHasChanged();
+    });
+
+    void SelectFromList(Guid id)
+    {
+        Selection.SelectRisk(id);
+        _editing = _autoEditId == id;
+    }
+
+    void ToggleEdit()
+    {
+        _editing = !_editing;
+        if (!_editing && Selected is not null && _autoEditId == Selected.Id) _autoEditId = null;
+    }
+
+    void GoFocus(Guid id) => Nav.NavigateTo($"/risks/{id}");
+
+    void EnterFocus()
+    {
+        if (Selected is null) return;
+        Nav.NavigateTo($"/risks/{Selected.Id}");
+    }
+
+    void ExitFocus() => Nav.NavigateTo("/risks");
+
+    async Task HandleAddRisk()
+    {
+        if (_creating) return;
+        _creating = true;
+        try
+        {
+            var draft = new Risk
+            {
+                Title = "New risk",
+                Status = RiskStatus.Open,
+                Severity = "Medium",
+                Description = "",
+                Evidence = "",
+                LinkedTaskIds = Array.Empty<Guid>(),
+                LinkedTeamMemberIds = Array.Empty<Guid>(),
+                History = Array.Empty<RiskHistoryEntry>(),
+                LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
+            };
+            var res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
+            var id = res.Id ?? Guid.Empty;
+            draft.Id = id;
+            Cache.AddRisk(draft);
+            await Cache.RefetchRisksAsync();
+            _autoEditId = id;
+            SelectFromList(id);
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to create risk right now. Please try again.");
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    async Task HandleDelete()
+    {
+        if (Selected is null || _deleting) return;
+        var risk = Selected;
+        if (!await Dialogs.ConfirmAsync($"Delete risk \"{risk.Title}\"? This cannot be undone.")) return;
+
+        _deleting = true;
+        try
+        {
+            await Api.AtlasApiEndpointsRisksDeleteRiskEndpointAsync(risk.Id);
+            Cache.RemoveRisk(risk.Id);
+            if (IsFocusMode) Nav.NavigateTo("/risks", replace: true);
+            if (_autoEditId == risk.Id) _autoEditId = null;
+            await Cache.RefetchRisksAsync();
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to delete this risk right now. Please try again.");
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    void OnTitleInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, title: e.Value?.ToString() ?? ""));
+    void OnDescriptionInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, description: e.Value?.ToString() ?? ""));
+    void OnEvidenceInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, evidence: e.Value?.ToString() ?? ""));
+
+    void OnStatusChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<RiskStatus>(e.Value?.ToString(), out var s))
+            Persist(EntityClone.Risk(Selected!, status: s));
+    }
+
+    void OnSeverityChange(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, severity: e.Value?.ToString() ?? "Low"));
+
+    void OnProjectChange(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString();
+        Persist(EntityClone.Risk(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
+    }
+
+    void Persist(Risk next)
+    {
+        Cache.UpdateRisk(next);
+        _ = PersistAsync(next);
+    }
+
+    async Task PersistAsync(Risk next)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsRisksUpdateRiskEndpointAsync(next.Id, Cache.ToUpdateRiskRequest(next));
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
+        }
+    }
+
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        Selection.Changed -= OnChanged;
+    }
 }

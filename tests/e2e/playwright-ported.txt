@@ -2,3 +2,12 @@ e2e/flows/blazor-host.spec.ts
 e2e/flows/login-dashboard.spec.ts
 e2e/flows/shell-nav.spec.ts
 e2e/flows/dashboard-nav.spec.ts
+e2e/flows/tasks-crud.spec.ts
+e2e/flows/risks-crud.spec.ts
+e2e/flows/projects-crud.spec.ts
+e2e/flows/quick-add.spec.ts
+e2e/flows/search.spec.ts
+e2e/flows/focus-url.spec.ts
+e2e/flows/delete-smoke.spec.ts
+e2e/flows/settings-smoke.spec.ts
+e2e/flows/persist-reload.spec.ts

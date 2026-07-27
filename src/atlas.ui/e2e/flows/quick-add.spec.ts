@@ -15,7 +15,7 @@ test.describe('Quick Add', () => {
     await modal.locator('.fieldLabel', { hasText: 'Title' }).locator('..').locator('input').fill(title)
     await modal.getByRole('button', { name: 'Create' }).click()
 
-    await expect(page).toHaveURL(/#\/tasks\//)
+    await expect(page).toHaveURL(/\/tasks\//)
     await expect(page.getByLabel('Task detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
   })
 
@@ -31,7 +31,7 @@ test.describe('Quick Add', () => {
     await modal.locator('.fieldLabel', { hasText: 'Title' }).locator('..').locator('input').fill(title)
     await modal.getByRole('button', { name: 'Create' }).click()
 
-    await expect(page).toHaveURL(/#\/risks\//)
+    await expect(page).toHaveURL(/\/risks\//)
     await expect(page.getByLabel('Risk detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
   })
 
@@ -50,7 +50,7 @@ test.describe('Quick Add', () => {
     await modal.locator('.fieldLabel', { hasText: /^Note$/ }).locator('..').locator('textarea').fill('Quick add note body.')
     await modal.getByRole('button', { name: 'Create' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`#/team/${member.id}/notes`))
+    await expect(page).toHaveURL(new RegExp(`/team/${member.id}/notes`))
     await expect(page.getByText(noteTitle)).toBeVisible({ timeout: 20_000 })
   })
 })
