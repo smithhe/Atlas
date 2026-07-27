@@ -1,11 +1,315 @@
 @page "/settings"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+@inject LocalSettings Local
+@inject NavigationManager Nav
 
 <PageTitle>Settings — Atlas</PageTitle>
 
 <div class="page">
     <h2 class="pageTitle">Settings</h2>
-    <div class="muted">Settings stub (Phase 5).</div>
-    <div class="row mt-lg">
-        <a class="btn btnSecondary" href="/settings/azure-import">Azure DevOps Import</a>
-    </div>
+
+    @if (Cache.Settings is null)
+    {
+        <div class="muted">Loading settings…</div>
+    }
+    else
+    {
+        <div class="card pad">
+            <div class="fieldGrid2">
+                <label class="field">
+                    <div class="fieldLabel">Stale threshold (days)</div>
+                    <input class="input"
+                           type="number"
+                           min="1"
+                           data-testid="settings-stale-days"
+                           aria-label="Stale threshold (days)"
+                           value="@_staleDays"
+                           @oninput="OnStaleDaysInput" />
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Theme</div>
+                    <input class="input" value="Dark (locked)" readonly />
+                    <div class="mutedSmall">Light theme is not available in v1.</div>
+                </label>
+
+                <label class="field span2">
+                    <div class="fieldLabel">Default AI behavior</div>
+                    <div class="placeholderBox">Manual only (AI acts only when you click an action)</div>
+                </label>
+
+                <label class="field span2">
+                    <div class="fieldLabel">Default AI chat panel state on app open</div>
+                    <select class="input" value="@(_aiPanelOpen ? "on" : "off")" @onchange="OnAiPanelChange">
+                        <option value="off">Off (closed)</option>
+                        <option value="on">On (open)</option>
+                    </select>
+                    <div class="mutedSmall">Saved in this browser only (localStorage), not with Save settings.</div>
+                </label>
+
+                <label class="field span2">
+                    <div class="fieldLabel">Azure DevOps base URL</div>
+                    <input class="input" value="@_azureBaseUrl" @oninput="OnAzureBaseUrlInput" />
+                </label>
+            </div>
+
+            <div class="row mt-lg">
+                <button class="btn" type="button" @onclick="SaveSettings" disabled="@_saving">
+                    @(_saving ? "Saving…" : "Save settings")
+                </button>
+                @if (!string.IsNullOrEmpty(_settingsError))
+                {
+                    <div class="muted" style="margin-left: 12px">@_settingsError</div>
+                }
+            </div>
+        </div>
+
+        <div class="card pad" style="margin-top: 16px">
+            <div class="cardTitle" style="margin-bottom: 12px">Azure DevOps connection</div>
+            @if (_azureLoading)
+            {
+                <div class="muted">Loading Azure DevOps connection…</div>
+            }
+            else
+            {
+                <div class="fieldGrid2">
+                    <label class="field">
+                        <div class="fieldLabel">Organization</div>
+                        <input class="input" @bind="_org" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Project</div>
+                        <input class="input" @bind="_project" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Area path</div>
+                        <input class="input" @bind="_areaPath" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Team name</div>
+                        <input class="input" @bind="_teamName" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Project ID</div>
+                        <input class="input" @bind="_projectId" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Team ID</div>
+                        <input class="input" @bind="_teamId" @bind:event="oninput" />
+                    </label>
+                    <label class="field">
+                        <div class="fieldLabel">Enabled</div>
+                        <select class="select" @bind="_enabledYesNo">
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="row mt-lg">
+                    <button class="btn btnSecondary" type="button" @onclick="SaveAzureConnection" disabled="@(_azureSaving || string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))">
+                        @(_azureSaving ? "Saving…" : "Save connection")
+                    </button>
+                    <a class="btn btnGhost" href="/settings/azure-import">Azure DevOps Import</a>
+                    <a class="btn btnGhost" href="/setup">Azure Setup</a>
+                </div>
+                @if (!string.IsNullOrEmpty(_azureError))
+                {
+                    <div class="muted" style="margin-top: 8px">@_azureError</div>
+                }
+                @if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
+                {
+                    <div class="mutedSmall" style="margin-top: 8px">Project ID and Team ID are required to save a connection (smoke/disconnected OK without live Azure).</div>
+                }
+            }
+        </div>
+    }
 </div>
+
+@code {
+    int _staleDays = 10;
+    string _azureBaseUrl = "";
+    bool _aiPanelOpen;
+    bool _saving;
+    string? _settingsError;
+
+    bool _azureLoading = true;
+    bool _azureSaving;
+    string? _azureError;
+    string _org = "";
+    string _project = "";
+    string _areaPath = "";
+    string _teamName = "";
+    string _projectId = "";
+    string _teamId = "";
+    string _enabledYesNo = "no";
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+        SyncFromCache();
+        _ = LoadAzureAsync();
+    }
+
+    void OnChanged() => InvokeAsync(() => { SyncFromCache(); StateHasChanged(); });
+
+    void SyncFromCache()
+    {
+        if (Cache.Settings is null) return;
+        _staleDays = Cache.Settings.StaleDays;
+        _azureBaseUrl = Cache.Settings.AzureDevOpsBaseUrl ?? "";
+        _aiPanelOpen = Cache.Settings.DefaultAiPanelOpen;
+    }
+
+    void OnStaleDaysInput(ChangeEventArgs e)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var v)) return;
+        _staleDays = Math.Clamp(v, 1, 365);
+        if (Cache.Settings is not null)
+        {
+            Cache.PatchSettings(new Models.Settings
+            {
+                StaleDays = _staleDays,
+                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
+                Theme = Cache.Settings.Theme,
+                AzureDevOpsBaseUrl = Cache.Settings.AzureDevOpsBaseUrl
+            });
+        }
+    }
+
+    void OnAzureBaseUrlInput(ChangeEventArgs e)
+    {
+        _azureBaseUrl = e.Value?.ToString() ?? "";
+        if (Cache.Settings is not null)
+        {
+            Cache.PatchSettings(new Models.Settings
+            {
+                StaleDays = Cache.Settings.StaleDays,
+                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
+                Theme = Cache.Settings.Theme,
+                AzureDevOpsBaseUrl = _azureBaseUrl
+            });
+        }
+    }
+
+    async Task OnAiPanelChange(ChangeEventArgs e)
+    {
+        _aiPanelOpen = e.Value?.ToString() == "on";
+        await Local.SaveDefaultAiPanelOpenAsync(_aiPanelOpen);
+        if (Cache.Settings is not null)
+        {
+            Cache.PatchSettings(new Models.Settings
+            {
+                StaleDays = Cache.Settings.StaleDays,
+                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = _aiPanelOpen,
+                Theme = Cache.Settings.Theme,
+                AzureDevOpsBaseUrl = Cache.Settings.AzureDevOpsBaseUrl
+            });
+        }
+    }
+
+    async Task SaveSettings()
+    {
+        if (Cache.Settings is null || _saving) return;
+        _saving = true;
+        _settingsError = null;
+        try
+        {
+            await Api.AtlasApiEndpointsSettingsUpdateSettingsEndpointAsync(new AtlasApiDTOsSettingsUpdateSettingsRequest
+            {
+                StaleDays = _staleDays,
+                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
+                Theme = ApiMappers.ToApiTheme(Cache.Settings.Theme),
+                AzureDevOpsBaseUrl = string.IsNullOrWhiteSpace(_azureBaseUrl) ? null : _azureBaseUrl
+            });
+            await Cache.RefetchSettingsAsync();
+            SyncFromCache();
+        }
+        catch (Exception ex)
+        {
+            _settingsError = ex.Message;
+            await Dialogs.AlertAsync("Unable to save settings right now. Please try again.");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    async Task LoadAzureAsync()
+    {
+        _azureLoading = true;
+        try
+        {
+            var conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
+            ApplyConn(conn);
+        }
+        catch (AtlasApiException ex) when (ex.StatusCode == 404)
+        {
+            // Unconfigured Azure — empty form is expected in CI smoke.
+        }
+        catch (Exception ex)
+        {
+            _azureError = ex.Message;
+        }
+        finally
+        {
+            _azureLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    void ApplyConn(AtlasApiDTOsAzureDevOpsAzureConnectionDto conn)
+    {
+        _org = conn.Organization ?? "";
+        _project = conn.Project ?? "";
+        _areaPath = conn.AreaPath ?? "";
+        _teamName = conn.TeamName ?? "";
+        _projectId = conn.ProjectId ?? "";
+        _teamId = conn.TeamId ?? "";
+        _enabledYesNo = conn.IsEnabled == true ? "yes" : "no";
+    }
+
+    async Task SaveAzureConnection()
+    {
+        if (_azureSaving) return;
+        if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
+        {
+            await Dialogs.AlertAsync("Project ID and Team ID are required.");
+            return;
+        }
+
+        _azureSaving = true;
+        _azureError = null;
+        try
+        {
+            await Api.AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpointAsync(new AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest
+            {
+                Organization = _org,
+                Project = _project,
+                AreaPath = _areaPath,
+                TeamName = string.IsNullOrWhiteSpace(_teamName) ? null : _teamName,
+                ProjectId = _projectId,
+                TeamId = _teamId,
+                IsEnabled = _enabledYesNo == "yes"
+            });
+        }
+        catch (Exception ex)
+        {
+            _azureError = ex.Message;
+            await Dialogs.AlertAsync("Unable to save Azure connection right now. Please try again.");
+        }
+        finally
+        {
+            _azureSaving = false;
+        }
+    }
+
+    public void Dispose() => Cache.Changed -= OnChanged;
+}

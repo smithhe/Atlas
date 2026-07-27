@@ -3,19 +3,16 @@ using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Mapping;
 
-/// <summary>
-/// Thin stubs mirroring React <c>app/api/mappers.ts</c>. Full mapping lands in later phases.
-/// </summary>
+/// <summary>DTO → domain mapping mirroring React <c>app/api/mappers.ts</c>.</summary>
 public static class ApiMappers
 {
-    public static Settings MapSettings(AtlasApiDTOsSettingsSettingsDto dto)
+    public static Settings MapSettings(AtlasApiDTOsSettingsSettingsDto dto, bool defaultAiPanelOpen = false)
     {
-        // TODO(Phase 5+): merge localStorage defaultAiPanelOpen like React mapSettings.
         return new Settings
         {
             StaleDays = dto.StaleDays ?? 10,
             DefaultAiManualOnly = dto.DefaultAiManualOnly ?? true,
-            DefaultAiPanelOpen = false,
+            DefaultAiPanelOpen = defaultAiPanelOpen,
             Theme = dto.Theme?.ToString() ?? "Dark",
             AzureDevOpsBaseUrl = dto.AzureDevOpsBaseUrl
         };
@@ -32,7 +29,6 @@ public static class ApiMappers
 
     public static AtlasTask MapTask(AtlasApiDTOsTasksTaskDto dto, TaskLookups lookups)
     {
-        // TODO(Phase 5): map status labels, project/risk name lookups like React mapTask.
         string? project = null;
         string? risk = null;
         if (dto.ProjectId is Guid projectId)
@@ -66,13 +62,21 @@ public static class ApiMappers
 
     public static Project MapProject(AtlasApiDTOsProjectsProjectDto dto)
     {
-        // TODO(Phase 5): full project DTO → domain mapping.
         return new Project
         {
             Id = dto.Id ?? Guid.Empty,
             Name = dto.Name ?? "",
             Summary = dto.Summary ?? "",
             Description = dto.Description,
+            Status = MapProjectStatus(dto.Status),
+            Health = MapHealth(dto.Health),
+            TargetDateIso = dto.TargetDate?.ToString("yyyy-MM-dd"),
+            Priority = dto.Priority is null ? null : MapPriority(dto.Priority),
+            ProductOwnerId = dto.ProductOwnerId,
+            Tags = dto.Tags?.Select(t => t.Value ?? "").Where(v => v.Length > 0).ToList() ?? [],
+            Links = dto.Links?.Select(l => new ProjectLink { Label = l.Label ?? "", Url = l.Url ?? "" }).ToList()
+                ?? [],
+            LastUpdatedIso = dto.LastUpdatedAt?.ToString("o"),
             LinkedTaskIds = dto.LinkedTaskIds?.ToList() ?? [],
             LinkedRiskIds = dto.LinkedRiskIds?.ToList() ?? [],
             TeamMemberIds = dto.TeamMemberIds?.ToList() ?? []
@@ -81,7 +85,6 @@ public static class ApiMappers
 
     public static Risk MapRisk(AtlasApiDTOsRisksRiskDto dto, RiskLookups lookups)
     {
-        // TODO(Phase 5): history, project name lookup polish.
         string? project = null;
         if (dto.ProjectId is Guid projectId)
         {
@@ -99,39 +102,189 @@ public static class ApiMappers
             Evidence = dto.Evidence ?? "",
             LinkedTaskIds = dto.LinkedTaskIds?.ToList() ?? [],
             LinkedTeamMemberIds = dto.LinkedTeamMemberIds?.ToList() ?? [],
+            History = (dto.History ?? [])
+                .Select(h => new RiskHistoryEntry
+                {
+                    Id = h.Id ?? Guid.Empty,
+                    CreatedIso = h.CreatedAt?.ToString("o") ?? "",
+                    Text = h.Text ?? ""
+                })
+                .ToList(),
             LastUpdatedIso = dto.LastUpdatedAt?.ToString("o") ?? ""
         };
     }
 
     public static TeamMemberMapResult MapTeamMember(AtlasApiDTOsTeamMembersTeamMemberDto dto)
     {
-        // TODO(Phase 6): notes, pins, azure items, member risks, deriveActivitySnapshot.
+        var notes = (dto.Notes ?? [])
+            .Select(n => new TeamNote
+            {
+                Id = n.Id ?? Guid.Empty,
+                CreatedIso = n.CreatedAt?.ToString("o") ?? "",
+                LastModifiedIso = n.LastModifiedAt?.ToString("o"),
+                Tag = MapNoteTag(n.Type),
+                Title = string.IsNullOrWhiteSpace(n.Title) ? null : n.Title,
+                Text = n.Text ?? "",
+                AdoWorkItemId = string.IsNullOrWhiteSpace(n.AdoWorkItemId) ? null : n.AdoWorkItemId,
+                PrUrl = string.IsNullOrWhiteSpace(n.PrUrl) ? null : n.PrUrl
+            })
+            .ToList();
+
+        var pinnedNoteIds = (dto.Notes ?? [])
+            .Where(n => n.PinnedOrder is not null)
+            .OrderBy(n => n.PinnedOrder)
+            .Select(n => n.Id ?? Guid.Empty)
+            .ToList();
+
+        var azureItems = (dto.AzureWorkItems ?? [])
+            .Select(w => new AzureItem
+            {
+                Id = w.Id ?? "",
+                Title = w.Title ?? "",
+                Status = w.Status ?? "",
+                AssignedTo = w.AssignedTo,
+                TicketUrl = w.TicketUrl,
+                ProjectId = w.ProjectId?.ToString(),
+                ChangedDateUtc = w.ChangedDateUtc?.ToString("o"),
+                LocalNotes = (w.LocalNotes ?? [])
+                    .Select(n => new WorkItemNote
+                    {
+                        Id = n.Id ?? Guid.Empty,
+                        CreatedIso = n.CreatedAt?.ToString("o") ?? "",
+                        Text = n.Text ?? ""
+                    })
+                    .ToList()
+            })
+            .ToList();
+
         var member = new TeamMember
         {
             Id = dto.Id ?? Guid.Empty,
             Name = dto.Name ?? "",
             Role = string.IsNullOrWhiteSpace(dto.Role) ? null : dto.Role,
             StatusDot = dto.StatusDot?.ToString() ?? "Green",
-            CurrentFocus = dto.CurrentFocus ?? ""
+            CurrentFocus = dto.CurrentFocus ?? "",
+            Profile = new TeamMemberProfile
+            {
+                TimeZone = dto.Profile?.TimeZone,
+                TypicalHours = dto.Profile?.TypicalHours
+            },
+            Signals = new TeamMemberSignals
+            {
+                Load = MapLoad(dto.Signals?.Load),
+                Delivery = MapDelivery(dto.Signals?.Delivery),
+                SupportNeeded = MapSupport(dto.Signals?.SupportNeeded)
+            },
+            Notes = notes,
+            PinnedNoteIds = pinnedNoteIds,
+            ActivitySnapshot = new ActivitySnapshot(),
+            AzureItems = azureItems
         };
+
+        var memberRisks = (dto.Risks ?? [])
+            .Select(r => new TeamMemberRisk
+            {
+                Id = r.Id ?? Guid.Empty,
+                MemberId = member.Id,
+                Title = r.Title ?? "",
+                Severity = r.Severity?.ToString() ?? "Low",
+                RiskType = r.RiskType ?? "",
+                Status = r.Status?.ToString() ?? "Open",
+                Trend = r.Trend?.ToString() ?? "Stable",
+                FirstNoticedDateIso = r.FirstNoticedDate?.ToString("yyyy-MM-dd") ?? "",
+                ImpactArea = r.ImpactArea ?? "",
+                Description = r.Description ?? "",
+                CurrentAction = r.CurrentAction ?? "",
+                LastReviewedIso = r.LastReviewedAt?.ToString("o"),
+                LinkedRiskId = r.LinkedGlobalRiskId
+            })
+            .ToList();
 
         return new TeamMemberMapResult
         {
             Member = member,
-            MemberRisks = Array.Empty<TeamMemberRisk>()
+            MemberRisks = memberRisks
         };
     }
 
     public static Growth MapGrowth(AtlasApiDTOsGrowthGrowthDto dto)
     {
-        // TODO(Phase 6): goals, skills, feedback themes.
         return new Growth
         {
             Id = dto.Id ?? Guid.Empty,
             MemberId = dto.TeamMemberId ?? Guid.Empty,
-            FocusAreasMarkdown = dto.FocusAreasMarkdown ?? ""
+            FocusAreasMarkdown = dto.FocusAreasMarkdown ?? "",
+            SkillsInProgress = dto.SkillsInProgress?.ToList() ?? [],
+            Goals = Array.Empty<GrowthGoal>(),
+            FeedbackThemes = Array.Empty<GrowthFeedbackTheme>()
         };
     }
+
+    public static AtlasDomainEnumsTaskStatus ToApiTaskStatus(Models.TaskStatus? status) => status switch
+    {
+        Models.TaskStatus.InProgress => AtlasDomainEnumsTaskStatus.InProgress,
+        Models.TaskStatus.Blocked => AtlasDomainEnumsTaskStatus.Blocked,
+        Models.TaskStatus.Done => AtlasDomainEnumsTaskStatus.Done,
+        _ => AtlasDomainEnumsTaskStatus.NotStarted
+    };
+
+    public static AtlasDomainEnumsPriority ToApiPriority(Priority priority) => priority switch
+    {
+        Priority.Medium => AtlasDomainEnumsPriority.Medium,
+        Priority.High => AtlasDomainEnumsPriority.High,
+        Priority.Critical => AtlasDomainEnumsPriority.Critical,
+        _ => AtlasDomainEnumsPriority.Low
+    };
+
+    public static AtlasDomainEnumsConfidence ToApiConfidence(Confidence confidence) => confidence switch
+    {
+        Confidence.Medium => AtlasDomainEnumsConfidence.Medium,
+        Confidence.High => AtlasDomainEnumsConfidence.High,
+        _ => AtlasDomainEnumsConfidence.Low
+    };
+
+    public static AtlasDomainEnumsRiskStatus ToApiRiskStatus(RiskStatus status) => status switch
+    {
+        RiskStatus.Watching => AtlasDomainEnumsRiskStatus.Watching,
+        RiskStatus.Resolved => AtlasDomainEnumsRiskStatus.Resolved,
+        _ => AtlasDomainEnumsRiskStatus.Open
+    };
+
+    public static AtlasDomainEnumsSeverityLevel ToApiSeverity(string severity) => severity switch
+    {
+        "Medium" => AtlasDomainEnumsSeverityLevel.Medium,
+        "High" => AtlasDomainEnumsSeverityLevel.High,
+        _ => AtlasDomainEnumsSeverityLevel.Low
+    };
+
+    public static AtlasDomainEnumsProjectStatus ToApiProjectStatus(ProjectStatus? status) => status switch
+    {
+        ProjectStatus.Paused => AtlasDomainEnumsProjectStatus.Paused,
+        ProjectStatus.Completed => AtlasDomainEnumsProjectStatus.Completed,
+        _ => AtlasDomainEnumsProjectStatus.Active
+    };
+
+    public static AtlasDomainEnumsHealthSignal ToApiHealth(HealthSignal? health) => health switch
+    {
+        HealthSignal.Yellow => AtlasDomainEnumsHealthSignal.Yellow,
+        HealthSignal.Red => AtlasDomainEnumsHealthSignal.Red,
+        _ => AtlasDomainEnumsHealthSignal.Green
+    };
+
+    public static AtlasDomainEnumsNoteType ToApiNoteType(NoteTag tag) => tag switch
+    {
+        NoteTag.Blocker => AtlasDomainEnumsNoteType.Blocker,
+        NoteTag.Progress => AtlasDomainEnumsNoteType.Progress,
+        NoteTag.Concern => AtlasDomainEnumsNoteType.Concern,
+        NoteTag.Praise => AtlasDomainEnumsNoteType.Praise,
+        NoteTag.Standup => AtlasDomainEnumsNoteType.Standup,
+        _ => AtlasDomainEnumsNoteType.Quick
+    };
+
+    public static AtlasDomainEnumsTheme ToApiTheme(string? theme) =>
+        string.Equals(theme, "Light", StringComparison.OrdinalIgnoreCase)
+            ? AtlasDomainEnumsTheme.Light
+            : AtlasDomainEnumsTheme.Dark;
 
     static Priority MapPriority(AtlasDomainEnumsPriority? value) => value switch
     {
@@ -173,5 +326,52 @@ public static class ApiMappers
         AtlasDomainEnumsSeverityLevel.Medium => "Medium",
         AtlasDomainEnumsSeverityLevel.High => "High",
         _ => "Low"
+    };
+
+    static ProjectStatus? MapProjectStatus(AtlasDomainEnumsProjectStatus? value) => value switch
+    {
+        AtlasDomainEnumsProjectStatus.Active => ProjectStatus.Active,
+        AtlasDomainEnumsProjectStatus.Paused => ProjectStatus.Paused,
+        AtlasDomainEnumsProjectStatus.Completed => ProjectStatus.Completed,
+        _ => null
+    };
+
+    static HealthSignal? MapHealth(AtlasDomainEnumsHealthSignal? value) => value switch
+    {
+        AtlasDomainEnumsHealthSignal.Green => HealthSignal.Green,
+        AtlasDomainEnumsHealthSignal.Yellow => HealthSignal.Yellow,
+        AtlasDomainEnumsHealthSignal.Red => HealthSignal.Red,
+        _ => null
+    };
+
+    static NoteTag MapNoteTag(AtlasDomainEnumsNoteType? value) => value switch
+    {
+        AtlasDomainEnumsNoteType.Blocker => NoteTag.Blocker,
+        AtlasDomainEnumsNoteType.Progress => NoteTag.Progress,
+        AtlasDomainEnumsNoteType.Concern => NoteTag.Concern,
+        AtlasDomainEnumsNoteType.Praise => NoteTag.Praise,
+        AtlasDomainEnumsNoteType.Standup => NoteTag.Standup,
+        _ => NoteTag.Quick
+    };
+
+    static LoadSignal MapLoad(AtlasDomainEnumsLoadSignal? value) => value switch
+    {
+        AtlasDomainEnumsLoadSignal.Light => LoadSignal.Light,
+        AtlasDomainEnumsLoadSignal.Heavy => LoadSignal.Heavy,
+        _ => LoadSignal.Normal
+    };
+
+    static DeliverySignal MapDelivery(AtlasDomainEnumsDeliverySignal? value) => value switch
+    {
+        AtlasDomainEnumsDeliverySignal.AtRisk => DeliverySignal.AtRisk,
+        AtlasDomainEnumsDeliverySignal.Blocked => DeliverySignal.Blocked,
+        _ => DeliverySignal.OnTrack
+    };
+
+    static SupportNeededSignal MapSupport(AtlasDomainEnumsSupportNeededSignal? value) => value switch
+    {
+        AtlasDomainEnumsSupportNeededSignal.Medium => SupportNeededSignal.Medium,
+        AtlasDomainEnumsSupportNeededSignal.High => SupportNeededSignal.High,
+        _ => SupportNeededSignal.Low
     };
 }

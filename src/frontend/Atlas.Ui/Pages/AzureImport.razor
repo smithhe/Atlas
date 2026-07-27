@@ -1,8 +1,143 @@
 @page "/settings/azure-import"
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+@inject NavigationManager Nav
 
 <PageTitle>Azure Import — Atlas</PageTitle>
 
 <div class="page">
-    <h2 class="pageTitle">Azure DevOps Import</h2>
-    <div class="muted">Azure import stub (Phase 5).</div>
+    <div class="pageTitleRow">
+        <h2 class="pageTitle">Azure DevOps Import</h2>
+        <a class="btn btnGhost" href="/settings">Back to Settings</a>
+    </div>
+
+    <div class="card pad">
+        <p class="muted">Import team members and product owners from the configured Azure DevOps connection. Live Azure is optional for smoke — unconfigured connection stays disconnected.</p>
+
+        <div class="fieldGrid2" style="margin-top: 16px">
+            <label class="field">
+                <div class="fieldLabel">Organization</div>
+                <input class="input" @bind="_org" @bind:event="oninput" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Project ID</div>
+                <input class="input" @bind="_projectId" @bind:event="oninput" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Team ID</div>
+                <input class="input" @bind="_teamId" @bind:event="oninput" />
+            </label>
+        </div>
+
+        <div class="row mt-lg">
+            <button class="btn btnSecondary" type="button" @onclick="LoadUsers" disabled="@_loading">
+                @(_loading ? "Loading…" : "Load Azure users")
+            </button>
+            <button class="btn" type="button" @onclick="ImportTeam" disabled="@(_importing || _users.Count == 0)">
+                @(_importing ? "Importing…" : "Import team")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="muted" style="margin-top: 12px">@_message</div>
+        }
+
+        @if (_users.Count > 0)
+        {
+            <div class="list listCard" style="margin-top: 16px">
+                @foreach (var u in _users)
+                {
+                    <div class="listRow">
+                        <div class="listMain">
+                            <div class="listTitle">@u.DisplayName</div>
+                            <div class="listMeta">@u.UniqueName</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 </div>
+
+@code {
+    string _org = "";
+    string _projectId = "";
+    string _teamId = "";
+    bool _loading;
+    bool _importing;
+    string? _message;
+    List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
+            _org = conn.Organization ?? "";
+            _projectId = conn.ProjectId ?? "";
+            _teamId = conn.TeamId ?? "";
+        }
+        catch (AtlasApiException)
+        {
+            _message = "No Azure connection configured (disconnected mode).";
+        }
+    }
+
+    async Task LoadUsers()
+    {
+        if (_loading) return;
+        if (string.IsNullOrWhiteSpace(_org) || string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
+        {
+            await Dialogs.AlertAsync("Organization, Project ID, and Team ID are required.");
+            return;
+        }
+
+        _loading = true;
+        _message = null;
+        try
+        {
+            var users = await Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(_org, _projectId, _teamId);
+            _users = users.ToList();
+            _message = $"Loaded {_users.Count} users.";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _users = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    async Task ImportTeam()
+    {
+        if (_importing || _users.Count == 0) return;
+        _importing = true;
+        try
+        {
+            var result = await Api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
+                new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest
+                {
+                    Users = _users.Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
+                    {
+                        DisplayName = u.DisplayName,
+                        UniqueName = u.UniqueName,
+                        Descriptor = u.Descriptor
+                    }).ToList()
+                });
+            _message = $"Imported: {result.TeamMembersCreated} created, {result.UsersAdded} users added.";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            await Dialogs.AlertAsync("Unable to import team right now. Please try again.");
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+}

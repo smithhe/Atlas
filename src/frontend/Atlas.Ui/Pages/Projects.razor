@@ -1,24 +1,444 @@
 @page "/projects"
 @page "/projects/{ProjectId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+@inject NavigationManager Navigation
 
 <PageTitle>Projects — Atlas</PageTitle>
 
-<div class="page">
+<div class="page pageFill">
     <div class="pageTitleRow">
         <h2 class="pageTitle">Projects</h2>
+        <button class="btn btnSecondary" type="button" @onclick="HandleAddProject" disabled="@_creating">
+            @(_creating ? "Adding…" : "Add project")
+        </button>
     </div>
-    <div class="muted">
-        @if (string.IsNullOrEmpty(ProjectId))
+
+    <div class="splitGrid splitGridFill @(IsFocusMode ? "projectsSplitFocus" : null)">
+        @if (!IsFocusMode)
         {
-            <span>Projects list stub (Phase 5).</span>
+            <section class="pane paneLeft" aria-label="Project list">
+                <div class="list listCard">
+                    @foreach (var p in Cache.Projects)
+                    {
+                        var projectId = p.Id;
+                        var projectName = p.Name;
+                        var projectSummary = p.Summary;
+                        <button type="button"
+                                class="listRow listRowBtn @(projectId == Selection.SelectedProjectId ? "listRowActive" : null)"
+                                @onclick="() => SelectFromList(projectId)"
+                                @ondblclick="() => GoFocus(projectId)">
+                            <div class="listMain">
+                                <div class="listTitle">@projectName</div>
+                                <div class="listMeta">@projectSummary</div>
+                            </div>
+                        </button>
+                    }
+                    @if (Cache.Projects.Count == 0)
+                    {
+                        <div class="muted pad">No projects yet.</div>
+                    }
+                </div>
+            </section>
         }
-        else
-        {
-            <span>Project detail stub for @ProjectId (Phase 5).</span>
-        }
+
+        <section class="pane paneCenter" aria-label="Project detail">
+            @if (Selected is null)
+            {
+                <div class="card pad"><div class="muted">Select a project.</div></div>
+            }
+            else
+            {
+                <div class="card pad projectDetailCard">
+                    <div class="projectHeader">
+                        <div class="projectHeaderLeft">
+                            <div class="projectTitle">@(_editing ? _draftName : Selected.Name)</div>
+                        </div>
+                        <div class="projectHeaderRight">
+                            @if (!_editing)
+                            {
+                                <div class="pillRow projectHeaderPills" aria-label="Project status summary">
+                                    @if (Selected.Status is not null)
+                                    {
+                                        <span class="pill @Tones.ProjectStatusTone(Selected.Status.ToString())">Status: @Selected.Status</span>
+                                    }
+                                    @if (Selected.Health is not null)
+                                    {
+                                        <span class="pill @Tones.HealthTone(Selected.Health)">Health: @Selected.Health</span>
+                                    }
+                                </div>
+                            }
+                            <div class="rowTiny projectHeaderActions" aria-label="Project focus actions">
+                                @if (_editing)
+                                {
+                                    <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@_saving">Save</button>
+                                    <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btnGhost" type="button" @onclick="StartEdit">Edit</button>
+                                }
+                                @if (IsFocusMode)
+                                {
+                                    <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                                }
+                                <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
+                                    @(_deleting ? "Deleting…" : "Delete")
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!_editing)
+                    {
+                        <div class="tabsBar projectTabsBar" aria-label="Project tabs">
+                            <button class="tabBtn @(_tab == "overview" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "overview"'>Overview</button>
+                            <button class="tabBtn @(_tab == "tasks" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "tasks"'>Tasks</button>
+                            <button class="tabBtn @(_tab == "risks" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "risks"'>Risks</button>
+                        </div>
+                    }
+
+                    <div class="projectDetailScroll" aria-label="Project detail scroll region">
+                        @if (_editing || _tab == "overview")
+                        {
+                            <div class="projectOverviewGrid @(_editing ? "projectOverviewGridEditing" : null)" aria-label="Project overview">
+                                @if (_editing)
+                                {
+                                    <section class="card subtle projectOverviewSection span2" aria-label="Edit overview">
+                                        <div class="cardHeader"><div class="cardTitle">Edit Overview</div></div>
+                                        <div class="pad">
+                                            <div class="fieldGrid2">
+                                                <label class="field span2">
+                                                    <div class="fieldLabel">Name</div>
+                                                    <input class="input" @bind="_draftName" @bind:event="oninput" />
+                                                </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Status</div>
+                                                    <select class="select" @bind="_draftStatus">
+                                                        <option value="Active">Active</option>
+                                                        <option value="Paused">Paused</option>
+                                                        <option value="Completed">Completed</option>
+                                                    </select>
+                                                </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Health</div>
+                                                    <select class="select" @bind="_draftHealth">
+                                                        <option value="Green">Green</option>
+                                                        <option value="Yellow">Yellow</option>
+                                                        <option value="Red">Red</option>
+                                                    </select>
+                                                </label>
+                                                <label class="field span2">
+                                                    <div class="fieldLabel">Summary</div>
+                                                    <input class="input" @bind="_draftSummary" @bind:event="oninput" />
+                                                </label>
+                                                <label class="field span2">
+                                                    <div class="fieldLabel">Description</div>
+                                                    <textarea class="textarea" @bind="_draftDescription" @bind:event="oninput"></textarea>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </section>
+                                }
+                                else
+                                {
+                                    <section class="card subtle projectOverviewSection" aria-label="Summary">
+                                        <div class="cardHeader"><div class="cardTitle">Summary</div></div>
+                                        <div class="pad">@(string.IsNullOrEmpty(Selected.Summary) ? "—" : Selected.Summary)</div>
+                                    </section>
+                                    <section class="card subtle projectOverviewSection" aria-label="Details">
+                                        <div class="cardHeader"><div class="cardTitle">Details</div></div>
+                                        <div class="pad">
+                                            <div class="mutedSmall">Status: @(Selected.Status?.ToString() ?? "—")</div>
+                                            <div class="mutedSmall">Health: @(Selected.Health?.ToString() ?? "—")</div>
+                                            <div class="mutedSmall" style="margin-top: 8px">@(string.IsNullOrEmpty(Selected.Description) ? "—" : Selected.Description)</div>
+                                        </div>
+                                    </section>
+                                    <section class="card subtle projectOverviewSection" aria-label="Rollup">
+                                        <div class="cardHeader"><div class="cardTitle">Rollup</div></div>
+                                        <div class="pad">
+                                            <div class="mutedSmall">@Selected.LinkedTaskIds.Count linked tasks · @Selected.LinkedRiskIds.Count linked risks</div>
+                                        </div>
+                                    </section>
+                                }
+                            </div>
+                        }
+                        else if (_tab == "tasks")
+                        {
+                            <div class="projectTabBody" aria-label="Project tasks tab">
+                                <section class="card subtle projectTabSection" aria-label="Linked tasks">
+                                    <div class="list">
+                                        @foreach (var t in Cache.Tasks.Where(t => t.Project == Selected.Name))
+                                        {
+                                            <button type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
+                                                <div class="listMain">
+                                                    <div class="listTitle">@t.Title</div>
+                                                    <div class="listMeta">@DisplayLabels.FormatTaskStatus(t.Status) • @t.Priority</div>
+                                                </div>
+                                            </button>
+                                        }
+                                        @if (!Cache.Tasks.Any(t => t.Project == Selected.Name))
+                                        {
+                                            <div class="muted pad">No linked tasks.</div>
+                                        }
+                                    </div>
+                                </section>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="projectTabBody" aria-label="Project risks tab">
+                                <section class="card subtle projectTabSection" aria-label="Linked risks">
+                                    <div class="list">
+                                        @foreach (var r in Cache.Risks.Where(r => r.Project == Selected.Name))
+                                        {
+                                            <button type="button" class="listRow listRowBtn" @onclick="() => GoRisk(r.Id)">
+                                                <div class="listMain">
+                                                    <div class="listTitle">@r.Title</div>
+                                                    <div class="listMeta">@r.Status • @r.Severity</div>
+                                                </div>
+                                            </button>
+                                        }
+                                        @if (!Cache.Risks.Any(r => r.Project == Selected.Name))
+                                        {
+                                            <div class="muted pad">No linked risks.</div>
+                                        }
+                                    </div>
+                                </section>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
     </div>
 </div>
 
 @code {
     [Parameter] public string? ProjectId { get; set; }
+
+    bool _creating;
+    bool _deleting;
+    bool _editing;
+    bool _saving;
+    Guid? _autoEditId;
+    string _tab = "overview";
+
+    string _draftName = "";
+    string _draftSummary = "";
+    string _draftDescription = "";
+    string _draftStatus = "Active";
+    string _draftHealth = "Green";
+
+    bool IsFocusMode => !string.IsNullOrEmpty(ProjectId);
+
+    Project? Selected
+    {
+        get
+        {
+            Guid? id = IsFocusMode && Guid.TryParse(ProjectId, out var focusId)
+                ? focusId
+                : Selection.SelectedProjectId;
+            if (id is null) return null;
+            return Cache.Projects.FirstOrDefault(p => p.Id == id);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        Selection.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (IsFocusMode && Guid.TryParse(ProjectId, out var id))
+        {
+            Selection.SelectProject(id);
+            if (Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+            {
+                Nav.NavigateTo("/projects", replace: true);
+            }
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id && !_editing)
+        {
+            StartEdit();
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (IsFocusMode && Guid.TryParse(ProjectId, out var id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+        {
+            Nav.NavigateTo("/projects", replace: true);
+            return;
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id && !_editing)
+        {
+            StartEdit();
+        }
+
+        StateHasChanged();
+    });
+
+    void SelectFromList(Guid id)
+    {
+        Selection.SelectProject(id);
+        if (_autoEditId == id)
+        {
+            StartEdit();
+        }
+        else
+        {
+            _editing = false;
+        }
+        StateHasChanged();
+    }
+
+    void StartEdit()
+    {
+        if (Selected is null) return;
+        _draftName = Selected.Name;
+        _draftSummary = Selected.Summary;
+        _draftDescription = Selected.Description ?? "";
+        _draftStatus = Selected.Status?.ToString() ?? "Active";
+        _draftHealth = Selected.Health?.ToString() ?? "Green";
+        _tab = "overview";
+        _editing = true;
+    }
+
+    void CancelEdit()
+    {
+        _editing = false;
+        if (Selected is not null && _autoEditId == Selected.Id) _autoEditId = null;
+    }
+
+    async Task SaveOverview()
+    {
+        if (Selected is null || _saving) return;
+        _saving = true;
+        try
+        {
+            Enum.TryParse<ProjectStatus>(_draftStatus, out var status);
+            Enum.TryParse<HealthSignal>(_draftHealth, out var health);
+            var next = EntityClone.Project(
+                Selected,
+                name: string.IsNullOrWhiteSpace(_draftName) ? Selected.Name : _draftName.Trim(),
+                summary: _draftSummary,
+                description: _draftDescription,
+                setDescription: true,
+                status: status,
+                health: health,
+                lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
+
+            await Api.AtlasApiEndpointsProjectsUpdateProjectEndpointAsync(next.Id, Cache.ToUpdateProjectRequest(next));
+            Cache.UpdateProject(next);
+            await Cache.RefetchProjectsAsync();
+            _editing = false;
+            if (_autoEditId == next.Id) _autoEditId = null;
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to save project changes right now. Please try again.");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    void GoFocus(Guid id) => Nav.NavigateTo($"/projects/{id}");
+    void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+    void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
+
+    void EnterFocus()
+    {
+        if (Selected is null) return;
+        Nav.NavigateTo($"/projects/{Selected.Id}");
+    }
+
+    void ExitFocus() => Nav.NavigateTo("/projects");
+
+    async Task HandleAddProject()
+    {
+        if (_creating) return;
+        var requested = await Dialogs.PromptAsync("Project name", "New project");
+        if (requested is null) return;
+        var name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
+        _creating = true;
+        try
+        {
+            var draft = new Project
+            {
+                Name = name,
+                Summary = "New project summary",
+                Description = "",
+                Status = ProjectStatus.Active,
+                Health = HealthSignal.Green,
+                Tags = Array.Empty<string>(),
+                Links = Array.Empty<ProjectLink>(),
+                LinkedTaskIds = Array.Empty<Guid>(),
+                LinkedRiskIds = Array.Empty<Guid>(),
+                TeamMemberIds = Array.Empty<Guid>(),
+                LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
+            };
+            var res = await Api.AtlasApiEndpointsProjectsCreateProjectEndpointAsync(Cache.ToCreateProjectRequest(draft));
+            var id = res.Id ?? Guid.Empty;
+            draft.Id = id;
+            Cache.AddProject(draft);
+            await Cache.RefetchProjectsAsync();
+            _autoEditId = id;
+            SelectFromList(id);
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to create project right now. Please try again.");
+        }
+        finally
+        {
+            _creating = false;
+        }
+    }
+
+    async Task HandleDelete()
+    {
+        if (Selected is null || _deleting) return;
+        var project = Selected;
+        if (!await Dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone.")) return;
+
+        _deleting = true;
+        try
+        {
+            await Api.AtlasApiEndpointsProjectsDeleteProjectEndpointAsync(project.Id);
+            Cache.RemoveProject(project.Id);
+            if (IsFocusMode) Nav.NavigateTo("/projects", replace: true);
+            if (_autoEditId == project.Id) _autoEditId = null;
+            await Cache.RefetchProjectsAsync();
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to delete this project right now. Please try again.");
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        Selection.Changed -= OnChanged;
+    }
 }

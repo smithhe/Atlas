@@ -1,6 +1,8 @@
 @page "/setup"
 @layout EmptyLayout
 @inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
 
 <PageTitle>Azure Setup — Atlas</PageTitle>
 
@@ -24,11 +26,92 @@
 
     <div class="page entryPage">
         <div class="card pad" style="margin-bottom: 16px">
-            <p class="muted">Azure setup stub — full wizard lands in a later phase. Skip to open the app.</p>
+            <p class="muted">Enter connection IDs to wire Azure DevOps. Live Azure is not required for local/CI smoke.</p>
+            <div class="fieldGrid2" style="margin-top: 16px">
+                <label class="field">
+                    <div class="fieldLabel">Organization</div>
+                    <input class="input" @bind="_org" @bind:event="oninput" />
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Project name</div>
+                    <input class="input" @bind="_project" @bind:event="oninput" />
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Project ID</div>
+                    <input class="input" @bind="_projectId" @bind:event="oninput" />
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Team name</div>
+                    <input class="input" @bind="_teamName" @bind:event="oninput" />
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Team ID</div>
+                    <input class="input" @bind="_teamId" @bind:event="oninput" />
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Area path</div>
+                    <input class="input" @bind="_areaPath" @bind:event="oninput" />
+                </label>
+            </div>
+            <div class="row mt-lg">
+                <button class="btn" type="button" @onclick="SaveConnection" disabled="@_saving">
+                    @(_saving ? "Saving…" : "Save connection")
+                </button>
+                <button class="btn btnGhost" type="button" @onclick="Skip">Continue to app</button>
+            </div>
+            @if (!string.IsNullOrEmpty(_message))
+            {
+                <div class="muted" style="margin-top: 12px">@_message</div>
+            }
         </div>
     </div>
 </div>
 
 @code {
+    string _org = "";
+    string _project = "";
+    string _projectId = "";
+    string _teamName = "";
+    string _teamId = "";
+    string _areaPath = "";
+    bool _saving;
+    string? _message;
+
     void Skip() => Nav.NavigateTo("/dashboard");
+
+    async Task SaveConnection()
+    {
+        if (_saving) return;
+        if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
+        {
+            await Dialogs.AlertAsync("Project ID and Team ID are required to save a connection.");
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await Api.AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpointAsync(
+                new AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest
+                {
+                    Organization = _org,
+                    Project = _project,
+                    AreaPath = _areaPath,
+                    TeamName = string.IsNullOrWhiteSpace(_teamName) ? null : _teamName,
+                    ProjectId = _projectId,
+                    TeamId = _teamId,
+                    IsEnabled = true
+                });
+            _message = "Connection saved.";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            await Dialogs.AlertAsync("Unable to save Azure connection right now.");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
 }

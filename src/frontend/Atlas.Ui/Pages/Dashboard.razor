@@ -12,30 +12,112 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Attention Required</div>
-                <div class="mutedSmall">Open risks from cache</div>
+                <div class="mutedSmall">Decide / unblock / watch</div>
             </header>
-
             <div class="list">
                 <div class="dashboardGroup" data-testid="dashboard-needs-action">
                     <div class="dashboardGroupHeader">
                         <div class="dashboardGroupTitle">Needs Action</div>
                         <div class="mutedSmall">Things you should decide/unblock</div>
                     </div>
-                    @if (OpenRisks.Count == 0)
+                    @if (_needsAction.Count == 0)
                     {
                         <div class="dashboardEmpty">Nothing urgent right now.</div>
                     }
                     else
                     {
-                        @foreach (var risk in OpenRisks)
+                        @foreach (var row in _needsAction)
                         {
-                            <button class="listRow listRowBtn"
-                                    type="button"
-                                    @onclick="() => GoToRisk(risk.Id)">
-                                <span class="dot @SeverityDotClass(risk.Severity)"></span>
+                            <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                                <span class="dot @row.DotClass"></span>
                                 <div class="listMain">
-                                    <div class="listTitle">@risk.Title</div>
-                                    <div class="listMeta">@risk.Status • @risk.Severity</div>
+                                    <div class="listTitle">@row.Title</div>
+                                    <div class="listMeta">@row.Meta</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(row.Pill))
+                                {
+                                    <span class="pill">@row.Pill</span>
+                                }
+                            </button>
+                        }
+                    }
+                </div>
+
+                <div class="dashboardGroup">
+                    <div class="dashboardGroupHeader">
+                        <div class="dashboardGroupTitle">Watchlist</div>
+                        <div class="mutedSmall">Keep an eye on these</div>
+                    </div>
+                    @if (_watchlist.Count == 0)
+                    {
+                        <div class="dashboardEmpty">Watchlist is clear.</div>
+                    }
+                    else
+                    {
+                        @foreach (var row in _watchlist)
+                        {
+                            <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                                <span class="dot @row.DotClass"></span>
+                                <div class="listMain">
+                                    <div class="listTitle">@row.Title</div>
+                                    <div class="listMeta">@row.Meta</div>
+                                </div>
+                                @if (!string.IsNullOrEmpty(row.Pill))
+                                {
+                                    <span class="pill">@row.Pill</span>
+                                }
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="card" data-testid="dashboard-commitment">
+            <header class="cardHeader">
+                <div class="cardTitle">Commitment View</div>
+                <div class="mutedSmall">Today and this week</div>
+            </header>
+            <div class="list">
+                <div class="dashboardGroup">
+                    <div class="dashboardGroupHeader">
+                        <div class="dashboardGroupTitle">Today</div>
+                    </div>
+                    @if (_commitmentToday.Count == 0)
+                    {
+                        <div class="dashboardEmpty">No commitments for today.</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in _commitmentToday)
+                        {
+                            <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
+                                <span class="dot @PriorityDot(t.Priority)"></span>
+                                <div class="listMain">
+                                    <div class="listTitle">@t.Title</div>
+                                    <div class="listMeta">@DisplayLabels.FormatTaskStatus(t.Status) • @t.Priority</div>
+                                </div>
+                            </button>
+                        }
+                    }
+                </div>
+                <div class="dashboardGroup">
+                    <div class="dashboardGroupHeader">
+                        <div class="dashboardGroupTitle">This week</div>
+                    </div>
+                    @if (_commitmentWeek.Count == 0)
+                    {
+                        <div class="dashboardEmpty">No commitments this week.</div>
+                    }
+                    else
+                    {
+                        @foreach (var t in _commitmentWeek)
+                        {
+                            <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
+                                <span class="dot @PriorityDot(t.Priority)"></span>
+                                <div class="listMain">
+                                    <div class="listTitle">@t.Title</div>
+                                    <div class="listMeta">@(t.DueDate ?? "no due") • @t.Priority</div>
                                 </div>
                             </button>
                         }
@@ -43,25 +125,308 @@
                 </div>
             </div>
         </section>
+
+        <section class="card">
+            <header class="cardHeader">
+                <div class="cardTitle">Team Pulse</div>
+                <div class="mutedSmall">Freshness and status</div>
+            </header>
+            <div class="list">
+                @if (_teamPulse.Count == 0)
+                {
+                    <div class="dashboardEmpty">No team members yet.</div>
+                }
+                else
+                {
+                    @foreach (var m in _teamPulse)
+                    {
+                        var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+                        var freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
+                        <button class="listRow listRowBtn" type="button" @onclick="() => GoTeam(m.Id)">
+                            <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
+                            <div class="listMain">
+                                <div class="listTitle">@m.Name</div>
+                                <div class="listMeta">@(string.IsNullOrEmpty(m.CurrentFocus) ? "—" : m.CurrentFocus)</div>
+                            </div>
+                            <span class="pill">@freshness</span>
+                        </button>
+                    }
+                }
+            </div>
+        </section>
+
+        <section class="card">
+            <header class="cardHeader">
+                <div class="cardTitle">Drift Signals</div>
+                <div class="mutedSmall">Early warnings</div>
+            </header>
+            <div class="list dashboardDriftList">
+                @if (_drift.Count == 0)
+                {
+                    <div class="dashboardEmpty">No drift signals.</div>
+                }
+                else
+                {
+                    @foreach (var d in _drift)
+                    {
+                        <button class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
+                            <span class="pill">@d.Tag</span>
+                            <div class="listMain">
+                                <div class="listTitle">@d.Title</div>
+                                <div class="listMeta">@d.Detail</div>
+                            </div>
+                        </button>
+                    }
+                }
+            </div>
+        </section>
     </div>
 </div>
 
 @code {
-    IReadOnlyList<Risk> OpenRisks =>
-        Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
+    sealed record DashRow(string Key, string DotClass, string Title, string Meta, string? Pill, string To);
+    sealed record DriftRow(string Key, string Tag, string Title, string Detail, string To);
 
-    static string SeverityDotClass(string? severity) =>
-        $"dot-{(severity ?? "low").Trim().ToLowerInvariant()}";
+    List<DashRow> _needsAction = [];
+    List<DashRow> _watchlist = [];
+    List<AtlasTask> _commitmentToday = [];
+    List<AtlasTask> _commitmentWeek = [];
+    List<TeamMember> _teamPulse = [];
+    List<DriftRow> _drift = [];
 
     protected override void OnInitialized()
     {
         Cache.Changed += OnCacheChanged;
         _ = Cache.EnsureHydratedAsync();
+        Rebuild();
     }
 
-    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    void OnCacheChanged() => InvokeAsync(() => { Rebuild(); StateHasChanged(); });
 
-    void GoToRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
+    void Rebuild()
+    {
+        var nowIso = DateTimeOffset.UtcNow.ToString("o");
+        var todayIsoDate = nowIso[..10];
+        var staleDays = Cache.Settings?.StaleDays ?? 10;
+        var staleSoonDays = Math.Max(1, staleDays - 3);
+        const int dueSoonDays = 2;
+
+        var needs = new List<DashRow>();
+        var watch = new List<DashRow>();
+
+        foreach (var t in Cache.Tasks)
+        {
+            var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
+            var isBlocked = t.Status == Models.TaskStatus.Blocked;
+            var isHigh = t.Priority is Priority.High or Priority.Critical;
+            var isStaleSoon = ageDays >= staleSoonDays && ageDays < staleDays;
+            var isStale = ageDays >= staleDays;
+            var linkedOpenRisk = TaskLinkedToOpenRisk(t.Risk);
+            var dueSoon = !string.IsNullOrEmpty(t.DueDate)
+                && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, dueSoonDays));
+            var highAndDrifting = isHigh && (isStale || dueSoon || linkedOpenRisk is not null);
+
+            var pill = !string.IsNullOrEmpty(t.DueDate)
+                ? $"due {(t.DueDate == todayIsoDate ? "today" : t.DueDate)}"
+                : Duration.FormatDurationFromMinutes(Duration.ParseDurationText(t.EstimatedDurationText)?.TotalMinutes ?? 0);
+
+            var why = TaskWhy(t);
+            var baseRow = new DashRow(
+                t.Id.ToString(),
+                PriorityDot(t.Priority),
+                t.Title,
+                $"Task • {(t.Status is null ? "" : $"{DisplayLabels.FormatTaskStatus(t.Status)} • ")}{why}",
+                pill,
+                $"/tasks/{t.Id}");
+
+            if (isBlocked || highAndDrifting) needs.Add(baseRow);
+            else if (!isBlocked && isStaleSoon)
+            {
+                watch.Add(baseRow with
+                {
+                    DotClass = "dot-stale",
+                    Meta = $"Task • stale soon ({ageDays}d) • {why}"
+                });
+            }
+        }
+
+        foreach (var r in Cache.Risks)
+        {
+            var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
+            var baseRow = new DashRow(
+                r.Id.ToString(),
+                $"dot-{r.Severity.ToLowerInvariant()}",
+                r.Title,
+                $"Risk • {r.Status}",
+                $"{ageDays}d",
+                $"/risks/{r.Id}");
+            if (r.Status == RiskStatus.Open) needs.Add(baseRow);
+            else if (r.Status == RiskStatus.Watching) watch.Add(baseRow);
+        }
+
+        foreach (var m in Cache.Team)
+        {
+            var freshnessDays = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+            var missingBaseline = string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso);
+            var freshnessText = freshnessDays is null
+                ? "no update yet"
+                : freshnessDays > 7 ? "no update this week" : $"updated {freshnessDays}d ago";
+            var baseRow = new DashRow(
+                m.Id.ToString(),
+                $"dot-{m.StatusDot.ToLowerInvariant()}",
+                m.Name,
+                m.CurrentFocus,
+                freshnessText,
+                $"/team/{m.Id}");
+            if (string.Equals(m.StatusDot, "Red", StringComparison.OrdinalIgnoreCase)) needs.Add(baseRow);
+            if (string.Equals(m.StatusDot, "Yellow", StringComparison.OrdinalIgnoreCase) || missingBaseline) watch.Add(baseRow);
+        }
+
+        needs.Sort((a, b) => UrgencyRank(a).CompareTo(UrgencyRank(b)));
+        _needsAction = needs;
+        _watchlist = watch;
+
+        var dueToday = Cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
+        var dueThisWeek = Cache.Tasks.Where(t =>
+            !string.IsNullOrEmpty(t.DueDate)
+            && t.DueDate != todayIsoDate
+            && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, 7))).ToList();
+        var noDue = Cache.Tasks.Where(t => string.IsNullOrEmpty(t.DueDate)).ToList();
+        var touchedDesc = noDue.OrderByDescending(t => t.LastTouchedIso).ToList();
+        var todayBucket = new List<AtlasTask>();
+        var weekBucket = new List<AtlasTask>();
+        foreach (var t in touchedDesc)
+        {
+            if (todayBucket.Count >= 4) break;
+            todayBucket.Add(t);
+        }
+        foreach (var t in noDue.Where(t => t.Priority is Priority.High or Priority.Critical))
+        {
+            if (todayBucket.Any(x => x.Id == t.Id)) continue;
+            if (todayBucket.Count >= 6) break;
+            todayBucket.Add(t);
+        }
+        foreach (var t in touchedDesc)
+        {
+            if (todayBucket.Any(x => x.Id == t.Id)) continue;
+            if (weekBucket.Count >= 6) break;
+            weekBucket.Add(t);
+        }
+        foreach (var t in noDue.Where(t => t.Priority == Priority.Medium))
+        {
+            if (todayBucket.Any(x => x.Id == t.Id) || weekBucket.Any(x => x.Id == t.Id)) continue;
+            if (weekBucket.Count >= 8) break;
+            weekBucket.Add(t);
+        }
+
+        _commitmentToday = dueToday.Concat(todayBucket).Take(8).ToList();
+        _commitmentWeek = dueThisWeek.Concat(weekBucket).Take(10).ToList();
+
+        var statusRank = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Red"] = 0, ["Yellow"] = 1, ["Green"] = 2
+        };
+        _teamPulse = Cache.Team.OrderBy(m => statusRank.GetValueOrDefault(m.StatusDot, 9))
+            .ThenByDescending(m => DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso) ?? 999)
+            .ToList();
+
+        var drift = new List<DriftRow>();
+        foreach (var t in Cache.Tasks)
+        {
+            var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
+            if (ageDays >= staleDays)
+            {
+                var textForDocs = $"{t.Title} {t.Project ?? ""}";
+                var tag = IncludesDocsKeyword(textForDocs) ? "Docs" : "Project";
+                drift.Add(new($"drift-task-stale-{t.Id}", tag, t.Title, $"Task stale ({ageDays}d since touched)", $"/tasks/{t.Id}"));
+            }
+            else if ((t.Priority is Priority.High or Priority.Critical) && string.IsNullOrEmpty(t.DueDate))
+            {
+                drift.Add(new($"drift-task-high-nodue-{t.Id}", "Project", t.Title, "High priority task has no due date", $"/tasks/{t.Id}"));
+            }
+        }
+
+        foreach (var r in Cache.Risks)
+        {
+            var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
+            if (r.Status == RiskStatus.Watching && ageDays >= 14)
+                drift.Add(new($"drift-risk-watching-{r.Id}", "Risk", r.Title, $"Watching {ageDays}d since update", $"/risks/{r.Id}"));
+            if (r.Status == RiskStatus.Open && ageDays >= 10)
+                drift.Add(new($"drift-risk-open-{r.Id}", "Risk", r.Title, $"Open {ageDays}d since update", $"/risks/{r.Id}"));
+        }
+
+        foreach (var m in Cache.Team)
+        {
+            var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+            if (days is null || days >= 10)
+                drift.Add(new($"drift-team-{m.Id}", "Team", m.Name, days is null ? "No activity baseline yet" : $"No activity update for {days}d", $"/team/{m.Id}"));
+        }
+
+        _drift = drift.Take(20).ToList();
+    }
+
+    Risk? TaskLinkedToOpenRisk(string? taskRisk)
+    {
+        if (string.IsNullOrWhiteSpace(taskRisk)) return null;
+        var needle = taskRisk.Trim().ToLowerInvariant();
+        var open = Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
+        var exact = open.FirstOrDefault(r => r.Title.Trim().ToLowerInvariant() == needle);
+        if (exact is not null) return exact;
+        return open.FirstOrDefault(r =>
+        {
+            var title = r.Title.Trim().ToLowerInvariant();
+            return title.Contains(needle) || needle.Contains(title);
+        });
+    }
+
+    static string TaskWhy(AtlasTask t)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(t.Risk)) parts.Add($"Risk: {t.Risk}");
+        if (!string.IsNullOrEmpty(t.Project)) parts.Add(t.Project!);
+        if (parts.Count > 0) return string.Join(" • ", parts);
+        return $"{t.Priority}{(t.Status is null ? "" : $" • {DisplayLabels.FormatTaskStatus(t.Status)}")}";
+    }
+
+    static int UrgencyRank(DashRow row)
+    {
+        var meta = row.Meta.ToLowerInvariant();
+        if (meta.StartsWith("task") && meta.Contains("blocked")) return 0;
+        if (meta.StartsWith("risk") && meta.Contains("open")) return 1;
+        return 2;
+    }
+
+    static string IsoDateAddDays(string isoDate, int days)
+    {
+        var d = DateTime.Parse($"{isoDate}T00:00:00.000Z").ToUniversalTime();
+        return d.AddDays(days).ToString("yyyy-MM-dd");
+    }
+
+    static bool IsIsoDateBetweenInclusive(string isoDate, string start, string end) =>
+        string.CompareOrdinal(isoDate, start) >= 0 && string.CompareOrdinal(isoDate, end) <= 0;
+
+    static bool IncludesDocsKeyword(string text)
+    {
+        var t = text.ToLowerInvariant();
+        return new[] { "docs", "documentation", "onboarding", "runbook", "playbook" }.Any(k => t.Contains(k));
+    }
+
+    static string PriorityDot(Priority p) => p switch
+    {
+        Priority.Critical => "dot-critical",
+        Priority.High => "dot-high",
+        Priority.Medium => "dot-medium",
+        Priority.Low => "dot-low",
+        _ => "dot-stale"
+    };
+
+    void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+    void GoTeam(Guid id) => Nav.NavigateTo($"/team/{id}");
+
+    void Go(string? to)
+    {
+        if (!string.IsNullOrEmpty(to)) Nav.NavigateTo(to);
+    }
 
     public void Dispose() => Cache.Changed -= OnCacheChanged;
 }
