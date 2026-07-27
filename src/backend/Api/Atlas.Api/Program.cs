@@ -11,6 +11,11 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 bool seedDemoOnly = args.Any(static argument =>
     string.Equals(argument, "--seed-demo", StringComparison.OrdinalIgnoreCase));
 
+bool exportSwaggerDocs = string.Equals(
+    builder.Configuration["export-swagger-docs"],
+    "true",
+    StringComparison.Ordinal);
+
 builder.Services.Configure<JsonOptions>(options =>
 {
     // Match frontend-friendly JSON (enums as strings).
@@ -64,18 +69,27 @@ builder.Services.AddValidatorsFromAssemblyContaining<Atlas.Application.Features.
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
 // Persistence (Postgres). Test hosts register their own DbContext in the Testing environment.
+// OpenAPI export uses an in-memory EF store so DI validation succeeds without Postgres.
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
-    if (string.IsNullOrWhiteSpace(connectionString))
+    if (exportSwaggerDocs)
     {
-        throw new InvalidOperationException("Connection string 'AtlasDb' is required.");
+        builder.Services.AddDbContext<AtlasDbContext>(options =>
+            options.UseInMemoryDatabase("openapi-export"));
     }
+    else
+    {
+        var connectionString = builder.Configuration.GetConnectionString("AtlasDb");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("Connection string 'AtlasDb' is required.");
+        }
 
-    builder.Services.AddDbContext<AtlasDbContext>(options =>
-        options.UseNpgsql(
-            connectionString,
-            npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+        builder.Services.AddDbContext<AtlasDbContext>(options =>
+            options.UseNpgsql(
+                connectionString,
+                npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+    }
 }
 
 builder.Services.AddAtlasPersistence();
@@ -104,7 +118,7 @@ builder.Services.AddScoped<IAiPromptContextBuilder, SettingsPromptContextBuilder
 
 WebApplication app = builder.Build();
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment("Testing") && !exportSwaggerDocs)
 {
     using IServiceScope scope = app.Services.CreateScope();
     AtlasDbContext db = scope.ServiceProvider.GetRequiredService<AtlasDbContext>();
@@ -224,7 +238,7 @@ app.Use(async (context, next) =>
 
 app.UseFastEndpoints();
 
-// Phase 3: export OpenAPI then exit when run with `--export-swagger-docs true` (requires Postgres).
+// Phase 3: export OpenAPI then exit when run with `--export-swagger-docs true` (no Postgres required).
 await app.ExportSwaggerDocsAndExitAsync("v1");
 
 app.Run();
