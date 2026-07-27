@@ -1,0 +1,67 @@
+@page "/dashboard"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject NavigationManager Nav
+
+<PageTitle>Dashboard — Atlas</PageTitle>
+
+<div class="page">
+    <h2 class="pageTitle">Dashboard</h2>
+
+    <div class="dashboardGrid">
+        <section class="card">
+            <header class="cardHeader">
+                <div class="cardTitle">Attention Required</div>
+                <div class="mutedSmall">Open risks from cache</div>
+            </header>
+
+            <div class="list">
+                <div class="dashboardGroup" data-testid="dashboard-needs-action">
+                    <div class="dashboardGroupHeader">
+                        <div class="dashboardGroupTitle">Needs Action</div>
+                        <div class="mutedSmall">Things you should decide/unblock</div>
+                    </div>
+                    @if (OpenRisks.Count == 0)
+                    {
+                        <div class="dashboardEmpty">Nothing urgent right now.</div>
+                    }
+                    else
+                    {
+                        @foreach (var risk in OpenRisks)
+                        {
+                            <button class="listRow listRowBtn"
+                                    type="button"
+                                    @onclick="() => GoToRisk(risk.Id)">
+                                <span class="dot @SeverityDotClass(risk.Severity)"></span>
+                                <div class="listMain">
+                                    <div class="listTitle">@risk.Title</div>
+                                    <div class="listMeta">@risk.Status • @risk.Severity</div>
+                                </div>
+                            </button>
+                        }
+                    }
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+@code {
+    IReadOnlyList<Risk> OpenRisks =>
+        Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
+
+    static string SeverityDotClass(string? severity) =>
+        $"dot-{(severity ?? "low").Trim().ToLowerInvariant()}";
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnCacheChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+
+    void GoToRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
+}

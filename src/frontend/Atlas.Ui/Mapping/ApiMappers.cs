@@ -81,7 +81,7 @@ public static class ApiMappers
 
     public static Risk MapRisk(AtlasApiDTOsRisksRiskDto dto, RiskLookups lookups)
     {
-        // TODO(Phase 5): history, severity, project name lookup.
+        // TODO(Phase 5): history, project name lookup polish.
         string? project = null;
         if (dto.ProjectId is Guid projectId)
         {
@@ -92,6 +92,8 @@ public static class ApiMappers
         {
             Id = dto.Id ?? Guid.Empty,
             Title = dto.Title ?? "",
+            Status = MapRiskStatus(dto.Status),
+            Severity = MapSeverity(dto.Severity),
             Project = project,
             Description = dto.Description ?? "",
             Evidence = dto.Evidence ?? "",
@@ -155,5 +157,21 @@ public static class ApiMappers
         AtlasDomainEnumsTaskStatus.Blocked => Models.TaskStatus.Blocked,
         AtlasDomainEnumsTaskStatus.Done => Models.TaskStatus.Done,
         _ => null
+    };
+
+    static RiskStatus MapRiskStatus(AtlasDomainEnumsRiskStatus? value) => value switch
+    {
+        AtlasDomainEnumsRiskStatus.Open => RiskStatus.Open,
+        AtlasDomainEnumsRiskStatus.Watching => RiskStatus.Watching,
+        AtlasDomainEnumsRiskStatus.Resolved => RiskStatus.Resolved,
+        _ => RiskStatus.Open
+    };
+
+    static string MapSeverity(AtlasDomainEnumsSeverityLevel? value) => value switch
+    {
+        AtlasDomainEnumsSeverityLevel.Low => "Low",
+        AtlasDomainEnumsSeverityLevel.Medium => "Medium",
+        AtlasDomainEnumsSeverityLevel.High => "High",
+        _ => "Low"
     };
 }
