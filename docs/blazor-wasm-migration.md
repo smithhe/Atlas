@@ -508,7 +508,7 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 - [x] **UI rollout order** (not hydration order): tasks → projects/risks → dashboard → settings/Azure — implement surfaces in this sequence for reviewability; cache hydration gates remain projects → risks → tasks regardless
 - [x] Modals; cache invalidation; native dialogs
 - [x] Playwright Phase 5 flows ported; append paths to `tests/e2e/playwright-ported.txt`
-- [x] Screenshots vs baseline for CRUD/modal/empty/error states
+- [ ] Screenshots vs baseline for **CRUD / modal / list-detail** states (see `docs/migration-screenshots/blazor-phase5/`); **empty/error state shots not captured** — seed-backed capture script only covers happy-path list/detail/shell
 
 **Exit:** CRUD smoke parity; Phase 5 Playwright green.
 

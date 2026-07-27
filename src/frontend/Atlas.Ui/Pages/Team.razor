@@ -21,7 +21,7 @@
     @if (string.IsNullOrEmpty(MemberId))
     {
         <div class="muted" style="margin-bottom: 12px">Team hub (full tabs in Phase 6). Select a member:</div>
-        <div class="list listCard">
+        <div class="list listCard" aria-label="Team member list">
             @foreach (var m in Cache.Team.OrderBy(x => x.Name))
             {
                 <button type="button" class="listRow listRowBtn" @onclick="() => GoMember(m.Id)">
