@@ -3,10 +3,6 @@
 #
 # Prerequisites:
 #   - .NET SDK 10.0.x
-#   - Postgres accepting connections (default below)
-#
-# Default connection (override with ConnectionStrings__AtlasDb):
-#   Host=localhost;Port=5432;Database=atlas;Username=atlas;Password=change-me
 #
 # Usage (from repo root):
 #   bash scripts/regenerate-openapi.sh
@@ -26,24 +22,8 @@ GENERATED_DIR="src/frontend/Atlas.Ui/Api/Generated"
 CLIENT_OUT="${ROOT}/src/frontend/Atlas.Ui/Api/Generated/AtlasApiClient.cs"
 
 export ASPNETCORE_ENVIRONMENT="${ASPNETCORE_ENVIRONMENT:-Development}"
-export ConnectionStrings__AtlasDb="${ConnectionStrings__AtlasDb:-Host=localhost;Port=5432;Database=atlas;Username=atlas;Password=change-me}"
 # Dedicated port so a local API on :5012 does not block export.
 export ASPNETCORE_URLS="${ATLAS_OPENAPI_EXPORT_URLS:-http://127.0.0.1:5055}"
-
-echo "==> Checking Postgres (${ConnectionStrings__AtlasDb})"
-if command -v pg_isready >/dev/null 2>&1; then
-  PGHOST="$(printf '%s' "$ConnectionStrings__AtlasDb" | sed -n 's/.*Host=\([^;]*\).*/\1/p')"
-  PGPORT="$(printf '%s' "$ConnectionStrings__AtlasDb" | sed -n 's/.*Port=\([^;]*\).*/\1/p')"
-  PGHOST="${PGHOST:-localhost}"
-  PGPORT="${PGPORT:-5432}"
-  if ! pg_isready -h "$PGHOST" -p "$PGPORT" >/dev/null 2>&1; then
-    echo "error: Postgres is not ready at ${PGHOST}:${PGPORT}" >&2
-    echo "Start Postgres (e.g. docker compose up -d db) then re-run." >&2
-    exit 1
-  fi
-else
-  echo "warning: pg_isready not found; continuing (API will fail if Postgres is down)" >&2
-fi
 
 mkdir -p openapi "$EXPORT_DIR" "$GENERATED_DIR"
 
