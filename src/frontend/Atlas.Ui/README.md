@@ -6,7 +6,7 @@ Phase 3: OpenAPI/NSwag client, mapping stubs, cache hydration skeleton, and samp
 
 - .NET SDK **10.0.x**
 - Atlas API on **http://localhost:5012**
-- Postgres for API / OpenAPI export (default `localhost:5432`, `atlas` / `change-me`)
+- Postgres for the running API (default `localhost:5432`, `atlas` / `change-me`)
 
 ## Run (pinned host port **5173**)
 
@@ -28,7 +28,7 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
 ## OpenAPI / NSwag
 
-Regenerate committed OpenAPI + C# client (Postgres required):
+Regenerate committed OpenAPI + C# client (no Postgres required):
 
 ```bash
 bash scripts/regenerate-openapi.sh
@@ -57,3 +57,5 @@ Umbrella e2e targets this host via `src/atlas.ui/playwright.config.ts` (`webServ
 ```bash
 bash tests/e2e/run-ported-playwright.sh
 ```
+
+The runner installs npm deps (`npm ci`) and Chromium on first use when missing; CI still runs `npm ci` and `npx playwright install --with-deps chromium` explicitly before invoking the script.

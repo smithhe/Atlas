@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Fail if FastEndpoints OpenAPI export drifts from openapi/atlas.v1.json.
-# Requires Postgres (same defaults as scripts/regenerate-openapi.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -11,24 +10,12 @@ EXPORT_FILE="src/backend/Api/Atlas.Api/wwwroot/openapi/v1.json"
 COMMITTED="openapi/atlas.v1.json"
 
 export ASPNETCORE_ENVIRONMENT="${ASPNETCORE_ENVIRONMENT:-Development}"
-export ConnectionStrings__AtlasDb="${ConnectionStrings__AtlasDb:-Host=localhost;Port=5432;Database=atlas;Username=atlas;Password=change-me}"
 # Dedicated port so a local API on :5012 does not block export.
 export ASPNETCORE_URLS="${ATLAS_OPENAPI_EXPORT_URLS:-http://127.0.0.1:5055}"
 
 if [ ! -f "$COMMITTED" ]; then
   echo "error: missing committed OpenAPI at ${COMMITTED}" >&2
   exit 1
-fi
-
-if command -v pg_isready >/dev/null 2>&1; then
-  PGHOST="$(printf '%s' "$ConnectionStrings__AtlasDb" | sed -n 's/.*Host=\([^;]*\).*/\1/p')"
-  PGPORT="$(printf '%s' "$ConnectionStrings__AtlasDb" | sed -n 's/.*Port=\([^;]*\).*/\1/p')"
-  PGHOST="${PGHOST:-localhost}"
-  PGPORT="${PGPORT:-5432}"
-  if ! pg_isready -h "$PGHOST" -p "$PGPORT" >/dev/null 2>&1; then
-    echo "error: Postgres is not ready at ${PGHOST}:${PGPORT}" >&2
-    exit 1
-  fi
 fi
 
 mkdir -p "$(dirname "$EXPORT_FILE")"

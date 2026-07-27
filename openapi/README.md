@@ -2,14 +2,12 @@
 
 Committed FastEndpoints Swagger export used by NSwag for the Blazor WASM client.
 
-## Regenerate (requires Postgres)
+## Regenerate
 
-Default connection string:
-
-`Host=localhost;Port=5432;Database=atlas;Username=atlas;Password=change-me`
+No Postgres required — export mode uses an in-memory EF store and skips startup migrations.
 
 ```bash
-# From repo root (Postgres must be accepting connections)
+# From repo root
 bash scripts/regenerate-openapi.sh
 ```
 
@@ -19,8 +17,6 @@ Equivalent manual steps:
 dotnet run --project src/backend/Api/Atlas.Api/Atlas.Api.csproj --launch-profile http -- --export-swagger-docs true
 # then normalize wwwroot/openapi/v1.json → openapi/atlas.v1.json and run NSwag (see script)
 ```
-
-Export runs after DB `EnsureCreated()` / `Migrate()` — there is **no** early-export skip-DB path.
 
 ## Artifacts
 
