@@ -15,7 +15,7 @@ test.describe('Global search', () => {
     await expect(results.getByText(title)).toBeVisible({ timeout: 20_000 })
     await results.getByRole('option', { name: new RegExp(title) }).click()
 
-    await expect(page).toHaveURL(/#\/tasks\//)
+    await expect(page).toHaveURL(/\/tasks\//)
     await expect(page.getByLabel('Task detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
   })
 
@@ -31,7 +31,7 @@ test.describe('Global search', () => {
     await expect(results.getByText(title)).toBeVisible({ timeout: 20_000 })
     await results.getByRole('option', { name: new RegExp(title) }).click()
 
-    await expect(page).toHaveURL(/#\/risks\//)
+    await expect(page).toHaveURL(/\/risks\//)
     await expect(page.getByLabel('Risk detail editor').getByText(title)).toBeVisible({ timeout: 20_000 })
   })
 
@@ -46,7 +46,7 @@ test.describe('Global search', () => {
     await expect(results.getByText(member.name)).toBeVisible({ timeout: 20_000 })
     await results.getByRole('option', { name: new RegExp(member.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click()
 
-    await expect(page).toHaveURL(new RegExp(`#/team/${member.id}`))
+    await expect(page).toHaveURL(new RegExp(`/team/${member.id}`))
     await expect(page.locator('h2.pageTitle', { hasText: 'Team' })).toBeVisible()
     await expect(page.getByText(member.name).first()).toBeVisible({ timeout: 20_000 })
   })

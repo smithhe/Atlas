@@ -711,7 +711,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAiAiConversationListItemDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -792,7 +792,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAiCreateAiConversationResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -870,7 +870,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAiAiConversationDetailDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -956,7 +956,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAiContinueAiConversationResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1030,7 +1030,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsAzureConnectionDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1186,7 +1186,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<int>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1260,7 +1260,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1334,7 +1334,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1415,7 +1415,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1495,7 +1495,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAzureDevOpsAzureProjectDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1570,7 +1570,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsAzureSyncResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1644,7 +1644,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsAzureSyncStateDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1732,7 +1732,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1813,7 +1813,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAzureDevOpsImportAzureTeamResultDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1897,7 +1897,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAzureDevOpsAzureTeamDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -1985,7 +1985,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2063,7 +2063,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGrowthDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2149,7 +2149,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2476,7 +2476,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2728,7 +2728,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2990,7 +2990,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3310,7 +3310,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             return;
                         }
@@ -3385,7 +3385,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsProductOwnersProductOwnerListItemDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3459,7 +3459,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsProjectsProjectDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3540,7 +3540,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsProjectsCreateProjectResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3690,7 +3690,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsProjectsProjectDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3923,7 +3923,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsRisksRiskDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4004,7 +4004,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsRisksCreateRiskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4154,7 +4154,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsRisksRiskDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4399,7 +4399,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4634,7 +4634,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsSettingsSettingsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4789,7 +4789,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsTasksTaskDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4870,7 +4870,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTasksCreateTaskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5020,7 +5020,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTasksTaskDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5179,7 +5179,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<AtlasApiDTOsTeamMembersTeamMemberDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5260,7 +5260,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersCreateTeamMemberResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5410,7 +5410,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersTeamMemberDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5580,7 +5580,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5659,7 +5659,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGrowthDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5739,7 +5739,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5825,7 +5825,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -6232,7 +6232,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 200 || status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
