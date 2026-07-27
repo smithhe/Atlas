@@ -1,0 +1,24 @@
+@page "/tasks"
+@page "/tasks/{TaskId}"
+
+<PageTitle>Tasks — Atlas</PageTitle>
+
+<div class="page">
+    <div class="pageTitleRow">
+        <h2 class="pageTitle">Tasks</h2>
+    </div>
+    <div class="muted">
+        @if (string.IsNullOrEmpty(TaskId))
+        {
+            <span>Tasks list stub (Phase 5).</span>
+        }
+        else
+        {
+            <span>Task detail stub for @TaskId (Phase 5).</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? TaskId { get; set; }
+}

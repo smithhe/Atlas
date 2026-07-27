@@ -1,0 +1,77 @@
+@page "/risks"
+@page "/risks/{RiskId}"
+@implements IDisposable
+@inject AppCacheService Cache
+
+<PageTitle>Risks — Atlas</PageTitle>
+
+<div class="page">
+    <div class="pageTitleRow">
+        <h2 class="pageTitle">Risks &amp; Mitigation</h2>
+    </div>
+
+    @if (string.IsNullOrEmpty(RiskId))
+    {
+        <div class="muted">Risks list stub (Phase 5).</div>
+        @if (!Cache.IsHydrating && Cache.Risks.Count > 0)
+        {
+            <div class="list listCard" style="margin-top: 12px">
+                @foreach (var risk in Cache.Risks.Take(12))
+                {
+                    <a class="listRow" href="@($"/risks/{risk.Id}")">
+                        <div class="listMain">
+                            <div class="listTitle">@risk.Title</div>
+                            <div class="listMeta">@risk.Status • @risk.Severity</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <section class="risksDetailRow" aria-label="Risk detail editor">
+            @if (Selected is null)
+            {
+                <div class="card pad">
+                    <div class="muted">Risk not found.</div>
+                </div>
+            }
+            else
+            {
+                <div class="card pad">
+                    <div class="listTitle">@Selected.Title</div>
+                    <div class="mutedSmall" style="margin-top: 8px">@Selected.Status • @Selected.Severity</div>
+                    <p class="muted" style="margin-top: 12px">Risk detail stub (Phase 5).</p>
+                </div>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter] public string? RiskId { get; set; }
+
+    Risk? Selected
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(RiskId) || !Guid.TryParse(RiskId, out var id))
+            {
+                return null;
+            }
+
+            return Cache.Risks.FirstOrDefault(r => r.Id == id);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnCacheChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Cache.Changed -= OnCacheChanged;
+}

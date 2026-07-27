@@ -483,14 +483,25 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 | React baseline | `docs/migration-screenshots/react-baseline/` — regenerate with `bash scripts/capture-react-baseline.sh`. Includes team note detail + tasks split/focus; work-item/member-risk/growth detail are seed gaps (see baseline README). |
 ### Phase 4 — Shell, path routes, CSS, hash shim
 
-- [ ] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
-- [ ] Shell, nav, search/quick-add stubs; login + `/setup`; dark theme
-- [ ] Hash shim
-- [ ] **Path conversion:** `e2e/fixtures/app.ts` first, then `login-dashboard`, `shell-nav`, `dashboard-nav` (all hash refs updated)
-- [ ] Append ported specs to `tests/e2e/playwright-ported.txt` (paths like `e2e/flows/login-dashboard.spec.ts`)
-- [ ] Blazor screenshots vs **Phase 3 React baseline**
+- [x] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
+- [x] Shell, nav, search/quick-add stubs; login + `/setup`; dark theme
+- [x] Hash shim
+- [x] **Path conversion:** `e2e/fixtures/app.ts` first, then `login-dashboard`, `shell-nav`, `dashboard-nav` (all hash refs updated)
+- [x] Append ported specs to `tests/e2e/playwright-ported.txt` (paths like `e2e/flows/login-dashboard.spec.ts`)
+- [x] Blazor screenshots vs **Phase 3 React baseline**
 
 **Exit:** Path stubs + CSS recognizable; shim works; 3 Playwright flows green; parity evidence for shell routes.
+
+### Phase 4 notes (landed)
+
+| Item | Location / command |
+| --- | --- |
+| React CSS reused | `wwwroot/css/index.css` + `wwwroot/css/atlas-app.css` (`#app` height with `#root`; `app.css` kept for Blazor loading/error UI only — renamed from `App.css` to avoid case clash with `app.css`) |
+| Hash shim | Early script in `wwwroot/index.html` before `blazor.webassembly.js` (`#/…` → path via `history.replaceState`) |
+| Shell | `Layout/ShellLayout.razor` + `Shared/GlobalSearch.razor` + `Shared/QuickAddModal.razor`; login/setup use `EmptyLayout` |
+| Routes | `@page` stubs under `Pages/` mirroring `router.tsx` (login, setup, dashboard, tasks, team nesteds, risks, projects, settings, azure-import, not-found) |
+| Playwright | Manifest lists `blazor-host`, `login-dashboard`, `shell-nav`, `dashboard-nav`; path URLs in fixtures + specs |
+| Screenshots | `docs/migration-screenshots/blazor-phase4/` — regenerate with `bash scripts/capture-blazor-phase4.sh` |
 
 ### Phase 5 — Core CRUD
 
@@ -567,4 +578,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 3 OpenAPI + cache skeleton + React visual baseline is complete on `cursor/blazor-wasm-openapi-e0de`. After merge to the umbrella: cut a Phase 4 branch and execute **shell, path routes, CSS, hash shim, and first Playwright ports**.
+Phase 4 shell + path routes + hash shim + first Playwright ports is complete on `cursor/blazor-wasm-shell-6b09`. After merge to the umbrella: cut a Phase 5 branch and execute **core CRUD** (tasks → projects/risks → dashboard → settings/Azure), modals/cache invalidation, and Phase 5 Playwright ports.
