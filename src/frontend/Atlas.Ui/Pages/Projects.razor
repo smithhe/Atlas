@@ -269,7 +269,7 @@
             Selection.SelectProject(id);
             if (Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
             {
-                Nav.NavigateTo("/projects", replace: true);
+                Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             }
         }
 
@@ -339,7 +339,7 @@
     {
         if (IsFocusMode && Guid.TryParse(ProjectId, out var id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
         {
-            Nav.NavigateTo("/projects", replace: true);
+            Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             return;
         }
 
@@ -424,13 +424,27 @@
     void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
     void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
 
+    /// <summary>Current query string (including leading '?'), matching React ProjectsView currentSearch.</summary>
+    string CurrentSearch
+    {
+        get
+        {
+            var uri = Nav.Uri;
+            var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+            if (qIndex < 0) return "";
+            var query = uri[qIndex..];
+            var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+            return hashIndex >= 0 ? query[..hashIndex] : query;
+        }
+    }
+
     void EnterFocus()
     {
         if (Selected is null) return;
-        Nav.NavigateTo($"/projects/{Selected.Id}");
+        Nav.NavigateTo($"/projects/{Selected.Id}{CurrentSearch}");
     }
 
-    void ExitFocus() => Nav.NavigateTo("/projects");
+    void ExitFocus() => Nav.NavigateTo($"/projects{CurrentSearch}");
 
     async Task HandleAddProject()
     {
@@ -483,7 +497,7 @@
         {
             await Api.AtlasApiEndpointsProjectsDeleteProjectEndpointAsync(project.Id);
             Cache.RemoveProject(project.Id);
-            if (IsFocusMode) Nav.NavigateTo("/projects", replace: true);
+            if (IsFocusMode) Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             if (_autoEditId == project.Id) _autoEditId = null;
             await Cache.RefetchProjectsAsync();
         }
