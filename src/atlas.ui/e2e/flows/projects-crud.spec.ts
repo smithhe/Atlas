@@ -8,10 +8,13 @@ test.describe('Projects CRUD', () => {
     await expect(page.locator('h2.pageTitle', { hasText: 'Projects' })).toBeVisible()
 
     const name = await uniqueTitle('E2E Project')
+    const addBtn = page.getByRole('button', { name: 'Add project' })
     page.once('dialog', async (dialog) => {
       await dialog.accept(name)
     })
-    await page.getByRole('button', { name: 'Add project' }).click()
+    await addBtn.click()
+    // Blazor async create: wait until Adding… finishes so selection is stable before list click.
+    await expect(addBtn).toBeEnabled({ timeout: 20_000 })
 
     const projectList = page.getByLabel('Project list')
     await expect(projectList.getByText(name)).toBeVisible({ timeout: 20_000 })

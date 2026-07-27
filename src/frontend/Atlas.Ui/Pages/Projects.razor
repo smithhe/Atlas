@@ -6,7 +6,6 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
-@inject NavigationManager Navigation
 
 <PageTitle>Projects — Atlas</PageTitle>
 
@@ -100,9 +99,9 @@
                     @if (!_editing)
                     {
                         <div class="tabsBar projectTabsBar" aria-label="Project tabs">
-                            <button class="tabBtn @(_tab == "overview" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "overview"'>Overview</button>
-                            <button class="tabBtn @(_tab == "tasks" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "tasks"'>Tasks</button>
-                            <button class="tabBtn @(_tab == "risks" ? "tabBtnActive" : null)" type="button" @onclick='() => _tab = "risks"'>Risks</button>
+                            <button class="tabBtn @(_tab == "overview" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("overview")'>Overview</button>
+                            <button class="tabBtn @(_tab == "tasks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("tasks")'>Tasks</button>
+                            <button class="tabBtn @(_tab == "risks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("risks")'>Risks</button>
                         </div>
                     }
 
@@ -256,11 +255,15 @@
     {
         Cache.Changed += OnChanged;
         Selection.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        SyncTabFromUri();
         _ = Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
+        SyncTabFromUri();
+
         if (IsFocusMode && Guid.TryParse(ProjectId, out var id))
         {
             Selection.SelectProject(id);
@@ -274,6 +277,62 @@
         {
             StartEdit();
         }
+    }
+
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        InvokeAsync(() =>
+        {
+            SyncTabFromUri();
+            StateHasChanged();
+        });
+
+    void SyncTabFromUri()
+    {
+        if (_editing)
+        {
+            _tab = "overview";
+            return;
+        }
+
+        _tab = ReadTabFromUri();
+    }
+
+    string ReadTabFromUri()
+    {
+        var raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
+        return raw is "tasks" or "risks" ? raw : "overview";
+    }
+
+    static string? GetQueryParam(string uri, string key)
+    {
+        var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+        if (qIndex < 0) return null;
+        var query = uri[(qIndex + 1)..];
+        var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+        if (hashIndex >= 0) query = query[..hashIndex];
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = part.IndexOf('=', StringComparison.Ordinal);
+            var name = eq < 0 ? part : part[..eq];
+            if (!string.Equals(Uri.UnescapeDataString(name), key, StringComparison.OrdinalIgnoreCase))
+                continue;
+            return eq < 0 ? "" : Uri.UnescapeDataString(part[(eq + 1)..]);
+        }
+
+        return null;
+    }
+
+    void SetTab(string tab)
+    {
+        var next = tab is "tasks" or "risks" ? tab : "overview";
+        _tab = next;
+        if (_editing && next != "overview")
+        {
+            _editing = false;
+        }
+
+        var uri = Nav.GetUriWithQueryParameter("tab", next);
+        Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     void OnChanged() => InvokeAsync(() =>
@@ -316,6 +375,9 @@
         _draftHealth = Selected.Health?.ToString() ?? "Green";
         _tab = "overview";
         _editing = true;
+        // React pins URL to overview while editing.
+        var uri = Nav.GetUriWithQueryParameter("tab", "overview");
+        Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     void CancelEdit()
@@ -439,5 +501,6 @@
     {
         Cache.Changed -= OnChanged;
         Selection.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }
