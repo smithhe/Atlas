@@ -12,7 +12,7 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Attention Required</div>
-                <div class="mutedSmall">Decide / unblock / watch</div>
+                <div class="mutedSmall">Stale soon: @_staleSoonDays d • Stale: @_staleDays d</div>
             </header>
             <div class="list">
                 <div class="dashboardGroup" data-testid="dashboard-needs-action">
@@ -46,11 +46,11 @@
                 <div class="dashboardGroup">
                     <div class="dashboardGroupHeader">
                         <div class="dashboardGroupTitle">Watchlist</div>
-                        <div class="mutedSmall">Keep an eye on these</div>
+                        <div class="mutedSmall">Monitor — no immediate action</div>
                     </div>
                     @if (_watchlist.Count == 0)
                     {
-                        <div class="dashboardEmpty">Watchlist is clear.</div>
+                        <div class="dashboardEmpty">No watch items.</div>
                     }
                     else
                     {
@@ -76,7 +76,6 @@
         <section class="card" data-testid="dashboard-commitment">
             <header class="cardHeader">
                 <div class="cardTitle">Commitment View</div>
-                <div class="mutedSmall">Today and this week</div>
             </header>
             <div class="list">
                 <div class="dashboardGroup">
@@ -129,12 +128,14 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Team Pulse</div>
-                <div class="mutedSmall">Freshness and status</div>
             </header>
             <div class="list">
                 @if (_teamPulse.Count == 0)
                 {
-                    <div class="dashboardEmpty">No team members yet.</div>
+                    <div class="dashboardEmpty">
+                        No team members imported yet.
+                        <a class="crumbLink" href="/settings/azure-import">Import from Azure DevOps</a>.
+                    </div>
                 }
                 else
                 {
@@ -142,13 +143,14 @@
                     {
                         var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
                         var freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
+                        var freshnessTone = days is null ? "pillToneBad" : days > 7 ? "pillToneBad" : days >= 4 ? "pillToneWarn" : "pillToneOk";
                         <button class="listRow listRowBtn" type="button" @onclick="() => GoTeam(m.Id)">
                             <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
                             <div class="listMain">
                                 <div class="listTitle">@m.Name</div>
                                 <div class="listMeta">@(string.IsNullOrEmpty(m.CurrentFocus) ? "—" : m.CurrentFocus)</div>
                             </div>
-                            <span class="pill">@freshness</span>
+                            <span class="pill @freshnessTone">@freshness</span>
                         </button>
                     }
                 }
@@ -158,7 +160,7 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Drift Signals</div>
-                <div class="mutedSmall">Early warnings</div>
+                <div class="mutedSmall">Early warnings (not a backlog)</div>
             </header>
             <div class="list dashboardDriftList">
                 @if (_drift.Count == 0)
@@ -170,11 +172,12 @@
                     @foreach (var d in _drift)
                     {
                         <button class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
-                            <span class="pill">@d.Tag</span>
+                            <span class="dot dot-stale"></span>
                             <div class="listMain">
                                 <div class="listTitle">@d.Title</div>
                                 <div class="listMeta">@d.Detail</div>
                             </div>
+                            <span class="pill pillTag">@d.Tag</span>
                         </button>
                     }
                 }
@@ -193,6 +196,8 @@
     List<AtlasTask> _commitmentWeek = [];
     List<TeamMember> _teamPulse = [];
     List<DriftRow> _drift = [];
+    int _staleDays = 10;
+    int _staleSoonDays = 7;
 
     protected override void OnInitialized()
     {
@@ -207,8 +212,10 @@
     {
         var nowIso = DateTimeOffset.UtcNow.ToString("o");
         var todayIsoDate = nowIso[..10];
-        var staleDays = Cache.Settings?.StaleDays ?? 10;
-        var staleSoonDays = Math.Max(1, staleDays - 3);
+        _staleDays = Cache.Settings?.StaleDays ?? 10;
+        _staleSoonDays = Math.Max(1, _staleDays - 3);
+        var staleDays = _staleDays;
+        var staleSoonDays = _staleSoonDays;
         const int dueSoonDays = 2;
 
         var needs = new List<DashRow>();
@@ -283,8 +290,8 @@
         }
 
         needs.Sort((a, b) => UrgencyRank(a).CompareTo(UrgencyRank(b)));
-        _needsAction = needs;
-        _watchlist = watch;
+        _needsAction = needs.Take(8).ToList();
+        _watchlist = watch.Take(8).ToList();
 
         var dueToday = Cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
         var dueThisWeek = Cache.Tasks.Where(t =>
@@ -352,17 +359,34 @@
             if (r.Status == RiskStatus.Watching && ageDays >= 14)
                 drift.Add(new($"drift-risk-watching-{r.Id}", "Risk", r.Title, $"Watching {ageDays}d since update", $"/risks/{r.Id}"));
             if (r.Status == RiskStatus.Open && ageDays >= 10)
-                drift.Add(new($"drift-risk-open-{r.Id}", "Risk", r.Title, $"Open {ageDays}d since update", $"/risks/{r.Id}"));
+                drift.Add(new($"drift-risk-open-stale-{r.Id}", "Risk", r.Title, $"Open risk not updated recently ({ageDays}d)", $"/risks/{r.Id}"));
         }
 
         foreach (var m in Cache.Team)
         {
             var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
-            if (days is null || days >= 10)
-                drift.Add(new($"drift-team-{m.Id}", "Team", m.Name, days is null ? "No activity baseline yet" : $"No activity update for {days}d", $"/team/{m.Id}"));
+            if (days is not null && days > 7)
+                drift.Add(new($"drift-team-noupdate-{m.Id}", "Team", m.Name, "No update this week", $"/team/{m.Id}"));
+            if (string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso))
+                drift.Add(new($"drift-team-nobaseline-{m.Id}", "Team", m.Name, "No activity yet", $"/team/{m.Id}"));
         }
 
-        _drift = drift.Take(20).ToList();
+        foreach (var p in Cache.Projects)
+        {
+            if (p.Health is HealthSignal.Yellow or HealthSignal.Red)
+            {
+                drift.Add(new($"drift-proj-health-{p.Id}", "Project", p.Name, $"Project health: {p.Health}", $"/projects/{p.Id}"));
+            }
+
+            if (!string.IsNullOrEmpty(p.LastUpdatedIso))
+            {
+                var ageDays = DisplayLabels.DaysBetween(p.LastUpdatedIso!, nowIso);
+                if (ageDays > 7)
+                    drift.Add(new($"drift-proj-stale-{p.Id}", "Project", p.Name, $"No recent project update ({ageDays}d)", $"/projects/{p.Id}"));
+            }
+        }
+
+        _drift = drift.Take(10).ToList();
     }
 
     Risk? TaskLinkedToOpenRisk(string? taskRisk)

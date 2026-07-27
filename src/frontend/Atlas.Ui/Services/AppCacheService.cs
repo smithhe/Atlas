@@ -147,6 +147,11 @@ public sealed class AppCacheService
         await LoadTeamAsync(cancellationToken);
     }
 
+    public async Task RefetchProductOwnersAsync(CancellationToken cancellationToken = default)
+    {
+        await LoadProductOwnersAsync(cancellationToken);
+    }
+
     public async Task RefetchSettingsAsync(CancellationToken cancellationToken = default)
     {
         await LoadSettingsAsync(cancellationToken);
