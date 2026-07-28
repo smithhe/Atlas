@@ -215,8 +215,56 @@ public static class ApiMappers
             MemberId = dto.TeamMemberId ?? Guid.Empty,
             FocusAreasMarkdown = dto.FocusAreasMarkdown ?? "",
             SkillsInProgress = dto.SkillsInProgress?.ToList() ?? [],
-            Goals = Array.Empty<GrowthGoal>(),
-            FeedbackThemes = Array.Empty<GrowthFeedbackTheme>()
+            Goals = (dto.Goals ?? [])
+                .Select(g => new GrowthGoal
+                {
+                    Id = g.Id ?? Guid.Empty,
+                    Title = g.Title ?? "",
+                    Description = g.Description ?? "",
+                    Status = MapGrowthGoalStatus(g.Status),
+                    Category = string.IsNullOrWhiteSpace(g.Category) ? null : g.Category,
+                    Priority = g.Priority is null ? null : MapPriority(g.Priority),
+                    StartDateIso = g.StartDate?.ToString("yyyy-MM-dd"),
+                    TargetDateIso = g.TargetDate?.ToString("yyyy-MM-dd"),
+                    LastUpdatedIso = g.LastUpdatedAt?.ToString("o"),
+                    ProgressPercent = g.ProgressPercent,
+                    Summary = string.IsNullOrWhiteSpace(g.Summary) ? null : g.Summary,
+                    SuccessCriteria = g.SuccessCriteria?.ToList() ?? [],
+                    Actions = (g.Actions ?? [])
+                        .Select(a => new GrowthGoalAction
+                        {
+                            Id = a.Id ?? Guid.Empty,
+                            Title = a.Title ?? "",
+                            DueDateIso = a.DueDate?.ToString("yyyy-MM-dd"),
+                            State = MapGrowthGoalActionState(a.State),
+                            Priority = a.Priority is null ? null : MapPriority(a.Priority),
+                            Notes = string.IsNullOrWhiteSpace(a.Notes) ? null : a.Notes,
+                            Links = string.IsNullOrWhiteSpace(a.Evidence)
+                                ? Array.Empty<string>()
+                                : a.Evidence.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                    .ToList()
+                        })
+                        .ToList(),
+                    CheckIns = (g.CheckIns ?? [])
+                        .Select(c => new GrowthGoalCheckIn
+                        {
+                            Id = c.Id ?? Guid.Empty,
+                            DateIso = c.Date?.ToString("yyyy-MM-dd") ?? "",
+                            Signal = MapGrowthGoalCheckInSignal(c.Signal),
+                            Note = c.Note ?? ""
+                        })
+                        .ToList()
+                })
+                .ToList(),
+            FeedbackThemes = (dto.FeedbackThemes ?? [])
+                .Select(t => new GrowthFeedbackTheme
+                {
+                    Id = t.Id ?? Guid.Empty,
+                    Title = t.Title ?? "",
+                    Description = t.Description ?? "",
+                    ObservedSinceLabel = string.IsNullOrWhiteSpace(t.ObservedSinceLabel) ? null : t.ObservedSinceLabel
+                })
+                .ToList()
         };
     }
 
@@ -280,6 +328,77 @@ public static class ApiMappers
         NoteTag.Standup => AtlasDomainEnumsNoteType.Standup,
         _ => AtlasDomainEnumsNoteType.Quick
     };
+
+    public static AtlasDomainEnumsStatusDot ToApiStatusDot(string? statusDot) => statusDot?.ToLowerInvariant() switch
+    {
+        "yellow" => AtlasDomainEnumsStatusDot.Yellow,
+        "red" => AtlasDomainEnumsStatusDot.Red,
+        _ => AtlasDomainEnumsStatusDot.Green
+    };
+
+    public static AtlasDomainEnumsLoadSignal ToApiLoad(LoadSignal load) => load switch
+    {
+        LoadSignal.Light => AtlasDomainEnumsLoadSignal.Light,
+        LoadSignal.Heavy => AtlasDomainEnumsLoadSignal.Heavy,
+        _ => AtlasDomainEnumsLoadSignal.Normal
+    };
+
+    public static AtlasDomainEnumsDeliverySignal ToApiDelivery(DeliverySignal delivery) => delivery switch
+    {
+        DeliverySignal.AtRisk => AtlasDomainEnumsDeliverySignal.AtRisk,
+        DeliverySignal.Blocked => AtlasDomainEnumsDeliverySignal.Blocked,
+        _ => AtlasDomainEnumsDeliverySignal.OnTrack
+    };
+
+    public static AtlasDomainEnumsSupportNeededSignal ToApiSupport(SupportNeededSignal support) => support switch
+    {
+        SupportNeededSignal.Medium => AtlasDomainEnumsSupportNeededSignal.Medium,
+        SupportNeededSignal.High => AtlasDomainEnumsSupportNeededSignal.High,
+        _ => AtlasDomainEnumsSupportNeededSignal.Low
+    };
+
+    public static AtlasDomainEnumsTeamMemberRiskSeverity ToApiTeamMemberRiskSeverity(string severity) => severity switch
+    {
+        "Medium" => AtlasDomainEnumsTeamMemberRiskSeverity.Medium,
+        "High" => AtlasDomainEnumsTeamMemberRiskSeverity.High,
+        _ => AtlasDomainEnumsTeamMemberRiskSeverity.Low
+    };
+
+    public static AtlasDomainEnumsTeamMemberRiskStatus ToApiTeamMemberRiskStatus(string status) => status switch
+    {
+        "Mitigating" => AtlasDomainEnumsTeamMemberRiskStatus.Mitigating,
+        "Resolved" => AtlasDomainEnumsTeamMemberRiskStatus.Resolved,
+        _ => AtlasDomainEnumsTeamMemberRiskStatus.Open
+    };
+
+    public static AtlasDomainEnumsTeamMemberRiskTrend ToApiTeamMemberRiskTrend(string trend) => trend switch
+    {
+        "Improving" => AtlasDomainEnumsTeamMemberRiskTrend.Improving,
+        "Worsening" => AtlasDomainEnumsTeamMemberRiskTrend.Worsening,
+        _ => AtlasDomainEnumsTeamMemberRiskTrend.Stable
+    };
+
+    public static AtlasDomainEnumsGrowthGoalStatus ToApiGrowthGoalStatus(GrowthGoalStatus status) => status switch
+    {
+        GrowthGoalStatus.NeedsAttention => AtlasDomainEnumsGrowthGoalStatus.NeedsAttention,
+        GrowthGoalStatus.Completed => AtlasDomainEnumsGrowthGoalStatus.Completed,
+        _ => AtlasDomainEnumsGrowthGoalStatus.OnTrack
+    };
+
+    public static AtlasDomainEnumsGrowthGoalActionState ToApiGrowthGoalActionState(GrowthGoalActionState state) => state switch
+    {
+        GrowthGoalActionState.InProgress => AtlasDomainEnumsGrowthGoalActionState.InProgress,
+        GrowthGoalActionState.Complete => AtlasDomainEnumsGrowthGoalActionState.Complete,
+        _ => AtlasDomainEnumsGrowthGoalActionState.Planned
+    };
+
+    public static AtlasDomainEnumsGrowthGoalCheckInSignal ToApiGrowthGoalCheckInSignal(GrowthGoalCheckInSignal signal) =>
+        signal switch
+        {
+            GrowthGoalCheckInSignal.Mixed => AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed,
+            GrowthGoalCheckInSignal.Concern => AtlasDomainEnumsGrowthGoalCheckInSignal.Concern,
+            _ => AtlasDomainEnumsGrowthGoalCheckInSignal.Positive
+        };
 
     public static AtlasDomainEnumsTheme ToApiTheme(string? theme) =>
         string.Equals(theme, "Light", StringComparison.OrdinalIgnoreCase)
@@ -374,4 +493,26 @@ public static class ApiMappers
         AtlasDomainEnumsSupportNeededSignal.High => SupportNeededSignal.High,
         _ => SupportNeededSignal.Low
     };
+
+    static GrowthGoalStatus MapGrowthGoalStatus(AtlasDomainEnumsGrowthGoalStatus? value) => value switch
+    {
+        AtlasDomainEnumsGrowthGoalStatus.NeedsAttention => GrowthGoalStatus.NeedsAttention,
+        AtlasDomainEnumsGrowthGoalStatus.Completed => GrowthGoalStatus.Completed,
+        _ => GrowthGoalStatus.OnTrack
+    };
+
+    static GrowthGoalActionState MapGrowthGoalActionState(AtlasDomainEnumsGrowthGoalActionState? value) => value switch
+    {
+        AtlasDomainEnumsGrowthGoalActionState.InProgress => GrowthGoalActionState.InProgress,
+        AtlasDomainEnumsGrowthGoalActionState.Complete => GrowthGoalActionState.Complete,
+        _ => GrowthGoalActionState.Planned
+    };
+
+    static GrowthGoalCheckInSignal MapGrowthGoalCheckInSignal(AtlasDomainEnumsGrowthGoalCheckInSignal? value) =>
+        value switch
+        {
+            AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed => GrowthGoalCheckInSignal.Mixed,
+            AtlasDomainEnumsGrowthGoalCheckInSignal.Concern => GrowthGoalCheckInSignal.Concern,
+            _ => GrowthGoalCheckInSignal.Positive
+        };
 }

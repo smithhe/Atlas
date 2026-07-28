@@ -1,0 +1,11 @@
+@*
+  Lightweight markdown display for Phase 6 (full sanitized Markdig lands with Phase 7 AI).
+  Preserves whitespace and escapes HTML so note bodies are readable without XSS risk.
+*@
+<div class="markdown">
+    <pre class="markdownPlain">@Text</pre>
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = "";
+}

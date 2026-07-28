@@ -1,0 +1,219 @@
+@inject AppCacheService Cache
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<section class="card subtle" aria-label="Risks tab">
+    <div class="cardHeader">
+        <div class="cardTitle">Risks</div>
+        <button class="btn btnGhost" type="button" @onclick="OpenCreate">Add risk</button>
+    </div>
+    <div class="pad">
+        <div class="tasksFiltersRow" aria-label="Risks filters" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-bottom: 12px">
+            <label class="field">
+                <div class="fieldLabel">Search</div>
+                <input class="input" placeholder="Search by title, type, impact area, or text…" @bind="_query" @bind:event="oninput" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Status</div>
+                <select class="select" @bind="_statusFilter">
+                    <option value="All">All</option>
+                    <option value="Open">Open</option>
+                    <option value="Mitigating">Mitigating</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+            </label>
+        </div>
+
+        @if (MemberRisks.Count == 0)
+        {
+            <div class="muted">No member risks match your filters.</div>
+        }
+        else
+        {
+            <div class="list listCard">
+                @foreach (var r in MemberRisks)
+                {
+                    var risk = r;
+                    var linkedGlobal = risk.LinkedRiskId is Guid lid ? Cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
+                    <button type="button" class="listRow listRowBtn" @onclick="() => OpenRisk(risk.Id)">
+                        <span class="dot dot-@risk.Severity.ToLowerInvariant()" aria-hidden="true"></span>
+                        <div class="listMain">
+                            <div class="listTitle">@risk.Title</div>
+                            <div class="listMeta">
+                                @risk.Status • @risk.Trend
+                                @if (linkedGlobal is not null)
+                                {
+                                    <text> • linked: @linkedGlobal.Title</text>
+                                }
+                            </div>
+                        </div>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<AtlasModal Title="Add team member risk" IsOpen="_createOpen" OnClose="CloseCreate">
+    <ChildContent>
+        <div class="fieldGrid">
+            <label class="field" style="grid-column: 1 / -1">
+                <div class="fieldLabel">Title</div>
+                <input class="input" @bind="_title" @bind:event="oninput" placeholder="What could go wrong?" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Severity</div>
+                <select class="select" @bind="_severity">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Status</div>
+                <select class="select" @bind="_status">
+                    <option value="Open">Open</option>
+                    <option value="Mitigating">Mitigating</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Trend</div>
+                <select class="select" @bind="_trend">
+                    <option value="Improving">Improving</option>
+                    <option value="Stable">Stable</option>
+                    <option value="Worsening">Worsening</option>
+                </select>
+            </label>
+            <label class="field">
+                <div class="fieldLabel">First noticed</div>
+                <input class="input" type="date" value="@_firstNoticed" @onchange="OnFirstNoticedChange" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Type</div>
+                <input class="input" @bind="_riskType" @bind:event="oninput" placeholder="e.g., Burnout, Delivery, Role clarity" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Impact area</div>
+                <input class="input" @bind="_impactArea" @bind:event="oninput" placeholder="e.g., Quality, Schedule, Team health" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Link to global risk (optional)</div>
+                <select class="select" @bind="_linkedRiskId">
+                    <option value="">(None)</option>
+                    @foreach (var gr in Cache.Risks.OrderBy(x => x.Title))
+                    {
+                        <option value="@gr.Id">@gr.Title</option>
+                    }
+                </select>
+            </label>
+            <label class="field" style="grid-column: 1 / -1">
+                <div class="fieldLabel">Description</div>
+                <textarea class="textarea" @bind="_description" @bind:event="oninput" placeholder="What are you observing? What evidence supports it?"></textarea>
+            </label>
+            <label class="field" style="grid-column: 1 / -1">
+                <div class="fieldLabel">Current action</div>
+                <textarea class="textarea" @bind="_currentAction" @bind:event="oninput" placeholder="What are you doing next to mitigate?"></textarea>
+            </label>
+        </div>
+    </ChildContent>
+    <Footer>
+        <div class="row" style="margin-top: 0">
+            <button class="btn btnSecondary" type="button" @onclick="SaveCreate" disabled="@string.IsNullOrWhiteSpace(_title)">Add</button>
+            <button class="btn btnGhost" type="button" @onclick="CloseCreate">Cancel</button>
+        </div>
+    </Footer>
+</AtlasModal>
+
+@code {
+    [Parameter] public Guid MemberId { get; set; }
+
+    string _query = "";
+    string _statusFilter = "All";
+    bool _createOpen;
+    string _title = "", _severity = "Medium", _status = "Open", _trend = "Stable";
+    string _firstNoticed = DisplayLabels.TodayIsoDateLocal();
+    string _riskType = "", _impactArea = "", _description = "", _currentAction = "", _linkedRiskId = "";
+
+    List<TeamMemberRisk> MemberRisks
+    {
+        get
+        {
+            var q = _query.Trim().ToLowerInvariant();
+            return Cache.TeamMemberRisks
+                .Where(r => r.MemberId == MemberId)
+                .Where(r => _statusFilter == "All" || r.Status == _statusFilter)
+                .Where(r =>
+                {
+                    if (string.IsNullOrEmpty(q)) return true;
+                    var hay = string.Join(' ', r.Title, r.RiskType, r.ImpactArea, r.Description, r.CurrentAction).ToLowerInvariant();
+                    return hay.Contains(q);
+                })
+                .ToList();
+        }
+    }
+
+    void OpenCreate()
+    {
+        _title = "";
+        _severity = "Medium";
+        _status = "Open";
+        _trend = "Stable";
+        _firstNoticed = DisplayLabels.TodayIsoDateLocal();
+        _riskType = _impactArea = _description = _currentAction = _linkedRiskId = "";
+        _createOpen = true;
+    }
+
+    void OnFirstNoticedChange(ChangeEventArgs e) => _firstNoticed = e.Value?.ToString() ?? "";
+
+    void OpenRisk(Guid riskId) => Nav.NavigateTo($"/team/{MemberId}/risks/{riskId}");
+
+    void CloseCreate() => _createOpen = false;
+
+    async Task SaveCreate()
+    {
+        var title = _title.Trim();
+        if (string.IsNullOrEmpty(title)) return;
+        try
+        {
+            Guid? linked = Guid.TryParse(_linkedRiskId, out var lid) ? lid : null;
+            var res = await Api.AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(MemberId, new AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest
+            {
+                Title = title,
+                Severity = ApiMappers.ToApiTeamMemberRiskSeverity(_severity),
+                RiskType = _riskType.Trim(),
+                Status = ApiMappers.ToApiTeamMemberRiskStatus(_status),
+                Trend = ApiMappers.ToApiTeamMemberRiskTrend(_trend),
+                FirstNoticedDate = DateTimeOffset.TryParse(_firstNoticed, out var d) ? d : null,
+                ImpactArea = _impactArea.Trim(),
+                Description = _description.Trim(),
+                CurrentAction = _currentAction.Trim(),
+                LinkedGlobalRiskId = linked
+            });
+            var id = res.Id ?? Guid.NewGuid();
+            var next = new TeamMemberRisk
+            {
+                Id = id,
+                MemberId = MemberId,
+                Title = title,
+                Severity = _severity,
+                RiskType = _riskType.Trim(),
+                Status = _status,
+                Trend = _trend,
+                FirstNoticedDateIso = _firstNoticed,
+                ImpactArea = _impactArea.Trim(),
+                Description = _description.Trim(),
+                CurrentAction = _currentAction.Trim(),
+                LinkedRiskId = linked
+            };
+            Cache.AddTeamMemberRisk(next);
+            CloseCreate();
+            Nav.NavigateTo($"/team/{MemberId}/risks/{next.Id}");
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to create team member risk right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,279 @@
+@page "/team/{MemberId}/work-items/{WorkItemId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<PageTitle>Work Item — Atlas</PageTitle>
+
+<div class="page">
+    <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
+        <a class="crumbLink" href="/team">Team</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}")">@(Member?.Name ?? MemberId)</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}/work-items")">Work Items</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <span class="crumbCurrent">Work Item</span>
+    </nav>
+
+    <div class="detailHeader">
+        <div>
+            <div class="detailTitle">Work Item</div>
+            <div class="mutedSmall">@(Member?.Name ?? "")</div>
+        </div>
+        <div class="row" style="margin-top: 0">
+            <button class="btn btnGhost" type="button" @onclick="BackToWorkItems">Back to work items</button>
+            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+        </div>
+    </div>
+
+    @if (Guid.TryParse(MemberId, out var mid))
+    {
+        <div class="tabsBar" role="tablist" aria-label="Member tabs">
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}")" Match="NavLinkMatch.All">Overview</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/notes")">Notes</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/work-items")">Work Items</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/risks")">Risks</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/growth")">Growth</NavLink>
+        </div>
+    }
+
+    @if (Member is null)
+    {
+        <div class="card pad"><div class="muted">@(Cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
+    }
+    else if (Item is null)
+    {
+        <div class="card pad"><div class="muted">Work item not found.</div></div>
+    }
+    else
+    {
+        <div class="card pad">
+            <div class="detailTitle">@Item.Id — @Item.Title</div>
+            <div class="workItemDetailsGrid" style="margin-top: 12px">
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Project</div>
+                    <div class="workItemFieldVal">
+                        <select class="select" value="@(Item.ProjectId ?? "")" @onchange="OnProjectChange">
+                            <option value="">(None)</option>
+                            @foreach (var p in Cache.Projects.OrderBy(x => x.Name))
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Start date</div>
+                    <div class="workItemFieldVal">@DisplayLabels.FormatIsoDateLong(Item.StartDateIso)</div>
+                </div>
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Assigned to</div>
+                    <div class="workItemFieldVal">@(Item.AssignedTo ?? Member.Name ?? "—")</div>
+                </div>
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Time taken</div>
+                    <div class="workItemFieldVal">@(Item.TimeTaken ?? "—")</div>
+                </div>
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Status</div>
+                    <div class="workItemFieldVal">@Item.Status</div>
+                </div>
+                <div class="workItemField">
+                    <div class="workItemFieldKey">Links</div>
+                    <div class="workItemFieldVal">
+                        @{
+                            var link = Item.TicketUrl ?? Item.PrUrls.FirstOrDefault() ?? Item.CommitsUrl;
+                        }
+                        @if (!string.IsNullOrEmpty(link))
+                        {
+                            <a href="@link" target="_blank" rel="noreferrer">Open in Azure DevOps</a>
+                        }
+                        else
+                        {
+                            <text>—</text>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card pad" style="margin-top: 12px">
+            <div class="cardTitle" style="margin-bottom: 8px">Local notes</div>
+            <div class="fieldGrid">
+                <label class="field">
+                    <div class="fieldLabel">Add note</div>
+                    <textarea class="textarea" @bind="_newNoteText" @bind:event="oninput" placeholder="Local context for this work item…"></textarea>
+                </label>
+                <div>
+                    <button class="btn btnSecondary" type="button" @onclick="AddLocalNote" disabled="@string.IsNullOrWhiteSpace(_newNoteText)">Add</button>
+                </div>
+            </div>
+            <div class="list" style="margin-top: 12px">
+                @if ((Item.LocalNotes?.Count ?? 0) == 0)
+                {
+                    <div class="muted">No local notes yet.</div>
+                }
+                else
+                {
+                    @foreach (var n in Item.LocalNotes)
+                    {
+                        <div class="listRow">
+                            <div class="listMain">
+                                <div class="listMeta">@DisplayLabels.FormatDateTime(n.CreatedIso)</div>
+                                <div class="noteText noteBody"><MarkdownBlock Text="@n.Text" /></div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? MemberId { get; set; }
+    [Parameter] public string? WorkItemId { get; set; }
+
+    string _newNoteText = "";
+
+    void BackToWorkItems() => Nav.NavigateTo($"/team/{MemberId}/work-items");
+    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+
+    TeamMember? Member
+    {
+        get
+        {
+            if (!Guid.TryParse(MemberId, out var id)) return null;
+            return Cache.Team.FirstOrDefault(m => m.Id == id);
+        }
+    }
+
+    AzureItem? Item =>
+        Member is null || string.IsNullOrEmpty(WorkItemId)
+            ? null
+            : Member.AzureItems.FirstOrDefault(a => a.Id == WorkItemId);
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        if (Guid.TryParse(MemberId, out var id))
+        {
+            Selection.SelectTeamMember(id);
+            if (Cache.TeamReady && Member is null)
+                Nav.NavigateTo("/team", replace: true);
+        }
+    }
+
+    void OnProjectChange(ChangeEventArgs e)
+    {
+        if (Member is null || Item is null) return;
+        var nextProject = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+        UpdateWorkItem(new AzureItem
+        {
+            Id = Item.Id,
+            Title = Item.Title,
+            Status = Item.Status,
+            AssignedTo = Item.AssignedTo,
+            TicketUrl = Item.TicketUrl,
+            ProjectId = nextProject,
+            ChangedDateUtc = Item.ChangedDateUtc,
+            TimeTaken = Item.TimeTaken,
+            StartDateIso = Item.StartDateIso,
+            CommitsUrl = Item.CommitsUrl,
+            PrUrls = Item.PrUrls,
+            LocalNotes = Item.LocalNotes
+        });
+    }
+
+    void UpdateWorkItem(AzureItem next)
+    {
+        if (Member is null) return;
+        Cache.UpdateTeamMember(new TeamMember
+        {
+            Id = Member.Id,
+            Name = Member.Name,
+            Role = Member.Role,
+            StatusDot = Member.StatusDot,
+            CurrentFocus = Member.CurrentFocus,
+            Profile = Member.Profile,
+            Signals = Member.Signals,
+            Notes = Member.Notes,
+            PinnedNoteIds = Member.PinnedNoteIds,
+            ActivitySnapshot = Member.ActivitySnapshot,
+            AzureItems = Member.AzureItems.Select(a => a.Id == next.Id ? next : a).ToList()
+        });
+    }
+
+    async Task AddLocalNote()
+    {
+        if (Member is null || Item is null) return;
+        var text = _newNoteText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+        if (!int.TryParse(Item.Id, out var workItemIdInt))
+        {
+            await Dialogs.AlertAsync("Unable to save work item note: invalid work item id.");
+            return;
+        }
+
+        try
+        {
+            var saved = await Api.AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpointAsync(
+                Member.Id, workItemIdInt, new AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest { Text = text });
+            var note = new WorkItemNote
+            {
+                Id = saved.Id ?? Guid.NewGuid(),
+                CreatedIso = saved.CreatedAt?.ToString("o") ?? DateTimeOffset.UtcNow.ToString("o"),
+                Text = text
+            };
+            var nextNotes = new[] { note }.Concat(Item.LocalNotes ?? Array.Empty<WorkItemNote>()).ToList();
+            UpdateWorkItem(new AzureItem
+            {
+                Id = Item.Id,
+                Title = Item.Title,
+                Status = Item.Status,
+                AssignedTo = Item.AssignedTo,
+                TicketUrl = Item.TicketUrl,
+                ProjectId = Item.ProjectId,
+                ChangedDateUtc = Item.ChangedDateUtc,
+                TimeTaken = Item.TimeTaken,
+                StartDateIso = Item.StartDateIso,
+                CommitsUrl = Item.CommitsUrl,
+                PrUrls = Item.PrUrls,
+                LocalNotes = nextNotes
+            });
+            _newNoteText = "";
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save work item note right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (Guid.TryParse(MemberId, out var id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        StateHasChanged();
+    });
+
+    public void Dispose() => Cache.Changed -= OnChanged;
+}

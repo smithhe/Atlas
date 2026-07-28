@@ -51,7 +51,7 @@ test.describe('Team note ADO/PR round-trip', () => {
     await expect(noteModal.locator('.chip', { hasText: /^PR$/ })).toBeVisible()
     await noteModal.getByRole('button', { name: 'Open full page' }).click()
 
-    await expect(page).toHaveURL(new RegExp(`#/team/${member.id}/notes/`))
+    await expect(page).toHaveURL(new RegExp(`/team/${member.id}/notes/`))
     const noteUrl = page.url()
     await page.reload()
     // Primary path: wait for shell hydration before asserting note fields.
