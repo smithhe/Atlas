@@ -75,7 +75,7 @@ public enum GrowthGoalStatus
 
 public enum GrowthGoalActionState
 {
-    NotStarted,
+    Planned,
     InProgress,
     Complete
 }
@@ -199,6 +199,10 @@ public sealed class AzureItem
     public string? TicketUrl { get; set; }
     public string? ProjectId { get; set; }
     public string? ChangedDateUtc { get; set; }
+    public string? TimeTaken { get; set; }
+    public string? StartDateIso { get; set; }
+    public string? CommitsUrl { get; set; }
+    public IReadOnlyList<string> PrUrls { get; set; } = Array.Empty<string>();
     public IReadOnlyList<WorkItemNote> LocalNotes { get; set; } = Array.Empty<WorkItemNote>();
 }
 

@@ -1,0 +1,298 @@
+@page "/team/{MemberId}/notes/{NoteId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<PageTitle>Note — Atlas</PageTitle>
+
+<div class="page pageFill">
+    <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
+        <a class="crumbLink" href="/team">Team</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}")">@(Member?.Name ?? MemberId)</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}/notes")">Notes</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <span class="crumbCurrent">Note</span>
+    </nav>
+
+    <div class="detailHeader">
+        <div>
+            <div class="detailTitle">Note</div>
+            <div class="mutedSmall">@(Member?.Name ?? "")</div>
+        </div>
+        <div class="row" style="margin-top: 0">
+            <button class="btn btnGhost" type="button" @onclick="BackToNotes">Back to notes</button>
+            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+        </div>
+    </div>
+
+    @if (Member is null)
+    {
+        <div class="card pad"><div class="muted">@(Cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
+    }
+    else if (Note is null)
+    {
+        <div class="card pad"><div class="muted">Note not found.</div></div>
+    }
+    else
+    {
+        <div class="card pad noteDetailCard">
+            <div class="noteMeta">
+                <span class="noteDetailLastUpdated">
+                    <span class="noteDetailLastUpdatedLabel">Last updated</span>
+                    <span class="noteDetailLastUpdatedValue">@DisplayLabels.FormatReadableDateTime(Note.LastModifiedIso ?? Note.CreatedIso)</span>
+                </span>
+                @if (!string.IsNullOrEmpty(Note.AdoWorkItemId))
+                {
+                    <span class="chip chipGhost">ADO: @Note.AdoWorkItemId</span>
+                }
+                @if (!string.IsNullOrEmpty(Note.PrUrl))
+                {
+                    <span class="chip chipGhost">PR</span>
+                }
+                <div class="noteActions">
+                    @if (_editing)
+                    {
+                        <button class="btn btnSecondary" type="button" @onclick="SaveEdit">Save</button>
+                        <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                    }
+                    else
+                    {
+                        <button class="btn btnGhost" type="button" @onclick="BeginEdit">Edit</button>
+                    }
+                </div>
+            </div>
+
+            <div class="fieldGrid2 noteDetailFields" aria-label="Note fields">
+                <label class="field">
+                    <div class="fieldLabel">Title</div>
+                    @if (_editing)
+                    {
+                        <input class="input" @bind="_draftTitle" @bind:event="oninput" placeholder="@DisplayLabels.GetDerivedTitle(Note)" />
+                    }
+                    else
+                    {
+                        <div class="noteDetailReadonly">@DisplayLabels.GetDerivedTitle(Note)</div>
+                    }
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">Type</div>
+                    @if (_editing)
+                    {
+                        <select class="select" value="@_draftTag" @onchange="e => _draftTag = Enum.Parse<NoteTag>((string)e.Value!)">
+                            @foreach (var t in NoteTags)
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <div class="noteDetailReadonly">
+                            <span class="chip chipTag chipTag-@Note.Tag.ToString().ToLowerInvariant()">@Note.Tag</span>
+                        </div>
+                    }
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">ADO work item id</div>
+                    @if (_editing)
+                    {
+                        <input class="input" @bind="_draftAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                    }
+                    else
+                    {
+                        <div class="noteDetailReadonly">@(Note.AdoWorkItemId ?? "—")</div>
+                    }
+                </label>
+                <label class="field">
+                    <div class="fieldLabel">PR URL</div>
+                    @if (_editing)
+                    {
+                        <input class="input" @bind="_draftPr" @bind:event="oninput" placeholder="https://…" />
+                    }
+                    else if (!string.IsNullOrEmpty(Note.PrUrl))
+                    {
+                        <div class="noteDetailReadonly">
+                            <a href="@Note.PrUrl" target="_blank" rel="noreferrer">@Note.PrUrl</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="noteDetailReadonly">—</div>
+                    }
+                </label>
+            </div>
+
+            @if (_editing)
+            {
+                <textarea class="textarea noteDetailTextarea" @bind="_draftText" @bind:event="oninput"></textarea>
+            }
+            else
+            {
+                <div class="noteText noteBody noteDetailBody">
+                    <MarkdownBlock Text="@Note.Text" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? MemberId { get; set; }
+    [Parameter] public string? NoteId { get; set; }
+
+    static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
+
+    bool _editing;
+    string _draftTitle = "", _draftText = "", _draftAdo = "", _draftPr = "";
+    NoteTag _draftTag = NoteTag.Quick;
+
+    TeamMember? Member
+    {
+        get
+        {
+            if (!Guid.TryParse(MemberId, out var id)) return null;
+            return Cache.Team.FirstOrDefault(m => m.Id == id);
+        }
+    }
+
+    TeamNote? Note
+    {
+        get
+        {
+            if (Member is null || !Guid.TryParse(NoteId, out var nid)) return null;
+            return Member.Notes.FirstOrDefault(n => n.Id == nid);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        if (Guid.TryParse(MemberId, out var id))
+        {
+            Selection.SelectTeamMember(id);
+            if (Cache.TeamReady && Member is null)
+                Nav.NavigateTo("/team", replace: true);
+        }
+
+        SyncDraftsFromNote();
+    }
+
+    void SyncDraftsFromNote()
+    {
+        if (Note is null || _editing) return;
+        _draftTitle = Note.Title ?? "";
+        _draftTag = Note.Tag;
+        _draftText = Note.Text;
+        _draftAdo = Note.AdoWorkItemId ?? "";
+        _draftPr = Note.PrUrl ?? "";
+    }
+
+    void BackToNotes() => Nav.NavigateTo($"/team/{MemberId}/notes");
+    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+
+    void BeginEdit()
+    {
+        if (Note is null) return;
+        _draftTitle = Note.Title ?? "";
+        _draftTag = Note.Tag;
+        _draftText = Note.Text;
+        _draftAdo = Note.AdoWorkItemId ?? "";
+        _draftPr = Note.PrUrl ?? "";
+        _editing = true;
+    }
+
+    void CancelEdit()
+    {
+        SyncDraftsFromNote();
+        _editing = false;
+        if (Note is not null)
+        {
+            _draftTitle = Note.Title ?? "";
+            _draftTag = Note.Tag;
+            _draftText = Note.Text;
+            _draftAdo = Note.AdoWorkItemId ?? "";
+            _draftPr = Note.PrUrl ?? "";
+        }
+    }
+
+    async Task SaveEdit()
+    {
+        if (Member is null || Note is null) return;
+        var nextTitle = _draftTitle.Trim();
+        var ado = _draftAdo.Trim();
+        var pr = _draftPr.Trim();
+        var updated = new TeamNote
+        {
+            Id = Note.Id,
+            CreatedIso = Note.CreatedIso,
+            LastModifiedIso = DateTimeOffset.UtcNow.ToString("o"),
+            Tag = _draftTag,
+            Title = string.IsNullOrEmpty(nextTitle) ? null : nextTitle,
+            Text = _draftText,
+            AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
+            PrUrl = string.IsNullOrEmpty(pr) ? null : pr
+        };
+
+        try
+        {
+            await Api.AtlasApiEndpointsTeamMembersNotesUpdateTeamNoteEndpointAsync(Member.Id, Note.Id, new AtlasApiDTOsTeamMembersNotesUpdateTeamNoteRequest
+            {
+                Type = ApiMappers.ToApiNoteType(updated.Tag),
+                Title = updated.Title,
+                Text = updated.Text,
+                AdoWorkItemId = updated.AdoWorkItemId,
+                PrUrl = updated.PrUrl
+            });
+            var nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
+            Cache.UpdateTeamMember(new TeamMember
+            {
+                Id = Member.Id,
+                Name = Member.Name,
+                Role = Member.Role,
+                StatusDot = Member.StatusDot,
+                CurrentFocus = Member.CurrentFocus,
+                Profile = Member.Profile,
+                Signals = Member.Signals,
+                Notes = nextNotes,
+                PinnedNoteIds = Member.PinnedNoteIds,
+                ActivitySnapshot = Member.ActivitySnapshot,
+                AzureItems = Member.AzureItems
+            });
+            _editing = false;
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (Guid.TryParse(MemberId, out var id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        SyncDraftsFromNote();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Cache.Changed -= OnChanged;
+}

@@ -1,0 +1,55 @@
+@if (IsOpen)
+{
+    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay" @onkeydown="OnOverlayKey">
+        <div class="modalPanel"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="@_titleId"
+             tabindex="-1"
+             @onmousedown:stopPropagation="true"
+             @ref="_panel">
+            <div class="modalHeader">
+                <div class="modalTitle" id="@_titleId">@Title</div>
+                <button class="btn btnGhost" type="button" @onclick="HandleClose">Close</button>
+            </div>
+            <div class="modalBody">@ChildContent</div>
+            @if (Footer is not null)
+            {
+                <div class="modalFooter">@Footer</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
+    ElementReference _panel;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsOpen)
+        {
+            try { await _panel.FocusAsync(); } catch { /* ignore */ }
+        }
+    }
+
+    async Task HandleClose() => await OnClose.InvokeAsync();
+
+    async Task CloseFromOverlay(MouseEventArgs e)
+    {
+        // Overlay itself only — panel stops propagation.
+        await OnClose.InvokeAsync();
+    }
+
+    async Task OnOverlayKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await OnClose.InvokeAsync();
+    }
+}

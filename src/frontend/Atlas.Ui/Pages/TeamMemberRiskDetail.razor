@@ -1,0 +1,373 @@
+@page "/team/{MemberId}/risks/{TeamMemberRiskId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<PageTitle>Team Member Risk — Atlas</PageTitle>
+
+<div class="page">
+    <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
+        <a class="crumbLink" href="/team">Team</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}")">@(Member?.Name ?? MemberId)</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <a class="crumbLink" href="@($"/team/{MemberId}/risks")">Risks</a>
+        <span class="crumbSep" aria-hidden="true">/</span>
+        <span class="crumbCurrent">Risk</span>
+    </nav>
+
+    <div class="detailHeader">
+        <div>
+            <div class="detailTitle">Team Member Risk</div>
+            <div class="mutedSmall">@(Member?.Name ?? "")</div>
+        </div>
+        <div class="row" style="margin-top: 0">
+            <button class="btn btnGhost" type="button" @onclick="BackToRisks">Back to risks</button>
+            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+        </div>
+    </div>
+
+    @if (Guid.TryParse(MemberId, out var mid))
+    {
+        <div class="tabsBar" role="tablist" aria-label="Member tabs">
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}")" Match="NavLinkMatch.All">Overview</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/notes")">Notes</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/work-items")">Work Items</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/risks")">Risks</NavLink>
+            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}/growth")">Growth</NavLink>
+        </div>
+    }
+
+    @if (Member is null)
+    {
+        <div class="card pad"><div class="muted">@(Cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
+    }
+    else if (View is null)
+    {
+        <div class="card pad"><div class="muted">Risk not found.</div></div>
+    }
+    else
+    {
+        <div class="card pad tmRiskCard">
+            <div class="tmRiskTopRow">
+                <div class="tmRiskTitleBlock">
+                    @if (_editing && _draft is not null)
+                    {
+                        <label class="field" style="margin: 0">
+                            <div class="srOnly">Title</div>
+                            <input class="input tmRiskTitleInput" @bind="_draft.Title" @bind:event="oninput" />
+                        </label>
+                    }
+                    else
+                    {
+                        <div class="tmRiskTitle">@View.Title</div>
+                    }
+                    <div class="tmRiskSubtitle">Team Member Risk @(string.IsNullOrEmpty(Member.Role) ? "" : $"• {Member.Role}")</div>
+                </div>
+                <div class="tmRiskTopActions">
+                    @if (!_editing)
+                    {
+                        <div class="tmRiskSeverityPill tmRiskSeverity-@View.Severity.ToLowerInvariant()">@View.Severity Severity</div>
+                    }
+                    @if (_editing)
+                    {
+                        <div class="row" style="margin-top: 0">
+                            <button class="btn btnSecondary" type="button" @onclick="SaveEdit">Save</button>
+                            <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <button class="btn btnGhost" type="button" @onclick="BeginEdit">Edit</button>
+                    }
+                </div>
+            </div>
+
+            @if (!_editing)
+            {
+                <div class="tmRiskSummaryGrid" aria-label="Risk summary metrics">
+                    <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">RISK TYPE</div><div class="tmRiskMetricValue">@View.RiskType</div></div>
+                    <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">STATUS</div><div class="tmRiskMetricValue">@View.Status</div></div>
+                    <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">TREND</div><div class="tmRiskMetricValue">@View.Trend</div></div>
+                    <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">FIRST NOTICED</div><div class="tmRiskMetricValue">@DisplayLabels.FormatDateLabel(View.FirstNoticedDateIso)</div></div>
+                    <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">IMPACT AREA</div><div class="tmRiskMetricValue">@View.ImpactArea</div></div>
+                </div>
+                <div class="tmRiskBody">
+                    <div class="tmRiskSectionTitle">Description</div>
+                    <div class="tmRiskSectionBody">@View.Description</div>
+                    <div class="tmRiskSectionTitle" style="margin-top: 14px">Current Action / Experiment</div>
+                    <div class="tmRiskSectionBody">@View.CurrentAction</div>
+                </div>
+            }
+            else if (_draft is not null)
+            {
+                <div class="tmRiskEditForm" aria-label="Edit risk form">
+                    <div class="fieldGrid2" style="margin-top: 14px">
+                        <label class="field">
+                            <div class="fieldLabel">Severity</div>
+                            <select class="select" @bind="_draft.Severity">
+                                <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">Risk type</div>
+                            <input class="input" @bind="_draft.RiskType" @bind:event="oninput" />
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">Status</div>
+                            <select class="select" @bind="_draft.Status">
+                                <option value="Open">Open</option><option value="Mitigating">Mitigating</option><option value="Resolved">Resolved</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">Trend</div>
+                            <select class="select" @bind="_draft.Trend">
+                                <option value="Improving">Improving</option><option value="Stable">Stable</option><option value="Worsening">Worsening</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">First noticed</div>
+                            <input class="input" type="date" value="@(_draft.FirstNoticedDateIso)" @onchange="OnDraftFirstNoticed" />
+                        </label>
+                        <label class="field span2">
+                            <div class="fieldLabel">Impact area</div>
+                            <input class="input" @bind="_draft.ImpactArea" @bind:event="oninput" />
+                        </label>
+                        <label class="field span2">
+                            <div class="fieldLabel">Description</div>
+                            <textarea class="textarea" @bind="_draft.Description" @bind:event="oninput"></textarea>
+                        </label>
+                        <label class="field span2">
+                            <div class="fieldLabel">Current action / experiment</div>
+                            <textarea class="textarea" @bind="_draft.CurrentAction" @bind:event="oninput"></textarea>
+                        </label>
+                    </div>
+                </div>
+            }
+
+            <div class="tmRiskFooter">
+                <div class="tmRiskFooterLeft">
+                    <label class="field tmRiskLinkField">
+                        <div class="fieldLabel">Linked global risk</div>
+                        <div class="fieldInline">
+                            <select class="select selectCompact" value="@LinkedRiskValue" @onchange="OnLinkedRiskChange">
+                                <option value="">(None)</option>
+                                @foreach (var r in Cache.Risks.OrderBy(x => x.Title))
+                                {
+                                    <option value="@r.Id">@r.Title</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btnGhost btnIcon"
+                                    title="@(LinkedGlobal is null ? "No linked global risk" : "Open in Risks & Mitigation")"
+                                    disabled="@(LinkedGlobal is null)"
+                                    @onclick="OpenLinkedGlobal">↗</button>
+                        </div>
+                    </label>
+                </div>
+                <div class="tmRiskFooterRight">
+                    <div class="tmRiskFooterControls">
+                        <button type="button" class="btn btnGhost" title="Update last reviewed timestamp" @onclick="MarkReviewed">Mark reviewed</button>
+                        <div class="mutedSmall tmRiskLastReviewedText" aria-label="Last reviewed">
+                            <span class="tmRiskLastReviewedLabel">Last reviewed:</span>
+                            <span class="tmRiskLastReviewedValue">@ReviewedLabel</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? MemberId { get; set; }
+    [Parameter] public string? TeamMemberRiskId { get; set; }
+
+    bool _editing;
+    TeamMemberRisk? _draft;
+
+    TeamMember? Member =>
+        Guid.TryParse(MemberId, out var id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+
+    TeamMemberRisk? View
+    {
+        get
+        {
+            if (!Guid.TryParse(TeamMemberRiskId, out var rid)) return null;
+            var r = Cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
+            if (r is null) return null;
+            if (Guid.TryParse(MemberId, out var mid) && r.MemberId != mid) return null;
+            return r;
+        }
+    }
+
+    Risk? LinkedGlobal =>
+        View?.LinkedRiskId is Guid lid ? Cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
+
+    string LinkedRiskValue =>
+        (_editing && _draft is not null ? _draft.LinkedRiskId : View?.LinkedRiskId)?.ToString() ?? "";
+
+    string ReviewedLabel
+    {
+        get
+        {
+            var days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
+            if (days is null) return "—";
+            if (days == 0) return "today";
+            return days == 1 ? "1 day ago" : $"{days} days ago";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        if (Guid.TryParse(MemberId, out var id))
+        {
+            Selection.SelectTeamMember(id);
+            if (Cache.TeamReady && Member is null)
+                Nav.NavigateTo("/team", replace: true);
+        }
+    }
+
+    void BackToRisks() => Nav.NavigateTo($"/team/{MemberId}/risks");
+    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+
+    void OnDraftFirstNoticed(ChangeEventArgs e)
+    {
+        if (_draft is null) return;
+        _draft.FirstNoticedDateIso = e.Value?.ToString() ?? "";
+    }
+
+    void BeginEdit()
+    {
+        if (View is null) return;
+        _draft = Clone(View);
+        _editing = true;
+    }
+
+    void CancelEdit()
+    {
+        _editing = false;
+        _draft = null;
+    }
+
+    void SaveEdit()
+    {
+        if (_draft is null) return;
+        PersistRisk(_draft);
+        _editing = false;
+        _draft = null;
+    }
+
+    void OnLinkedRiskChange(ChangeEventArgs e)
+    {
+        Guid? next = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        if (_editing && _draft is not null)
+        {
+            _draft.LinkedRiskId = next;
+            return;
+        }
+
+        if (View is null) return;
+        var updated = Clone(View);
+        updated.LinkedRiskId = next;
+        PersistRisk(updated);
+    }
+
+    void MarkReviewed()
+    {
+        var iso = DateTimeOffset.UtcNow.ToString("o");
+        if (_editing && _draft is not null)
+        {
+            _draft.LastReviewedIso = iso;
+            return;
+        }
+
+        if (View is null) return;
+        var updated = Clone(View);
+        updated.LastReviewedIso = iso;
+        PersistRisk(updated);
+    }
+
+    void OpenLinkedGlobal()
+    {
+        if (LinkedGlobal is null) return;
+        Selection.SelectRisk(LinkedGlobal.Id);
+        Nav.NavigateTo("/risks");
+    }
+
+    void PersistRisk(TeamMemberRisk next)
+    {
+        if (!Guid.TryParse(MemberId, out var memberId)) return;
+        Cache.UpdateTeamMemberRisk(next);
+        _ = PersistAsync(memberId, next);
+    }
+
+    async Task PersistAsync(Guid memberId, TeamMemberRisk next)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpointAsync(memberId, next.Id, new AtlasApiDTOsTeamMembersRisksUpdateTeamMemberRiskRequest
+            {
+                Title = next.Title,
+                Severity = ApiMappers.ToApiTeamMemberRiskSeverity(next.Severity),
+                RiskType = next.RiskType,
+                Status = ApiMappers.ToApiTeamMemberRiskStatus(next.Status),
+                Trend = ApiMappers.ToApiTeamMemberRiskTrend(next.Trend),
+                FirstNoticedDate = DateTimeOffset.TryParse(next.FirstNoticedDateIso, out var d) ? d : null,
+                ImpactArea = next.ImpactArea,
+                Description = next.Description,
+                CurrentAction = next.CurrentAction,
+                LinkedGlobalRiskId = next.LinkedRiskId,
+                LastReviewedAt = DateTimeOffset.TryParse(next.LastReviewedIso, out var lr) ? lr : null
+            });
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save team member risk right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    static TeamMemberRisk Clone(TeamMemberRisk r) => new()
+    {
+        Id = r.Id,
+        MemberId = r.MemberId,
+        Title = r.Title,
+        Severity = r.Severity,
+        RiskType = r.RiskType,
+        Status = r.Status,
+        Trend = r.Trend,
+        FirstNoticedDateIso = r.FirstNoticedDateIso,
+        ImpactArea = r.ImpactArea,
+        Description = r.Description,
+        CurrentAction = r.CurrentAction,
+        LastReviewedIso = r.LastReviewedIso,
+        LinkedRiskId = r.LinkedRiskId
+    };
+
+    void OnChanged() => InvokeAsync(() =>
+    {
+        if (Guid.TryParse(MemberId, out var id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        StateHasChanged();
+    });
+
+    public void Dispose() => Cache.Changed -= OnChanged;
+}

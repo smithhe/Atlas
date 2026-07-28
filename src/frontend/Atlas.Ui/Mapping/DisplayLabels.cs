@@ -63,4 +63,52 @@ public static class DisplayLabels
         if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
         return d.ToString("MMM d, yyyy");
     }
+
+    public static string FormatReadableDateTime(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return "—";
+        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        return d.ToLocalTime().ToString("f");
+    }
+
+    public static string FormatIsoDateLong(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return "—";
+        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        return d.ToString("MMMM d, yyyy");
+    }
+
+    public static string FormatIsoDateShort(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return "—";
+        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        return d.ToString("MMM d");
+    }
+
+    public static string GoalStatusLabel(GrowthGoalStatus status) => status switch
+    {
+        GrowthGoalStatus.Completed => "Completed",
+        GrowthGoalStatus.NeedsAttention => "Needs Attention",
+        _ => "On Track"
+    };
+
+    public static string DeliveryLabel(DeliverySignal delivery) => delivery switch
+    {
+        DeliverySignal.AtRisk => "At Risk",
+        DeliverySignal.Blocked => "Blocked",
+        _ => "On Track"
+    };
+
+    public static string FormatLocalDate(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return "—";
+        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        return d.ToLocalTime().ToString("d");
+    }
+
+    public static string TodayIsoDateLocal()
+    {
+        var d = DateTime.Now;
+        return $"{d:yyyy-MM-dd}";
+    }
 }
