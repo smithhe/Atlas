@@ -1,165 +1,333 @@
 @page "/team"
 @page "/team/{MemberId}"
 @page "/team/{MemberId}/notes"
-@page "/team/{MemberId}/notes/{NoteId}"
 @page "/team/{MemberId}/work-items"
-@page "/team/{MemberId}/work-items/{WorkItemId}"
 @page "/team/{MemberId}/risks"
-@page "/team/{MemberId}/risks/{TeamMemberRiskId}"
 @page "/team/{MemberId}/growth"
-@page "/team/{MemberId}/growth/goals/{GoalId}"
 @implements IDisposable
 @inject AppCacheService Cache
 @inject SelectionState Selection
 @inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
 
 <PageTitle>Team — Atlas</PageTitle>
 
 <div class="page">
+    @if (IsFocusMode && MemberIdParsed is Guid mid)
+    {
+        <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
+            <a class="crumbLink" href="/team">Team</a>
+            <span class="crumbSep" aria-hidden="true">/</span>
+            @if (ActiveTab == MemberTab.Overview)
+            {
+                <span class="crumbCurrent">@(Member?.Name ?? MemberId)</span>
+            }
+            else
+            {
+                <a class="crumbLink" href="@($"/team/{mid}")">@(Member?.Name ?? MemberId)</a>
+                <span class="crumbSep" aria-hidden="true">/</span>
+                <span class="crumbCurrent">@TabLabel(ActiveTab)</span>
+            }
+        </nav>
+    }
+
     <h2 class="pageTitle">Team</h2>
 
-    @if (string.IsNullOrEmpty(MemberId))
-    {
-        <div class="muted" style="margin-bottom: 12px">Team hub (full tabs in Phase 6). Select a member:</div>
-        <div class="list listCard" aria-label="Team member list">
-            @foreach (var m in Cache.Team.OrderBy(x => x.Name))
-            {
-                <button type="button" class="listRow listRowBtn" @onclick="() => GoMember(m.Id)">
-                    <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
-                    <div class="listMain">
-                        <div class="listTitle">@m.Name</div>
-                        <div class="listMeta">@(m.Role ?? "—")@(string.IsNullOrEmpty(m.CurrentFocus) ? "" : $" • {m.CurrentFocus}")</div>
-                    </div>
-                </button>
-            }
-            @if (Cache.Team.Count == 0)
-            {
-                <div class="muted pad">No team members yet.</div>
-            }
-        </div>
-    }
-    else if (Member is null)
-    {
-        @if (Cache.TeamReady)
+    <div class="teamGrid @(IsFocusMode ? "teamGridFocus" : null)">
+        @if (!IsFocusMode)
         {
-            <div class="muted">Member not found. Redirecting…</div>
-        }
-        else
-        {
-            <div class="muted">Loading member…</div>
-        }
-    }
-    else
-    {
-        <div class="card pad" style="margin-bottom: 16px">
-            <div class="detailHeader">
-                <div>
-                    <div class="detailTitle">@Member.Name</div>
-                    <div class="mutedSmall">
-                        @(Member.Role ?? "No role")
-                        @if (!string.IsNullOrEmpty(Member.CurrentFocus))
-                        {
-                            <text> • Focus: @Member.CurrentFocus</text>
-                        }
-                    </div>
-                </div>
-                <div class="pillRow">
-                    <span class="pill">@Member.StatusDot</span>
-                </div>
-            </div>
-            <div class="rowTiny" style="margin-top: 12px">
-                <a class="btn btnGhost" href="@($"/team/{Member.Id}")">Overview</a>
-                <a class="btn btnGhost" href="@($"/team/{Member.Id}/notes")">Notes</a>
-            </div>
-        </div>
-
-        @if (IsNotesRoute)
-        {
-            <div class="card pad">
-                <div class="cardTitle" style="margin-bottom: 12px">Notes</div>
-                <div class="list">
-                    @foreach (var note in Member.Notes.OrderByDescending(n => n.LastModifiedIso ?? n.CreatedIso))
+            <section class="pane paneTeamLeft" aria-label="Team member list">
+                <div class="list listCard">
+                    @if (Cache.Team.Count == 0)
                     {
-                        <div class="listRow">
-                            <div class="listMain">
-                                <div class="listTitle">@DisplayLabels.GetDerivedTitle(note)</div>
-                                <div class="listMeta">@note.Tag • @DisplayLabels.FormatDateTime(note.LastModifiedIso ?? note.CreatedIso)</div>
-                                <div class="mutedSmall" style="margin-top: 4px">@note.Text</div>
-                            </div>
+                        <div class="muted pad">
+                            No team members yet. Import from
+                            <a class="crumbLink" href="/setup">Azure Setup</a>
+                            or
+                            <a class="crumbLink" href="/settings/azure-import">Settings → Azure Import</a>.
                         </div>
                     }
-                    @if (Member.Notes.Count == 0)
+                    else
                     {
-                        <div class="muted pad">No notes yet.</div>
+                        @foreach (var m in Cache.Team.OrderBy(x => x.Name))
+                        {
+                            var id = m.Id;
+                            <button type="button"
+                                    class="listRow listRowBtn @(id == Selection.SelectedTeamMemberId ? "listRowActive" : null)"
+                                    @onclick="() => SelectFromList(id)"
+                                    @ondblclick="() => GoFocus(id)">
+                                <div class="listMain">
+                                    <div class="listTitle">@m.Name</div>
+                                    <div class="listMeta">@(m.Role ?? "—")</div>
+                                </div>
+                                <span class="dot dot-@(m.StatusDot.ToLowerInvariant())" aria-label="@($"{m.StatusDot} status")"></span>
+                            </button>
+                        }
                     }
                 </div>
-            </div>
+            </section>
         }
-        else
-        {
-            <div class="card pad">
-                <div class="cardTitle" style="margin-bottom: 8px">Activity</div>
-                @if (Member.ActivitySnapshot.Bullets.Count == 0)
-                {
-                    <div class="muted">No activity snapshot yet.</div>
-                }
-                else
-                {
-                    <ul>
-                        @foreach (var b in Member.ActivitySnapshot.Bullets)
+
+        <section class="pane paneTeamCenter" aria-label="Member detail">
+            @if (Selected is null)
+            {
+                <div class="card pad">
+                    <div class="muted">
+                        @if (Cache.Team.Count == 0)
                         {
-                            <li class="muted">@b</li>
+                            <text>
+                                No team members yet. Import from
+                                <a class="crumbLink" href="/setup">Azure Setup</a>
+                                or
+                                <a class="crumbLink" href="/settings/azure-import">Settings → Azure Import</a>.
+                            </text>
                         }
-                    </ul>
-                }
-                <div class="mutedSmall" style="margin-top: 12px">Full team hub tabs land in Phase 6.</div>
-            </div>
-        }
-    }
+                        else if (IsFocusMode && Cache.TeamReady)
+                        {
+                            <text>Member not found. Redirecting…</text>
+                        }
+                        else if (IsFocusMode)
+                        {
+                            <text>Loading member…</text>
+                        }
+                        else
+                        {
+                            <text>Select a team member.</text>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card pad">
+                    <div class="detailHeader">
+                        <div>
+                            <div class="detailTitle">@Selected.Name</div>
+                            <div class="mutedSmall">@(Selected.Role ?? "")</div>
+                        </div>
+                        @if (IsFocusMode)
+                        {
+                            <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                        }
+                        else
+                        {
+                            <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                        }
+                    </div>
+
+                    <div class="tabsBar" role="tablist" aria-label="Member tabs">
+                        @if (IsFocusMode)
+                        {
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}")" Match="NavLinkMatch.All">Overview</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/notes")">Notes</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/work-items")">Work Items</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/risks")">Risks</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/growth")">Growth</NavLink>
+                        }
+                        else
+                        {
+                            <button type="button" class="tabBtn @(_localTab == MemberTab.Overview ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Overview">Overview</button>
+                            <button type="button" class="tabBtn @(_localTab == MemberTab.Notes ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Notes">Notes</button>
+                            <button type="button" class="tabBtn @(_localTab == MemberTab.WorkItems ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.WorkItems">Work Items</button>
+                            <button type="button" class="tabBtn @(_localTab == MemberTab.Risks ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Risks">Risks</button>
+                            <button type="button" class="tabBtn @(_localTab == MemberTab.Growth ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Growth">Growth</button>
+                        }
+                    </div>
+
+                    @switch (ActiveTab)
+                    {
+                        case MemberTab.Overview:
+                            <MemberOverviewTab Member="Selected" OnUpdate="HandleMemberUpdate" OnGoToNotes="GoNotes" OnGoToWorkItem="GoWorkItem" />
+                            break;
+                        case MemberTab.Notes:
+                            <MemberNotesTab Member="Selected" />
+                            break;
+                        case MemberTab.WorkItems:
+                            <MemberWorkItemsTab Member="Selected" />
+                            break;
+                        case MemberTab.Risks:
+                            <MemberRisksTab MemberId="Selected.Id" />
+                            break;
+                        case MemberTab.Growth:
+                            <MemberGrowthTab Member="Selected" />
+                            break;
+                    }
+                </div>
+            }
+        </section>
+    </div>
 </div>
 
 @code {
-    [Parameter] public string? MemberId { get; set; }
-    [Parameter] public string? NoteId { get; set; }
-    [Parameter] public string? WorkItemId { get; set; }
-    [Parameter] public string? TeamMemberRiskId { get; set; }
-    [Parameter] public string? GoalId { get; set; }
+    public enum MemberTab { Overview, Notes, WorkItems, Risks, Growth }
 
-    bool IsNotesRoute =>
-        !string.IsNullOrEmpty(MemberId)
-        && new Uri(Nav.Uri).AbsolutePath.Contains("/notes", StringComparison.OrdinalIgnoreCase);
+    [Parameter] public string? MemberId { get; set; }
+
+    MemberTab _localTab = MemberTab.Overview;
+
+    bool IsFocusMode => !string.IsNullOrEmpty(MemberId);
+
+    Guid? MemberIdParsed => Guid.TryParse(MemberId, out var id) ? id : null;
+
+    MemberTab ActiveTab => IsFocusMode ? GetRouteTab() : _localTab;
 
     TeamMember? Member
     {
         get
         {
-            if (string.IsNullOrEmpty(MemberId) || !Guid.TryParse(MemberId, out var id)) return null;
+            if (MemberIdParsed is not Guid id) return null;
             return Cache.Team.FirstOrDefault(m => m.Id == id);
+        }
+    }
+
+    TeamMember? Selected
+    {
+        get
+        {
+            if (IsFocusMode) return Member;
+            if (Selection.SelectedTeamMemberId is Guid sid)
+                return Cache.Team.FirstOrDefault(m => m.Id == sid);
+            return null;
         }
     }
 
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
         _ = Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
-        if (!string.IsNullOrEmpty(MemberId) && Guid.TryParse(MemberId, out var id))
+        // Non-GUID focus ids must bounce to list (not stuck on “Redirecting…”).
+        if (!string.IsNullOrEmpty(MemberId) && MemberIdParsed is null)
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        if (MemberIdParsed is Guid id)
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
-            {
                 Nav.NavigateTo("/team", replace: true);
+        }
+    }
+
+    void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    MemberTab GetRouteTab()
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath;
+        if (path.Contains("/notes", StringComparison.OrdinalIgnoreCase)) return MemberTab.Notes;
+        if (path.Contains("/work-items", StringComparison.OrdinalIgnoreCase)) return MemberTab.WorkItems;
+        if (path.Contains("/risks", StringComparison.OrdinalIgnoreCase)) return MemberTab.Risks;
+        if (path.Contains("/growth", StringComparison.OrdinalIgnoreCase)) return MemberTab.Growth;
+        return MemberTab.Overview;
+    }
+
+    static string TabLabel(MemberTab tab) => tab switch
+    {
+        MemberTab.Notes => "Notes",
+        MemberTab.WorkItems => "Work Items",
+        MemberTab.Risks => "Risks",
+        MemberTab.Growth => "Growth",
+        _ => "Overview"
+    };
+
+    string MemberTabPath(Guid memberId, MemberTab tab) => tab switch
+    {
+        MemberTab.Notes => $"/team/{memberId}/notes",
+        MemberTab.WorkItems => $"/team/{memberId}/work-items",
+        MemberTab.Risks => $"/team/{memberId}/risks",
+        MemberTab.Growth => $"/team/{memberId}/growth",
+        _ => $"/team/{memberId}"
+    };
+
+    void SelectFromList(Guid id) => Selection.SelectTeamMember(id);
+
+    void GoFocus(Guid id) => Nav.NavigateTo(MemberTabPath(id, _localTab));
+
+    void EnterFocus()
+    {
+        if (Selected is null) return;
+        Nav.NavigateTo(MemberTabPath(Selected.Id, ActiveTab));
+    }
+
+    void ExitFocus()
+    {
+        _localTab = GetRouteTab();
+        Nav.NavigateTo("/team");
+    }
+
+    void GoNotes()
+    {
+        if (Selected is null) return;
+        if (IsFocusMode) Nav.NavigateTo($"/team/{Selected.Id}/notes");
+        else _localTab = MemberTab.Notes;
+    }
+
+    void GoWorkItem(string workItemId)
+    {
+        if (Selected is null) return;
+        Nav.NavigateTo($"/team/{Selected.Id}/work-items/{workItemId}");
+    }
+
+    async Task HandleMemberUpdate(TeamMember next)
+    {
+        var previous = Cache.Team.FirstOrDefault(m => m.Id == next.Id);
+        Cache.UpdateTeamMember(next);
+        if (previous is null) return;
+
+        try
+        {
+            var tasks = new List<Task>();
+            if (previous.Name != next.Name || previous.Role != next.Role || previous.CurrentFocus != next.CurrentFocus)
+            {
+                tasks.Add(Api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(next.Id, new AtlasApiDTOsTeamMembersUpdateTeamMemberRequest
+                {
+                    Name = next.Name,
+                    Role = next.Role,
+                    StatusDot = ApiMappers.ToApiStatusDot(next.StatusDot),
+                    CurrentFocus = next.CurrentFocus ?? ""
+                }));
             }
+
+            if (previous.Profile.TimeZone != next.Profile.TimeZone || previous.Profile.TypicalHours != next.Profile.TypicalHours)
+            {
+                tasks.Add(Api.AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpointAsync(next.Id, new AtlasApiDTOsTeamMembersProfileUpdateTeamMemberProfileRequest
+                {
+                    TimeZone = next.Profile.TimeZone,
+                    TypicalHours = next.Profile.TypicalHours
+                }));
+            }
+
+            if (previous.Signals.Load != next.Signals.Load
+                || previous.Signals.Delivery != next.Signals.Delivery
+                || previous.Signals.SupportNeeded != next.Signals.SupportNeeded)
+            {
+                tasks.Add(Api.AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpointAsync(next.Id, new AtlasApiDTOsTeamMembersSignalsUpdateTeamMemberSignalsRequest
+                {
+                    Load = ApiMappers.ToApiLoad(next.Signals.Load),
+                    Delivery = ApiMappers.ToApiDelivery(next.Signals.Delivery),
+                    SupportNeeded = ApiMappers.ToApiSupport(next.Signals.SupportNeeded)
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save team member changes right now. Please try again.\n\n{ex.Message}");
         }
     }
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (!string.IsNullOrEmpty(MemberId) && Guid.TryParse(MemberId, out var id)
-            && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        if (MemberIdParsed is Guid id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {
             Nav.NavigateTo("/team", replace: true);
             return;
@@ -168,7 +336,9 @@
         StateHasChanged();
     });
 
-    void GoMember(Guid id) => Nav.NavigateTo($"/team/{id}");
-
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
 }

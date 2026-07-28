@@ -529,8 +529,8 @@ Thin Team (`/team/{id}`, `/team/{id}/notes`) only — full hub is Phase 6. AI pa
 
 ### Phase 6 — Team hub *(blocks Phase 7)*
 
-- [ ] Decomposed team pages; `team.ts` logic; `team-note-ado-pr` Playwright ported; append to manifest
-- [ ] Team screenshots vs baseline
+- [x] Decomposed team pages; `team.ts` logic; `team-note-ado-pr` Playwright ported; append to manifest
+- [x] Team screenshots vs baseline
 
 **Exit:** Full `/team/**` parity; **merged before Phase 7 starts**.
 
@@ -593,4 +593,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 5 core CRUD + Playwright ports is complete on `cursor/blazor-wasm-phase5-65f1`. After merge to the umbrella: cut a Phase 6 branch and execute the **Team hub** (full tabs/editing) + `team-note-ado-pr` Playwright port.
+Phase 6 Team hub + `team-note-ado-pr` Playwright port is complete on `cursor/blazor-wasm-phase6-11cd`. After merge to the umbrella: cut a Phase 7 branch and execute the **AI assistant** (EventSource interop + sanitized Markdig) + `ai-panel` Playwright port.

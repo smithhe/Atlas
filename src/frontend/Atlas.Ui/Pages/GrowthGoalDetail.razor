@@ -1,0 +1,759 @@
+@page "/team/{MemberId}/growth/goals/{GoalId}"
+@implements IDisposable
+@inject AppCacheService Cache
+@inject SelectionState Selection
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<PageTitle>Growth Goal — Atlas</PageTitle>
+
+@if (Member is null || Growth is null || Goal is null)
+{
+    <div class="page">
+        <h2 class="pageTitle">Growth Goal</h2>
+        <div class="card pad">
+            <div class="muted">@(string.IsNullOrEmpty(MemberId) || string.IsNullOrEmpty(GoalId) ? "Missing route params." : "Goal not found.")</div>
+            <div class="row">
+                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="page">
+        <div class="growthGoalHeader">
+            <nav class="growthGoalBreadcrumbs" aria-label="Breadcrumbs">
+                <a class="crumbLink" href="/team">Team</a>
+                <span class="crumbSep" aria-hidden="true">/</span>
+                <a class="crumbLink" href="@($"/team/{MemberId}")">@Member.Name</a>
+                <span class="crumbSep" aria-hidden="true">/</span>
+                <a class="crumbLink" href="@($"/team/{MemberId}/growth")">Growth</a>
+                <span class="crumbSep" aria-hidden="true">/</span>
+                <span class="crumbCurrent">Goal</span>
+            </nav>
+
+            <div class="growthGoalHeaderTop">
+                <div class="growthGoalHeaderLeft">
+                    <div class="growthGoalHeaderTitleRow">
+                        <div class="growthGoalHeaderTitle">Goal: @Goal.Title</div>
+                        <span class="pill @Tones.GoalStatusTone(Goal.Status)">@DisplayLabels.GoalStatusLabel(Goal.Status)</span>
+                        <span class="pill toneNeutral">Priority: @(Goal.Priority?.ToString() ?? "Medium")</span>
+                        <span class="pill toneNeutral">Category: @(Goal.Category ?? "—")</span>
+                    </div>
+                </div>
+                <div class="growthGoalHeaderActions">
+                    <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                    <button class="btn btnSecondary" type="button" @onclick="AddAction">+ Add Action</button>
+                    <button class="btn" type="button" @onclick="AddCheckIn">+ Add Check-in</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="growthGoalDetailGrid">
+            <div class="growthGoalLeft">
+                <section class="card subtle" aria-label="Goal overview">
+                    <div class="cardHeader">
+                        <div class="cardTitle">GOAL OVERVIEW</div>
+                        <div class="ggOverviewLastUpdated">
+                            <span class="ggOverviewLastUpdatedLabel">Last updated</span>
+                            <span>@DisplayLabels.FormatDateTime(Goal.LastUpdatedIso)</span>
+                        </div>
+                    </div>
+                    <div class="pad">
+                        <div class="fieldGrid2">
+                            <label class="field">
+                                <div class="fieldLabel">Status</div>
+                                <select class="select" value="@Goal.Status" @onchange="OnStatusChange">
+                                    <option value="OnTrack">On Track</option>
+                                    <option value="NeedsAttention">Needs Attention</option>
+                                    <option value="Completed">Completed</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <div class="fieldLabel">Priority</div>
+                                <select class="select" value="@(Goal.Priority?.ToString() ?? "")" @onchange="OnPriorityChange">
+                                    <option value="">(None)</option>
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Critical">Critical</option>
+                                </select>
+                            </label>
+                            <label class="field">
+                                <div class="fieldLabel">Category</div>
+                                <input class="input" value="@(Goal.Category ?? "")" @oninput="OnCategoryInput" />
+                            </label>
+                            <label class="field">
+                                <div class="fieldLabel">Start date</div>
+                                <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="OnStartChange" />
+                            </label>
+                            <label class="field">
+                                <div class="fieldLabel">Target date</div>
+                                <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="OnTargetChange" />
+                            </label>
+                            <label class="field span2">
+                                <div class="fieldLabel">Summary</div>
+                                <textarea class="textarea" value="@(Goal.Summary ?? "")" @oninput="OnSummaryInput"></textarea>
+                            </label>
+                            <label class="field span2">
+                                <div class="fieldLabel">Success criteria (one per line)</div>
+                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" @oninput="OnCriteriaInput"></textarea>
+                            </label>
+                        </div>
+                        <div class="mutedSmall" style="margin-top: 8px">Progress: @ProgressPercent% (@ProgressDone/@ProgressTotal actions complete)</div>
+                    </div>
+                </section>
+
+                <section class="card subtle" aria-label="Actions" style="margin-top: 12px">
+                    <div class="cardHeader">
+                        <div class="cardTitle">ACTIONS</div>
+                        <div class="rowTiny">
+                            <select class="select" style="width: auto" @bind="_actionFilter">
+                                <option value="All">All</option>
+                                <option value="Planned">Planned</option>
+                                <option value="InProgress">In Progress</option>
+                                <option value="Complete">Complete</option>
+                            </select>
+                            <select class="select" style="width: auto" @bind="_actionSort">
+                                <option value="DueDate">Due date</option>
+                                <option value="State">State</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pad">
+                        @if (VisibleActions.Count == 0)
+                        {
+                            <div class="muted">No actions yet.</div>
+                        }
+                        else
+                        {
+                            <div class="list">
+                                @foreach (var a in VisibleActions)
+                                {
+                                    var action = a;
+                                    <button type="button"
+                                            class="listRow listRowBtn @(_selectedActionId == action.Id ? "listRowActive" : null)"
+                                            @onclick="() => SelectAction(action.Id)">
+                                        <div class="listMain">
+                                            <div class="listTitle">@action.Title</div>
+                                            <div class="listMeta">@action.State • due @(action.DueDateIso ?? "—")</div>
+                                        </div>
+                                        <span class="pill @Tones.ActionStateTone(action.State)">@action.State</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+
+                        @if (SelectedAction is not null)
+                        {
+                            <div class="fieldGrid" style="margin-top: 12px" aria-label="Action editor">
+                                <div class="ggEditorSelectedPillRow">
+                                    <span class="pill toneNeutral">Selected: Action</span>
+                                </div>
+                                <label class="field">
+                                    <div class="fieldLabel">Title</div>
+                                    <input class="input" value="@SelectedAction.Title" @oninput="OnActionTitleInput" />
+                                </label>
+                                <div class="fieldGrid2">
+                                    <label class="field">
+                                        <div class="fieldLabel">State</div>
+                                        <select class="select" value="@SelectedAction.State" @onchange="OnActionStateChange">
+                                            <option value="Planned">Planned</option>
+                                            <option value="InProgress">In Progress</option>
+                                            <option value="Complete">Complete</option>
+                                        </select>
+                                    </label>
+                                    <label class="field">
+                                        <div class="fieldLabel">Due date</div>
+                                        <input class="input" type="date" value="@(SelectedAction.DueDateIso ?? "")" @onchange="OnActionDueChange" />
+                                    </label>
+                                    <label class="field">
+                                        <div class="fieldLabel">Priority</div>
+                                        <select class="select" value="@(SelectedAction.Priority?.ToString() ?? "Medium")" @onchange="OnActionPriorityChange">
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                            <option value="Critical">Critical</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <label class="field">
+                                    <div class="fieldLabel">Notes (what you’re tracking)</div>
+                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" placeholder="Free-text notes…" @oninput="OnActionNotesInput"></textarea>
+                                </label>
+                                <label class="field">
+                                    <div class="fieldLabel">Evidence / Links (optional)</div>
+                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" placeholder="One URL per line" @oninput="OnActionLinksInput"></textarea>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </section>
+            </div>
+
+            <div class="growthGoalRight">
+                <section class="card subtle" aria-label="Check-ins">
+                    <div class="cardHeader"><div class="cardTitle">CHECK-INS</div></div>
+                    <div class="pad">
+                        @if (Goal.CheckIns.Count == 0)
+                        {
+                            <div class="muted">No check-ins yet.</div>
+                        }
+                        else
+                        {
+                            <div class="list">
+                                @foreach (var c in Goal.CheckIns.OrderByDescending(x => x.DateIso))
+                                {
+                                    var checkIn = c;
+                                    <button type="button"
+                                            class="listRow listRowBtn @(_selectedCheckInId == checkIn.Id ? "listRowActive" : null)"
+                                            @onclick="() => SelectCheckIn(checkIn.Id)">
+                                        <div class="listMain">
+                                            <div class="listTitle">@DisplayLabels.FormatIsoDateShort(checkIn.DateIso)</div>
+                                            <div class="listMeta">@(string.IsNullOrEmpty(checkIn.Note) ? "—" : checkIn.Note)</div>
+                                        </div>
+                                        <span class="pill @Tones.CheckInSignalTone(checkIn.Signal)">@checkIn.Signal</span>
+                                    </button>
+                                }
+                            </div>
+                        }
+
+                        @if (SelectedCheckIn is not null)
+                        {
+                            <div class="fieldGrid2" style="margin-top: 12px" aria-label="Check-in editor">
+                                <label class="field">
+                                    <div class="fieldLabel">Date</div>
+                                    <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="OnCheckInDateChange" />
+                                </label>
+                                <label class="field">
+                                    <div class="fieldLabel">Signal</div>
+                                    <select class="select" value="@SelectedCheckIn.Signal" @onchange="OnCheckInSignalChange">
+                                        <option value="Positive">Positive</option>
+                                        <option value="Mixed">Mixed</option>
+                                        <option value="Concern">Concern</option>
+                                    </select>
+                                </label>
+                                <label class="field span2">
+                                    <div class="fieldLabel">Note</div>
+                                    <textarea class="textarea" value="@SelectedCheckIn.Note" @oninput="OnCheckInNoteInput"></textarea>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string? MemberId { get; set; }
+    [Parameter] public string? GoalId { get; set; }
+
+    Guid? _selectedActionId;
+    Guid? _selectedCheckInId;
+    string? _routeMemberId;
+    string? _routeGoalId;
+    string _actionFilter = "All";
+    string _actionSort = "DueDate";
+    CancellationTokenSource? _goalDebounce;
+    readonly Dictionary<Guid, CancellationTokenSource> _actionDebounce = new();
+    readonly Dictionary<Guid, CancellationTokenSource> _checkInDebounce = new();
+
+    void BackToGrowth() => Nav.NavigateTo($"/team/{MemberId}/growth");
+
+    TeamMember? Member =>
+        Guid.TryParse(MemberId, out var id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+
+    Growth? Growth =>
+        Guid.TryParse(MemberId, out var id) ? Cache.GetGrowth(id) : null;
+
+    GrowthGoal? Goal
+    {
+        get
+        {
+            if (Growth is null || !Guid.TryParse(GoalId, out var gid)) return null;
+            return Growth.Goals.FirstOrDefault(g => g.Id == gid);
+        }
+    }
+
+    GrowthGoalAction? SelectedAction =>
+        _selectedActionId is Guid id ? Goal?.Actions.FirstOrDefault(a => a.Id == id) : null;
+
+    GrowthGoalCheckIn? SelectedCheckIn =>
+        _selectedCheckInId is Guid id ? Goal?.CheckIns.FirstOrDefault(c => c.Id == id) : null;
+
+    int ProgressTotal => Goal?.Actions.Count ?? 0;
+    int ProgressDone => Goal?.Actions.Count(a => a.State == GrowthGoalActionState.Complete) ?? 0;
+    int ProgressPercent => ProgressTotal == 0 ? 0 : (int)Math.Round(100.0 * ProgressDone / ProgressTotal);
+
+    List<GrowthGoalAction> VisibleActions
+    {
+        get
+        {
+            var actions = Goal?.Actions ?? Array.Empty<GrowthGoalAction>();
+            IEnumerable<GrowthGoalAction> filtered = _actionFilter == "All"
+                ? actions
+                : actions.Where(a => a.State.ToString() == _actionFilter);
+            return filtered
+                .OrderBy(a =>
+                {
+                    if (_actionSort == "State")
+                        return a.State switch
+                        {
+                            GrowthGoalActionState.InProgress => 0,
+                            GrowthGoalActionState.Planned => 1,
+                            _ => 2
+                        };
+                    return 0;
+                })
+                .ThenBy(a => a.DueDateIso ?? "9999-12-31")
+                .ThenBy(a => a.Title)
+                .ToList();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Cache.Changed += OnChanged;
+        _ = Cache.EnsureHydratedAsync();
+        if (Guid.TryParse(MemberId, out var mid))
+            _ = Cache.EnsureGrowthLoadedAsync(mid);
+    }
+
+    protected override void OnParametersSet()
+    {
+        var routeChanged = !string.Equals(_routeMemberId, MemberId, StringComparison.Ordinal)
+            || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
+        _routeMemberId = MemberId;
+        _routeGoalId = GoalId;
+
+        if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
+        {
+            Nav.NavigateTo("/team", replace: true);
+            return;
+        }
+
+        if (Guid.TryParse(MemberId, out var id))
+        {
+            Selection.SelectTeamMember(id);
+            _ = Cache.EnsureGrowthLoadedAsync(id);
+            if (Cache.TeamReady && Member is null)
+                Nav.NavigateTo("/team", replace: true);
+        }
+
+        // Only clear selection when the route goal/member actually changes — not on
+        // ShellLayout re-renders caused by Cache.Changed (which re-run OnParametersSet).
+        if (routeChanged)
+        {
+            _selectedActionId = null;
+            _selectedCheckInId = null;
+        }
+    }
+
+    void SelectAction(Guid id)
+    {
+        _selectedActionId = id;
+        _selectedCheckInId = null;
+    }
+
+    void SelectCheckIn(Guid id)
+    {
+        _selectedCheckInId = id;
+        _selectedActionId = null;
+    }
+
+    void CommitGoal(Func<GrowthGoal, GrowthGoal> update, bool persistGoal = true, Guid? persistActionId = null, Guid? persistCheckInId = null)
+    {
+        if (!Guid.TryParse(MemberId, out var mid) || !Guid.TryParse(GoalId, out var gid) || Growth is null)
+            return;
+
+        GrowthGoal? nextGoal = null;
+        var updatedGrowth = new Growth
+        {
+            Id = Growth.Id,
+            MemberId = mid,
+            SkillsInProgress = Growth.SkillsInProgress,
+            FeedbackThemes = Growth.FeedbackThemes,
+            FocusAreasMarkdown = Growth.FocusAreasMarkdown,
+            Goals = Growth.Goals.Select(g =>
+            {
+                if (g.Id != gid) return g;
+                var baseGoal = CloneGoal(g);
+                baseGoal.LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o");
+                nextGoal = update(baseGoal);
+                return nextGoal;
+            }).ToList()
+        };
+        Cache.UpdateGrowth(updatedGrowth);
+        if (nextGoal is null || Growth.Id == Guid.Empty) return;
+
+        if (persistActionId is Guid aid)
+        {
+            DebounceAction(aid, () => PersistActionAsync(Growth.Id, gid, nextGoal.Actions.First(a => a.Id == aid)));
+            return;
+        }
+
+        if (persistCheckInId is Guid cid)
+        {
+            DebounceCheckIn(cid, () => PersistCheckInAsync(Growth.Id, gid, nextGoal.CheckIns.First(c => c.Id == cid)));
+            return;
+        }
+
+        if (persistGoal)
+            DebounceGoal(() => PersistGoalAsync(Growth.Id, gid, nextGoal));
+    }
+
+    void OnStatusChange(ChangeEventArgs e) =>
+        CommitGoal(g => { g.Status = Enum.Parse<GrowthGoalStatus>((string)e.Value!); return g; });
+
+    void OnPriorityChange(ChangeEventArgs e)
+    {
+        CommitGoal(g =>
+        {
+            g.Priority = Enum.TryParse<Priority>(e.Value?.ToString(), out var p) ? p : null;
+            return g;
+        });
+    }
+
+    void OnCategoryInput(ChangeEventArgs e) =>
+        CommitGoal(g => { g.Category = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+
+    void OnStartChange(ChangeEventArgs e) =>
+        CommitGoal(g => { g.StartDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+
+    void OnTargetChange(ChangeEventArgs e) =>
+        CommitGoal(g => { g.TargetDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+
+    void OnSummaryInput(ChangeEventArgs e) =>
+        CommitGoal(g => { g.Summary = e.Value?.ToString(); return g; });
+
+    void OnCriteriaInput(ChangeEventArgs e) =>
+        CommitGoal(g =>
+        {
+            g.SuccessCriteria = (e.Value?.ToString() ?? "")
+                .Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0)
+                .ToList();
+            return g;
+        });
+
+    void PatchAction(Guid actionId, Action<GrowthGoalAction> patch) =>
+        CommitGoal(g =>
+        {
+            g.Actions = g.Actions.Select(a =>
+            {
+                if (a.Id != actionId) return a;
+                var copy = CloneAction(a);
+                patch(copy);
+                return copy;
+            }).ToList();
+            return g;
+        }, persistGoal: false, persistActionId: actionId);
+
+    void OnActionTitleInput(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        PatchAction(id, a => a.Title = e.Value?.ToString() ?? "");
+    }
+
+    void OnActionStateChange(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        PatchAction(id, a => a.State = Enum.Parse<GrowthGoalActionState>((string)e.Value!));
+    }
+
+    void OnActionDueChange(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        var v = e.Value?.ToString();
+        PatchAction(id, a => a.DueDateIso = string.IsNullOrEmpty(v) ? null : v);
+    }
+
+    void OnActionPriorityChange(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        PatchAction(id, a => a.Priority = Enum.TryParse<Priority>(e.Value?.ToString(), out var p) ? p : Priority.Medium);
+    }
+
+    void OnActionNotesInput(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        PatchAction(id, a => a.Notes = e.Value?.ToString());
+    }
+
+    void OnActionLinksInput(ChangeEventArgs e)
+    {
+        if (_selectedActionId is not Guid id) return;
+        var links = (e.Value?.ToString() ?? "")
+            .Split('\n')
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToList();
+        PatchAction(id, a => a.Links = links);
+    }
+
+    void OnCheckInDateChange(ChangeEventArgs e)
+    {
+        if (_selectedCheckInId is not Guid id) return;
+        PatchCheckIn(id, c => c.DateIso = e.Value?.ToString() ?? c.DateIso);
+    }
+
+    void OnCheckInSignalChange(ChangeEventArgs e)
+    {
+        if (_selectedCheckInId is not Guid id) return;
+        PatchCheckIn(id, c => c.Signal = Enum.Parse<GrowthGoalCheckInSignal>((string)e.Value!));
+    }
+
+    void OnCheckInNoteInput(ChangeEventArgs e)
+    {
+        if (_selectedCheckInId is not Guid id) return;
+        PatchCheckIn(id, c => c.Note = e.Value?.ToString() ?? "");
+    }
+
+    void PatchCheckIn(Guid checkInId, Action<GrowthGoalCheckIn> patch) =>
+        CommitGoal(g =>
+        {
+            g.CheckIns = g.CheckIns.Select(c =>
+            {
+                if (c.Id != checkInId) return c;
+                var copy = CloneCheckIn(c);
+                patch(copy);
+                return copy;
+            }).ToList();
+            return g;
+        }, persistGoal: false, persistCheckInId: checkInId);
+
+    async Task AddAction()
+    {
+        if (Growth is null || !Guid.TryParse(GoalId, out var gid) || Growth.Id == Guid.Empty) return;
+        try
+        {
+            var res = await Api.AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest
+            {
+                Title = "New action",
+                State = AtlasDomainEnumsGrowthGoalActionState.Planned,
+                Priority = Goal?.Priority is null ? AtlasDomainEnumsPriority.Medium : ApiMappers.ToApiPriority(Goal.Priority.Value)
+            });
+            var id = res.Id ?? Guid.NewGuid();
+            CommitGoal(g =>
+            {
+                var actions = new List<GrowthGoalAction>
+                {
+                    new()
+                    {
+                        Id = id,
+                        Title = "New action",
+                        State = GrowthGoalActionState.Planned,
+                        Priority = g.Priority ?? Priority.Medium,
+                        Notes = "",
+                        Links = Array.Empty<string>()
+                    }
+                };
+                actions.AddRange(g.Actions);
+                g.Actions = actions;
+                return g;
+            }, persistGoal: false);
+            _selectedActionId = id;
+            _selectedCheckInId = null;
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to add action right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    async Task AddCheckIn()
+    {
+        if (Growth is null || !Guid.TryParse(GoalId, out var gid) || Growth.Id == Guid.Empty) return;
+        var today = DisplayLabels.TodayIsoDateLocal();
+        try
+        {
+            var res = await Api.AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest
+            {
+                Date = DateTimeOffset.TryParse(today, out var d) ? d : DateTimeOffset.Now,
+                Signal = AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed,
+                Note = ""
+            });
+            var id = res.Id ?? Guid.NewGuid();
+            CommitGoal(g =>
+            {
+                var checkIns = new List<GrowthGoalCheckIn>
+                {
+                    new() { Id = id, DateIso = today, Signal = GrowthGoalCheckInSignal.Mixed, Note = "" }
+                };
+                checkIns.AddRange(g.CheckIns);
+                g.CheckIns = checkIns;
+                return g;
+            }, persistGoal: false);
+            _selectedCheckInId = id;
+            _selectedActionId = null;
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to add check-in right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    void DebounceGoal(Func<Task> action)
+    {
+        _goalDebounce?.Cancel();
+        _goalDebounce = new CancellationTokenSource();
+        var token = _goalDebounce.Token;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, token);
+                if (!token.IsCancellationRequested)
+                    await InvokeAsync(async () => await action());
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    void DebounceAction(Guid id, Func<Task> action)
+    {
+        if (_actionDebounce.TryGetValue(id, out var existing)) existing.Cancel();
+        var cts = new CancellationTokenSource();
+        _actionDebounce[id] = cts;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, cts.Token);
+                if (!cts.Token.IsCancellationRequested)
+                    await InvokeAsync(async () => await action());
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    void DebounceCheckIn(Guid id, Func<Task> action)
+    {
+        if (_checkInDebounce.TryGetValue(id, out var existing)) existing.Cancel();
+        var cts = new CancellationTokenSource();
+        _checkInDebounce[id] = cts;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(400, cts.Token);
+                if (!cts.Token.IsCancellationRequested)
+                    await InvokeAsync(async () => await action());
+            }
+            catch (TaskCanceledException) { }
+        });
+    }
+
+    async Task PersistGoalAsync(Guid growthId, Guid goalId, GrowthGoal goal)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsGrowthGoalsUpdateGrowthGoalEndpointAsync(growthId, goalId, new AtlasApiDTOsGrowthGoalsUpdateGrowthGoalRequest
+            {
+                Title = goal.Title,
+                Description = goal.Description,
+                Status = ApiMappers.ToApiGrowthGoalStatus(goal.Status),
+                StartDate = DateTimeOffset.TryParse(goal.StartDateIso, out var sd) ? sd : null,
+                TargetDate = DateTimeOffset.TryParse(goal.TargetDateIso, out var td) ? td : null,
+                Category = goal.Category,
+                Priority = goal.Priority is null ? null : ApiMappers.ToApiPriority(goal.Priority.Value),
+                ProgressPercent = goal.ProgressPercent,
+                Summary = goal.Summary,
+                SuccessCriteria = goal.SuccessCriteria.ToList()
+            });
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save goal changes right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    async Task PersistActionAsync(Guid growthId, Guid goalId, GrowthGoalAction action)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsGrowthGoalsActionsUpdateGrowthGoalActionEndpointAsync(growthId, goalId, action.Id, new AtlasApiDTOsGrowthGoalsActionsUpdateGrowthGoalActionRequest
+            {
+                Title = action.Title,
+                State = ApiMappers.ToApiGrowthGoalActionState(action.State),
+                DueDate = DateTimeOffset.TryParse(action.DueDateIso, out var d) ? d : null,
+                Priority = action.Priority is null ? null : ApiMappers.ToApiPriority(action.Priority.Value),
+                Notes = action.Notes,
+                Evidence = action.Links.Count > 0 ? string.Join('\n', action.Links) : null
+            });
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save action changes right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    async Task PersistCheckInAsync(Guid growthId, Guid goalId, GrowthGoalCheckIn checkIn)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsGrowthGoalsCheckInsUpdateGrowthGoalCheckInEndpointAsync(growthId, goalId, checkIn.Id, new AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest
+            {
+                Date = DateTimeOffset.TryParse(checkIn.DateIso, out var d) ? d : null,
+                Signal = ApiMappers.ToApiGrowthGoalCheckInSignal(checkIn.Signal),
+                Note = checkIn.Note
+            });
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save check-in changes right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    static GrowthGoal CloneGoal(GrowthGoal g) => new()
+    {
+        Id = g.Id,
+        Title = g.Title,
+        Description = g.Description,
+        Status = g.Status,
+        Category = g.Category,
+        Priority = g.Priority,
+        StartDateIso = g.StartDateIso,
+        TargetDateIso = g.TargetDateIso,
+        LastUpdatedIso = g.LastUpdatedIso,
+        ProgressPercent = g.ProgressPercent,
+        Summary = g.Summary,
+        SuccessCriteria = g.SuccessCriteria.ToList(),
+        Actions = g.Actions.Select(CloneAction).ToList(),
+        CheckIns = g.CheckIns.Select(CloneCheckIn).ToList()
+    };
+
+    static GrowthGoalAction CloneAction(GrowthGoalAction a) => new()
+    {
+        Id = a.Id,
+        Title = a.Title,
+        DueDateIso = a.DueDateIso,
+        State = a.State,
+        Priority = a.Priority,
+        Notes = a.Notes,
+        Links = a.Links.ToList()
+    };
+
+    static GrowthGoalCheckIn CloneCheckIn(GrowthGoalCheckIn c) => new()
+    {
+        Id = c.Id,
+        DateIso = c.DateIso,
+        Signal = c.Signal,
+        Note = c.Note
+    };
+
+    void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        _goalDebounce?.Cancel();
+        foreach (var cts in _actionDebounce.Values) cts.Cancel();
+        foreach (var cts in _checkInDebounce.Values) cts.Cancel();
+    }
+}

@@ -1,0 +1,461 @@
+@inject AppCacheService Cache
+@inject NavigationManager Nav
+@inject IAtlasApiClient Api
+@inject BrowserDialogs Dialogs
+
+<section class="card subtle" aria-label="Notes tab">
+    <div class="cardHeader">
+        <div class="cardTitle">Notes</div>
+        <div class="row" style="margin-top: 0">
+            <button class="btn" type="button" @onclick="OpenNew">+ New</button>
+        </div>
+    </div>
+
+    <div class="pad">
+        <div class="tasksFiltersRow" aria-label="Notes filters">
+            <label class="field" style="grid-column: 1 / span 2">
+                <div class="fieldLabel">Search</div>
+                <input class="input" placeholder="Search notes by title, tag, person, or text…" @bind="_query" @bind:event="oninput" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Tag</div>
+                <select class="select" @bind="_tagFilter">
+                    <option value="All">Any tag</option>
+                    @foreach (var t in NoteTags)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Sort</div>
+                <select class="select" @bind="_sortBy">
+                    <option value="Newest">Newest first</option>
+                    <option value="Oldest">Oldest first</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="chipRow memberNotesQuickFilters" aria-label="Notes quick filters">
+            <button type="button" class="chipBtn @(_quickFilter == "All" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "All"'>All</button>
+            <button type="button" class="chipBtn @(_quickFilter == "ThisWeek" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "ThisWeek"'>This Week</button>
+            <button type="button" class="chipBtn @(_quickFilter == "ActionItems" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "ActionItems"'>Action Items</button>
+            <button type="button" class="chipBtn @(_quickFilter == "OneOnOne" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "OneOnOne"'>1:1</button>
+            <button type="button" class="chipBtn @(_quickFilter == "Risks" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "Risks"'>Risks</button>
+        </div>
+
+        <div class="list listCard memberNotesList">
+            @if (FilteredSorted.Count == 0)
+            {
+                <div class="muted pad">No notes match your filters.</div>
+            }
+            else
+            {
+                @foreach (var n in FilteredSorted)
+                {
+                    var note = n;
+                    var expanded = _expandedNoteId == note.Id;
+                    <div class="listRow memberNotesRow memberNotesRowBtn @(expanded ? "memberNotesRowExpanded" : null)"
+                         role="button"
+                         tabindex="0"
+                         aria-expanded="@expanded"
+                         @onclick="() => ToggleExpand(note.Id)"
+                         @ondblclick="() => OpenFull(note.Id)"
+                         @onkeydown="e => OnRowKey(e, note.Id)">
+                        <div class="listMain">
+                            <div class="memberNotesHeaderRow">
+                                <div class="memberNotesHeaderLeft">
+                                    <div class="listTitle memberNotesTitle">@DisplayLabels.GetDerivedTitle(note)</div>
+                                    <div class="listMeta memberNotesMeta">
+                                        @DisplayLabels.FormatLocalDate(note.CreatedIso)
+                                        @if (!string.IsNullOrEmpty(note.AdoWorkItemId))
+                                        {
+                                            <text> • ADO: @note.AdoWorkItemId</text>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="memberNotesRowActions">
+                                    <button type="button"
+                                            class="chip chipTag chipTag-@note.Tag.ToString().ToLowerInvariant() memberNotesTagPill"
+                                            title="Open note"
+                                            @onclick="e => OpenNoteModal(e, note.Id)"
+                                            @onclick:stopPropagation="true">
+                                        @note.Tag
+                                    </button>
+                                    <button type="button"
+                                            class="btn btnGhost btnIcon"
+                                            title="Open full page"
+                                            @onclick="e => OpenFullClick(e, note.Id)"
+                                            @onclick:stopPropagation="true">
+                                        ↗
+                                    </button>
+                                    <button type="button"
+                                            class="btn btnGhost btnIcon"
+                                            title="@(expanded ? "Collapse" : "Expand")"
+                                            @onclick="e => ToggleExpandClick(e, note.Id)"
+                                            @onclick:stopPropagation="true">
+                                        @(expanded ? "▾" : "▸")
+                                    </button>
+                                </div>
+                            </div>
+                            @if (expanded)
+                            {
+                                <div class="memberNotesExpandedBody">
+                                    <div class="noteText noteBody memberNotesExpandedMarkdown">
+                                        <MarkdownBlock Text="@note.Text" />
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="memberNotesCollapsedMarkdown">
+                                    <MarkdownBlock Text="@note.Text" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+<AtlasModal Title="@(SelectedNote is null ? "Note" : DisplayLabels.GetDerivedTitle(SelectedNote))"
+            IsOpen="@(SelectedNote is not null)"
+            OnClose="CloseNoteModal">
+    <ChildContent>
+        @if (SelectedNote is not null)
+        {
+            <div class="noteMeta">
+                <span class="chip chipTag chipTag-@SelectedNote.Tag.ToString().ToLowerInvariant()">@SelectedNote.Tag</span>
+                <span class="mutedSmall">@DisplayLabels.FormatDateTime(SelectedNote.CreatedIso)</span>
+                @if (!string.IsNullOrEmpty(SelectedNote.AdoWorkItemId))
+                {
+                    <span class="chip chipGhost">ADO: @SelectedNote.AdoWorkItemId</span>
+                }
+                @if (!string.IsNullOrEmpty(SelectedNote.PrUrl))
+                {
+                    <span class="chip chipGhost">PR</span>
+                }
+            </div>
+            @if (_isEditOpen)
+            {
+                <div class="noteEdit">
+                    <div class="fieldGrid2" style="margin-bottom: 12px">
+                        <label class="field">
+                            <div class="fieldLabel">ADO work item id (optional)</div>
+                            <input class="input" @bind="_draftAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                        </label>
+                        <label class="field">
+                            <div class="fieldLabel">PR URL (optional)</div>
+                            <input class="input" @bind="_draftPr" @bind:event="oninput" placeholder="https://…" />
+                        </label>
+                    </div>
+                    <div class="noteEditTabs">
+                        <button type="button" class="btn btnGhost @(_editTab == "Write" ? "noteEditTabActive" : null)" @onclick='() => _editTab = "Write"'>Write</button>
+                        <button type="button" class="btn btnGhost @(_editTab == "Preview" ? "noteEditTabActive" : null)" @onclick='() => _editTab = "Preview"'>Preview</button>
+                    </div>
+                    @if (_editTab == "Write")
+                    {
+                        <textarea class="textarea textareaAutoGrow noteEditTextarea" @bind="_draftText" @bind:event="oninput"></textarea>
+                    }
+                    else
+                    {
+                        <div class="noteText noteBody"><MarkdownBlock Text="@_draftText" /></div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="noteText noteBody"><MarkdownBlock Text="@SelectedNote.Text" /></div>
+            }
+        }
+    </ChildContent>
+    <Footer>
+        @if (SelectedNote is not null)
+        {
+            <div class="row" style="margin-top: 0">
+                @if (_isEditOpen)
+                {
+                    <button class="btn btnSecondary" type="button" @onclick="SaveNoteEdit">Save</button>
+                    <button class="btn btnGhost" type="button" @onclick="CancelNoteEdit">Cancel</button>
+                }
+                else
+                {
+                    <button class="btn btnGhost" type="button" @onclick="BeginNoteEdit">Edit</button>
+                }
+                <button class="btn btnGhost" type="button" @onclick="() => OpenFull(SelectedNote.Id)">Open full page</button>
+            </div>
+        }
+    </Footer>
+</AtlasModal>
+
+<AtlasModal Title="New note" IsOpen="_isNewOpen" OnClose="CloseNew">
+    <ChildContent>
+        <div class="fieldGrid">
+            <label class="field">
+                <div class="fieldLabel">Tag</div>
+                <select class="select" value="@_newTag" @onchange="e => _newTag = Enum.Parse<NoteTag>((string)e.Value!)">
+                    @foreach (var t in NoteTags)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Title (optional)</div>
+                <input class="input" @bind="_newTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">ADO work item id (optional)</div>
+                <input class="input" @bind="_newAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">PR URL (optional)</div>
+                <input class="input" @bind="_newPr" @bind:event="oninput" placeholder="https://…" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Note</div>
+                <textarea class="textarea" @bind="_newText" @bind:event="oninput" placeholder="Write your note…"></textarea>
+            </label>
+        </div>
+    </ChildContent>
+    <Footer>
+        <div class="row" style="margin-top: 0">
+            <button class="btn btnSecondary" type="button" @onclick="CreateNote">Create</button>
+            <button class="btn btnGhost" type="button" @onclick="CloseNew">Cancel</button>
+        </div>
+    </Footer>
+</AtlasModal>
+
+@code {
+    [Parameter, EditorRequired] public TeamMember Member { get; set; } = default!;
+
+    static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
+
+    string _query = "";
+    string _tagFilter = "All";
+    string _sortBy = "Newest";
+    string _quickFilter = "All";
+    Guid? _expandedNoteId;
+    Guid? _selectedNoteId;
+    bool _isNewOpen;
+    bool _isEditOpen;
+    string _editTab = "Write";
+    NoteTag _newTag = NoteTag.Quick;
+    string _newTitle = "", _newText = "", _newAdo = "", _newPr = "";
+    string _draftText = "", _draftAdo = "", _draftPr = "";
+
+    TeamNote? SelectedNote =>
+        _selectedNoteId is Guid id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
+
+    List<TeamNote> FilteredSorted
+    {
+        get
+        {
+            var q = _query.Trim().ToLowerInvariant();
+            var now = DateTimeOffset.UtcNow;
+            var weekMs = TimeSpan.FromDays(7);
+
+            bool Matches(TeamNote n)
+            {
+                if (_tagFilter != "All" && !string.Equals(n.Tag.ToString(), _tagFilter, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                if (_quickFilter == "ThisWeek")
+                {
+                    if (!DateTimeOffset.TryParse(n.CreatedIso, out var created) || now - created.ToUniversalTime() > weekMs)
+                        return false;
+                }
+                else if (_quickFilter == "ActionItems" && !IsActionItemNote(n)) return false;
+                else if (_quickFilter == "OneOnOne" && !IsOneOnOneNote(n)) return false;
+                else if (_quickFilter == "Risks" && !IsRiskNote(n)) return false;
+
+                if (string.IsNullOrEmpty(q)) return true;
+                var hay = string.Join(' ', n.Tag, n.Title ?? "", DisplayLabels.GetDerivedTitle(n), n.Text, n.AdoWorkItemId ?? "", n.PrUrl ?? "").ToLowerInvariant();
+                return hay.Contains(q);
+            }
+
+            var list = Member.Notes.Where(Matches).ToList();
+            list.Sort((a, b) =>
+            {
+                var at = DateTimeOffset.TryParse(a.CreatedIso, out var ad) ? ad.ToUnixTimeMilliseconds() : 0;
+                var bt = DateTimeOffset.TryParse(b.CreatedIso, out var bd) ? bd.ToUnixTimeMilliseconds() : 0;
+                return _sortBy == "Newest" ? bt.CompareTo(at) : at.CompareTo(bt);
+            });
+            return list;
+        }
+    }
+
+    static bool IsActionItemNote(TeamNote note)
+    {
+        var t = note.Text.ToLowerInvariant();
+        return t.Contains("- [ ]") || t.Contains("action item") || t.Contains("next:") || t.Contains("todo");
+    }
+
+    static bool IsOneOnOneNote(TeamNote note)
+    {
+        var t = note.Text.ToLowerInvariant();
+        return t.Contains("1:1") || t.Contains("one-on-one") || t.Contains("one on one");
+    }
+
+    static bool IsRiskNote(TeamNote note)
+    {
+        if (note.Tag is NoteTag.Concern or NoteTag.Blocker) return true;
+        var t = note.Text.ToLowerInvariant();
+        return t.Contains("risk") || t.Contains("mitigation") || t.Contains("watchout") || t.Contains("watch-outs");
+    }
+
+    void ToggleExpand(Guid id) => _expandedNoteId = _expandedNoteId == id ? null : id;
+
+    void ToggleExpandClick(MouseEventArgs _, Guid id) => ToggleExpand(id);
+
+    void OnRowKey(KeyboardEventArgs e, Guid id)
+    {
+        if (e.Key is "Enter" or " ") ToggleExpand(id);
+    }
+
+    void OpenNoteModal(MouseEventArgs _, Guid id)
+    {
+        _selectedNoteId = id;
+        _isEditOpen = false;
+        _draftText = "";
+        _editTab = "Write";
+    }
+
+    void CloseNoteModal()
+    {
+        _selectedNoteId = null;
+        _isEditOpen = false;
+        _draftText = _draftAdo = _draftPr = "";
+        _editTab = "Write";
+    }
+
+    void BeginNoteEdit()
+    {
+        if (SelectedNote is null) return;
+        _isEditOpen = true;
+        _draftText = SelectedNote.Text;
+        _draftAdo = SelectedNote.AdoWorkItemId ?? "";
+        _draftPr = SelectedNote.PrUrl ?? "";
+        _editTab = "Write";
+    }
+
+    void CancelNoteEdit()
+    {
+        _isEditOpen = false;
+        _draftText = _draftAdo = _draftPr = "";
+        _editTab = "Write";
+    }
+
+    async Task SaveNoteEdit()
+    {
+        if (SelectedNote is null) return;
+        var note = SelectedNote;
+        var updated = CloneNote(note);
+        updated.Text = _draftText;
+        updated.AdoWorkItemId = string.IsNullOrWhiteSpace(_draftAdo) ? null : _draftAdo.Trim();
+        updated.PrUrl = string.IsNullOrWhiteSpace(_draftPr) ? null : _draftPr.Trim();
+        updated.LastModifiedIso = DateTimeOffset.UtcNow.ToString("o");
+
+        try
+        {
+            await Api.AtlasApiEndpointsTeamMembersNotesUpdateTeamNoteEndpointAsync(Member.Id, note.Id, new AtlasApiDTOsTeamMembersNotesUpdateTeamNoteRequest
+            {
+                Type = ApiMappers.ToApiNoteType(updated.Tag),
+                Title = updated.Title,
+                Text = updated.Text,
+                AdoWorkItemId = updated.AdoWorkItemId,
+                PrUrl = updated.PrUrl
+            });
+            var nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
+            Cache.UpdateTeamMember(CloneMemberWithNotes(Member, nextNotes));
+            _isEditOpen = false;
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    void OpenFull(Guid noteId) => Nav.NavigateTo($"/team/{Member.Id}/notes/{noteId}");
+
+    void OpenFullClick(MouseEventArgs _, Guid noteId) => OpenFull(noteId);
+
+    void OpenNew()
+    {
+        _isNewOpen = true;
+        _newTag = NoteTag.Quick;
+        _newTitle = _newText = _newAdo = _newPr = "";
+    }
+
+    void CloseNew()
+    {
+        _isNewOpen = false;
+        _newTitle = _newText = _newAdo = _newPr = "";
+    }
+
+    async Task CreateNote()
+    {
+        if (string.IsNullOrWhiteSpace(_newText)) return;
+        var title = _newTitle.Trim();
+        var ado = _newAdo.Trim();
+        var pr = _newPr.Trim();
+        try
+        {
+            var res = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(Member.Id, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
+            {
+                Type = ApiMappers.ToApiNoteType(_newTag),
+                Title = string.IsNullOrEmpty(title) ? null : title,
+                Text = _newText.Trim(),
+                AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
+                PrUrl = string.IsNullOrEmpty(pr) ? null : pr
+            });
+            var id = res.Id ?? Guid.NewGuid();
+            var now = DateTimeOffset.UtcNow.ToString("o");
+            var saved = new TeamNote
+            {
+                Id = id,
+                CreatedIso = now,
+                LastModifiedIso = now,
+                Tag = _newTag,
+                Title = string.IsNullOrEmpty(title) ? null : title,
+                Text = _newText.Trim(),
+                AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
+                PrUrl = string.IsNullOrEmpty(pr) ? null : pr
+            };
+            Cache.UpdateTeamMember(CloneMemberWithNotes(Member, new[] { saved }.Concat(Member.Notes).ToList()));
+            CloseNew();
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.AlertAsync($"Unable to create note right now. Please try again.\n\n{ex.Message}");
+        }
+    }
+
+    static TeamNote CloneNote(TeamNote n) => new()
+    {
+        Id = n.Id,
+        CreatedIso = n.CreatedIso,
+        LastModifiedIso = n.LastModifiedIso,
+        Tag = n.Tag,
+        Title = n.Title,
+        Text = n.Text,
+        AdoWorkItemId = n.AdoWorkItemId,
+        PrUrl = n.PrUrl
+    };
+
+    static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) => new()
+    {
+        Id = m.Id,
+        Name = m.Name,
+        Role = m.Role,
+        StatusDot = m.StatusDot,
+        CurrentFocus = m.CurrentFocus,
+        Profile = m.Profile,
+        Signals = m.Signals,
+        Notes = notes,
+        PinnedNoteIds = m.PinnedNoteIds,
+        ActivitySnapshot = m.ActivitySnapshot,
+        AzureItems = m.AzureItems
+    };
+}
