@@ -1,0 +1,99 @@
+@inject NavigationManager Nav
+
+<section class="card subtle" aria-label="Work items tab">
+    <div class="cardHeader">
+        <div class="cardTitle">Work Items</div>
+    </div>
+    <div class="pad">
+        <div class="tasksFiltersRow" aria-label="Work items filters">
+            <label class="field" style="grid-column: 1 / span 3">
+                <div class="fieldLabel">Search</div>
+                <input class="input" placeholder="Search by id, title, or status…" @bind="_query" @bind:event="oninput" />
+            </label>
+            <label class="field">
+                <div class="fieldLabel">Status</div>
+                <select class="select" @bind="_statusFilter">
+                    @foreach (var s in StatusOptions)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+            </label>
+        </div>
+
+        <div class="chipRow memberWorkItemsQuickFilters" aria-label="Work items quick filters">
+            <button type="button" class="chipBtn @(_quickFilter == "All" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "All"'>All</button>
+            <button type="button" class="chipBtn @(_quickFilter == "Current" ? "chipBtnActive" : null)" title="In progress, blocked, or in review" @onclick='() => _quickFilter = "Current"'>Current</button>
+            <button type="button" class="chipBtn @(_quickFilter == "InReview" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "InReview"'>In Review</button>
+            <button type="button" class="chipBtn @(_quickFilter == "Blocked" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "Blocked"'>Blocked</button>
+        </div>
+
+        <div class="focusTicketsList" role="list">
+            @if (Filtered.Count == 0)
+            {
+                <div class="muted pad">No work items match your search.</div>
+            }
+            else
+            {
+                @foreach (var a in Filtered)
+                {
+                    var item = a;
+                    <button type="button"
+                            class="focusTicketRow focusTicketRowBtn @Tones.TicketAttentionTone(item.Status)"
+                            @onclick="() => OpenItem(item.Id)">
+                        <div class="listMain">
+                            <div class="listTitle">@item.Id — @item.Title</div>
+                            <div class="listMeta">
+                                @item.Status
+                                @if (!string.IsNullOrEmpty(item.TimeTaken))
+                                {
+                                    <text> • @item.TimeTaken</text>
+                                }
+                            </div>
+                        </div>
+                    </button>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public TeamMember Member { get; set; } = default!;
+
+    string _query = "";
+    string _quickFilter = "All";
+    string _statusFilter = "All";
+
+    List<string> StatusOptions =>
+        new[] { "All" }.Concat(Member.AzureItems.Select(a => a.Status).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s)).ToList();
+
+    List<AzureItem> Filtered
+    {
+        get
+        {
+            var q = _query.Trim().ToLowerInvariant();
+            IEnumerable<AzureItem> items = Member.AzureItems;
+            if (_quickFilter == "Current")
+                items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
+            else if (_quickFilter == "Blocked")
+                items = items.Where(a => a.Status.Contains("blocked", StringComparison.OrdinalIgnoreCase));
+            else if (_quickFilter == "InReview")
+                items = items.Where(a =>
+                {
+                    var s = a.Status.ToLowerInvariant();
+                    return s.Contains("code review") || s.Contains("in review") || s.Contains("review");
+                });
+
+            if (_statusFilter != "All")
+                items = items.Where(a => a.Status == _statusFilter);
+
+            if (!string.IsNullOrEmpty(q))
+                items = items.Where(a => $"{a.Id} {a.Title} {a.Status}".ToLowerInvariant().Contains(q));
+
+            return items.ToList();
+        }
+    }
+
+    void OpenItem(string id) => Nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
+}

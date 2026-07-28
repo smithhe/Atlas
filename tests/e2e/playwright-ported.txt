@@ -11,3 +11,4 @@ e2e/flows/focus-url.spec.ts
 e2e/flows/delete-smoke.spec.ts
 e2e/flows/settings-smoke.spec.ts
 e2e/flows/persist-reload.spec.ts
+e2e/flows/team-note-ado-pr.spec.ts

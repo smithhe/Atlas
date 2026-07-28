@@ -79,6 +79,9 @@ public sealed class AppCacheService
     public IReadOnlyList<Risk> Risks { get; private set; } = Array.Empty<Risk>();
     public IReadOnlyList<AtlasTask> Tasks { get; private set; } = Array.Empty<AtlasTask>();
 
+    /// <summary>Per-member growth records keyed by team member id (lazy-loaded).</summary>
+    readonly Dictionary<Guid, Growth> _growthByMemberId = new();
+
     public string? LastError { get; private set; }
 
     public event Action? Changed;
@@ -276,6 +279,98 @@ public sealed class AppCacheService
         var next = TeamLogic.WithDerivedActivitySnapshot(member);
         Team = Team.Select(m => m.Id == next.Id ? next : m).ToList();
         Notify();
+    }
+
+    public void AddTeamMemberRisk(TeamMemberRisk risk)
+    {
+        TeamMemberRisks = new[] { risk }.Concat(TeamMemberRisks).ToList();
+        Notify();
+    }
+
+    public void UpdateTeamMemberRisk(TeamMemberRisk risk)
+    {
+        TeamMemberRisks = TeamMemberRisks.Select(r => r.Id == risk.Id ? risk : r).ToList();
+        Notify();
+    }
+
+    public void RemoveTeamMemberRisk(Guid riskId)
+    {
+        TeamMemberRisks = TeamMemberRisks.Where(r => r.Id != riskId).ToList();
+        Notify();
+    }
+
+    public Growth? GetGrowth(Guid memberId)
+    {
+        lock (_gate)
+        {
+            return _growthByMemberId.TryGetValue(memberId, out var g) ? g : null;
+        }
+    }
+
+    public void UpdateGrowth(Growth growth)
+    {
+        lock (_gate)
+        {
+            _growthByMemberId[growth.MemberId] = growth;
+        }
+
+        Notify();
+    }
+
+    public async Task<Growth?> EnsureGrowthLoadedAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        lock (_gate)
+        {
+            if (_growthByMemberId.TryGetValue(memberId, out var cached))
+                return cached;
+        }
+
+        try
+        {
+            AtlasApiDTOsGrowthGrowthDto dto;
+            try
+            {
+                dto = await _api.AtlasApiEndpointsGrowthGetGrowthByTeamMemberEndpointAsync(memberId, cancellationToken);
+            }
+            catch (AtlasApiException ex) when (ex.StatusCode is 404)
+            {
+                var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
+                var growthId = ensured.GrowthId ?? Guid.Empty;
+                if (growthId == Guid.Empty)
+                    return null;
+                dto = await _api.AtlasApiEndpointsGrowthGetGrowthEndpointAsync(growthId, cancellationToken);
+            }
+
+            var mapped = ApiMappers.MapGrowth(dto);
+            UpdateGrowth(mapped);
+            return mapped;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            Notify();
+            return GetGrowth(memberId);
+        }
+    }
+
+    public async Task<Guid> EnsureGrowthIdAsync(Guid memberId, CancellationToken cancellationToken = default)
+    {
+        var existing = await EnsureGrowthLoadedAsync(memberId, cancellationToken);
+        if (existing is not null && existing.Id != Guid.Empty)
+            return existing.Id;
+
+        var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
+        var id = ensured.GrowthId ?? Guid.Empty;
+        UpdateGrowth(new Growth
+        {
+            Id = id,
+            MemberId = memberId,
+            Goals = Array.Empty<GrowthGoal>(),
+            SkillsInProgress = Array.Empty<string>(),
+            FeedbackThemes = Array.Empty<GrowthFeedbackTheme>(),
+            FocusAreasMarkdown = ""
+        });
+        return id;
     }
 
     public void ReplaceTeamMembers(IReadOnlyList<TeamMember> team, IReadOnlyList<TeamMemberRisk> risks)
