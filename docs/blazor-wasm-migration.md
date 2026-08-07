@@ -179,6 +179,7 @@ Capture **before Phase 4 starts**. React remains in repo until Phase 8 standalon
 - Blazor screenshots for routes touched in the phase, same viewports.
 - Compare against **fixed Phase 3 React baseline** — not re-captured React.
 - Mark each row: **match**, **minor deviation** (describe), or **N/A**.
+- Phase 7: `docs/migration-screenshots/blazor-phase7/` — panel closed/open + streaming transcript (Markdig diffs = **minor deviation**).
 
 Phase 8 **verifies baseline completeness** only — must not create the baseline for the first time.
 
@@ -538,10 +539,28 @@ Thin Team (`/team/{id}`, `/team/{id}/notes`) only — full hub is Phase 6. AI pa
 
 **Prerequisite:** Phase 6 merged.
 
-- [ ] AI panel + EventSource interop; **sanitized Markdig** (document rendering diffs vs React in handoff)
-- [ ] `ai-panel` Playwright ported; append to manifest
+- [x] AI panel + EventSource interop; **sanitized Markdig** (document rendering diffs vs React in handoff)
+- [x] `ai-panel` Playwright ported; append to manifest
 
 **Exit:** Streaming parity; markdown security accepted manually; `ai-panel` green; manifest lists `blazor-host.spec.ts` + all 14 ported flows.
+
+#### Phase 7 handoff — Markdig vs React markdown
+
+Blazor `MarkdownBlock` uses **Markdig** (`UseAdvancedExtensions`) → **HtmlSanitizer (Ganss)** → highlight.js (`github-dark`). React uses `react-markdown` + `remark-gfm` + `rehype-highlight`.
+
+Expect **minor visual differences** (acceptable; security improvement is intentional):
+
+| Topic | React | Blazor (Markdig) |
+| --- | --- | --- |
+| HTML / XSS | Relies on react-markdown defaults | Sanitize-after-render (scripts/events stripped) |
+| GFM tables / strikethrough / task lists | remark-gfm | Markdig advanced extensions (close, not identical edge cases) |
+| Code highlighting | rehype-highlight class names | highlight.js after render on `pre code` |
+| Soft line breaks | Treated as spaces (no remark-breaks) | Same (no soft→hard break) |
+| Links | `target=_blank` `rel=noreferrer` | Same post-process on `<a href=` |
+
+Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTML injection.
+
+**Screenshots:** `docs/migration-screenshots/blazor-phase7/` (panel closed/open + streaming transcript).
 
 ### Phase 8 — Cutover to `main`
 
@@ -593,4 +612,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 6 Team hub + `team-note-ado-pr` Playwright port is complete on `cursor/blazor-wasm-phase6-11cd`. After merge to the umbrella: cut a Phase 7 branch and execute the **AI assistant** (EventSource interop + sanitized Markdig) + `ai-panel` Playwright port.
+Phase 7 AI assistant (EventSource interop + sanitized Markdig + `ai-panel` Playwright) is complete on `cursor/blazor-wasm-phase7-a409`. After merge to the umbrella: cut a Phase 8 branch and execute **cutover** (relocate Playwright → `tests/e2e/`, CI, full validation, then delete React) — do not start Phase 8 steps until Phase 7 is merged.

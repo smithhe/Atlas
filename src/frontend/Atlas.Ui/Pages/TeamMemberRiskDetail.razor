@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Team Member Risk — Atlas</PageTitle>
 
@@ -223,6 +224,11 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
+        Ai.SetContext("Context: Team Member Risk Detail",
+        [
+            new AiAction("summarize-risk", "Summarize this risk"),
+            new AiAction("suggest-mitigation", "Suggest mitigation experiments"),
+        ]);
         _ = Cache.EnsureHydratedAsync();
     }
 
