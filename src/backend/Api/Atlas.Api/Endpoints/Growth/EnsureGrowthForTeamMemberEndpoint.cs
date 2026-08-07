@@ -3,7 +3,7 @@ using Atlas.Application.Features.Growth.EnsureGrowthForTeamMember;
 
 namespace Atlas.Api.Endpoints.Growth;
 
-public sealed class EnsureGrowthForTeamMemberEndpoint : Endpoint<EnsureGrowthForTeamMemberRequest, EnsureGrowthForTeamMemberResponse>
+public sealed class EnsureGrowthForTeamMemberEndpoint : EndpointWithoutRequest<EnsureGrowthForTeamMemberResponse>
 {
     private readonly IMediator _mediator;
 
@@ -19,13 +19,11 @@ public sealed class EnsureGrowthForTeamMemberEndpoint : Endpoint<EnsureGrowthFor
         Summary(s => { s.Summary = "Ensure a growth plan exists for a team member"; });
     }
 
-    public override async Task HandleAsync(EnsureGrowthForTeamMemberRequest req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
         Guid teamMemberId = Route<Guid>("teamMemberId");
-        req = new EnsureGrowthForTeamMemberRequest(TeamMemberId: teamMemberId);
 
-        Guid id = await _mediator.Send(new EnsureGrowthForTeamMemberCommand(req.TeamMemberId), ct);
+        Guid id = await _mediator.Send(new EnsureGrowthForTeamMemberCommand(teamMemberId), ct);
         await Send.OkAsync(new EnsureGrowthForTeamMemberResponse(id), ct);
     }
 }
-
