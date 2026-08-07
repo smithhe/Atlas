@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Projects — Atlas</PageTitle>
 
@@ -256,6 +257,11 @@
         Cache.Changed += OnChanged;
         Selection.Changed += OnChanged;
         Nav.LocationChanged += OnLocationChanged;
+        Ai.SetContext("Context: Projects",
+        [
+            new AiAction("project-summary", "Summarize project status"),
+            new AiAction("identify-risks", "Identify risks"),
+        ]);
         SyncTabFromUri();
         _ = Cache.EnsureHydratedAsync();
     }

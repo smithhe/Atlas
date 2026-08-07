@@ -1,7 +1,9 @@
+@implements IDisposable
 @inject AppCacheService Cache
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <section class="card subtle" aria-label="Notes tab">
     <div class="cardHeader">
@@ -320,6 +322,7 @@
         _isEditOpen = false;
         _draftText = "";
         _editTab = "Write";
+        SyncDraftTarget();
     }
 
     void CloseNoteModal()
@@ -328,6 +331,7 @@
         _isEditOpen = false;
         _draftText = _draftAdo = _draftPr = "";
         _editTab = "Write";
+        SyncDraftTarget();
     }
 
     void BeginNoteEdit()
@@ -338,6 +342,7 @@
         _draftAdo = SelectedNote.AdoWorkItemId ?? "";
         _draftPr = SelectedNote.PrUrl ?? "";
         _editTab = "Write";
+        SyncDraftTarget();
     }
 
     void CancelNoteEdit()
@@ -345,6 +350,44 @@
         _isEditOpen = false;
         _draftText = _draftAdo = _draftPr = "";
         _editTab = "Write";
+        SyncDraftTarget();
+    }
+
+    void SyncDraftTarget()
+    {
+        if (_isEditOpen)
+        {
+            Ai.RegisterDraftTarget(new AiDraftTarget
+            {
+                Label = "note body",
+                Insert = text =>
+                {
+                    _draftText = string.IsNullOrWhiteSpace(_draftText)
+                        ? text
+                        : $"{_draftText.TrimEnd()}\n\n{text}";
+                    InvokeAsync(StateHasChanged);
+                },
+            });
+            return;
+        }
+
+        if (_isNewOpen)
+        {
+            Ai.RegisterDraftTarget(new AiDraftTarget
+            {
+                Label = "note body",
+                Insert = text =>
+                {
+                    _newText = string.IsNullOrWhiteSpace(_newText)
+                        ? text
+                        : $"{_newText.TrimEnd()}\n\n{text}";
+                    InvokeAsync(StateHasChanged);
+                },
+            });
+            return;
+        }
+
+        Ai.RegisterDraftTarget(null);
     }
 
     async Task SaveNoteEdit()
@@ -370,6 +413,7 @@
             var nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
             Cache.UpdateTeamMember(CloneMemberWithNotes(Member, nextNotes));
             _isEditOpen = false;
+            SyncDraftTarget();
         }
         catch (Exception ex)
         {
@@ -386,12 +430,14 @@
         _isNewOpen = true;
         _newTag = NoteTag.Quick;
         _newTitle = _newText = _newAdo = _newPr = "";
+        SyncDraftTarget();
     }
 
     void CloseNew()
     {
         _isNewOpen = false;
         _newTitle = _newText = _newAdo = _newPr = "";
+        SyncDraftTarget();
     }
 
     async Task CreateNote()
@@ -458,4 +504,6 @@
         ActivitySnapshot = m.ActivitySnapshot,
         AzureItems = m.AzureItems
     };
+
+    public void Dispose() => Ai.RegisterDraftTarget(null);
 }

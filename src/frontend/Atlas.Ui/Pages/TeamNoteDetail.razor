@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Note — Atlas</PageTitle>
 
@@ -172,6 +173,7 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
+        Ai.SetContext("Context: Team Note Detail", [new AiAction("summarize-note", "Summarize this note")]);
         _ = Cache.EnsureHydratedAsync();
     }
 
@@ -215,6 +217,7 @@
         _draftAdo = Note.AdoWorkItemId ?? "";
         _draftPr = Note.PrUrl ?? "";
         _editing = true;
+        SyncDraftTarget();
     }
 
     void CancelEdit()
@@ -229,6 +232,28 @@
             _draftAdo = Note.AdoWorkItemId ?? "";
             _draftPr = Note.PrUrl ?? "";
         }
+        SyncDraftTarget();
+    }
+
+    void SyncDraftTarget()
+    {
+        if (!_editing)
+        {
+            Ai.RegisterDraftTarget(null);
+            return;
+        }
+
+        Ai.RegisterDraftTarget(new AiDraftTarget
+        {
+            Label = "note body",
+            Insert = text =>
+            {
+                _draftText = string.IsNullOrWhiteSpace(_draftText)
+                    ? text
+                    : $"{_draftText.TrimEnd()}\n\n{text}";
+                InvokeAsync(StateHasChanged);
+            },
+        });
     }
 
     async Task SaveEdit()
@@ -275,6 +300,7 @@
                 AzureItems = Member.AzureItems
             });
             _editing = false;
+            SyncDraftTarget();
         }
         catch (Exception ex)
         {
@@ -294,5 +320,9 @@
         StateHasChanged();
     });
 
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose()
+    {
+        Cache.Changed -= OnChanged;
+        Ai.RegisterDraftTarget(null);
+    }
 }

@@ -2,6 +2,8 @@
 @implements IDisposable
 @inject AppCacheService Cache
 @inject NavigationManager Nav
+@inject AiStateService Ai
+@inject IJSRuntime Js
 
 <div class="appShell">
     <header class="topBar">
@@ -46,22 +48,17 @@
             </div>
         </main>
 
-        @if (_aiOpen)
+        @if (Ai.IsOpen)
         {
             <div class="aiResizer"
                  role="separator"
                  aria-orientation="vertical"
                  aria-label="Resize AI panel"
-                 tabindex="0"></div>
-            <aside class="aiPanel" aria-label="AI panel">
-                <div class="aiPanelHeader">
-                    <div class="aiPanelTitle">AI</div>
-                    <button class="btn btnGhost" type="button" @onclick="CloseAi">Close</button>
-                </div>
-                <div class="aiPanelBody">
-                    <div class="muted">AI assistant stub (Phase 7).</div>
-                </div>
-            </aside>
+                 tabindex="0"
+                 @ondblclick="ResetAiWidth"
+                 @onpointerdown="OnResizePointerDown"
+                 @onkeydown="OnResizeKeyDown"></div>
+            <AiPanel />
         }
     </div>
 
@@ -69,6 +66,9 @@
 </div>
 
 @code {
+    const int MinAiWidth = 320;
+    const string DefaultAiWidthCss = "clamp(320px, 26vw, 560px)";
+
     static readonly NavItem[] NavItems =
     [
         new("/dashboard", "Dashboard"),
@@ -80,10 +80,23 @@
     ];
 
     bool _quickAddOpen;
-    bool _aiOpen;
+    bool _resizing;
+    double _resizeStartX;
+    int _resizeStartWidth;
+    DotNetObjectReference<ShellLayout>? _selfRef;
 
-    string BodyGridClass => _aiOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
-    string AiWidthStyle => "--aiWidth: clamp(320px, 26vw, 560px)";
+    string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
+
+    string AiWidthStyle
+    {
+        get
+        {
+            var width = Ai.PanelWidthPx is int px
+                ? $"{Math.Max(MinAiWidth, px)}px"
+                : DefaultAiWidthCss;
+            return $"--aiWidth: {width}";
+        }
+    }
 
     string ContextTitle
     {
@@ -103,17 +116,75 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnCacheChanged;
+        Ai.Changed += OnAiChanged;
+        Ai.EnsureStartupPreference();
         _ = Cache.EnsureHydratedAsync();
+        _ = EnsureResizeListenersAsync();
+    }
+
+    async Task EnsureResizeListenersAsync()
+    {
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await Js.InvokeVoidAsync("atlasAiEvents.ensureResizeListeners", _selfRef);
+        }
+        catch
+        {
+            // Module may not be ready on first frame.
+        }
     }
 
     void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    void OnAiChanged() => InvokeAsync(StateHasChanged);
 
     void OpenQuickAdd() => _quickAddOpen = true;
     void CloseQuickAdd() => _quickAddOpen = false;
-    void ToggleAi() => _aiOpen = !_aiOpen;
-    void CloseAi() => _aiOpen = false;
+    void ToggleAi() => Ai.SetIsOpen(!Ai.IsOpen);
 
-    public void Dispose() => Cache.Changed -= OnCacheChanged;
+    void ResetAiWidth() => Ai.SetPanelWidthPx(null);
+
+    void OnResizePointerDown(PointerEventArgs e)
+    {
+        _resizing = true;
+        _resizeStartX = e.ClientX;
+        _resizeStartWidth = Ai.PanelWidthPx ?? MinAiWidth;
+        _ = Js.InvokeVoidAsync("atlasAiEvents.beginResizeCapture");
+    }
+
+    void OnResizeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Home")
+        {
+            Ai.SetPanelWidthPx(null);
+            return;
+        }
+
+        var current = Ai.PanelWidthPx ?? MinAiWidth;
+        if (e.Key == "ArrowLeft") Ai.SetPanelWidthPx(current + 20);
+        if (e.Key == "ArrowRight") Ai.SetPanelWidthPx(Math.Max(MinAiWidth, current - 20));
+    }
+
+    [JSInvokable]
+    public void OnAiResizeMove(double clientX, double innerWidth)
+    {
+        if (!_resizing) return;
+        var dx = _resizeStartX - clientX;
+        var next = _resizeStartWidth + dx;
+        var max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
+        Ai.SetPanelWidthPx(Math.Max(MinAiWidth, Math.Min(max, (int)Math.Floor(next))));
+    }
+
+    [JSInvokable]
+    public void OnAiResizeUp() => _resizing = false;
+
+    public void Dispose()
+    {
+        Cache.Changed -= OnCacheChanged;
+        Ai.Changed -= OnAiChanged;
+        _selfRef?.Dispose();
+        _ = Js.InvokeVoidAsync("atlasAiEvents.clearResizeListeners");
+    }
 
     sealed record NavItem(string Href, string Label);
 }
