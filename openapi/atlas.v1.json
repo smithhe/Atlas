@@ -636,10 +636,6 @@
         },
         "type": "object"
       },
-      "AtlasApiDTOsGrowthEnsureGrowthForTeamMemberRequest": {
-        "additionalProperties": false,
-        "type": "object"
-      },
       "AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse": {
         "additionalProperties": false,
         "properties": {
