@@ -78,7 +78,7 @@ export async function stubAiConversation(page: Page, options: StubOptions = {}):
 
     if (path === '/ai/conversations' && method === 'POST') {
       await route.fulfill({
-        status: 200,
+        status: 202,
         contentType: 'application/json',
         body: JSON.stringify({
           conversationId: crypto.randomUUID(),
@@ -90,7 +90,7 @@ export async function stubAiConversation(page: Page, options: StubOptions = {}):
 
     if (/^\/ai\/conversations\/[^/]+\/messages$/.test(path) && method === 'POST') {
       await route.fulfill({
-        status: 200,
+        status: 202,
         contentType: 'application/json',
         body: JSON.stringify({ turnSessionId: crypto.randomUUID() }),
       })
