@@ -5,6 +5,7 @@
 @inject BrowserDialogs Dialogs
 @inject LocalSettings Local
 @inject NavigationManager Nav
+@inject AiStateService Ai
 
 <PageTitle>Settings — Atlas</PageTitle>
 
@@ -149,6 +150,7 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
+        Ai.SetContext("Context: Settings", [new AiAction("settings-help", "Explain settings")]);
         _ = Cache.EnsureHydratedAsync();
         SyncFromCache();
         _ = LoadAzureAsync();

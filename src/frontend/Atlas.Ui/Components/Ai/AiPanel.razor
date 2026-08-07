@@ -1,0 +1,312 @@
+@inject AiStateService Ai
+@inject IJSRuntime Js
+@implements IDisposable
+
+@if (Ai.IsOpen)
+{
+    <aside class="aiPanel" aria-label="AI panel">
+        <div class="aiPanelHeader">
+            <div class="aiPanelTitle">@Ai.ContextTitle</div>
+            <div class="aiPanelHeaderActions">
+                <button class="btn btnSecondary"
+                        type="button"
+                        disabled="@(!CanInsertDraft)"
+                        title="@InsertDraftTitle"
+                        @onclick="HandleInsertDraft">
+                    Insert Draft
+                </button>
+                <button class="btn btnGhost" type="button" disabled="@Ai.IsRunning" @onclick="() => _ = Ai.StartNewSessionAsync()">
+                    New session
+                </button>
+                <button class="btn btnGhost" type="button" @onclick="Ai.ClearOutput">Clear</button>
+                <button class="btn btnGhost" type="button" @onclick="() => Ai.SetIsOpen(false)">Close</button>
+            </div>
+        </div>
+
+        <div class="aiPanelBody">
+            <div class="aiPanelMeta">
+                <div class="mutedSmall">
+                    Status: @Ai.Status@(Ai.IsRunning ? " (running)" : "")@(Ai.ActiveConversationId is not null ? " · In conversation" : "")
+                </div>
+                @if (Ai.ContextSupportMessage is not null)
+                {
+                    <div class="mutedSmall">@Ai.ContextSupportMessage</div>
+                }
+                @if (!Ai.HasDraftTarget)
+                {
+                    <div class="mutedSmall">Insert Draft: edit a task note or note body first</div>
+                }
+                @if (!string.IsNullOrEmpty(Ai.Notice))
+                {
+                    <div class="aiPanelNotice">@Ai.Notice</div>
+                }
+            </div>
+
+            @if (ShowOpenAiSetup)
+            {
+                <div class="aiPanelSetupGuide" role="status">
+                    <div class="aiPanelSetupTitle">OpenAI API key required</div>
+                    <div class="mutedSmall">Atlas AI needs an OpenAI key. Configure one of these, then restart the API:</div>
+                    <ul class="aiPanelSetupList">
+                        <li>Environment variable: <code>OpenAI__ApiKey</code></li>
+                        <li>
+                            User secrets in the Atlas.Api project:
+                            <code>dotnet user-secrets set "OpenAI:ApiKey" "&lt;key&gt;"</code>
+                        </li>
+                        <li>Compose <code>.env</code>: <code>OpenAI__ApiKey=...</code></li>
+                    </ul>
+                </div>
+            }
+
+            <div @ref="_scrollRef" class="aiPanelScroll" role="log" aria-label="AI conversation" aria-live="polite">
+                @if (Ai.Turns.Count == 0)
+                {
+                    <div class="aiPanelEmpty muted">Ask a question or choose an action to get started.</div>
+                }
+                else
+                {
+                    @for (var i = 0; i < Ai.Turns.Count; i++)
+                    {
+                        var turn = Ai.Turns[i];
+                        var isLast = i == Ai.Turns.Count - 1;
+                        var isThinking = isLast && Ai.IsRunning && string.IsNullOrWhiteSpace(turn.Response);
+                        <article class="aiPanelTurn" @key="turn.Id">
+                            <div class="aiPanelTurnPrompt">@turn.Prompt</div>
+                            <div class="aiPanelTurnResponse">
+                                @if (isThinking)
+                                {
+                                    <div class="aiPanelThinking muted">Thinking…</div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(turn.Response))
+                                {
+                                    <MarkdownBlock Text="@turn.Response" />
+                                    <button type="button"
+                                            class="btn btnGhost btnIcon aiPanelCopyBtn@(_copiedTurnId == turn.Id ? " aiPanelCopyBtnCopied" : null)"
+                                            title="@(_copiedTurnId == turn.Id ? "Copied" : "Copy response")"
+                                            aria-label="@(_copiedTurnId == turn.Id ? "Copied" : "Copy response")"
+                                            @onclick="() => CopyTurnResponse(turn)">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                            <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+                                            <path d="M4 11H3.5A1.5 1.5 0 0 1 2 9.5v-7A1.5 1.5 0 0 1 3.5 1H10.5A1.5 1.5 0 0 1 12 2.5V3" stroke="currentColor" stroke-width="1.5" />
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
+                        </article>
+                    }
+                }
+            </div>
+
+            @if (Ai.Actions.Count > 0)
+            {
+                <div class="aiPanelQuickActions">
+                    @foreach (var action in Ai.Actions)
+                    {
+                        <button class="btn btnSecondary"
+                                type="button"
+                                disabled="@(Ai.IsRunning || !Ai.IsContextSupported)"
+                                @onclick="() => Ai.RunAction(action.Id)">
+                            @action.Label
+                        </button>
+                    }
+                </div>
+            }
+
+            <div class="aiPanelComposer">
+                <textarea class="textarea aiPanelPrompt"
+                          value="@Ai.PromptDraft"
+                          @oninput="OnPromptInput"
+                          placeholder="Ask AI about this context..."
+                          rows="3"></textarea>
+                <button class="btn aiPanelSend"
+                        type="button"
+                        disabled="@(Ai.IsRunning || !Ai.IsContextSupported || string.IsNullOrWhiteSpace(Ai.PromptDraft))"
+                        @onclick="SendPrompt">
+                    Send Prompt
+                </button>
+            </div>
+
+            @if (Ai.Conversations.Count > 0)
+            {
+                <div class="aiPanelHistory">
+                    <label class="aiPanelHistoryLabel mutedSmall" for="ai-conversation-select">Conversations</label>
+                    <div class="aiPanelHistoryRow">
+                        <select id="ai-conversation-select"
+                                class="input aiPanelHistorySelect"
+                                value="@(Ai.ActiveConversationId?.ToString() ?? "")"
+                                disabled="@(Ai.IsLoadingHistory || Ai.IsRunning)"
+                                @onchange="OnConversationChange">
+                            <option value="">Recent conversations…</option>
+                            @foreach (var conversation in Ai.Conversations)
+                            {
+                                var id = conversation.ConversationId?.ToString() ?? "";
+                                var updated = conversation.UpdatedAtUtc?.LocalDateTime.ToString() ?? "";
+                                var turns = conversation.TurnCount is > 1 ? $" ({conversation.TurnCount} turns)" : "";
+                                <option value="@id">@updated — @conversation.Title@turns</option>
+                            }
+                        </select>
+                        <button class="btn btnSecondary aiPanelHistoryRefresh"
+                                type="button"
+                                disabled="@Ai.IsLoadingHistory"
+                                @onclick="Ai.LoadConversations">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </aside>
+}
+
+@code {
+    ElementReference _scrollRef;
+    string? _copiedTurnId;
+    CancellationTokenSource? _copyResetCts;
+
+    string LatestAssistantText
+    {
+        get
+        {
+            for (var i = Ai.Turns.Count - 1; i >= 0; i--)
+            {
+                var text = Ai.Turns[i].Response?.Trim();
+                if (!string.IsNullOrEmpty(text)) return text;
+            }
+            return "";
+        }
+    }
+
+    bool CanInsertDraft =>
+        Ai.HasDraftTarget
+        && !string.IsNullOrEmpty(LatestAssistantText)
+        && !IsOpenAiNotConfigured(LatestAssistantText);
+
+    string InsertDraftTitle
+    {
+        get
+        {
+            if (!Ai.HasDraftTarget) return "Edit a field first";
+            if (string.IsNullOrEmpty(LatestAssistantText)) return "No assistant response to insert";
+            if (!string.IsNullOrEmpty(Ai.DraftTargetLabel)) return $"Insert into {Ai.DraftTargetLabel}";
+            return "Insert Draft";
+        }
+    }
+
+    bool ShowOpenAiSetup
+    {
+        get
+        {
+            if (!string.IsNullOrEmpty(Ai.Notice) && IsOpenAiNotConfigured(Ai.Notice)) return true;
+            return Ai.Turns.Any(t => IsOpenAiNotConfigured(t.Response));
+        }
+    }
+
+    bool ShouldStickToBottom
+    {
+        get
+        {
+            if (Ai.IsRunning) return true;
+            var last = Ai.Turns.LastOrDefault();
+            return last is not null && string.IsNullOrWhiteSpace(last.Response);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Ai.Changed += OnAiChanged;
+        Ai.EnsureStartupPreference();
+        if (Ai.IsOpen) Ai.LoadConversations();
+    }
+
+    void OnAiChanged() => InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        if (ShouldStickToBottom && Ai.IsOpen)
+        {
+            try
+            {
+                await Js.InvokeVoidAsync("atlasAiEvents.scrollToBottom", _scrollRef);
+            }
+            catch
+            {
+                // Element may not be mounted yet.
+            }
+        }
+    });
+
+    void OnPromptInput(ChangeEventArgs e) => Ai.SetPromptDraft(e.Value?.ToString() ?? "");
+
+    void SendPrompt()
+    {
+        var prompt = Ai.PromptDraft;
+        Ai.SetPromptDraft("");
+        Ai.SendPrompt(prompt);
+    }
+
+    void HandleInsertDraft()
+    {
+        if (!CanInsertDraft)
+        {
+            if (!Ai.HasDraftTarget) Ai.AppendOutput("\nEdit a task note or note body first.\n");
+            return;
+        }
+
+        if (!Ai.InsertDraft(LatestAssistantText))
+            Ai.AppendOutput("\nEdit a task note or note body first.\n");
+    }
+
+    async Task CopyTurnResponse(AiTranscriptTurn turn)
+    {
+        if (string.IsNullOrWhiteSpace(turn.Response)) return;
+        try
+        {
+            var ok = await Js.InvokeAsync<bool>("atlasAiEvents.copyText", turn.Response);
+            if (!ok)
+            {
+                Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+                return;
+            }
+
+            _copiedTurnId = turn.Id;
+            _copyResetCts?.Cancel();
+            _copyResetCts = new CancellationTokenSource();
+            var token = _copyResetCts.Token;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(1500, token);
+                    await InvokeAsync(() =>
+                    {
+                        if (_copiedTurnId == turn.Id) _copiedTurnId = null;
+                        StateHasChanged();
+                    });
+                }
+                catch (TaskCanceledException)
+                {
+                    // superseded
+                }
+            });
+            StateHasChanged();
+        }
+        catch
+        {
+            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+        }
+    }
+
+    void OnConversationChange(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var id))
+            _ = Ai.OpenConversationAsync(id);
+    }
+
+    static bool IsOpenAiNotConfigured(string text) => text.Contains("OpenAI is not configured", StringComparison.Ordinal);
+
+    public void Dispose()
+    {
+        Ai.Changed -= OnAiChanged;
+        _copyResetCts?.Cancel();
+        _copyResetCts?.Dispose();
+    }
+}

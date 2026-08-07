@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject AppCacheService Cache
 @inject NavigationManager Nav
+@inject AiStateService Ai
 
 <PageTitle>Dashboard — Atlas</PageTitle>
 
@@ -202,6 +203,11 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnCacheChanged;
+        Ai.SetContext("Context: Dashboard",
+        [
+            new AiAction("suggest-next-action", "Suggest Next Action"),
+            new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
+        ]);
         _ = Cache.EnsureHydratedAsync();
         Rebuild();
     }

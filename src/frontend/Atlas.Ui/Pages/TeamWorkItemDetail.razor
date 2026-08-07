@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Work Item — Atlas</PageTitle>
 
@@ -160,6 +161,7 @@
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
+        Ai.SetContext("Context: Team Work Item Detail", [new AiAction("summarize-item", "Summarize this work item")]);
         _ = Cache.EnsureHydratedAsync();
     }
 
