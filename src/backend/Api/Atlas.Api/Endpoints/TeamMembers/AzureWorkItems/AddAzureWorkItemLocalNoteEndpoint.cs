@@ -16,7 +16,11 @@ public sealed class AddAzureWorkItemLocalNoteEndpoint : Endpoint<AddAzureWorkIte
     {
         Post("/team-members/{teamMemberId:guid}/azure-work-items/{workItemId:int}/notes");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add a local note to a team member Azure work item"; });
+        Summary(s =>
+        {
+            s.Summary = "Add a local note to a team member Azure work item";
+            s.Response<AddAzureWorkItemLocalNoteResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddAzureWorkItemLocalNoteRequest req, CancellationToken ct)

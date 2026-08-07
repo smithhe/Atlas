@@ -16,7 +16,11 @@ public sealed class AddTeamNoteEndpoint : Endpoint<AddTeamNoteRequest, AddTeamNo
     {
         Post("/team-members/{teamMemberId:guid}/notes");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add a team note"; });
+        Summary(s =>
+        {
+            s.Summary = "Add a team note";
+            s.Response<AddTeamNoteResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddTeamNoteRequest req, CancellationToken ct)

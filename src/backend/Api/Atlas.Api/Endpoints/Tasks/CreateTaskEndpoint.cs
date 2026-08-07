@@ -19,6 +19,7 @@ public sealed class CreateTaskEndpoint : Endpoint<CreateTaskRequest, CreateTaskR
         Summary(s =>
         {
             s.Summary = "Create a task";
+            s.Response<CreateTaskResponse>(201, "Created");
         });
     }
 
