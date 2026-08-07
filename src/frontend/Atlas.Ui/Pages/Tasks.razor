@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Tasks — Atlas</PageTitle>
 
@@ -252,6 +253,12 @@
     {
         Cache.Changed += OnChanged;
         Selection.Changed += OnChanged;
+        Ai.SetContext("Context: Tasks",
+        [
+            new AiAction("suggest-next-task", "Suggest Next Task"),
+            new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
+            new AiAction("reprioritize", "Reprioritize suggestions"),
+        ]);
         _ = Cache.EnsureHydratedAsync();
     }
 
@@ -271,6 +278,8 @@
         {
             _editing = true;
         }
+
+        SyncDraftTarget();
     }
 
     void OnChanged() => InvokeAsync(() =>
@@ -293,6 +302,7 @@
     {
         Selection.SelectTask(id);
         _editing = _autoEditId == id;
+        SyncDraftTarget();
     }
 
     void ToggleEdit()
@@ -302,6 +312,30 @@
         {
             _autoEditId = null;
         }
+        SyncDraftTarget();
+    }
+
+    void SyncDraftTarget()
+    {
+        if (!_editing || Selected is null)
+        {
+            Ai.RegisterDraftTarget(null);
+            return;
+        }
+
+        var taskId = Selected.Id;
+        Ai.RegisterDraftTarget(new AiDraftTarget
+        {
+            Label = "task notes",
+            Insert = text =>
+            {
+                var task = Cache.Tasks.FirstOrDefault(t => t.Id == taskId);
+                if (task is null) return;
+                var current = task.Notes ?? "";
+                var next = string.IsNullOrWhiteSpace(current) ? text : $"{current.TrimEnd()}\n\n{text}";
+                Persist(EntityClone.Task(task, notes: next));
+            },
+        });
     }
 
     void GoFocus(Guid id) => Nav.NavigateTo($"/tasks/{id}");
@@ -434,5 +468,6 @@
     {
         Cache.Changed -= OnChanged;
         Selection.Changed -= OnChanged;
+        Ai.RegisterDraftTarget(null);
     }
 }

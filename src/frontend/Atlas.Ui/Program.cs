@@ -25,6 +25,9 @@ builder.Services.AddScoped<SelectionState>();
 builder.Services.AddScoped<LocalSettings>();
 builder.Services.AddScoped<BrowserDialogs>();
 builder.Services.AddScoped<AppCacheService>();
+builder.Services.AddScoped<MarkdownRenderer>();
+builder.Services.AddScoped<AiSessionEventsClient>();
+builder.Services.AddScoped<AiStateService>();
 
 WebAssemblyHost host = builder.Build();
 

@@ -10,6 +10,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Team — Atlas</PageTitle>
 
@@ -196,6 +197,12 @@
     {
         Cache.Changed += OnChanged;
         Nav.LocationChanged += OnLocationChanged;
+        Ai.SetContext("Context: Team",
+        [
+            new AiAction("summarize-patterns", "Summarize patterns (frequent blockers)"),
+            new AiAction("growth-areas", "Highlight growth areas"),
+            new AiAction("cite-notes", "Cite specific notes"),
+        ]);
         _ = Cache.EnsureHydratedAsync();
     }
 

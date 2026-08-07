@@ -34,7 +34,7 @@ Requires Atlas API on `:5012` and Blazor host on `:5173` (Playwright `webServer`
 
 - Demo seed often lacks Azure work items, team-member risks, and growth goals.
 - Capture creates a note for `20-team-note-detail` (same pattern as `team-note-ado-pr`).
-- Note markdown rendering uses a lightweight plain pre-wrap block until Phase 7 Markdig.
+- Note markdown rendering uses sanitized Markdig + highlight.js (Phase 7).
 
 ## Captured files
 

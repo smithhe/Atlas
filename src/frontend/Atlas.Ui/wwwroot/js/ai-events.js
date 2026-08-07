@@ -1,0 +1,134 @@
+/**
+ * EventSource bridge for Atlas AI session SSE (GET /ai/sessions/{id}/events).
+ * Not codegen'd via NSwag — opened from Blazor via IJSRuntime.
+ */
+(function () {
+  'use strict';
+
+  var sources = Object.create(null);
+  var EVENT_TYPES = [
+    'session.started',
+    'context.gathering',
+    'history.loading',
+    'model.requested',
+    'model.delta',
+    'session.completed',
+    'session.failed',
+  ];
+
+  function forward(dotnetRef, raw) {
+    if (!dotnetRef || raw == null) return;
+    try {
+      dotnetRef.invokeMethodAsync('OnSessionEventJson', String(raw));
+    } catch (_) {
+      /* disposed */
+    }
+  }
+
+  function forwardError(dotnetRef) {
+    if (!dotnetRef) return;
+    try {
+      dotnetRef.invokeMethodAsync('OnSessionEventError');
+    } catch (_) {
+      /* disposed */
+    }
+  }
+
+  var resizeRef = null;
+  var resizeMove = null;
+  var resizeUp = null;
+
+  window.atlasAiEvents = {
+    ensureResizeListeners: function (dotnetRef) {
+      resizeRef = dotnetRef;
+      if (resizeMove) return;
+      resizeMove = function (e) {
+        if (!resizeRef) return;
+        try {
+          resizeRef.invokeMethodAsync('OnAiResizeMove', e.clientX, window.innerWidth);
+        } catch (_) {}
+      };
+      resizeUp = function () {
+        if (!resizeRef) return;
+        try {
+          resizeRef.invokeMethodAsync('OnAiResizeUp');
+        } catch (_) {}
+      };
+      window.addEventListener('pointermove', resizeMove);
+      window.addEventListener('pointerup', resizeUp);
+    },
+
+    clearResizeListeners: function () {
+      if (resizeMove) window.removeEventListener('pointermove', resizeMove);
+      if (resizeUp) window.removeEventListener('pointerup', resizeUp);
+      resizeMove = null;
+      resizeUp = null;
+      resizeRef = null;
+    },
+
+    beginResizeCapture: function () {
+      /* pointer capture is optional; window listeners handle move/up */
+    },
+
+    open: function (streamId, url, dotnetRef) {
+      this.close(streamId);
+      var es = new EventSource(url);
+      sources[streamId] = { es: es, ref: dotnetRef };
+
+      es.onmessage = function (event) {
+        forward(dotnetRef, event.data);
+      };
+
+      EVENT_TYPES.forEach(function (type) {
+        es.addEventListener(type, function (event) {
+          forward(dotnetRef, event.data);
+        });
+      });
+
+      es.onerror = function () {
+        forwardError(dotnetRef);
+        // Keep EventSource auto-reconnect behavior for unfinished streams;
+        // C# closes on terminal events / explicit dispose.
+      };
+    },
+
+    close: function (streamId) {
+      var entry = sources[streamId];
+      if (!entry) return;
+      try {
+        entry.es.close();
+      } catch (_) {
+        /* ignore */
+      }
+      delete sources[streamId];
+    },
+
+    scrollToBottom: function (el) {
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+    },
+
+    copyText: async function (text) {
+      if (!text) return false;
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    },
+  };
+
+  window.atlasMarkdown = {
+    highlight: function (root) {
+      if (!root || typeof hljs === 'undefined') return;
+      try {
+        root.querySelectorAll('pre code').forEach(function (block) {
+          hljs.highlightElement(block);
+        });
+      } catch (_) {
+        /* ignore highlight failures */
+      }
+    },
+  };
+})();

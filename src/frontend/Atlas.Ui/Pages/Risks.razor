@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
+@inject AiStateService Ai
 
 <PageTitle>Risks — Atlas</PageTitle>
 
@@ -229,6 +230,12 @@
     {
         Cache.Changed += OnChanged;
         Selection.Changed += OnChanged;
+        Ai.SetContext("Context: Risks",
+        [
+            new AiAction("summarize-impact", "Summarize impact"),
+            new AiAction("suggest-mitigations", "Suggest mitigations"),
+            new AiAction("why-matters", "Explain “why this matters”"),
+        ]);
         _ = Cache.EnsureHydratedAsync();
     }
 
