@@ -15,6 +15,10 @@
     'session.completed',
     'session.failed',
   ];
+  var TERMINAL_TYPES = {
+    'session.completed': true,
+    'session.failed': true,
+  };
 
   function forward(dotnetRef, raw) {
     if (!dotnetRef || raw == null) return;
@@ -32,6 +36,17 @@
     } catch (_) {
       /* disposed */
     }
+  }
+
+  function closeStream(streamId) {
+    var entry = sources[streamId];
+    if (!entry) return;
+    try {
+      entry.es.close();
+    } catch (_) {
+      /* ignore */
+    }
+    delete sources[streamId];
   }
 
   var resizeRef = null;
@@ -66,12 +81,17 @@
       resizeRef = null;
     },
 
-    beginResizeCapture: function () {
-      /* pointer capture is optional; window listeners handle move/up */
+    beginResizeCapture: function (el, pointerId) {
+      if (!el || pointerId == null) return;
+      try {
+        el.setPointerCapture(pointerId);
+      } catch (_) {
+        /* capture unsupported or already released */
+      }
     },
 
     open: function (streamId, url, dotnetRef) {
-      this.close(streamId);
+      closeStream(streamId);
       var es = new EventSource(url);
       sources[streamId] = { es: es, ref: dotnetRef };
 
@@ -82,25 +102,22 @@
       EVENT_TYPES.forEach(function (type) {
         es.addEventListener(type, function (event) {
           forward(dotnetRef, event.data);
+          // Match React: close on terminal before end-of-stream onerror can fire.
+          if (TERMINAL_TYPES[type]) {
+            closeStream(streamId);
+          }
         });
       });
 
       es.onerror = function () {
+        // Already closed after session.completed / session.failed — do not report Failed.
+        if (!sources[streamId]) return;
         forwardError(dotnetRef);
-        // Keep EventSource auto-reconnect behavior for unfinished streams;
-        // C# closes on terminal events / explicit dispose.
       };
     },
 
     close: function (streamId) {
-      var entry = sources[streamId];
-      if (!entry) return;
-      try {
-        entry.es.close();
-      } catch (_) {
-        /* ignore */
-      }
-      delete sources[streamId];
+      closeStream(streamId);
     },
 
     scrollToBottom: function (el) {
