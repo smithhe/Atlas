@@ -7,6 +7,23 @@
 <section class="growthShell" aria-label="Growth tab">
     <div class="growthTitle">Growth Overview</div>
 
+    @if (_memberInitializing || _loadStatus == GrowthLoadStatus.Loading || (_loadStatus == GrowthLoadStatus.Idle && Growth is null))
+    {
+        <div class="card subtle"><div class="pad muted">Loading growth data…</div></div>
+    }
+    else if (_loadStatus == GrowthLoadStatus.Failed)
+    {
+        <div class="card subtle">
+            <div class="pad">
+                <div class="muted">@(_loadError ?? "Unable to load growth data.")</div>
+                <div class="row" style="margin-top: 8px">
+                    <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@_retrying">@(_retrying ? "Retrying…" : "Retry")</button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
     <div class="growthSection">
         <div class="growthSectionTitleRow">
             <div class="growthSectionTitle">Active Growth Goals</div>
@@ -123,6 +140,7 @@
             </div>
         </div>
     </div>
+    }
 </section>
 
 <AtlasModal Title="Add growth goal" IsOpen="_goalOpen" OnClose="CloseGoalModal">
@@ -130,11 +148,11 @@
         <div class="fieldGrid">
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Title</div>
-                <input class="input" @bind="_goalTitle" @bind:event="oninput" placeholder="What are they working to improve?" />
+                <input class="input" @bind="_goalTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalTitle" placeholder="What are they working to improve?" />
             </label>
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Description</div>
-                <textarea class="textarea" @bind="_goalDesc" @bind:event="oninput" placeholder="Context, why it matters, what ‘good’ looks like…"></textarea>
+                <textarea class="textarea" @bind="_goalDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Context, why it matters, what ‘good’ looks like…"></textarea>
             </label>
             <label class="field">
                 <div class="fieldLabel">Status</div>
@@ -156,7 +174,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Category</div>
-                <input class="input" @bind="_goalCategory" @bind:event="oninput" placeholder="e.g., Tech, Leadership" />
+                <input class="input" @bind="_goalCategory" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g., Tech, Leadership" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Start date</div>
@@ -166,11 +184,15 @@
                 <div class="fieldLabel">Target date</div>
                 <input class="input" type="date" value="@_goalTarget" @onchange="OnGoalTargetChange" />
             </label>
+            @if (!string.IsNullOrEmpty(GoalValidationMessage))
+            {
+                <div class="mutedSmall" style="grid-column: 1 / -1; color: var(--danger, #c0392b)">@GoalValidationMessage</div>
+            }
         </div>
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveGoal" disabled="@string.IsNullOrWhiteSpace(_goalTitle)">Add</button>
+            <button class="btn btnSecondary" type="button" @onclick="SaveGoal" disabled="@(!CanSaveGoal)">Add</button>
             <button class="btn btnGhost" type="button" @onclick="CloseGoalModal">Cancel</button>
         </div>
     </Footer>
@@ -181,8 +203,12 @@
         <div class="fieldGrid2">
             <label class="field span2">
                 <div class="fieldLabel">Skill</div>
-                <input class="input" @bind="_skillLabel" @bind:event="oninput" placeholder="e.g., System Design" />
+                <input class="input" @bind="_skillLabel" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxSkillLength" placeholder="e.g., System Design" />
             </label>
+            @if (!string.IsNullOrEmpty(SkillValidationMessage))
+            {
+                <div class="mutedSmall span2" style="color: var(--danger, #c0392b)">@SkillValidationMessage</div>
+            }
             <label class="field">
                 <div class="fieldLabel">Current level</div>
                 <select class="select" @bind="_skillFrom">
@@ -201,7 +227,7 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveSkill">Save</button>
+            <button class="btn btnSecondary" type="button" @onclick="SaveSkill" disabled="@(!CanSaveSkill)">Save</button>
             @if (_skillIndex is not null)
             {
                 <button class="btn btnGhost" type="button" title="Remove skill" @onclick="DeleteSkill">Delete</button>
@@ -215,21 +241,25 @@
         <div class="fieldGrid2">
             <label class="field span2">
                 <div class="fieldLabel">Title</div>
-                <input class="input" @bind="_themeTitle" @bind:event="oninput" placeholder="Short label" />
+                <input class="input" @bind="_themeTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeTitle" placeholder="Short label" />
             </label>
             <label class="field span2">
                 <div class="fieldLabel">Description</div>
-                <textarea class="textarea" @bind="_themeDesc" @bind:event="oninput" placeholder="What’s the repeated pattern?"></textarea>
+                <textarea class="textarea" @bind="_themeDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeDescription" placeholder="What’s the repeated pattern?"></textarea>
             </label>
             <label class="field">
                 <div class="fieldLabel">Observed since (optional)</div>
-                <input class="input" @bind="_themeObserved" @bind:event="oninput" placeholder="e.g., Q4" />
+                <input class="input" @bind="_themeObserved" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeObservedLabel" placeholder="e.g., Q4" />
             </label>
+            @if (!string.IsNullOrEmpty(ThemeValidationMessage))
+            {
+                <div class="mutedSmall span2" style="color: var(--danger, #c0392b)">@ThemeValidationMessage</div>
+            }
         </div>
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveTheme">Save</button>
+            <button class="btn btnSecondary" type="button" @onclick="SaveTheme" disabled="@(!CanSaveTheme)">Save</button>
             @if (!_themeIsNew)
             {
                 <button class="btn btnGhost" type="button" @onclick="DeleteTheme">Delete</button>
@@ -243,14 +273,18 @@
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Markdown</div>
-                <textarea class="textarea" @bind="_focusDraft" @bind:event="oninput"
+                <textarea class="textarea" @bind="_focusDraft" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxFocusMarkdown"
                           placeholder="Example:&#10;- Reduce surprises by raising risks earlier&#10;- Focus on leading design discussions&#10;- Delegate WIP"></textarea>
             </label>
+            @if (!string.IsNullOrEmpty(FocusValidationMessage))
+            {
+                <div class="mutedSmall" style="color: var(--danger, #c0392b)">@FocusValidationMessage</div>
+            }
         </div>
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveFocusAreas">Save</button>
+            <button class="btn btnSecondary" type="button" @onclick="SaveFocusAreas" disabled="@(!CanSaveFocus)">Save</button>
         </div>
     </Footer>
 </AtlasModal>
@@ -260,7 +294,7 @@
 
     static readonly string[] SkillLevels = ["Awareness", "Beginner", "Developing", "Intermediate", "Advanced", "Expert"];
 
-    bool _goalOpen, _skillOpen, _themeOpen, _focusOpen, _themeIsNew;
+    bool _goalOpen, _skillOpen, _themeOpen, _focusOpen, _themeIsNew, _retrying, _disposed;
     int? _skillIndex;
     Guid? _themeId;
     string _goalTitle = "", _goalDesc = "", _goalCategory = "", _goalPriority = "", _goalStart = "", _goalTarget = "";
@@ -274,18 +308,132 @@
     IReadOnlyList<GrowthFeedbackTheme> Themes => Growth?.FeedbackThemes ?? Array.Empty<GrowthFeedbackTheme>();
     string FocusAreasMarkdown => Growth?.FocusAreasMarkdown ?? "";
 
-    protected override void OnInitialized()
+    GrowthLoadStatus _loadStatus;
+    string? _loadError;
+    Guid _growthMemberId;
+    bool _memberInitializing;
+
+    string FormattedSkillText => GrowthUiHelpers.FormatSkillText(_skillLabel, _skillFrom, _skillTo);
+
+    string GoalValidationMessage => GrowthUiHelpers.ValidateGoalAdd(_goalTitle, _goalDesc, _goalCategory, _goalStart, _goalTarget) ?? "";
+
+    bool CanSaveGoal => string.IsNullOrEmpty(GoalValidationMessage);
+
+    bool CanSaveSkill =>
+        !string.IsNullOrWhiteSpace(_skillLabel)
+        && FormattedSkillText.Length <= GrowthUiHelpers.MaxSkillLength
+        && !GrowthUiHelpers.HasSkillDuplicate(Skills, FormattedSkillText, _skillIndex);
+
+    bool CanSaveTheme => GrowthUiHelpers.ValidateThemeFields(_themeTitle, _themeDesc, _themeObserved) is null;
+
+    string FocusValidationMessage => GrowthUiHelpers.ValidateFocusMarkdown(_focusDraft) ?? "";
+
+    bool CanSaveFocus => string.IsNullOrEmpty(FocusValidationMessage);
+
+    string SkillValidationMessage
     {
-        Cache.Changed += OnChanged;
-        _ = Cache.EnsureGrowthLoadedAsync(Member.Id);
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_skillLabel))
+            {
+                if (!string.IsNullOrWhiteSpace(_skillFrom) || !string.IsNullOrWhiteSpace(_skillTo))
+                    return "Skill label is required.";
+                return "";
+            }
+
+            if (FormattedSkillText.Length > GrowthUiHelpers.MaxSkillLength)
+                return $"Skill text cannot exceed {GrowthUiHelpers.MaxSkillLength} characters.";
+            if (GrowthUiHelpers.HasSkillDuplicate(Skills, FormattedSkillText, _skillIndex))
+                return "This skill already exists.";
+            return "";
+        }
     }
+
+    string ThemeValidationMessage
+    {
+        get
+        {
+            var error = GrowthUiHelpers.ValidateThemeFields(_themeTitle, _themeDesc, _themeObserved);
+            if (error is null)
+                return "";
+            if (!string.IsNullOrWhiteSpace(_themeTitle) || !string.IsNullOrWhiteSpace(_themeDesc) || !string.IsNullOrWhiteSpace(_themeObserved) || !_themeIsNew)
+                return error;
+            return "";
+        }
+    }
+
+    protected override void OnInitialized() => Cache.Changed += OnChanged;
 
     protected override void OnParametersSet()
     {
-        _ = Cache.EnsureGrowthLoadedAsync(Member.Id);
+        if (Member.Id != _growthMemberId)
+        {
+            ResetMemberState();
+            _growthMemberId = Member.Id;
+            _memberInitializing = true;
+            _ = Cache.EnsureGrowthLoadedAsync(Member.Id);
+        }
+
+        _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
+        _loadError = Cache.GetGrowthLoadError(Member.Id);
+        if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+            _memberInitializing = false;
     }
 
-    void OnChanged() => InvokeAsync(StateHasChanged);
+    void ResetMemberState()
+    {
+        _goalOpen = _skillOpen = _themeOpen = _focusOpen = false;
+        _themeIsNew = false;
+        _retrying = false;
+        _memberInitializing = true;
+        _skillIndex = null;
+        _themeId = null;
+        _goalTitle = _goalDesc = _goalCategory = _goalPriority = _goalStart = _goalTarget = "";
+        _goalStatus = GrowthGoalStatus.OnTrack;
+        _skillLabel = _skillFrom = _skillTo = "";
+        _themeTitle = _themeDesc = _themeObserved = "";
+        _focusDraft = "";
+    }
+
+    void OnChanged()
+    {
+        if (_disposed)
+            return;
+
+        _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
+        _loadError = Cache.GetGrowthLoadError(Member.Id);
+        if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+            _memberInitializing = false;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    async Task RetryLoad()
+    {
+        _retrying = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Cache.RetryGrowthLoadAsync(Member.Id);
+        }
+        finally
+        {
+            _retrying = false;
+            _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
+            _loadError = Cache.GetGrowthLoadError(Member.Id);
+            if (!_disposed)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task<Guid?> RequireGrowthIdAsync(string operation)
+    {
+        var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
+        if (growthId != Guid.Empty)
+            return growthId;
+
+        await Dialogs.AlertAsync(GrowthUiHelpers.GrowthUnavailableMessage(operation));
+        return null;
+    }
 
     Growth BaseGrowth(Guid? knownId = null)
     {
@@ -328,20 +476,27 @@
     }
 
     void OnGoalStartChange(ChangeEventArgs e) => _goalStart = e.Value?.ToString() ?? "";
+
     void OnGoalTargetChange(ChangeEventArgs e) => _goalTarget = e.Value?.ToString() ?? "";
+
     void OpenGoal(Guid goalId) => Nav.NavigateTo($"/team/{Member.Id}/growth/goals/{goalId}");
 
     void CloseGoalModal() => _goalOpen = false;
 
     async Task SaveGoal()
     {
+        if (!CanSaveGoal)
+            return;
+
         var title = _goalTitle.Trim();
-        if (string.IsNullOrEmpty(title)) return;
         try
         {
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
+            var growthId = await RequireGrowthIdAsync("add a growth goal");
+            if (growthId is not Guid gid)
+                return;
+
             Priority? priority = Enum.TryParse<Priority>(_goalPriority, out var p) ? p : null;
-            var res = await Api.AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(growthId, new AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest
+            var res = await Api.AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(gid, new AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest
             {
                 Title = title,
                 Description = _goalDesc.Trim(),
@@ -351,7 +506,14 @@
                 StartDate = DateTimeOffset.TryParse(_goalStart, out var sd) ? sd : null,
                 TargetDate = DateTimeOffset.TryParse(_goalTarget, out var td) ? td : null
             });
-            var goalId = res.Id ?? Guid.NewGuid();
+            if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
+            {
+                await Cache.RetryGrowthLoadAsync(Member.Id);
+                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("goal"));
+                return;
+            }
+
+            var goalId = res.Id!.Value;
             var nextGoal = new GrowthGoal
             {
                 Id = goalId,
@@ -367,10 +529,10 @@
                 CheckIns = Array.Empty<GrowthGoalCheckIn>(),
                 SuccessCriteria = Array.Empty<string>()
             };
-            var g = BaseGrowth(growthId);
+            var g = BaseGrowth(gid);
             CommitGrowth(new Growth
             {
-                Id = growthId,
+                Id = gid,
                 MemberId = Member.Id,
                 Goals = new[] { nextGoal }.Concat(g.Goals).ToList(),
                 SkillsInProgress = g.SkillsInProgress,
@@ -382,7 +544,7 @@
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to add growth goal right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add growth goal.", ex));
         }
     }
 
@@ -396,7 +558,7 @@
     void OpenEditSkill(int idx)
     {
         var text = Skills.ElementAtOrDefault(idx) ?? "";
-        var parsed = ParseSkillText(text);
+        var parsed = GrowthUiHelpers.ParseSkillText(text);
         _skillIndex = idx;
         _skillLabel = parsed.Label;
         _skillFrom = parsed.From;
@@ -411,50 +573,30 @@
         _skillLabel = _skillFrom = _skillTo = "";
     }
 
-    static (string Label, string From, string To) ParseSkillText(string input)
-    {
-        var raw = input.Trim();
-        if (string.IsNullOrEmpty(raw)) return ("", "", "");
-        const string arrow = "→";
-        var hasArrow = raw.Contains(arrow);
-        var parts = hasArrow ? raw.Split(arrow, 2) : [raw, ""];
-        var left = parts[0].Trim();
-        var to = parts.Length > 1 ? parts[1].Trim() : "";
-        var colonIdx = left.IndexOf(':');
-        if (colonIdx >= 0)
-            return (left[..colonIdx].Trim(), left[(colonIdx + 1)..].Trim(), to);
-        return (left, "", to);
-    }
-
-    static string FormatSkillText(string label, string from, string to)
-    {
-        label = label.Trim(); from = from.Trim(); to = to.Trim();
-        if (string.IsNullOrEmpty(label)) return "";
-        if (!string.IsNullOrEmpty(from) && !string.IsNullOrEmpty(to)) return $"{label}: {from} → {to}";
-        if (!string.IsNullOrEmpty(from)) return $"{label}: {from}";
-        if (!string.IsNullOrEmpty(to)) return $"{label} → {to}";
-        return label;
-    }
-
     async Task SaveSkill()
     {
-        var nextText = FormatSkillText(_skillLabel, _skillFrom, _skillTo);
-        if (string.IsNullOrEmpty(nextText)) return;
+        if (!CanSaveSkill)
+            return;
+
+        var nextText = FormattedSkillText;
         try
         {
             var g = BaseGrowth();
             var skills = g.SkillsInProgress.ToList();
             if (_skillIndex is null) skills.Add(nextText);
             else skills[_skillIndex.Value] = nextText;
-            var normalized = skills.Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToList();
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
-            await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(growthId, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
+            var normalized = skills.Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var growthId = await RequireGrowthIdAsync("save skills");
+            if (growthId is not Guid gid)
+                return;
+
+            await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(gid, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
             {
                 SkillsInProgress = normalized
             });
             CommitGrowth(new Growth
             {
-                Id = growthId,
+                Id = gid,
                 MemberId = Member.Id,
                 Goals = g.Goals,
                 SkillsInProgress = normalized,
@@ -465,7 +607,7 @@
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save skills right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save skills.", ex));
         }
     }
 
@@ -475,15 +617,18 @@
         try
         {
             var g = BaseGrowth();
-            var skills = g.SkillsInProgress.Where((_, i) => i != _skillIndex.Value).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct().ToList();
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
-            await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(growthId, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
+            var skills = g.SkillsInProgress.Where((_, i) => i != _skillIndex.Value).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var growthId = await RequireGrowthIdAsync("remove skill");
+            if (growthId is not Guid gid)
+                return;
+
+            await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(gid, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
             {
                 SkillsInProgress = skills
             });
             CommitGrowth(new Growth
             {
-                Id = growthId,
+                Id = gid,
                 MemberId = Member.Id,
                 Goals = g.Goals,
                 SkillsInProgress = skills,
@@ -494,14 +639,14 @@
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to remove skill right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to remove skill.", ex));
         }
     }
 
     void OpenAddTheme()
     {
         _themeIsNew = true;
-        _themeId = Guid.NewGuid();
+        _themeId = null;
         _themeTitle = _themeDesc = _themeObserved = "";
         _themeOpen = true;
     }
@@ -527,32 +672,39 @@
 
     async Task SaveTheme()
     {
+        if (!CanSaveTheme)
+            return;
+
         var title = _themeTitle.Trim();
         var description = _themeDesc.Trim();
         var observed = string.IsNullOrWhiteSpace(_themeObserved) ? null : _themeObserved.Trim();
-        if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(description))
-        {
-            if (_themeIsNew) { CloseThemeModal(); return; }
-            await DeleteTheme();
-            return;
-        }
 
         try
         {
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
-            var g = BaseGrowth(growthId);
+            var growthId = await RequireGrowthIdAsync("save feedback theme");
+            if (growthId is not Guid gid)
+                return;
+
+            var g = BaseGrowth(gid);
             if (_themeIsNew)
             {
-                var res = await Api.AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(growthId, new AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest
+                var res = await Api.AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(gid, new AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest
                 {
                     Title = title,
                     Description = description,
                     ObservedSinceLabel = observed
                 });
-                var id = res.Id ?? Guid.NewGuid();
+                if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
+                {
+                    await Cache.RetryGrowthLoadAsync(Member.Id);
+                    await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("feedback theme"));
+                    return;
+                }
+
+                var id = res.Id!.Value;
                 CommitGrowth(new Growth
                 {
-                    Id = growthId,
+                    Id = gid,
                     MemberId = Member.Id,
                     Goals = g.Goals,
                     SkillsInProgress = g.SkillsInProgress,
@@ -568,7 +720,7 @@
             }
             else if (_themeId is Guid tid)
             {
-                await Api.AtlasApiEndpointsGrowthFeedbackThemesUpdateFeedbackThemeEndpointAsync(growthId, tid, new AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest
+                await Api.AtlasApiEndpointsGrowthFeedbackThemesUpdateFeedbackThemeEndpointAsync(gid, tid, new AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest
                 {
                     Title = title,
                     Description = description,
@@ -576,7 +728,7 @@
                 });
                 CommitGrowth(new Growth
                 {
-                    Id = growthId,
+                    Id = gid,
                     MemberId = Member.Id,
                     Goals = g.Goals,
                     SkillsInProgress = g.SkillsInProgress,
@@ -586,12 +738,18 @@
                     FocusAreasMarkdown = g.FocusAreasMarkdown
                 });
             }
+            else
+            {
+                await Dialogs.AlertAsync("This theme is no longer available. Refreshing growth data.");
+                await Cache.RetryGrowthLoadAsync(Member.Id);
+                return;
+            }
 
             CloseThemeModal();
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save feedback theme right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save feedback theme.", ex));
         }
     }
 
@@ -600,12 +758,15 @@
         if (_themeId is not Guid themeId) return;
         try
         {
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
-            var g = BaseGrowth(growthId);
-            await Api.AtlasApiEndpointsGrowthFeedbackThemesDeleteFeedbackThemeEndpointAsync(growthId, themeId);
+            var growthId = await RequireGrowthIdAsync("delete feedback theme");
+            if (growthId is not Guid gid)
+                return;
+
+            var g = BaseGrowth(gid);
+            await Api.AtlasApiEndpointsGrowthFeedbackThemesDeleteFeedbackThemeEndpointAsync(gid, themeId);
             CommitGrowth(new Growth
             {
-                Id = growthId,
+                Id = gid,
                 MemberId = Member.Id,
                 Goals = g.Goals,
                 SkillsInProgress = g.SkillsInProgress,
@@ -616,7 +777,7 @@
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to delete feedback theme right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to delete feedback theme.", ex));
         }
     }
 
@@ -628,17 +789,23 @@
 
     async Task SaveFocusAreas()
     {
+        if (!CanSaveFocus)
+            return;
+
         try
         {
-            var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
-            var g = BaseGrowth(growthId);
-            await Api.AtlasApiEndpointsGrowthUpdateGrowthFocusAreasEndpointAsync(growthId, new AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest
+            var growthId = await RequireGrowthIdAsync("save focus areas");
+            if (growthId is not Guid gid)
+                return;
+
+            var g = BaseGrowth(gid);
+            await Api.AtlasApiEndpointsGrowthUpdateGrowthFocusAreasEndpointAsync(gid, new AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest
             {
                 FocusAreasMarkdown = _focusDraft
             });
             CommitGrowth(new Growth
             {
-                Id = growthId,
+                Id = gid,
                 MemberId = Member.Id,
                 Goals = g.Goals,
                 SkillsInProgress = g.SkillsInProgress,
@@ -649,9 +816,13 @@
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save focus areas right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save focus areas.", ex));
         }
     }
 
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose()
+    {
+        _disposed = true;
+        Cache.Changed -= OnChanged;
+    }
 }

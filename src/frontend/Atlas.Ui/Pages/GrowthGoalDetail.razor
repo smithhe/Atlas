@@ -8,12 +8,51 @@
 
 <PageTitle>Growth Goal — Atlas</PageTitle>
 
-@if (Member is null || Growth is null || Goal is null)
+@if (!Cache.TeamReady)
+{
+    <div class="page">
+        <h2 class="pageTitle">Growth Goal</h2>
+        <div class="card pad muted">Loading…</div>
+    </div>
+}
+else if (Member is null)
 {
     <div class="page">
         <h2 class="pageTitle">Growth Goal</h2>
         <div class="card pad">
-            <div class="muted">@(string.IsNullOrEmpty(MemberId) || string.IsNullOrEmpty(GoalId) ? "Missing route params." : "Goal not found.")</div>
+            <div class="muted">@(string.IsNullOrEmpty(MemberId) ? "Missing route params." : "Team member not found.")</div>
+            <div class="row">
+                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+            </div>
+        </div>
+    </div>
+}
+else if (_routeInitializing || _loadStatus == GrowthLoadStatus.Loading || (_loadStatus == GrowthLoadStatus.Idle && Growth is null))
+{
+    <div class="page">
+        <h2 class="pageTitle">Growth Goal</h2>
+        <div class="card pad muted">Loading growth data…</div>
+    </div>
+}
+else if (_loadStatus == GrowthLoadStatus.Failed)
+{
+    <div class="page">
+        <h2 class="pageTitle">Growth Goal</h2>
+        <div class="card pad">
+            <div class="muted">@(_loadError ?? "Unable to load growth data.")</div>
+            <div class="row" style="margin-top: 8px">
+                <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@_retrying">@(_retrying ? "Retrying…" : "Retry")</button>
+                <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
+            </div>
+        </div>
+    </div>
+}
+else if (Growth is null || Goal is null)
+{
+    <div class="page">
+        <h2 class="pageTitle">Growth Goal</h2>
+        <div class="card pad">
+            <div class="muted">@(string.IsNullOrEmpty(GoalId) ? "Missing route params." : "Goal not found.")</div>
             <div class="row">
                 <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
             </div>
@@ -56,105 +95,328 @@ else
                 <section class="card subtle" aria-label="Goal overview">
                     <div class="cardHeader">
                         <div class="cardTitle">GOAL OVERVIEW</div>
-                        <div class="ggOverviewLastUpdated">
+                        <div class="ggOverviewLastUpdated" title="@(Goal.LastUpdatedIso is not null ? $"Last updated: {Goal.LastUpdatedIso}" : null)">
                             <span class="ggOverviewLastUpdatedLabel">Last updated</span>
-                            <span>@DisplayLabels.FormatDateTime(Goal.LastUpdatedIso)</span>
+                            <span class="ggOverviewLastUpdatedValue">@FormatOverviewDate(Goal.LastUpdatedIso)</span>
                         </div>
                     </div>
                     <div class="pad">
-                        <div class="fieldGrid2">
-                            <label class="field">
-                                <div class="fieldLabel">Status</div>
-                                <select class="select" value="@Goal.Status" @onchange="OnStatusChange">
-                                    <option value="OnTrack">On Track</option>
-                                    <option value="NeedsAttention">Needs Attention</option>
-                                    <option value="Completed">Completed</option>
-                                </select>
-                            </label>
-                            <label class="field">
-                                <div class="fieldLabel">Priority</div>
-                                <select class="select" value="@(Goal.Priority?.ToString() ?? "")" @onchange="OnPriorityChange">
-                                    <option value="">(None)</option>
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                    <option value="Critical">Critical</option>
-                                </select>
-                            </label>
-                            <label class="field">
-                                <div class="fieldLabel">Category</div>
-                                <input class="input" value="@(Goal.Category ?? "")" @oninput="OnCategoryInput" />
-                            </label>
-                            <label class="field">
-                                <div class="fieldLabel">Start date</div>
-                                <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="OnStartChange" />
-                            </label>
-                            <label class="field">
-                                <div class="fieldLabel">Target date</div>
-                                <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="OnTargetChange" />
-                            </label>
-                            <label class="field span2">
-                                <div class="fieldLabel">Summary</div>
-                                <textarea class="textarea" value="@(Goal.Summary ?? "")" @oninput="OnSummaryInput"></textarea>
-                            </label>
-                            <label class="field span2">
-                                <div class="fieldLabel">Success criteria (one per line)</div>
-                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" @oninput="OnCriteriaInput"></textarea>
-                            </label>
+                        <div class="ggMiniGrid">
+                            <div class="ggMiniCard">
+                                <div class="ggMiniHeader">
+                                    <div class="ggMiniLabel">Timeframe</div>
+                                    <button class="linkBtn" type="button" @onclick="() => _editTimeframe = !_editTimeframe">@(_editTimeframe ? "Done" : "Edit")</button>
+                                </div>
+                                @if (!_editTimeframe)
+                                {
+                                    <div class="ggMiniValue ggTimeframeLines">
+                                        <div><span class="ggTimeframeKey">Start</span> <strong>@DisplayLabels.FormatDateLabel(Goal.StartDateIso)</strong></div>
+                                        <div><span class="ggTimeframeKey">Target</span> <strong>@DisplayLabels.FormatDateLabel(Goal.TargetDateIso)</strong></div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="ggMiniEditRow">
+                                        <label class="field">
+                                            <div class="fieldLabel">Start</div>
+                                            <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="OnStartChange" />
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Target</div>
+                                            <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="OnTargetChange" />
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="ggMiniCard">
+                                <div class="ggMiniHeader">
+                                    <div class="ggMiniLabel">Status</div>
+                                    <button class="linkBtn" type="button" @onclick="() => _editStatus = !_editStatus">@(_editStatus ? "Done" : "Edit")</button>
+                                </div>
+                                @if (!_editStatus)
+                                {
+                                    <div class="ggMiniValue">
+                                        <span class="pill @Tones.GoalStatusTone(Goal.Status)">@DisplayLabels.GoalStatusLabel(Goal.Status)</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <label class="field">
+                                        <div class="fieldLabel">Status</div>
+                                        <select class="select" value="@Goal.Status" @onchange="OnStatusChange">
+                                            <option value="OnTrack">On Track</option>
+                                            <option value="NeedsAttention">Needs Attention</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </label>
+                                }
+                            </div>
+
+                            <div class="ggMiniCard">
+                                <div class="ggMiniHeader">
+                                    <div class="ggMiniLabel">Priority</div>
+                                    <button class="linkBtn" type="button" @onclick="() => _editPriority = !_editPriority">@(_editPriority ? "Done" : "Edit")</button>
+                                </div>
+                                @if (!_editPriority)
+                                {
+                                    <div class="ggMiniValue"><strong>@(Goal.Priority?.ToString() ?? "Medium")</strong></div>
+                                }
+                                else
+                                {
+                                    <label class="field">
+                                        <div class="fieldLabel">Priority</div>
+                                        <select class="select" value="@(Goal.Priority?.ToString() ?? "Medium")" @onchange="OnPriorityChange">
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                            <option value="Critical">Critical</option>
+                                        </select>
+                                    </label>
+                                }
+                            </div>
+
+                            <div class="ggMiniCard">
+                                <div class="ggMiniHeader">
+                                    <div class="ggMiniLabel">Category</div>
+                                    <button class="linkBtn" type="button" @onclick="() => _editCategory = !_editCategory">@(_editCategory ? "Done" : "Edit")</button>
+                                </div>
+                                @if (!_editCategory)
+                                {
+                                    <div class="ggMiniValue">
+                                        @if (string.IsNullOrWhiteSpace(Goal.Category))
+                                        {
+                                            <span class="muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            <strong>@Goal.Category</strong>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <label class="field">
+                                        <div class="fieldLabel">Category</div>
+                                        <input class="input" value="@(Goal.Category ?? "")" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g. Leadership" @oninput="OnCategoryInput" />
+                                    </label>
+                                }
+                            </div>
                         </div>
-                        <div class="mutedSmall" style="margin-top: 8px">Progress: @ProgressPercent% (@ProgressDone/@ProgressTotal actions complete)</div>
+
+                        @if (!string.IsNullOrEmpty(_goalValidationError))
+                        {
+                            <div class="mutedSmall" style="color: var(--danger, #c0392b)">@_goalValidationError</div>
+                        }
+
+                        <div class="ggBlock">
+                            <div class="ggBlockHeader">
+                                <div class="ggBlockTitle">Progress</div>
+                            </div>
+                            <div class="ggProgressText">
+                                <strong>@ProgressPercent%</strong> (based on actions completed) • @ProgressDone/@ProgressTotal complete
+                            </div>
+                            <div class="ggProgressBar" aria-hidden="true">
+                                <div class="ggProgressFill" style="width: @(ProgressPercent)%"></div>
+                            </div>
+                        </div>
+
+                        <div class="ggBlock">
+                            <div class="ggBlockHeader">
+                                <div class="ggBlockTitle">Summary</div>
+                                <button class="linkBtn" type="button" @onclick="() => _editSummary = !_editSummary">@(_editSummary ? "Done" : "Edit")</button>
+                            </div>
+                            @if (!_editSummary)
+                            {
+                                <div class="ggBlockBody">
+                                    @if (string.IsNullOrWhiteSpace(Goal.Summary))
+                                    {
+                                        <span class="muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        @Goal.Summary
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <textarea class="textarea" value="@(Goal.Summary ?? "")" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Short paragraph describing the goal and why it matters…" @oninput="OnSummaryInput"></textarea>
+                            }
+                        </div>
+
+                        <div class="ggBlock">
+                            <div class="ggBlockHeader">
+                                <div class="ggBlockTitle">Success Criteria</div>
+                                <button class="linkBtn" type="button" @onclick="() => _editSuccessCriteria = !_editSuccessCriteria">@(_editSuccessCriteria ? "Done" : "Edit")</button>
+                            </div>
+                            @if (!_editSuccessCriteria)
+                            {
+                                @if (Goal.SuccessCriteria.Count == 0)
+                                {
+                                    <div class="ggBlockBody muted">—</div>
+                                }
+                                else
+                                {
+                                    <ul class="ggBullets">
+                                        @foreach (var criterion in Goal.SuccessCriteria)
+                                        {
+                                            <li>@criterion</li>
+                                        }
+                                    </ul>
+                                }
+                            }
+                            else
+                            {
+                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" maxlength="@GrowthUiHelpers.MaxSuccessCriteriaAggregate" placeholder="One bullet per line…" @oninput="OnCriteriaInput"></textarea>
+                            }
+                        </div>
                     </div>
                 </section>
 
-                <section class="card subtle" aria-label="Actions" style="margin-top: 12px">
-                    <div class="cardHeader">
-                        <div class="cardTitle">ACTIONS</div>
-                        <div class="rowTiny">
-                            <select class="select" style="width: auto" @bind="_actionFilter">
+                <section class="growthGoalSection" aria-label="Actions and milestones">
+                    <div class="growthGoalSectionTitleRow">
+                        <div class="growthGoalSectionTitle">ACTIONS &amp; MILESTONES</div>
+                        <div class="ggControlsRow" aria-label="Actions controls">
+                            <label class="ggControl">
+                                <span class="ggControlLabel">Filter</span>
+                                <select class="select selectCompact" @bind="_actionFilter">
                                 <option value="All">All</option>
                                 <option value="Planned">Planned</option>
                                 <option value="InProgress">In Progress</option>
                                 <option value="Complete">Complete</option>
-                            </select>
-                            <select class="select" style="width: auto" @bind="_actionSort">
+                                </select>
+                            </label>
+                            <label class="ggControl">
+                                <span class="ggControlLabel">Sort</span>
+                                <select class="select selectCompact" @bind="_actionSort">
                                 <option value="DueDate">Due date</option>
                                 <option value="State">State</option>
-                            </select>
+                                </select>
+                            </label>
                         </div>
                     </div>
-                    <div class="pad">
-                        @if (VisibleActions.Count == 0)
-                        {
-                            <div class="muted">No actions yet.</div>
-                        }
-                        else
-                        {
-                            <div class="list">
+                    <div class="card subtle">
+                        <div class="ggTable" role="table" aria-label="Actions table">
+                            <div class="ggRow ggHeaderRow" role="row">
+                                <div class="ggCell ggCellDone" role="columnheader">Done</div>
+                                <div class="ggCell ggCellMain" role="columnheader">Action</div>
+                                <div class="ggCell ggCellDue" role="columnheader">Due</div>
+                                <div class="ggCell ggCellState" role="columnheader">State</div>
+                            </div>
+                            @if (VisibleActions.Count == 0)
+                            {
+                                <div class="pad muted">No actions yet. Use "Add Action" to create one.</div>
+                            }
+                            else
+                            {
                                 @foreach (var a in VisibleActions)
                                 {
                                     var action = a;
+                                    var notesPreview = GetNotesPreview(action.Notes);
+                                    var done = action.State == GrowthGoalActionState.Complete;
                                     <button type="button"
-                                            class="listRow listRowBtn @(_selectedActionId == action.Id ? "listRowActive" : null)"
+                                            class="ggRow ggRowBtn @(_selectedActionId == action.Id ? "ggRowSelected" : null)"
+                                            role="row"
                                             @onclick="() => SelectAction(action.Id)">
-                                        <div class="listMain">
-                                            <div class="listTitle">@action.Title</div>
-                                            <div class="listMeta">@action.State • due @(action.DueDateIso ?? "—")</div>
+                                        <div class="ggCell ggCellDone" role="cell" @onclick:stopPropagation="true">
+                                            <input type="checkbox"
+                                                   checked="@done"
+                                                   @onchange="e => OnActionDoneToggle(action.Id, e)" />
                                         </div>
-                                        <span class="pill @Tones.ActionStateTone(action.State)">@action.State</span>
+                                        <div class="ggCell ggCellMain" role="cell">
+                                            <div class="ggPrimary">@action.Title</div>
+                                            @if (!string.IsNullOrEmpty(notesPreview))
+                                            {
+                                                <div class="ggRowSubtle">Notes: @notesPreview</div>
+                                            }
+                                        </div>
+                                        <div class="ggCell ggCellDue" role="cell">
+                                            <div class="ggMuted">@DisplayLabels.FormatIsoDateShort(action.DueDateIso)</div>
+                                        </div>
+                                        <div class="ggCell ggCellState" role="cell">
+                                            <span class="pill @Tones.ActionStateTone(action.State)">@ActionStateLabel(action.State)</span>
+                                        </div>
                                     </button>
                                 }
-                            </div>
-                        }
+                            }
+                        </div>
+                    </div>
+                </section>
 
-                        @if (SelectedAction is not null)
+                <section class="growthGoalSection" aria-label="Check-ins">
+                    <div class="growthGoalSectionTitleRow">
+                        <div class="growthGoalSectionTitle">CHECK-INS</div>
+                        <div class="mutedSmall">Brief notes on how it's going • Click to edit on the right</div>
+                    </div>
+                    <div class="card subtle">
+                        <div class="ggTable" role="table" aria-label="Check-ins table">
+                            <div class="ggRow ggRow3 ggHeaderRow" role="row">
+                                <div class="ggCell ggCellDate" role="columnheader">Date</div>
+                                <div class="ggCell ggCellMain" role="columnheader">Note</div>
+                                <div class="ggCell ggCellSignal" role="columnheader">Signal</div>
+                            </div>
+                            @if (Goal.CheckIns.Count == 0)
+                            {
+                                <div class="pad muted">No check-ins yet. Use "Add Check-in" to add one.</div>
+                            }
+                            else
+                            {
+                                @foreach (var c in Goal.CheckIns)
+                                {
+                                    var checkIn = c;
+                                    <button type="button"
+                                            class="ggRow ggRow3 ggRowBtn @(_selectedCheckInId == checkIn.Id ? "ggRowSelected" : null)"
+                                            role="row"
+                                            @onclick="() => SelectCheckIn(checkIn.Id)">
+                                        <div class="ggCell ggCellDate" role="cell">
+                                            <div class="ggMuted">@DisplayLabels.FormatDateLabel(checkIn.DateIso)</div>
+                                        </div>
+                                        <div class="ggCell ggCellMain" role="cell">
+                                            <div class="ggPrimary">@(string.IsNullOrEmpty(checkIn.Note) ? "—" : GetCheckInPreview(checkIn.Note))</div>
+                                        </div>
+                                        <div class="ggCell ggCellSignal" role="cell">
+                                            <span class="pill @Tones.CheckInSignalTone(checkIn.Signal)">@checkIn.Signal</span>
+                                        </div>
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="growthGoalRight" aria-label="Detail editor">
+                <section class="card subtle ggEditorCard">
+                    <div class="cardHeader">
+                        <div class="cardTitle">DETAIL EDITOR</div>
+                        <div class="mutedSmall">Selection-based editing</div>
+                    </div>
+                    <div class="pad">
+                        @if (_selectedActionId is not null && SelectedAction is null)
                         {
-                            <div class="fieldGrid" style="margin-top: 12px" aria-label="Action editor">
+                            <div class="muted">Action not found.</div>
+                        }
+                        else if (_selectedCheckInId is not null && SelectedCheckIn is null)
+                        {
+                            <div class="muted">Check-in not found.</div>
+                        }
+                        else if (SelectedAction is null && SelectedCheckIn is null)
+                        {
+                            <div class="ggEditorCallout">
+                                Click an Action/Milestone or Check-in on the left to edit it here. This keeps the main page scannable without lots of nested cards.
+                            </div>
+                            <div class="muted">Select an action or check-in from the left to edit it.</div>
+                        }
+                        else if (SelectedAction is not null)
+                        {
+                            <div class="fieldGrid" aria-label="Action editor">
                                 <div class="ggEditorSelectedPillRow">
                                     <span class="pill toneNeutral">Selected: Action</span>
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Title</div>
-                                    <input class="input" value="@SelectedAction.Title" @oninput="OnActionTitleInput" />
+                                    <input class="input" value="@SelectedAction.Title" maxlength="@GrowthUiHelpers.MaxActionTitle" @oninput="OnActionTitleInput" />
                                 </label>
                                 <div class="fieldGrid2">
                                     <label class="field">
@@ -180,75 +442,62 @@ else
                                     </label>
                                 </div>
                                 <label class="field">
-                                    <div class="fieldLabel">Notes (what you’re tracking)</div>
-                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" placeholder="Free-text notes…" @oninput="OnActionNotesInput"></textarea>
+                                    <div class="fieldLabel">Notes (what you're tracking)</div>
+                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" maxlength="@GrowthUiHelpers.MaxActionNotes" placeholder="Free-text notes..." @oninput="OnActionNotesInput"></textarea>
+                                    @if (!string.IsNullOrEmpty(_actionValidationError))
+                                    {
+                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@_actionValidationError</div>
+                                    }
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Evidence / Links (optional)</div>
-                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" placeholder="One URL per line" @oninput="OnActionLinksInput"></textarea>
+                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" maxlength="@GrowthUiHelpers.MaxActionEvidence" placeholder="https://..." @oninput="OnActionLinksInput"></textarea>
+                                </label>
+                            </div>
+                        }
+                        else if (SelectedCheckIn is not null)
+                        {
+                            <div class="fieldGrid" aria-label="Check-in editor">
+                                <div class="ggEditorSelectedPillRow">
+                                    <span class="pill toneNeutral">Selected: Check-in</span>
+                                </div>
+                                <div class="fieldGrid2">
+                                    <label class="field">
+                                        <div class="fieldLabel">Date</div>
+                                        <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="OnCheckInDateChange" />
+                                    </label>
+                                    <label class="field">
+                                        <div class="fieldLabel">Signal</div>
+                                        <select class="select" value="@SelectedCheckIn.Signal" @onchange="OnCheckInSignalChange">
+                                            <option value="Positive">Positive</option>
+                                            <option value="Mixed">Mixed</option>
+                                            <option value="Concern">Concern</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <label class="field">
+                                    <div class="fieldLabel">Check-in Note</div>
+                                    <textarea class="textarea" value="@SelectedCheckIn.Note" maxlength="@GrowthUiHelpers.MaxCheckInNote" placeholder="Short narrative signal about how the goal is going..." @oninput="OnCheckInNoteInput"></textarea>
+                                    @if (!string.IsNullOrEmpty(_checkInValidationError))
+                                    {
+                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@_checkInValidationError</div>
+                                    }
                                 </label>
                             </div>
                         }
                     </div>
                 </section>
-            </div>
+            </aside>
 
-            <div class="growthGoalRight">
-                <section class="card subtle" aria-label="Check-ins">
-                    <div class="cardHeader"><div class="cardTitle">CHECK-INS</div></div>
-                    <div class="pad">
-                        @if (Goal.CheckIns.Count == 0)
-                        {
-                            <div class="muted">No check-ins yet.</div>
-                        }
-                        else
-                        {
-                            <div class="list">
-                                @foreach (var c in Goal.CheckIns.OrderByDescending(x => x.DateIso))
-                                {
-                                    var checkIn = c;
-                                    <button type="button"
-                                            class="listRow listRowBtn @(_selectedCheckInId == checkIn.Id ? "listRowActive" : null)"
-                                            @onclick="() => SelectCheckIn(checkIn.Id)">
-                                        <div class="listMain">
-                                            <div class="listTitle">@DisplayLabels.FormatIsoDateShort(checkIn.DateIso)</div>
-                                            <div class="listMeta">@(string.IsNullOrEmpty(checkIn.Note) ? "—" : checkIn.Note)</div>
-                                        </div>
-                                        <span class="pill @Tones.CheckInSignalTone(checkIn.Signal)">@checkIn.Signal</span>
-                                    </button>
-                                }
-                            </div>
-                        }
-
-                        @if (SelectedCheckIn is not null)
-                        {
-                            <div class="fieldGrid2" style="margin-top: 12px" aria-label="Check-in editor">
-                                <label class="field">
-                                    <div class="fieldLabel">Date</div>
-                                    <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="OnCheckInDateChange" />
-                                </label>
-                                <label class="field">
-                                    <div class="fieldLabel">Signal</div>
-                                    <select class="select" value="@SelectedCheckIn.Signal" @onchange="OnCheckInSignalChange">
-                                        <option value="Positive">Positive</option>
-                                        <option value="Mixed">Mixed</option>
-                                        <option value="Concern">Concern</option>
-                                    </select>
-                                </label>
-                                <label class="field span2">
-                                    <div class="fieldLabel">Note</div>
-                                    <textarea class="textarea" value="@SelectedCheckIn.Note" @oninput="OnCheckInNoteInput"></textarea>
-                                </label>
-                            </div>
-                        }
-                    </div>
-                </section>
-            </div>
         </div>
     </div>
 }
 
 @code {
+    const string DefaultCheckInNote = "New check-in";
+
+    readonly record struct PersistIdentity(long RouteGeneration, Guid MemberId, Guid GrowthId, Guid GoalId, Guid? EntityId);
+
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? GoalId { get; set; }
 
@@ -256,11 +505,35 @@ else
     Guid? _selectedCheckInId;
     string? _routeMemberId;
     string? _routeGoalId;
+    Guid _loadedGrowthMemberId;
     string _actionFilter = "All";
     string _actionSort = "DueDate";
+    bool _editTimeframe;
+    bool _editStatus;
+    bool _editCategory;
+    bool _editPriority;
+    bool _editSummary;
+    bool _editSuccessCriteria;
+    GrowthLoadStatus _loadStatus;
+    string? _loadError;
+    bool _retrying;
+    bool _disposed;
+    bool _routeInitializing;
+    long _routeGeneration;
+    string _goalValidationError = "";
+    string _actionValidationError = "";
+    string _checkInValidationError = "";
+    readonly CancellationTokenSource _lifetimeCts = new();
     CancellationTokenSource? _goalDebounce;
     readonly Dictionary<Guid, CancellationTokenSource> _actionDebounce = new();
     readonly Dictionary<Guid, CancellationTokenSource> _checkInDebounce = new();
+    long _goalPersistVersion;
+    readonly Dictionary<Guid, long> _actionPersistVersion = new();
+    readonly Dictionary<Guid, long> _checkInPersistVersion = new();
+    readonly SemaphoreSlim _goalPersistGate = new(1, 1);
+    readonly Dictionary<Guid, SemaphoreSlim> _actionPersistGates = new();
+    readonly Dictionary<Guid, SemaphoreSlim> _checkInPersistGates = new();
+    readonly object _persistGateLock = new();
 
     void BackToGrowth() => Nav.NavigateTo($"/team/{MemberId}/growth");
 
@@ -319,8 +592,6 @@ else
     {
         Cache.Changed += OnChanged;
         _ = Cache.EnsureHydratedAsync();
-        if (Guid.TryParse(MemberId, out var mid))
-            _ = Cache.EnsureGrowthLoadedAsync(mid);
     }
 
     protected override void OnParametersSet()
@@ -329,6 +600,9 @@ else
             || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
         _routeMemberId = MemberId;
         _routeGoalId = GoalId;
+
+        if (routeChanged)
+            InvalidateRouteState();
 
         if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
         {
@@ -339,30 +613,199 @@ else
         if (Guid.TryParse(MemberId, out var id))
         {
             Selection.SelectTeamMember(id);
-            _ = Cache.EnsureGrowthLoadedAsync(id);
+            _loadStatus = Cache.GetGrowthLoadStatus(id);
+            _loadError = Cache.GetGrowthLoadError(id);
+
+            if (id != _loadedGrowthMemberId)
+            {
+                _loadedGrowthMemberId = id;
+                _routeInitializing = true;
+                _ = Cache.EnsureGrowthLoadedAsync(id);
+            }
+
             if (Cache.TeamReady && Member is null)
                 Nav.NavigateTo("/team", replace: true);
-        }
 
-        // Only clear selection when the route goal/member actually changes — not on
-        // ShellLayout re-renders caused by Cache.Changed (which re-run OnParametersSet).
-        if (routeChanged)
-        {
-            _selectedActionId = null;
-            _selectedCheckInId = null;
+            UpdateRouteInitializingFromLoadStatus();
         }
     }
+
+    void UpdateRouteInitializingFromLoadStatus()
+    {
+        if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+            _routeInitializing = false;
+    }
+
+    void InvalidatePersistWork()
+    {
+        CancelAllDebounces();
+        _goalPersistVersion++;
+        foreach (var key in _actionPersistVersion.Keys.ToList())
+            _actionPersistVersion[key]++;
+        foreach (var key in _checkInPersistVersion.Keys.ToList())
+            _checkInPersistVersion[key]++;
+    }
+
+    void InvalidateRouteState()
+    {
+        CancelAllDebounces();
+        _routeGeneration++;
+        _goalPersistVersion++;
+        foreach (var key in _actionPersistVersion.Keys.ToList())
+            _actionPersistVersion[key]++;
+        foreach (var key in _checkInPersistVersion.Keys.ToList())
+            _checkInPersistVersion[key]++;
+        _goalValidationError = "";
+        _actionValidationError = "";
+        _checkInValidationError = "";
+        _retrying = false;
+        _selectedActionId = null;
+        _selectedCheckInId = null;
+        _editTimeframe = false;
+        _editStatus = false;
+        _editCategory = false;
+        _editPriority = false;
+        _editSummary = false;
+        _editSuccessCriteria = false;
+        _routeInitializing = true;
+    }
+
+    void CancelAllDebounces()
+    {
+        _goalDebounce?.Cancel();
+        _goalDebounce?.Dispose();
+        _goalDebounce = null;
+
+        foreach (var key in _actionDebounce.Keys.ToList())
+        {
+            _actionDebounce[key].Cancel();
+            _actionDebounce[key].Dispose();
+            _actionDebounce.Remove(key);
+        }
+
+        foreach (var key in _checkInDebounce.Keys.ToList())
+        {
+            _checkInDebounce[key].Cancel();
+            _checkInDebounce[key].Dispose();
+            _checkInDebounce.Remove(key);
+        }
+    }
+
+    PersistIdentity CapturePersistIdentity(Guid? entityId = null) => new(
+        _routeGeneration,
+        Guid.TryParse(MemberId, out var memberId) ? memberId : Guid.Empty,
+        Growth?.Id ?? Guid.Empty,
+        Guid.TryParse(GoalId, out var goalId) ? goalId : Guid.Empty,
+        entityId);
+
+    bool IsActivePersistIdentity(PersistIdentity identity) =>
+        !_disposed
+        && !_lifetimeCts.IsCancellationRequested
+        && identity.RouteGeneration == _routeGeneration
+        && identity.MemberId != Guid.Empty
+        && identity.GrowthId != Guid.Empty
+        && identity.GoalId != Guid.Empty
+        && Guid.TryParse(MemberId, out var memberId)
+        && memberId == identity.MemberId
+        && Guid.TryParse(GoalId, out var goalId)
+        && goalId == identity.GoalId
+        && Growth?.Id == identity.GrowthId;
 
     void SelectAction(Guid id)
     {
         _selectedActionId = id;
         _selectedCheckInId = null;
+        _checkInValidationError = "";
+        _actionValidationError = SelectedAction is null
+            ? ""
+            : GrowthUiHelpers.ValidateActionPersist(SelectedAction) ?? "";
     }
 
     void SelectCheckIn(Guid id)
     {
         _selectedCheckInId = id;
         _selectedActionId = null;
+        _actionValidationError = "";
+        UpdateCheckInValidation();
+    }
+
+    void UpdateCheckInValidation()
+    {
+        _checkInValidationError = SelectedCheckIn is null
+            ? ""
+            : GrowthUiHelpers.ValidateCheckInPersist(SelectedCheckIn) ?? "";
+    }
+
+    SemaphoreSlim GetActionPersistGate(Guid actionId)
+    {
+        lock (_persistGateLock)
+        {
+            if (!_actionPersistGates.TryGetValue(actionId, out var gate))
+            {
+                gate = new SemaphoreSlim(1, 1);
+                _actionPersistGates[actionId] = gate;
+            }
+
+            return gate;
+        }
+    }
+
+    SemaphoreSlim GetCheckInPersistGate(Guid checkInId)
+    {
+        lock (_persistGateLock)
+        {
+            if (!_checkInPersistGates.TryGetValue(checkInId, out var gate))
+            {
+                gate = new SemaphoreSlim(1, 1);
+                _checkInPersistGates[checkInId] = gate;
+            }
+
+            return gate;
+        }
+    }
+
+    GrowthGoal? GetGoalSnapshot(Guid goalId) =>
+        Growth?.Goals.FirstOrDefault(g => g.Id == goalId);
+
+    GrowthGoal? GetGoalSnapshot() =>
+        Guid.TryParse(GoalId, out var gid) ? GetGoalSnapshot(gid) : null;
+
+    GrowthGoalAction? GetActionSnapshot(Guid goalId, Guid actionId) =>
+        GetGoalSnapshot(goalId)?.Actions.FirstOrDefault(a => a.Id == actionId);
+
+    GrowthGoalCheckIn? GetCheckInSnapshot(Guid goalId, Guid checkInId) =>
+        GetGoalSnapshot(goalId)?.CheckIns.FirstOrDefault(c => c.Id == checkInId);
+
+    async Task RetryLoad()
+    {
+        if (!Guid.TryParse(MemberId, out var memberId))
+            return;
+
+        _retrying = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Cache.RetryGrowthLoadAsync(memberId);
+        }
+        finally
+        {
+            _retrying = false;
+            _loadStatus = Cache.GetGrowthLoadStatus(memberId);
+            _loadError = Cache.GetGrowthLoadError(memberId);
+            if (!_disposed)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task ReloadGrowthAfterFailureAsync(PersistIdentity identity)
+    {
+        if (!IsActivePersistIdentity(identity))
+            return;
+
+        InvalidatePersistWork();
+
+        if (Guid.TryParse(MemberId, out var memberId))
+            await Cache.RetryGrowthLoadAsync(memberId);
     }
 
     void CommitGoal(Func<GrowthGoal, GrowthGoal> update, bool persistGoal = true, Guid? persistActionId = null, Guid? persistCheckInId = null)
@@ -370,40 +813,79 @@ else
         if (!Guid.TryParse(MemberId, out var mid) || !Guid.TryParse(GoalId, out var gid) || Growth is null)
             return;
 
-        GrowthGoal? nextGoal = null;
-        var updatedGrowth = new Growth
+        var currentGoal = Growth.Goals.FirstOrDefault(g => g.Id == gid);
+        if (currentGoal is null)
+            return;
+
+        var baseGoal = CloneGoal(currentGoal);
+        baseGoal.LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o");
+        var nextGoal = update(baseGoal);
+
+        if (persistActionId is Guid aid)
+        {
+            var action = nextGoal.Actions.First(a => a.Id == aid);
+            _actionValidationError = GrowthUiHelpers.ValidateActionPersist(action) ?? "";
+            if (!string.IsNullOrEmpty(_actionValidationError))
+                return;
+            _goalValidationError = "";
+            _checkInValidationError = "";
+        }
+        else if (persistCheckInId is Guid cid)
+        {
+            var checkIn = nextGoal.CheckIns.First(c => c.Id == cid);
+            _checkInValidationError = GrowthUiHelpers.ValidateCheckInPersist(checkIn) ?? "";
+            if (!string.IsNullOrEmpty(_checkInValidationError))
+                return;
+            _goalValidationError = "";
+            _actionValidationError = "";
+        }
+        else if (persistGoal)
+        {
+            _goalValidationError = GrowthUiHelpers.ValidateGoalPersist(nextGoal) ?? "";
+            if (!string.IsNullOrEmpty(_goalValidationError))
+                return;
+            _actionValidationError = "";
+            _checkInValidationError = "";
+        }
+
+        Cache.UpdateGrowth(new Growth
         {
             Id = Growth.Id,
             MemberId = mid,
             SkillsInProgress = Growth.SkillsInProgress,
             FeedbackThemes = Growth.FeedbackThemes,
             FocusAreasMarkdown = Growth.FocusAreasMarkdown,
-            Goals = Growth.Goals.Select(g =>
-            {
-                if (g.Id != gid) return g;
-                var baseGoal = CloneGoal(g);
-                baseGoal.LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o");
-                nextGoal = update(baseGoal);
-                return nextGoal;
-            }).ToList()
-        };
-        Cache.UpdateGrowth(updatedGrowth);
-        if (nextGoal is null || Growth.Id == Guid.Empty) return;
+            Goals = Growth.Goals.Select(g => g.Id == gid ? nextGoal : g).ToList()
+        });
 
-        if (persistActionId is Guid aid)
+        if (Growth.Id == Guid.Empty)
+            return;
+
+        if (persistActionId is Guid actionId)
         {
-            DebounceAction(aid, () => PersistActionAsync(Growth.Id, gid, nextGoal.Actions.First(a => a.Id == aid)));
+            _actionPersistVersion[actionId] = _actionPersistVersion.GetValueOrDefault(actionId) + 1;
+            var version = _actionPersistVersion[actionId];
+            var identity = CapturePersistIdentity(actionId);
+            DebounceAction(actionId, () => PersistActionAsync(identity, version));
             return;
         }
 
-        if (persistCheckInId is Guid cid)
+        if (persistCheckInId is Guid checkInId)
         {
-            DebounceCheckIn(cid, () => PersistCheckInAsync(Growth.Id, gid, nextGoal.CheckIns.First(c => c.Id == cid)));
+            _checkInPersistVersion[checkInId] = _checkInPersistVersion.GetValueOrDefault(checkInId) + 1;
+            var version = _checkInPersistVersion[checkInId];
+            var identity = CapturePersistIdentity(checkInId);
+            DebounceCheckIn(checkInId, () => PersistCheckInAsync(identity, version));
             return;
         }
 
         if (persistGoal)
-            DebounceGoal(() => PersistGoalAsync(Growth.Id, gid, nextGoal));
+        {
+            _goalPersistVersion++;
+            var version = _goalPersistVersion;
+            var identity = CapturePersistIdentity();
+            DebounceGoal(() => PersistGoalAsync(identity, version));
+        }
     }
 
     void OnStatusChange(ChangeEventArgs e) =>
@@ -436,6 +918,7 @@ else
             g.SuccessCriteria = (e.Value?.ToString() ?? "")
                 .Split('\n')
                 .Select(l => l.Trim())
+                .Select(l => System.Text.RegularExpressions.Regex.Replace(l, @"^-+\s*", ""))
                 .Where(l => l.Length > 0)
                 .ToList();
             return g;
@@ -496,6 +979,34 @@ else
         PatchAction(id, a => a.Links = links);
     }
 
+    void OnActionDoneToggle(Guid actionId, ChangeEventArgs e)
+    {
+        var done = (bool)(e.Value ?? false);
+        PatchAction(actionId, a => a.State = done ? GrowthGoalActionState.Complete : GrowthGoalActionState.Planned);
+    }
+
+    static string ActionStateLabel(GrowthGoalActionState state) => state switch
+    {
+        GrowthGoalActionState.InProgress => "In Progress",
+        _ => state.ToString()
+    };
+
+    static string FormatOverviewDate(string? iso)
+    {
+        if (string.IsNullOrWhiteSpace(iso)) return "—";
+        var datePart = iso.Length >= 10 ? iso[..10] : iso;
+        return DisplayLabels.FormatDateLabel(datePart);
+    }
+
+    static string GetNotesPreview(string? notes)
+    {
+        var lines = (notes ?? "").Trim().Split('\n');
+        return lines.Length == 0 ? "" : lines[0];
+    }
+
+    static string GetCheckInPreview(string note) =>
+        note.Length > 110 ? $"{note[..110]}…" : note;
+
     void OnCheckInDateChange(ChangeEventArgs e)
     {
         if (_selectedCheckInId is not Guid id) return;
@@ -538,7 +1049,14 @@ else
                 State = AtlasDomainEnumsGrowthGoalActionState.Planned,
                 Priority = Goal?.Priority is null ? AtlasDomainEnumsPriority.Medium : ApiMappers.ToApiPriority(Goal.Priority.Value)
             });
-            var id = res.Id ?? Guid.NewGuid();
+            if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
+            {
+                await ReloadGrowthAfterFailureAsync(CapturePersistIdentity());
+                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("action"));
+                return;
+            }
+
+            var id = res.Id!.Value;
             CommitGoal(g =>
             {
                 var actions = new List<GrowthGoalAction>
@@ -562,7 +1080,7 @@ else
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to add action right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add action.", ex));
         }
     }
 
@@ -576,14 +1094,21 @@ else
             {
                 Date = DateTimeOffset.TryParse(today, out var d) ? d : DateTimeOffset.Now,
                 Signal = AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed,
-                Note = ""
+                Note = DefaultCheckInNote
             });
-            var id = res.Id ?? Guid.NewGuid();
+            if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
+            {
+                await ReloadGrowthAfterFailureAsync(CapturePersistIdentity());
+                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("check-in"));
+                return;
+            }
+
+            var id = res.Id!.Value;
             CommitGoal(g =>
             {
                 var checkIns = new List<GrowthGoalCheckIn>
                 {
-                    new() { Id = id, DateIso = today, Signal = GrowthGoalCheckInSignal.Mixed, Note = "" }
+                    new() { Id = id, DateIso = today, Signal = GrowthGoalCheckInSignal.Mixed, Note = DefaultCheckInNote }
                 };
                 checkIns.AddRange(g.CheckIns);
                 g.CheckIns = checkIns;
@@ -591,25 +1116,31 @@ else
             }, persistGoal: false);
             _selectedCheckInId = id;
             _selectedActionId = null;
+            _checkInValidationError = "";
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to add check-in right now. Please try again.\n\n{ex.Message}");
+            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add check-in.", ex));
         }
     }
 
     void DebounceGoal(Func<Task> action)
     {
+        if (_disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
         _goalDebounce?.Cancel();
-        _goalDebounce = new CancellationTokenSource();
+        _goalDebounce?.Dispose();
+        _goalDebounce = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         var token = _goalDebounce.Token;
+        var routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(400, token);
-                if (!token.IsCancellationRequested)
-                    await InvokeAsync(async () => await action());
+                if (!token.IsCancellationRequested && !_disposed && routeGen == _routeGeneration)
+                    await InvokeAsync(action);
             }
             catch (TaskCanceledException) { }
         });
@@ -617,16 +1148,25 @@ else
 
     void DebounceAction(Guid id, Func<Task> action)
     {
-        if (_actionDebounce.TryGetValue(id, out var existing)) existing.Cancel();
-        var cts = new CancellationTokenSource();
+        if (_disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
+        if (_actionDebounce.TryGetValue(id, out var existing))
+        {
+            existing.Cancel();
+            existing.Dispose();
+        }
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         _actionDebounce[id] = cts;
+        var routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(400, cts.Token);
-                if (!cts.Token.IsCancellationRequested)
-                    await InvokeAsync(async () => await action());
+                if (!cts.Token.IsCancellationRequested && !_disposed && routeGen == _routeGeneration)
+                    await InvokeAsync(action);
             }
             catch (TaskCanceledException) { }
         });
@@ -634,80 +1174,271 @@ else
 
     void DebounceCheckIn(Guid id, Func<Task> action)
     {
-        if (_checkInDebounce.TryGetValue(id, out var existing)) existing.Cancel();
-        var cts = new CancellationTokenSource();
+        if (_disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
+        if (_checkInDebounce.TryGetValue(id, out var existing))
+        {
+            existing.Cancel();
+            existing.Dispose();
+        }
+
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         _checkInDebounce[id] = cts;
+        var routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
             {
                 await Task.Delay(400, cts.Token);
-                if (!cts.Token.IsCancellationRequested)
-                    await InvokeAsync(async () => await action());
+                if (!cts.Token.IsCancellationRequested && !_disposed && routeGen == _routeGeneration)
+                    await InvokeAsync(action);
             }
             catch (TaskCanceledException) { }
         });
     }
 
-    async Task PersistGoalAsync(Guid growthId, Guid goalId, GrowthGoal goal)
+    async Task PersistGoalAsync(PersistIdentity identity, long version)
     {
+        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity))
+            return;
+
         try
         {
-            await Api.AtlasApiEndpointsGrowthGoalsUpdateGrowthGoalEndpointAsync(growthId, goalId, new AtlasApiDTOsGrowthGoalsUpdateGrowthGoalRequest
+            await _goalPersistGate.WaitAsync(_lifetimeCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        Exception? failure = null;
+        var shouldRecover = false;
+
+        try
+        {
+            while (!_disposed && !_lifetimeCts.IsCancellationRequested && IsActivePersistIdentity(identity))
             {
-                Title = goal.Title,
-                Description = goal.Description,
-                Status = ApiMappers.ToApiGrowthGoalStatus(goal.Status),
-                StartDate = DateTimeOffset.TryParse(goal.StartDateIso, out var sd) ? sd : null,
-                TargetDate = DateTimeOffset.TryParse(goal.TargetDateIso, out var td) ? td : null,
-                Category = goal.Category,
-                Priority = goal.Priority is null ? null : ApiMappers.ToApiPriority(goal.Priority.Value),
-                ProgressPercent = goal.ProgressPercent,
-                Summary = goal.Summary,
-                SuccessCriteria = goal.SuccessCriteria.ToList()
-            });
+                if (version != _goalPersistVersion)
+                    return;
+
+                var goal = GetGoalSnapshot(identity.GoalId);
+                if (goal is null)
+                    return;
+
+                var validation = GrowthUiHelpers.ValidateGoalPersist(goal);
+                if (validation is not null)
+                {
+                    _goalValidationError = validation;
+                    return;
+                }
+
+                _goalValidationError = "";
+
+                await Api.AtlasApiEndpointsGrowthGoalsUpdateGrowthGoalEndpointAsync(identity.GrowthId, identity.GoalId, new AtlasApiDTOsGrowthGoalsUpdateGrowthGoalRequest
+                {
+                    Title = goal.Title,
+                    Description = goal.Description,
+                    Status = ApiMappers.ToApiGrowthGoalStatus(goal.Status),
+                    StartDate = DateTimeOffset.TryParse(goal.StartDateIso, out var sd) ? sd : null,
+                    TargetDate = DateTimeOffset.TryParse(goal.TargetDateIso, out var td) ? td : null,
+                    Category = goal.Category,
+                    Priority = goal.Priority is null ? null : ApiMappers.ToApiPriority(goal.Priority.Value),
+                    ProgressPercent = goal.ProgressPercent,
+                    Summary = goal.Summary,
+                    SuccessCriteria = goal.SuccessCriteria.ToList()
+                });
+
+                if (!IsActivePersistIdentity(identity))
+                    return;
+
+                if (version == _goalPersistVersion)
+                    return;
+
+                version = _goalPersistVersion;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save goal changes right now. Please try again.\n\n{ex.Message}");
+            if (version == _goalPersistVersion && !_disposed && IsActivePersistIdentity(identity))
+            {
+                failure = ex;
+                shouldRecover = true;
+            }
         }
+        finally
+        {
+            _goalPersistGate.Release();
+        }
+
+        if (!shouldRecover || failure is null || _disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
+        await ReloadGrowthAfterFailureAsync(identity);
+        await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save goal changes.", failure));
     }
 
-    async Task PersistActionAsync(Guid growthId, Guid goalId, GrowthGoalAction action)
+    async Task PersistActionAsync(PersistIdentity identity, long version)
     {
+        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not Guid actionId)
+            return;
+
+        var gate = GetActionPersistGate(actionId);
         try
         {
-            await Api.AtlasApiEndpointsGrowthGoalsActionsUpdateGrowthGoalActionEndpointAsync(growthId, goalId, action.Id, new AtlasApiDTOsGrowthGoalsActionsUpdateGrowthGoalActionRequest
+            await gate.WaitAsync(_lifetimeCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        Exception? failure = null;
+        var shouldRecover = false;
+
+        try
+        {
+            while (!_disposed && !_lifetimeCts.IsCancellationRequested && IsActivePersistIdentity(identity))
             {
-                Title = action.Title,
-                State = ApiMappers.ToApiGrowthGoalActionState(action.State),
-                DueDate = DateTimeOffset.TryParse(action.DueDateIso, out var d) ? d : null,
-                Priority = action.Priority is null ? null : ApiMappers.ToApiPriority(action.Priority.Value),
-                Notes = action.Notes,
-                Evidence = action.Links.Count > 0 ? string.Join('\n', action.Links) : null
-            });
+                if (!_actionPersistVersion.TryGetValue(actionId, out var current) || version != current)
+                    return;
+
+                var action = GetActionSnapshot(identity.GoalId, actionId);
+                if (action is null)
+                    return;
+
+                var validation = GrowthUiHelpers.ValidateActionPersist(action);
+                if (validation is not null)
+                {
+                    _actionValidationError = validation;
+                    return;
+                }
+
+                _actionValidationError = "";
+
+                await Api.AtlasApiEndpointsGrowthGoalsActionsUpdateGrowthGoalActionEndpointAsync(identity.GrowthId, identity.GoalId, action.Id, new AtlasApiDTOsGrowthGoalsActionsUpdateGrowthGoalActionRequest
+                {
+                    Title = action.Title,
+                    State = ApiMappers.ToApiGrowthGoalActionState(action.State),
+                    DueDate = DateTimeOffset.TryParse(action.DueDateIso, out var d) ? d : null,
+                    Priority = action.Priority is null ? null : ApiMappers.ToApiPriority(action.Priority.Value),
+                    Notes = action.Notes,
+                    Evidence = action.Links.Count > 0 ? string.Join('\n', action.Links) : null
+                });
+
+                if (!IsActivePersistIdentity(identity))
+                    return;
+
+                if (_actionPersistVersion.TryGetValue(actionId, out current) && current == version)
+                    return;
+
+                version = current;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save action changes right now. Please try again.\n\n{ex.Message}");
+            if (_actionPersistVersion.TryGetValue(actionId, out var current) && version == current && !_disposed && IsActivePersistIdentity(identity))
+            {
+                failure = ex;
+                shouldRecover = true;
+            }
         }
+        finally
+        {
+            gate.Release();
+        }
+
+        if (!shouldRecover || failure is null || _disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
+        await ReloadGrowthAfterFailureAsync(identity);
+        await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save action changes.", failure));
     }
 
-    async Task PersistCheckInAsync(Guid growthId, Guid goalId, GrowthGoalCheckIn checkIn)
+    async Task PersistCheckInAsync(PersistIdentity identity, long version)
     {
+        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not Guid checkInId)
+            return;
+
+        var gate = GetCheckInPersistGate(checkInId);
         try
         {
-            await Api.AtlasApiEndpointsGrowthGoalsCheckInsUpdateGrowthGoalCheckInEndpointAsync(growthId, goalId, checkIn.Id, new AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest
+            await gate.WaitAsync(_lifetimeCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        Exception? failure = null;
+        var shouldRecover = false;
+
+        try
+        {
+            while (!_disposed && !_lifetimeCts.IsCancellationRequested && IsActivePersistIdentity(identity))
             {
-                Date = DateTimeOffset.TryParse(checkIn.DateIso, out var d) ? d : null,
-                Signal = ApiMappers.ToApiGrowthGoalCheckInSignal(checkIn.Signal),
-                Note = checkIn.Note
-            });
+                if (!_checkInPersistVersion.TryGetValue(checkInId, out var current) || version != current)
+                    return;
+
+                var checkIn = GetCheckInSnapshot(identity.GoalId, checkInId);
+                if (checkIn is null)
+                    return;
+
+                var validation = GrowthUiHelpers.ValidateCheckInPersist(checkIn);
+                if (validation is not null)
+                {
+                    _checkInValidationError = validation;
+                    return;
+                }
+
+                _checkInValidationError = "";
+
+                await Api.AtlasApiEndpointsGrowthGoalsCheckInsUpdateGrowthGoalCheckInEndpointAsync(identity.GrowthId, identity.GoalId, checkIn.Id, new AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest
+                {
+                    Date = DateTimeOffset.TryParse(checkIn.DateIso, out var d) ? d : null,
+                    Signal = ApiMappers.ToApiGrowthGoalCheckInSignal(checkIn.Signal),
+                    Note = checkIn.Note.Trim()
+                });
+
+                if (!IsActivePersistIdentity(identity))
+                    return;
+
+                if (_checkInPersistVersion.TryGetValue(checkInId, out current) && current == version)
+                    return;
+
+                version = current;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save check-in changes right now. Please try again.\n\n{ex.Message}");
+            if (_checkInPersistVersion.TryGetValue(checkInId, out var current) && version == current && !_disposed && IsActivePersistIdentity(identity))
+            {
+                failure = ex;
+                shouldRecover = true;
+            }
         }
+        finally
+        {
+            gate.Release();
+        }
+
+        if (!shouldRecover || failure is null || _disposed || _lifetimeCts.IsCancellationRequested)
+            return;
+
+        await ReloadGrowthAfterFailureAsync(identity);
+        await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to save check-in changes.", failure));
     }
 
     static GrowthGoal CloneGoal(GrowthGoal g) => new()
@@ -747,13 +1478,27 @@ else
         Note = c.Note
     };
 
-    void OnChanged() => InvokeAsync(StateHasChanged);
+    void OnChanged()
+    {
+        if (_disposed)
+            return;
+
+        if (Guid.TryParse(MemberId, out var id))
+        {
+            _loadStatus = Cache.GetGrowthLoadStatus(id);
+            _loadError = Cache.GetGrowthLoadError(id);
+            UpdateRouteInitializingFromLoadStatus();
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     public void Dispose()
     {
+        _disposed = true;
+        _lifetimeCts.Cancel();
         Cache.Changed -= OnChanged;
-        _goalDebounce?.Cancel();
-        foreach (var cts in _actionDebounce.Values) cts.Cancel();
-        foreach (var cts in _checkInDebounce.Values) cts.Cancel();
+        CancelAllDebounces();
+        _lifetimeCts.Dispose();
     }
 }

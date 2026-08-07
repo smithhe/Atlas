@@ -265,6 +265,14 @@ public sealed class TeamMemberRisk
     public Guid? LinkedRiskId { get; set; }
 }
 
+public enum GrowthLoadStatus
+{
+    Idle,
+    Loading,
+    Succeeded,
+    Failed
+}
+
 public sealed class Growth
 {
     public Guid Id { get; set; }

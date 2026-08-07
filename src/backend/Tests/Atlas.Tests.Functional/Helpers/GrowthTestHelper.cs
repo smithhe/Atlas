@@ -17,9 +17,8 @@ internal static class GrowthTestHelper
         CreateTeamMemberResponse? member = await memberResponse.ReadJsonAsync<CreateTeamMemberResponse>();
         Assert.NotNull(member);
 
-        HttpResponseMessage ensureResponse = await client.PostJsonAsync(
-            $"/team-members/{member.Id}/growth/ensure",
-            new EnsureGrowthForTeamMemberRequest(member.Id));
+        HttpResponseMessage ensureResponse = await client.PostEmptyJsonAsync(
+            $"/team-members/{member.Id}/growth/ensure");
         EnsureGrowthForTeamMemberResponse? ensured = await ensureResponse.ReadJsonAsync<EnsureGrowthForTeamMemberResponse>();
         Assert.NotNull(ensured);
 
