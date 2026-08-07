@@ -16,7 +16,11 @@ public sealed class AddFeedbackThemeEndpoint : Endpoint<AddFeedbackThemeRequest,
     {
         Post("/growth/{growthId:guid}/feedback-themes");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add a feedback theme to a growth plan"; });
+        Summary(s =>
+        {
+            s.Summary = "Add a feedback theme to a growth plan";
+            s.Response<AddFeedbackThemeResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddFeedbackThemeRequest req, CancellationToken ct)
