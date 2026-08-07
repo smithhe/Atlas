@@ -1,3 +1,4 @@
+using Atlas.Api.Http;
 using Atlas.AzureDevOps;
 using Atlas.Api.Time;
 using Atlas.Application.Abstractions.Time;
@@ -214,27 +215,8 @@ else if (!string.Equals(
     app.UseHttpsRedirection();
 }
 
-// Surface missing Azure PAT (and similar) as a client-readable JSON body instead of a bare 500.
-app.Use(async (context, next) =>
-{
-    try
-    {
-        await next(context);
-    }
-    catch (InvalidOperationException ex) when (
-        ex.Message.Contains("AzureDevopsToken", StringComparison.Ordinal) ||
-        ex.Message.Contains("Azure DevOps PAT", StringComparison.Ordinal))
-    {
-        if (context.Response.HasStarted)
-        {
-            throw;
-        }
-
-        context.Response.Clear();
-        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-        await context.Response.WriteAsJsonAsync(new { message = ex.Message });
-    }
-});
+// Map FluentValidation failures and Azure PAT misconfiguration to client-readable JSON.
+app.UseMiddleware<ApiExceptionHandlingMiddleware>();
 
 app.UseFastEndpoints();
 

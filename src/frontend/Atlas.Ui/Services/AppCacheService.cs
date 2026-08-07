@@ -81,6 +81,13 @@ public sealed class AppCacheService
 
     /// <summary>Per-member growth records keyed by team member id (lazy-loaded).</summary>
     readonly Dictionary<Guid, Growth> _growthByMemberId = new();
+    readonly Dictionary<Guid, Task<Growth?>> _growthLoads = new();
+    readonly Dictionary<Guid, GrowthLoadStatus> _growthLoadStatus = new();
+    readonly Dictionary<Guid, string?> _growthLoadErrors = new();
+    readonly Dictionary<Guid, long> _growthLoadGenerations = new();
+    readonly Dictionary<Guid, CancellationTokenSource> _growthLoadCancellations = new();
+
+    const string GrowthEnsureFailedMessage = "Unable to ensure growth record for team member.";
 
     public string? LastError { get; private set; }
 
@@ -307,6 +314,22 @@ public sealed class AppCacheService
         }
     }
 
+    public GrowthLoadStatus GetGrowthLoadStatus(Guid memberId)
+    {
+        lock (_gate)
+        {
+            return _growthLoadStatus.GetValueOrDefault(memberId, GrowthLoadStatus.Idle);
+        }
+    }
+
+    public string? GetGrowthLoadError(Guid memberId)
+    {
+        lock (_gate)
+        {
+            return _growthLoadErrors.TryGetValue(memberId, out var error) ? error : null;
+        }
+    }
+
     public void UpdateGrowth(Growth growth)
     {
         lock (_gate)
@@ -317,16 +340,156 @@ public sealed class AppCacheService
         Notify();
     }
 
-    public async Task<Growth?> EnsureGrowthLoadedAsync(Guid memberId, CancellationToken cancellationToken = default)
+    public Task<Growth?> EnsureGrowthLoadedAsync(Guid memberId, CancellationToken cancellationToken = default) =>
+        StartGuardedGrowthLoadAsync(memberId, cancellationToken, LoadGrowthAsync);
+
+    public Task<Growth?> RetryGrowthLoadAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
         lock (_gate)
         {
-            if (_growthByMemberId.TryGetValue(memberId, out var cached))
-                return cached;
+            if (_growthLoadCancellations.TryGetValue(memberId, out var cts))
+            {
+                cts.Cancel();
+                cts.Dispose();
+                _growthLoadCancellations.Remove(memberId);
+            }
+
+            _growthByMemberId.Remove(memberId);
+            _growthLoads.Remove(memberId);
+            _growthLoadStatus.Remove(memberId);
+            _growthLoadErrors.Remove(memberId);
         }
 
+        return EnsureGrowthLoadedAsync(memberId, cancellationToken);
+    }
+
+    bool IsCurrentGrowthLoad(Guid memberId, long generation)
+    {
+        lock (_gate)
+        {
+            return _growthLoadGenerations.GetValueOrDefault(memberId) == generation;
+        }
+    }
+
+    void CompleteGrowthLoad(Guid memberId, long generation)
+    {
+        lock (_gate)
+        {
+            if (_growthLoadGenerations.GetValueOrDefault(memberId) != generation)
+                return;
+
+            _growthLoads.Remove(memberId);
+            if (_growthLoadCancellations.TryGetValue(memberId, out var cts))
+            {
+                cts.Dispose();
+                _growthLoadCancellations.Remove(memberId);
+            }
+        }
+    }
+
+    static bool IsRicherGrowthCache(Growth existing, Growth incoming)
+    {
+        if (incoming.Goals.Count == 0 && existing.Goals.Count > 0)
+            return true;
+        if (incoming.SkillsInProgress.Count == 0 && existing.SkillsInProgress.Count > 0)
+            return true;
+        if (incoming.FeedbackThemes.Count == 0 && existing.FeedbackThemes.Count > 0)
+            return true;
+        if (string.IsNullOrWhiteSpace(incoming.FocusAreasMarkdown) && !string.IsNullOrWhiteSpace(existing.FocusAreasMarkdown))
+            return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Commits growth load results only when <paramref name="generation"/> still owns the member load slot.
+    /// Lock owns generation reads/writes; cache/status mutation and Notify happen outside the lock.
+    /// When incoming growth is poorer than existing cache, status still advances for the current generation.
+    /// </summary>
+    bool TryCommitGrowthLoadResult(Guid memberId, long generation, Growth? growth, GrowthLoadStatus status, string? error = null)
+    {
+        var shouldNotify = false;
+
+        lock (_gate)
+        {
+            if (_growthLoadGenerations.GetValueOrDefault(memberId) != generation)
+                return false;
+
+            if (growth is not null)
+            {
+                if (!_growthByMemberId.TryGetValue(memberId, out var existing) || !IsRicherGrowthCache(existing, growth))
+                    _growthByMemberId[memberId] = growth;
+            }
+
+            _growthLoadStatus[memberId] = status;
+            if (error is null)
+                _growthLoadErrors.Remove(memberId);
+            else
+                _growthLoadErrors[memberId] = error;
+
+            shouldNotify = true;
+        }
+
+        if (shouldNotify)
+            Notify();
+
+        return true;
+    }
+
+    Task<Growth?> StartGuardedGrowthLoadAsync(Guid memberId, CancellationToken cancellationToken, Func<Guid, long, CancellationToken, Task<Growth?>> loadFactory)
+    {
+        Task<Growth?> load;
+        var startedLoading = false;
+
+        lock (_gate)
+        {
+            if (_growthByMemberId.TryGetValue(memberId, out var cached))
+                return Task.FromResult<Growth?>(cached);
+
+            if (_growthLoads.TryGetValue(memberId, out load!))
+                return load;
+
+            var generation = _growthLoadGenerations.GetValueOrDefault(memberId) + 1;
+            _growthLoadGenerations[memberId] = generation;
+            _growthLoadStatus[memberId] = GrowthLoadStatus.Loading;
+            _growthLoadErrors.Remove(memberId);
+
+            if (_growthLoadCancellations.TryGetValue(memberId, out var previousCts))
+            {
+                previousCts.Cancel();
+                previousCts.Dispose();
+            }
+
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _growthLoadCancellations[memberId] = linkedCts;
+            load = loadFactory(memberId, generation, linkedCts.Token);
+            _growthLoads[memberId] = load;
+            startedLoading = true;
+        }
+
+        if (startedLoading)
+            Notify();
+
+        return load;
+    }
+
+    async Task<Growth?> HydrateGrowthAsync(Guid memberId, Guid growthId, long generation, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var dto = await _api.AtlasApiEndpointsGrowthGetGrowthEndpointAsync(growthId, cancellationToken);
+        if (!IsCurrentGrowthLoad(memberId, generation))
+            return null;
+
+        var mapped = ApiMappers.MapGrowth(dto);
+        TryCommitGrowthLoadResult(memberId, generation, mapped, GrowthLoadStatus.Succeeded);
+        return GetGrowth(memberId) ?? mapped;
+    }
+
+    async Task<Growth?> LoadGrowthAsync(Guid memberId, long generation, CancellationToken cancellationToken)
+    {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             AtlasApiDTOsGrowthGrowthDto dto;
             try
             {
@@ -337,40 +500,133 @@ public sealed class AppCacheService
                 var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
                 var growthId = ensured.GrowthId ?? Guid.Empty;
                 if (growthId == Guid.Empty)
+                {
+                    if (!IsCurrentGrowthLoad(memberId, generation))
+                        return null;
+
+                    LastError = GrowthEnsureFailedMessage;
+                    TryCommitGrowthLoadResult(memberId, generation, null, GrowthLoadStatus.Failed, GrowthEnsureFailedMessage);
                     return null;
+                }
+
                 dto = await _api.AtlasApiEndpointsGrowthGetGrowthEndpointAsync(growthId, cancellationToken);
             }
 
+            if (!IsCurrentGrowthLoad(memberId, generation))
+                return null;
+
             var mapped = ApiMappers.MapGrowth(dto);
-            UpdateGrowth(mapped);
-            return mapped;
+            TryCommitGrowthLoadResult(memberId, generation, mapped, GrowthLoadStatus.Succeeded);
+            return GetGrowth(memberId) ?? mapped;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
         }
         catch (Exception ex)
         {
-            LastError = ex.Message;
-            Notify();
-            return GetGrowth(memberId);
+            if (!IsCurrentGrowthLoad(memberId, generation))
+                return null;
+
+            var message = ex is AtlasApiException apiEx
+                ? $"Unable to load growth data ({apiEx.StatusCode})."
+                : "Unable to load growth data.";
+            LastError = message;
+            TryCommitGrowthLoadResult(memberId, generation, null, GrowthLoadStatus.Failed, message);
+            return null;
+        }
+        finally
+        {
+            CompleteGrowthLoad(memberId, generation);
+        }
+    }
+
+    async Task<Growth?> EnsureGrowthIdHydrateLoadAsync(Guid memberId, long generation, CancellationToken cancellationToken)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
+            var growthId = ensured.GrowthId ?? Guid.Empty;
+            if (growthId == Guid.Empty)
+            {
+                if (IsCurrentGrowthLoad(memberId, generation))
+                {
+                    LastError = GrowthEnsureFailedMessage;
+                    TryCommitGrowthLoadResult(memberId, generation, null, GrowthLoadStatus.Failed, GrowthEnsureFailedMessage);
+                }
+
+                return null;
+            }
+
+            return await HydrateGrowthAsync(memberId, growthId, generation, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            if (!IsCurrentGrowthLoad(memberId, generation))
+                return null;
+
+            var existing = GetGrowth(memberId);
+            if (existing is not null && existing.Id != Guid.Empty)
+                return existing;
+
+            var message = ex is AtlasApiException apiEx
+                ? $"Unable to load growth data ({apiEx.StatusCode})."
+                : "Unable to load growth data.";
+            LastError = message;
+            TryCommitGrowthLoadResult(memberId, generation, null, GrowthLoadStatus.Failed, message);
+            return null;
+        }
+        finally
+        {
+            CompleteGrowthLoad(memberId, generation);
         }
     }
 
     public async Task<Guid> EnsureGrowthIdAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
-        var existing = await EnsureGrowthLoadedAsync(memberId, cancellationToken);
-        if (existing is not null && existing.Id != Guid.Empty)
-            return existing.Id;
+        var cached = GetGrowth(memberId);
+        if (cached is not null && cached.Id != Guid.Empty)
+            return cached.Id;
 
-        var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
-        var id = ensured.GrowthId ?? Guid.Empty;
-        UpdateGrowth(new Growth
+        Task<Growth?>? inFlight = null;
+        lock (_gate)
         {
-            Id = id,
-            MemberId = memberId,
-            Goals = Array.Empty<GrowthGoal>(),
-            SkillsInProgress = Array.Empty<string>(),
-            FeedbackThemes = Array.Empty<GrowthFeedbackTheme>(),
-            FocusAreasMarkdown = ""
-        });
-        return id;
+            _growthLoads.TryGetValue(memberId, out inFlight);
+        }
+
+        if (inFlight is not null)
+        {
+            var loaded = await inFlight;
+            if (loaded is not null && loaded.Id != Guid.Empty)
+                return loaded.Id;
+
+            cached = GetGrowth(memberId);
+            if (cached is not null && cached.Id != Guid.Empty)
+                return cached.Id;
+        }
+        else if (GetGrowthLoadStatus(memberId) is not GrowthLoadStatus.Failed)
+        {
+            var loaded = await EnsureGrowthLoadedAsync(memberId, cancellationToken);
+            if (loaded is not null && loaded.Id != Guid.Empty)
+                return loaded.Id;
+
+            cached = GetGrowth(memberId);
+            if (cached is not null && cached.Id != Guid.Empty)
+                return cached.Id;
+        }
+
+        var hydrateLoad = await StartGuardedGrowthLoadAsync(memberId, cancellationToken, EnsureGrowthIdHydrateLoadAsync);
+        if (hydrateLoad is not null && hydrateLoad.Id != Guid.Empty)
+            return hydrateLoad.Id;
+
+        cached = GetGrowth(memberId);
+        return cached?.Id ?? Guid.Empty;
     }
 
     public void ReplaceTeamMembers(IReadOnlyList<TeamMember> team, IReadOnlyList<TeamMemberRisk> risks)
