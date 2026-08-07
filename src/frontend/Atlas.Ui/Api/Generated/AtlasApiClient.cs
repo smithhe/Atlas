@@ -42,7 +42,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Start a new AI conversation
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Accepted</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsAiCreateAiConversationResponse> AtlasApiEndpointsAiCreateAiConversationEndpointAsync(AtlasApiDTOsAiCreateAiConversationRequest createAiConversationRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -58,7 +58,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Continue an AI conversation with a new message
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Accepted</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsAiContinueAiConversationResponse> AtlasApiEndpointsAiContinueAiConversationEndpointAsync(System.Guid conversationId, AtlasApiDTOsAiContinueAiConversationRequest continueAiConversationRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -178,7 +178,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a feedback theme to a growth plan
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse> AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(System.Guid growthId, AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest addFeedbackThemeRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -210,7 +210,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a goal to a growth plan
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse> AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(System.Guid growthId, AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest addGrowthGoalRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -234,7 +234,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add an action to a growth goal
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse> AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpointAsync(System.Guid growthId, System.Guid goalId, AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest addGrowthGoalActionRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -258,7 +258,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a check-in to a growth goal
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse> AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpointAsync(System.Guid growthId, System.Guid goalId, AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest addGrowthGoalCheckInRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -310,7 +310,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a project
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsProjectsCreateProjectResponse> AtlasApiEndpointsProjectsCreateProjectEndpointAsync(AtlasApiDTOsProjectsCreateProjectRequest createProjectRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -358,7 +358,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsRisksCreateRiskResponse> AtlasApiEndpointsRisksCreateRiskEndpointAsync(AtlasApiDTOsRisksCreateRiskRequest createRiskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -398,7 +398,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a history entry to a risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse> AtlasApiEndpointsRisksHistoryAddRiskHistoryEntryEndpointAsync(System.Guid riskId, AtlasApiDTOsRisksHistoryAddRiskHistoryEntryRequest addRiskHistoryEntryRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -446,7 +446,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a task
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsTasksCreateTaskResponse> AtlasApiEndpointsTasksCreateTaskEndpointAsync(AtlasApiDTOsTasksCreateTaskRequest createTaskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -486,7 +486,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a team member
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersCreateTeamMemberResponse> AtlasApiEndpointsTeamMembersCreateTeamMemberEndpointAsync(AtlasApiDTOsTeamMembersCreateTeamMemberRequest createTeamMemberRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -518,7 +518,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a local note to a team member Azure work item
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse> AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpointAsync(System.Guid teamMemberId, int workItemId, AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest addAzureWorkItemLocalNoteRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -542,7 +542,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a team note
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse> AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(System.Guid teamMemberId, AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest addTeamNoteRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -582,7 +582,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a team-member-specific risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse> AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(System.Guid teamMemberId, AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest addTeamMemberRiskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
@@ -744,7 +744,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Start a new AI conversation
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Accepted</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsAiCreateAiConversationResponse> AtlasApiEndpointsAiCreateAiConversationEndpointAsync(AtlasApiDTOsAiCreateAiConversationRequest createAiConversationRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -792,7 +792,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 202)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAiCreateAiConversationResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -903,7 +903,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Continue an AI conversation with a new message
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Accepted</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsAiContinueAiConversationResponse> AtlasApiEndpointsAiContinueAiConversationEndpointAsync(System.Guid conversationId, AtlasApiDTOsAiContinueAiConversationRequest continueAiConversationRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -956,7 +956,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 202)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsAiContinueAiConversationResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2096,7 +2096,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a feedback theme to a growth plan
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse> AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(System.Guid growthId, AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest addFeedbackThemeRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -2149,7 +2149,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2423,7 +2423,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a goal to a growth plan
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse> AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(System.Guid growthId, AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest addGrowthGoalRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -2476,7 +2476,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2670,7 +2670,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add an action to a growth goal
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse> AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpointAsync(System.Guid growthId, System.Guid goalId, AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest addGrowthGoalActionRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -2728,7 +2728,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -2932,7 +2932,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a check-in to a growth goal
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse> AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpointAsync(System.Guid growthId, System.Guid goalId, AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest addGrowthGoalCheckInRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -2990,7 +2990,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3492,7 +3492,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a project
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsProjectsCreateProjectResponse> AtlasApiEndpointsProjectsCreateProjectEndpointAsync(AtlasApiDTOsProjectsCreateProjectRequest createProjectRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -3540,7 +3540,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsProjectsCreateProjectResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -3956,7 +3956,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsRisksCreateRiskResponse> AtlasApiEndpointsRisksCreateRiskEndpointAsync(AtlasApiDTOsRisksCreateRiskRequest createRiskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -4004,7 +4004,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsRisksCreateRiskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4346,7 +4346,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a history entry to a risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse> AtlasApiEndpointsRisksHistoryAddRiskHistoryEntryEndpointAsync(System.Guid riskId, AtlasApiDTOsRisksHistoryAddRiskHistoryEntryRequest addRiskHistoryEntryRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -4399,7 +4399,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsRisksHistoryAddRiskHistoryEntryResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -4822,7 +4822,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a task
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsTasksCreateTaskResponse> AtlasApiEndpointsTasksCreateTaskEndpointAsync(AtlasApiDTOsTasksCreateTaskRequest createTaskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -4870,7 +4870,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTasksCreateTaskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5212,7 +5212,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Create a team member
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersCreateTeamMemberResponse> AtlasApiEndpointsTeamMembersCreateTeamMemberEndpointAsync(AtlasApiDTOsTeamMembersCreateTeamMemberRequest createTeamMemberRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -5260,7 +5260,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersCreateTeamMemberResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5522,7 +5522,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a local note to a team member Azure work item
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse> AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpointAsync(System.Guid teamMemberId, int workItemId, AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest addAzureWorkItemLocalNoteRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -5580,7 +5580,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -5772,7 +5772,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a team note
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse> AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(System.Guid teamMemberId, AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest addTeamNoteRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -5825,7 +5825,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
@@ -6179,7 +6179,7 @@ namespace Atlas.Ui.Api.Generated
         /// <summary>
         /// Add a team-member-specific risk
         /// </summary>
-        /// <returns>Success</returns>
+        /// <returns>Created</returns>
         /// <exception cref="AtlasApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse> AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(System.Guid teamMemberId, AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest addTeamMemberRiskRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
@@ -6232,7 +6232,7 @@ namespace Atlas.Ui.Api.Generated
                         ProcessResponse(client_, response_);
 
                         var status_ = (int)response_.StatusCode;
-                        if (status_ == 200)
+                        if (status_ == 201)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)

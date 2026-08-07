@@ -2719,7 +2719,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
@@ -2727,7 +2727,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Accepted"
           }
         },
         "summary": "Start a new AI conversation",
@@ -2796,7 +2796,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
@@ -2804,7 +2804,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Accepted"
           }
         },
         "summary": "Continue an AI conversation with a new message",
@@ -3310,7 +3310,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -3318,7 +3318,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a feedback theme to a growth plan",
@@ -3472,7 +3472,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -3480,7 +3480,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a goal to a growth plan",
@@ -3605,7 +3605,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -3613,7 +3613,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add an action to a growth goal",
@@ -3756,7 +3756,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -3764,7 +3764,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a check-in to a growth goal",
@@ -3997,7 +3997,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4005,7 +4005,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Create a project",
@@ -4182,7 +4182,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4190,7 +4190,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Create a risk",
@@ -4356,7 +4356,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4364,7 +4364,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a history entry to a risk",
@@ -4553,7 +4553,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4561,7 +4561,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Create a task",
@@ -4716,7 +4716,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4724,7 +4724,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Create a team member",
@@ -4861,7 +4861,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4869,7 +4869,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a local note to a team member Azure work item",
@@ -4970,7 +4970,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4978,7 +4978,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a team note",
@@ -5170,7 +5170,7 @@
           "x-position": 1
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -5178,7 +5178,7 @@
                 }
               }
             },
-            "description": "Success"
+            "description": "Created"
           }
         },
         "summary": "Add a team-member-specific risk",

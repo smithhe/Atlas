@@ -16,7 +16,11 @@ public sealed class CreateAiConversationEndpoint : Endpoint<CreateAiConversation
     {
         Post("/ai/conversations");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Start a new AI conversation"; });
+        Summary(s =>
+        {
+            s.Summary = "Start a new AI conversation";
+            s.Response<CreateAiConversationResponse>(202, "Accepted");
+        });
     }
 
     public override async Task HandleAsync(CreateAiConversationRequest req, CancellationToken ct)

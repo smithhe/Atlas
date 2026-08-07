@@ -16,7 +16,11 @@ public sealed class CreateRiskEndpoint : Endpoint<CreateRiskRequest, CreateRiskR
     {
         Post("/risks");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Create a risk"; });
+        Summary(s =>
+        {
+            s.Summary = "Create a risk";
+            s.Response<CreateRiskResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(CreateRiskRequest req, CancellationToken ct)

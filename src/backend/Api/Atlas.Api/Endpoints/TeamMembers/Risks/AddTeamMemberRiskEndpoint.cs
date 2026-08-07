@@ -16,7 +16,11 @@ public sealed class AddTeamMemberRiskEndpoint : Endpoint<AddTeamMemberRiskReques
     {
         Post("/team-members/{teamMemberId:guid}/risks");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add a team-member-specific risk"; });
+        Summary(s =>
+        {
+            s.Summary = "Add a team-member-specific risk";
+            s.Response<AddTeamMemberRiskResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddTeamMemberRiskRequest req, CancellationToken ct)

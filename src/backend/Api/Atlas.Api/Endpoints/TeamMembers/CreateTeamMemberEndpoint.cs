@@ -16,7 +16,11 @@ public sealed class CreateTeamMemberEndpoint : Endpoint<CreateTeamMemberRequest,
     {
         Post("/team-members");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Create a team member"; });
+        Summary(s =>
+        {
+            s.Summary = "Create a team member";
+            s.Response<CreateTeamMemberResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(CreateTeamMemberRequest req, CancellationToken ct)
