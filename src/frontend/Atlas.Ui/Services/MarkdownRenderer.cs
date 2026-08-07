@@ -5,12 +5,13 @@ namespace Atlas.Ui.Services;
 
 /// <summary>
 /// Shared Markdig → HTML → HtmlSanitizer pipeline for <c>MarkdownBlock</c>
-/// (AI transcript + Team notes). Secure by default: sanitize after render.
+/// (AI transcript + Team notes). Secure by default: no raw HTML in, sanitize after render.
 /// </summary>
 public sealed class MarkdownRenderer
 {
     static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
+        .DisableHtml() // Match react-markdown: raw HTML in source is not rendered
         .Build();
 
     readonly HtmlSanitizer _sanitizer;
@@ -18,6 +19,8 @@ public sealed class MarkdownRenderer
     public MarkdownRenderer()
     {
         _sanitizer = new HtmlSanitizer();
+        // Disallow inline styles (XSS / layout injection vector).
+        _sanitizer.AllowedAttributes.Remove("style");
         // Allow highlight.js class tokens on code/pre (language-* and hljs*).
         _sanitizer.AllowedAttributes.Add("class");
         _sanitizer.AllowedAttributes.Add("rel");
