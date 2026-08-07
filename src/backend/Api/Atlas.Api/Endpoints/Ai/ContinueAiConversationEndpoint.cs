@@ -16,7 +16,11 @@ public sealed class ContinueAiConversationEndpoint : Endpoint<ContinueAiConversa
     {
         Post("/ai/conversations/{conversationId:guid}/messages");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Continue an AI conversation with a new message"; });
+        Summary(s =>
+        {
+            s.Summary = "Continue an AI conversation with a new message";
+            s.Response<ContinueAiConversationResponse>(202, "Accepted");
+        });
     }
 
     public override async Task HandleAsync(ContinueAiConversationRequest req, CancellationToken ct)

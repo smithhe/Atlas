@@ -16,7 +16,11 @@ public sealed class AddRiskHistoryEntryEndpoint : Endpoint<AddRiskHistoryEntryRe
     {
         Post("/risks/{riskId:guid}/history");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add a history entry to a risk"; });
+        Summary(s =>
+        {
+            s.Summary = "Add a history entry to a risk";
+            s.Response<AddRiskHistoryEntryResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddRiskHistoryEntryRequest req, CancellationToken ct)

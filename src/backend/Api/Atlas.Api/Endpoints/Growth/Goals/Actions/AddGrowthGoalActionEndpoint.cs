@@ -16,7 +16,11 @@ public sealed class AddGrowthGoalActionEndpoint : Endpoint<AddGrowthGoalActionRe
     {
         Post("/growth/{growthId:guid}/goals/{goalId:guid}/actions");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Add an action to a growth goal"; });
+        Summary(s =>
+        {
+            s.Summary = "Add an action to a growth goal";
+            s.Response<AddGrowthGoalActionResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(AddGrowthGoalActionRequest req, CancellationToken ct)

@@ -17,7 +17,11 @@ public sealed class CreateProjectEndpoint : Endpoint<CreateProjectRequest, Creat
     {
         Post("/projects");
         AllowAnonymous();
-        Summary(s => { s.Summary = "Create a project"; });
+        Summary(s =>
+        {
+            s.Summary = "Create a project";
+            s.Response<CreateProjectResponse>(201, "Created");
+        });
     }
 
     public override async Task HandleAsync(CreateProjectRequest req, CancellationToken ct)
