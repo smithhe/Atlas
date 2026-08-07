@@ -24,12 +24,10 @@ public sealed class GrowthWorkflowIntegrationTests : IClassFixture<AtlasIntegrat
             .ReadJsonAsync<CreateTeamMemberResponse>();
         Assert.NotNull(member);
 
-        EnsureGrowthForTeamMemberResponse? first = await (await _client.PostJsonAsync(
-            $"/team-members/{member.Id}/growth/ensure",
-            new EnsureGrowthForTeamMemberRequest(member.Id))).ReadJsonAsync<EnsureGrowthForTeamMemberResponse>();
-        EnsureGrowthForTeamMemberResponse? second = await (await _client.PostJsonAsync(
-            $"/team-members/{member.Id}/growth/ensure",
-            new EnsureGrowthForTeamMemberRequest(member.Id))).ReadJsonAsync<EnsureGrowthForTeamMemberResponse>();
+        EnsureGrowthForTeamMemberResponse? first = await (await _client.PostEmptyJsonAsync(
+            $"/team-members/{member.Id}/growth/ensure")).ReadJsonAsync<EnsureGrowthForTeamMemberResponse>();
+        EnsureGrowthForTeamMemberResponse? second = await (await _client.PostEmptyJsonAsync(
+            $"/team-members/{member.Id}/growth/ensure")).ReadJsonAsync<EnsureGrowthForTeamMemberResponse>();
 
         Assert.NotNull(first);
         Assert.NotNull(second);

@@ -30,13 +30,19 @@
 
     readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
     ElementReference _panel;
+    bool _wasOpen;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (IsOpen)
+        if (IsOpen && !_wasOpen)
         {
+            _wasOpen = true;
             try { await _panel.FocusAsync(); } catch { /* ignore */ }
+            return;
         }
+
+        if (!IsOpen)
+            _wasOpen = false;
     }
 
     async Task HandleClose() => await OnClose.InvokeAsync();
