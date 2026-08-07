@@ -179,7 +179,7 @@ Capture **before Phase 4 starts**. React remains in repo until Phase 8 standalon
 - Blazor screenshots for routes touched in the phase, same viewports.
 - Compare against **fixed Phase 3 React baseline** — not re-captured React.
 - Mark each row: **match**, **minor deviation** (describe), or **N/A**.
-- Phase 7: `docs/migration-screenshots/blazor-phase7/` — panel closed/open + streaming transcript (Markdig diffs = **minor deviation**).
+- Phase 7: `docs/migration-screenshots/blazor-phase7/` — **expected shot list only** (panel closed/open + streaming); PNGs not captured yet — accept via Playwright + manual checklist until capture runs.
 
 Phase 8 **verifies baseline completeness** only — must not create the baseline for the first time.
 
@@ -546,13 +546,13 @@ Thin Team (`/team/{id}`, `/team/{id}/notes`) only — full hub is Phase 6. AI pa
 
 #### Phase 7 handoff — Markdig vs React markdown
 
-Blazor `MarkdownBlock` uses **Markdig** (`UseAdvancedExtensions`) → **HtmlSanitizer (Ganss)** → highlight.js (`github-dark`). React uses `react-markdown` + `remark-gfm` + `rehype-highlight`.
+Blazor `MarkdownBlock` uses **Markdig** (`UseAdvancedExtensions` + **`DisableHtml`**) → **HtmlSanitizer (Ganss)** (no `style` attr) → highlight.js (`github-dark`). React uses `react-markdown` + `remark-gfm` + `rehype-highlight`.
 
 Expect **minor visual differences** (acceptable; security improvement is intentional):
 
 | Topic | React | Blazor (Markdig) |
 | --- | --- | --- |
-| HTML / XSS | Relies on react-markdown defaults | Sanitize-after-render (scripts/events stripped) |
+| HTML / XSS | react-markdown does not render raw HTML | `DisableHtml` + sanitize-after-render; `style` stripped |
 | GFM tables / strikethrough / task lists | remark-gfm | Markdig advanced extensions (close, not identical edge cases) |
 | Code highlighting | rehype-highlight class names | highlight.js after render on `pre code` |
 | Soft line breaks | Treated as spaces (no remark-breaks) | Same (no soft→hard break) |
@@ -560,7 +560,7 @@ Expect **minor visual differences** (acceptable; security improvement is intenti
 
 Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTML injection.
 
-**Screenshots:** `docs/migration-screenshots/blazor-phase7/` (panel closed/open + streaming transcript).
+**Screenshots:** `docs/migration-screenshots/blazor-phase7/` documents **expected** panel closed/open + streaming shots; **image capture not yet committed** (Playwright `ai-panel` is the automated gate).
 
 ### Phase 8 — Cutover to `main`
 

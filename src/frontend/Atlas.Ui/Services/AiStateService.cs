@@ -317,6 +317,8 @@ public sealed class AiStateService : IAsyncDisposable
 
     void OnStreamError()
     {
+        // Terminal SSE already completed successfully — ignore end-of-stream onerror.
+        if (!IsRunning) return;
         Status = "Failed";
         IsRunning = false;
         _ = _events.CloseAsync();

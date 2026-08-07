@@ -40,6 +40,9 @@ test.describe('AI panel', () => {
 
       await expect(panel.getByLabel('AI conversation').getByText(prompt)).toBeVisible({ timeout: 20_000 })
       await expect(panel.getByLabel('AI conversation').getByText(STUB_DRAFT)).toBeVisible({ timeout: 20_000 })
+      // Terminal SSE must settle on Completed — not overwrite to Failed via EventSource onerror.
+      await expect(panel.locator('.aiPanelMeta')).toContainText(/Status:\s*Completed/i, { timeout: 10_000 })
+      await expect(panel.locator('.aiPanelMeta')).not.toContainText(/Status:\s*Failed/i)
     }
   })
 
@@ -71,6 +74,8 @@ test.describe('AI panel', () => {
     await panel.locator('textarea.aiPanelPrompt').fill('Draft some notes for this task.')
     await panel.getByRole('button', { name: 'Send Prompt' }).click()
     await expect(panel.getByLabel('AI conversation').getByText(STUB_DRAFT)).toBeVisible({ timeout: 20_000 })
+    await expect(panel.locator('.aiPanelMeta')).toContainText(/Status:\s*Completed/i, { timeout: 10_000 })
+    await expect(panel.locator('.aiPanelMeta')).not.toContainText(/Status:\s*Failed/i)
 
     await panel.getByRole('button', { name: 'Insert Draft' }).click()
     await expect(notes).toHaveValue(new RegExp(STUB_DRAFT.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))

@@ -1,5 +1,5 @@
 @inherits LayoutComponentBase
-@implements IDisposable
+@implements IAsyncDisposable
 @inject AppCacheService Cache
 @inject NavigationManager Nav
 @inject AiStateService Ai
@@ -50,7 +50,8 @@
 
         @if (Ai.IsOpen)
         {
-            <div class="aiResizer"
+            <div @ref="_resizerRef"
+                 class="aiResizer"
                  role="separator"
                  aria-orientation="vertical"
                  aria-label="Resize AI panel"
@@ -83,6 +84,7 @@
     bool _resizing;
     double _resizeStartX;
     int _resizeStartWidth;
+    ElementReference _resizerRef;
     DotNetObjectReference<ShellLayout>? _selfRef;
 
     string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
@@ -149,7 +151,7 @@
         _resizing = true;
         _resizeStartX = e.ClientX;
         _resizeStartWidth = Ai.PanelWidthPx ?? MinAiWidth;
-        _ = Js.InvokeVoidAsync("atlasAiEvents.beginResizeCapture");
+        _ = Js.InvokeVoidAsync("atlasAiEvents.beginResizeCapture", _resizerRef, e.PointerId);
     }
 
     void OnResizeKeyDown(KeyboardEventArgs e)
@@ -178,12 +180,23 @@
     [JSInvokable]
     public void OnAiResizeUp() => _resizing = false;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         Cache.Changed -= OnCacheChanged;
         Ai.Changed -= OnAiChanged;
+        // Clear JS listeners before disposing DotNetObjectReference so in-flight
+        // pointer callbacks cannot invoke a disposed ref.
+        try
+        {
+            await Js.InvokeVoidAsync("atlasAiEvents.clearResizeListeners");
+        }
+        catch
+        {
+            // Ignore dispose races during navigation / host teardown.
+        }
+
         _selfRef?.Dispose();
-        _ = Js.InvokeVoidAsync("atlasAiEvents.clearResizeListeners");
+        _selfRef = null;
     }
 
     sealed record NavItem(string Href, string Label);
