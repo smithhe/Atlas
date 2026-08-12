@@ -27,7 +27,7 @@
                     }
                     else
                     {
-                        @foreach (var row in _needsAction)
+                        @foreach (DashRow row in _needsAction)
                         {
                             <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
@@ -55,7 +55,7 @@
                     }
                     else
                     {
-                        @foreach (var row in _watchlist)
+                        @foreach (DashRow row in _watchlist)
                         {
                             <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
@@ -89,7 +89,7 @@
                     }
                     else
                     {
-                        @foreach (var t in _commitmentToday)
+                        @foreach (AtlasTask t in _commitmentToday)
                         {
                             <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
@@ -111,7 +111,7 @@
                     }
                     else
                     {
-                        @foreach (var t in _commitmentWeek)
+                        @foreach (AtlasTask t in _commitmentWeek)
                         {
                             <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
@@ -140,11 +140,11 @@
                 }
                 else
                 {
-                    @foreach (var m in _teamPulse)
+                    @foreach (TeamMember m in _teamPulse)
                     {
-                        var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
-                        var freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
-                        var freshnessTone = days is null ? "pillToneBad" : days > 7 ? "pillToneBad" : days >= 4 ? "pillToneWarn" : "pillToneOk";
+                        int? days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+                        string freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
+                        string freshnessTone = days is null ? "pillToneBad" : days > 7 ? "pillToneBad" : days >= 4 ? "pillToneWarn" : "pillToneOk";
                         <button class="listRow listRowBtn" type="button" @onclick="() => GoTeam(m.Id)">
                             <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
                             <div class="listMain">
@@ -170,7 +170,7 @@
                 }
                 else
                 {
-                    @foreach (var d in _drift)
+                    @foreach (DriftRow d in _drift)
                     {
                         <button class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
                             <span class="dot dot-stale"></span>
@@ -217,33 +217,33 @@
     void Rebuild()
     {
         var nowIso = DateTimeOffset.UtcNow.ToString("o");
-        var todayIsoDate = nowIso[..10];
+        string todayIsoDate = nowIso[..10];
         _staleDays = Cache.Settings?.StaleDays ?? 10;
         _staleSoonDays = Math.Max(1, _staleDays - 3);
-        var staleDays = _staleDays;
-        var staleSoonDays = _staleSoonDays;
+        int staleDays = _staleDays;
+        int staleSoonDays = _staleSoonDays;
         const int dueSoonDays = 2;
 
-        var needs = new List<DashRow>();
-        var watch = new List<DashRow>();
+        List<DashRow> needs = new();
+        List<DashRow> watch = new();
 
-        foreach (var t in Cache.Tasks)
+        foreach (AtlasTask t in Cache.Tasks)
         {
-            var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
-            var isBlocked = t.Status == Models.TaskStatus.Blocked;
-            var isHigh = t.Priority is Priority.High or Priority.Critical;
-            var isStaleSoon = ageDays >= staleSoonDays && ageDays < staleDays;
-            var isStale = ageDays >= staleDays;
-            var linkedOpenRisk = TaskLinkedToOpenRisk(t.Risk);
-            var dueSoon = !string.IsNullOrEmpty(t.DueDate)
-                && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, dueSoonDays));
-            var highAndDrifting = isHigh && (isStale || dueSoon || linkedOpenRisk is not null);
+            int ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
+            bool isBlocked = t.Status == Models.TaskStatus.Blocked;
+            bool isHigh = t.Priority is Priority.High or Priority.Critical;
+            bool isStaleSoon = ageDays >= staleSoonDays && ageDays < staleDays;
+            bool isStale = ageDays >= staleDays;
+            Risk? linkedOpenRisk = TaskLinkedToOpenRisk(t.Risk);
+            bool dueSoon = !string.IsNullOrEmpty(t.DueDate)
+                           && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, dueSoonDays));
+            bool highAndDrifting = isHigh && (isStale || dueSoon || linkedOpenRisk is not null);
 
-            var pill = !string.IsNullOrEmpty(t.DueDate)
+            string pill = !string.IsNullOrEmpty(t.DueDate)
                 ? $"due {(t.DueDate == todayIsoDate ? "today" : t.DueDate)}"
                 : Duration.FormatDurationFromMinutes(Duration.ParseDurationText(t.EstimatedDurationText)?.TotalMinutes ?? 0);
 
-            var why = TaskWhy(t);
+            string why = TaskWhy(t);
             var baseRow = new DashRow(
                 t.Id.ToString(),
                 PriorityDot(t.Priority),
@@ -263,9 +263,9 @@
             }
         }
 
-        foreach (var r in Cache.Risks)
+        foreach (Risk r in Cache.Risks)
         {
-            var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
+            int ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
             var baseRow = new DashRow(
                 r.Id.ToString(),
                 $"dot-{r.Severity.ToLowerInvariant()}",
@@ -277,11 +277,11 @@
             else if (r.Status == RiskStatus.Watching) watch.Add(baseRow);
         }
 
-        foreach (var m in Cache.Team)
+        foreach (TeamMember m in Cache.Team)
         {
-            var freshnessDays = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
-            var missingBaseline = string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso);
-            var freshnessText = freshnessDays is null
+            int? freshnessDays = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+            bool missingBaseline = string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso);
+            string freshnessText = freshnessDays is null
                 ? "no update yet"
                 : freshnessDays > 7 ? "no update this week" : $"updated {freshnessDays}d ago";
             var baseRow = new DashRow(
@@ -299,33 +299,33 @@
         _needsAction = needs.Take(8).ToList();
         _watchlist = watch.Take(8).ToList();
 
-        var dueToday = Cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
-        var dueThisWeek = Cache.Tasks.Where(t =>
+        List<AtlasTask> dueToday = Cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
+        List<AtlasTask> dueThisWeek = Cache.Tasks.Where(t =>
             !string.IsNullOrEmpty(t.DueDate)
             && t.DueDate != todayIsoDate
             && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, 7))).ToList();
-        var noDue = Cache.Tasks.Where(t => string.IsNullOrEmpty(t.DueDate)).ToList();
-        var touchedDesc = noDue.OrderByDescending(t => t.LastTouchedIso).ToList();
-        var todayBucket = new List<AtlasTask>();
-        var weekBucket = new List<AtlasTask>();
-        foreach (var t in touchedDesc)
+        List<AtlasTask> noDue = Cache.Tasks.Where(t => string.IsNullOrEmpty(t.DueDate)).ToList();
+        List<AtlasTask> touchedDesc = noDue.OrderByDescending(t => t.LastTouchedIso).ToList();
+        List<AtlasTask> todayBucket = new();
+        List<AtlasTask> weekBucket = new();
+        foreach (AtlasTask t in touchedDesc)
         {
             if (todayBucket.Count >= 4) break;
             todayBucket.Add(t);
         }
-        foreach (var t in noDue.Where(t => t.Priority is Priority.High or Priority.Critical))
+        foreach (AtlasTask t in noDue.Where(t => t.Priority is Priority.High or Priority.Critical))
         {
             if (todayBucket.Any(x => x.Id == t.Id)) continue;
             if (todayBucket.Count >= 6) break;
             todayBucket.Add(t);
         }
-        foreach (var t in touchedDesc)
+        foreach (AtlasTask t in touchedDesc)
         {
             if (todayBucket.Any(x => x.Id == t.Id)) continue;
             if (weekBucket.Count >= 6) break;
             weekBucket.Add(t);
         }
-        foreach (var t in noDue.Where(t => t.Priority == Priority.Medium))
+        foreach (AtlasTask t in noDue.Where(t => t.Priority == Priority.Medium))
         {
             if (todayBucket.Any(x => x.Id == t.Id) || weekBucket.Any(x => x.Id == t.Id)) continue;
             if (weekBucket.Count >= 8) break;
@@ -335,7 +335,7 @@
         _commitmentToday = dueToday.Concat(todayBucket).Take(8).ToList();
         _commitmentWeek = dueThisWeek.Concat(weekBucket).Take(10).ToList();
 
-        var statusRank = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        Dictionary<string, int> statusRank = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Red"] = 0, ["Yellow"] = 1, ["Green"] = 2
         };
@@ -343,52 +343,52 @@
             .ThenByDescending(m => DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso) ?? 999)
             .ToList();
 
-        var drift = new List<DriftRow>();
-        foreach (var t in Cache.Tasks)
+        List<DriftRow> drift = new();
+        foreach (AtlasTask t in Cache.Tasks)
         {
-            var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
+            int ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
             if (ageDays >= staleDays)
             {
                 var textForDocs = $"{t.Title} {t.Project ?? ""}";
-                var tag = IncludesDocsKeyword(textForDocs) ? "Docs" : "Project";
-                drift.Add(new($"drift-task-stale-{t.Id}", tag, t.Title, $"Task stale ({ageDays}d since touched)", $"/tasks/{t.Id}"));
+                string tag = IncludesDocsKeyword(textForDocs) ? "Docs" : "Project";
+                drift.Add(new DriftRow($"drift-task-stale-{t.Id}", tag, t.Title, $"Task stale ({ageDays}d since touched)", $"/tasks/{t.Id}"));
             }
             else if ((t.Priority is Priority.High or Priority.Critical) && string.IsNullOrEmpty(t.DueDate))
             {
-                drift.Add(new($"drift-task-high-nodue-{t.Id}", "Project", t.Title, "High priority task has no due date", $"/tasks/{t.Id}"));
+                drift.Add(new DriftRow($"drift-task-high-nodue-{t.Id}", "Project", t.Title, "High priority task has no due date", $"/tasks/{t.Id}"));
             }
         }
 
-        foreach (var r in Cache.Risks)
+        foreach (Risk r in Cache.Risks)
         {
-            var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
+            int ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
             if (r.Status == RiskStatus.Watching && ageDays >= 14)
-                drift.Add(new($"drift-risk-watching-{r.Id}", "Risk", r.Title, $"Watching {ageDays}d since update", $"/risks/{r.Id}"));
+                drift.Add(new DriftRow($"drift-risk-watching-{r.Id}", "Risk", r.Title, $"Watching {ageDays}d since update", $"/risks/{r.Id}"));
             if (r.Status == RiskStatus.Open && ageDays >= 10)
-                drift.Add(new($"drift-risk-open-stale-{r.Id}", "Risk", r.Title, $"Open risk not updated recently ({ageDays}d)", $"/risks/{r.Id}"));
+                drift.Add(new DriftRow($"drift-risk-open-stale-{r.Id}", "Risk", r.Title, $"Open risk not updated recently ({ageDays}d)", $"/risks/{r.Id}"));
         }
 
-        foreach (var m in Cache.Team)
+        foreach (TeamMember m in Cache.Team)
         {
-            var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
+            int? days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
             if (days is not null && days > 7)
-                drift.Add(new($"drift-team-noupdate-{m.Id}", "Team", m.Name, "No update this week", $"/team/{m.Id}"));
+                drift.Add(new DriftRow($"drift-team-noupdate-{m.Id}", "Team", m.Name, "No update this week", $"/team/{m.Id}"));
             if (string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso))
-                drift.Add(new($"drift-team-nobaseline-{m.Id}", "Team", m.Name, "No activity yet", $"/team/{m.Id}"));
+                drift.Add(new DriftRow($"drift-team-nobaseline-{m.Id}", "Team", m.Name, "No activity yet", $"/team/{m.Id}"));
         }
 
-        foreach (var p in Cache.Projects)
+        foreach (Project p in Cache.Projects)
         {
             if (p.Health is HealthSignal.Yellow or HealthSignal.Red)
             {
-                drift.Add(new($"drift-proj-health-{p.Id}", "Project", p.Name, $"Project health: {p.Health}", $"/projects/{p.Id}"));
+                drift.Add(new DriftRow($"drift-proj-health-{p.Id}", "Project", p.Name, $"Project health: {p.Health}", $"/projects/{p.Id}"));
             }
 
             if (!string.IsNullOrEmpty(p.LastUpdatedIso))
             {
-                var ageDays = DisplayLabels.DaysBetween(p.LastUpdatedIso!, nowIso);
+                int ageDays = DisplayLabels.DaysBetween(p.LastUpdatedIso!, nowIso);
                 if (ageDays > 7)
-                    drift.Add(new($"drift-proj-stale-{p.Id}", "Project", p.Name, $"No recent project update ({ageDays}d)", $"/projects/{p.Id}"));
+                    drift.Add(new DriftRow($"drift-proj-stale-{p.Id}", "Project", p.Name, $"No recent project update ({ageDays}d)", $"/projects/{p.Id}"));
             }
         }
 
@@ -398,20 +398,20 @@
     Risk? TaskLinkedToOpenRisk(string? taskRisk)
     {
         if (string.IsNullOrWhiteSpace(taskRisk)) return null;
-        var needle = taskRisk.Trim().ToLowerInvariant();
-        var open = Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
-        var exact = open.FirstOrDefault(r => r.Title.Trim().ToLowerInvariant() == needle);
+        string needle = taskRisk.Trim().ToLowerInvariant();
+        List<Risk> open = Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
+        Risk? exact = open.FirstOrDefault(r => r.Title.Trim().ToLowerInvariant() == needle);
         if (exact is not null) return exact;
         return open.FirstOrDefault(r =>
         {
-            var title = r.Title.Trim().ToLowerInvariant();
+            string title = r.Title.Trim().ToLowerInvariant();
             return title.Contains(needle) || needle.Contains(title);
         });
     }
 
     static string TaskWhy(AtlasTask t)
     {
-        var parts = new List<string>();
+        List<string> parts = new();
         if (!string.IsNullOrEmpty(t.Risk)) parts.Add($"Risk: {t.Risk}");
         if (!string.IsNullOrEmpty(t.Project)) parts.Add(t.Project!);
         if (parts.Count > 0) return string.Join(" • ", parts);
@@ -420,7 +420,7 @@
 
     static int UrgencyRank(DashRow row)
     {
-        var meta = row.Meta.ToLowerInvariant();
+        string meta = row.Meta.ToLowerInvariant();
         if (meta.StartsWith("task") && meta.Contains("blocked")) return 0;
         if (meta.StartsWith("risk") && meta.Contains("open")) return 1;
         return 2;
@@ -428,7 +428,7 @@
 
     static string IsoDateAddDays(string isoDate, int days)
     {
-        var d = DateTime.Parse($"{isoDate}T00:00:00.000Z").ToUniversalTime();
+        DateTime d = DateTime.Parse($"{isoDate}T00:00:00.000Z").ToUniversalTime();
         return d.AddDays(days).ToString("yyyy-MM-dd");
     }
 
@@ -437,7 +437,7 @@
 
     static bool IncludesDocsKeyword(string text)
     {
-        var t = text.ToLowerInvariant();
+        string t = text.ToLowerInvariant();
         return new[] { "docs", "documentation", "onboarding", "runbook", "playbook" }.Any(k => t.Contains(k));
     }
 

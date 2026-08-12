@@ -4,7 +4,6 @@
 @inject IAtlasApiClient Api
 @inject BrowserDialogs Dialogs
 @inject LocalSettings Local
-@inject NavigationManager Nav
 @inject AiStateService Ai
 
 <PageTitle>Settings — Atlas</PageTitle>
@@ -168,7 +167,7 @@
 
     void OnStaleDaysInput(ChangeEventArgs e)
     {
-        if (!int.TryParse(e.Value?.ToString(), out var v)) return;
+        if (!int.TryParse(e.Value?.ToString(), out int v)) return;
         _staleDays = Math.Clamp(v, 1, 365);
         if (Cache.Settings is not null)
         {
@@ -249,7 +248,7 @@
         _azureLoading = true;
         try
         {
-            var conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
+            AtlasApiDTOsAzureDevOpsAzureConnectionDto conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
             ApplyConn(conn);
         }
         catch (AtlasApiException ex) when (ex.StatusCode == 404)

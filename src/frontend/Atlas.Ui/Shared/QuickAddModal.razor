@@ -52,7 +52,7 @@
                             <div class="fieldLabel">Team member</div>
                             <select class="select" @bind="_memberId">
                                 <option value="">Select a member…</option>
-                                @foreach (var m in Cache.Team.OrderBy(x => x.Name))
+                                @foreach (TeamMember m in Cache.Team.OrderBy(x => x.Name))
                                 {
                                     <option value="@m.Id">@m.Name</option>
                                 }
@@ -65,7 +65,7 @@
                         <label class="field">
                             <div class="fieldLabel">Tag</div>
                             <select class="select" value="@_noteTag" @onchange="OnNoteTagChange">
-                                @foreach (var t in NoteTags)
+                                @foreach (string t in NoteTags)
                                 {
                                     <option value="@t">@t</option>
                                 }
@@ -170,7 +170,7 @@
         {
             if (_kind == "task")
             {
-                var title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
+                string title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
                 var draft = new AtlasTask
                 {
                     Title = title,
@@ -182,8 +182,8 @@
                     DependencyTaskIds = Array.Empty<Guid>(),
                     LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
-                var res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
-                var id = res.Id ?? Guid.Empty;
+                AtlasApiDTOsTasksCreateTaskResponse res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
+                Guid id = res.Id ?? Guid.Empty;
                 draft.Id = id;
                 Cache.AddTask(draft);
                 await Cache.RefetchTasksAsync();
@@ -195,7 +195,7 @@
 
             if (_kind == "risk")
             {
-                var title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
+                string title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
                 var draft = new Risk
                 {
                     Title = title,
@@ -208,8 +208,8 @@
                     History = Array.Empty<RiskHistoryEntry>(),
                     LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
-                var res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
-                var id = res.Id ?? Guid.Empty;
+                AtlasApiDTOsRisksCreateRiskResponse res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
+                Guid id = res.Id ?? Guid.Empty;
                 draft.Id = id;
                 Cache.AddRisk(draft);
                 await Cache.RefetchRisksAsync();
@@ -219,31 +219,31 @@
                 return;
             }
 
-            if (!Guid.TryParse(_memberId, out var memberId))
+            if (!Guid.TryParse(_memberId, out Guid memberId))
             {
                 await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
                 return;
             }
 
-            var text = _noteText.Trim();
+            string text = _noteText.Trim();
             if (string.IsNullOrEmpty(text))
             {
                 await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
                 return;
             }
 
-            var member = Cache.Team.FirstOrDefault(m => m.Id == memberId);
+            TeamMember? member = Cache.Team.FirstOrDefault(m => m.Id == memberId);
             if (member is null)
             {
                 await Dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
                 return;
             }
 
-            Enum.TryParse<NoteTag>(_noteTag, out var tag);
-            var titleOpt = _noteTitle.Trim();
-            var ado = _noteAdo.Trim();
-            var pr = _notePr.Trim();
-            var noteRes = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(memberId, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
+            Enum.TryParse(_noteTag, out NoteTag tag);
+            string titleOpt = _noteTitle.Trim();
+            string ado = _noteAdo.Trim();
+            string pr = _notePr.Trim();
+            AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse noteRes = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(memberId, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
             {
                 Type = ApiMappers.ToApiNoteType(tag),
                 Title = string.IsNullOrEmpty(titleOpt) ? null : titleOpt,

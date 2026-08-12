@@ -15,7 +15,7 @@
 <PageTitle>Team — Atlas</PageTitle>
 
 <div class="page">
-    @if (IsFocusMode && MemberIdParsed is Guid mid)
+    @if (IsFocusMode && MemberIdParsed is { } mid)
     {
         <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
             <a class="crumbLink" href="/team">Team</a>
@@ -51,9 +51,9 @@
                     }
                     else
                     {
-                        @foreach (var m in Cache.Team.OrderBy(x => x.Name))
+                        @foreach (TeamMember m in Cache.Team.OrderBy(x => x.Name))
                         {
-                            var id = m.Id;
+                            Guid id = m.Id;
                             <button type="button"
                                     class="listRow listRowBtn @(id == Selection.SelectedTeamMemberId ? "listRowActive" : null)"
                                     @onclick="() => SelectFromList(id)"
@@ -169,7 +169,7 @@
 
     bool IsFocusMode => !string.IsNullOrEmpty(MemberId);
 
-    Guid? MemberIdParsed => Guid.TryParse(MemberId, out var id) ? id : null;
+    Guid? MemberIdParsed => Guid.TryParse(MemberId, out Guid id) ? id : null;
 
     MemberTab ActiveTab => IsFocusMode ? GetRouteTab() : _localTab;
 
@@ -177,7 +177,7 @@
     {
         get
         {
-            if (MemberIdParsed is not Guid id) return null;
+            if (MemberIdParsed is not { } id) return null;
             return Cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
@@ -187,7 +187,7 @@
         get
         {
             if (IsFocusMode) return Member;
-            if (Selection.SelectedTeamMemberId is Guid sid)
+            if (Selection.SelectedTeamMemberId is { } sid)
                 return Cache.Team.FirstOrDefault(m => m.Id == sid);
             return null;
         }
@@ -215,7 +215,7 @@
             return;
         }
 
-        if (MemberIdParsed is Guid id)
+        if (MemberIdParsed is { } id)
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
@@ -223,12 +223,12 @@
         }
     }
 
-    void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+    void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
         InvokeAsync(StateHasChanged);
 
     MemberTab GetRouteTab()
     {
-        var path = new Uri(Nav.Uri).AbsolutePath;
+        string path = new Uri(Nav.Uri).AbsolutePath;
         if (path.Contains("/notes", StringComparison.OrdinalIgnoreCase)) return MemberTab.Notes;
         if (path.Contains("/work-items", StringComparison.OrdinalIgnoreCase)) return MemberTab.WorkItems;
         if (path.Contains("/risks", StringComparison.OrdinalIgnoreCase)) return MemberTab.Risks;
@@ -285,13 +285,13 @@
 
     async Task HandleMemberUpdate(TeamMember next)
     {
-        var previous = Cache.Team.FirstOrDefault(m => m.Id == next.Id);
+        TeamMember? previous = Cache.Team.FirstOrDefault(m => m.Id == next.Id);
         Cache.UpdateTeamMember(next);
         if (previous is null) return;
 
         try
         {
-            var tasks = new List<Task>();
+            List<Task> tasks = new();
             if (previous.Name != next.Name || previous.Role != next.Role || previous.CurrentFocus != next.CurrentFocus)
             {
                 tasks.Add(Api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(next.Id, new AtlasApiDTOsTeamMembersUpdateTeamMemberRequest
@@ -299,7 +299,7 @@
                     Name = next.Name,
                     Role = next.Role,
                     StatusDot = ApiMappers.ToApiStatusDot(next.StatusDot),
-                    CurrentFocus = next.CurrentFocus ?? ""
+                    CurrentFocus = next.CurrentFocus
                 }));
             }
 
@@ -334,7 +334,7 @@
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (MemberIdParsed is Guid id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        if (MemberIdParsed is { } id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {
             Nav.NavigateTo("/team", replace: true);
             return;

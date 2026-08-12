@@ -79,9 +79,21 @@ public static class Duration
         var minutes = remAfterDays - hours * 60;
 
         var parts = new List<string>();
-        if (days > 0) parts.Add($"{days}d");
-        if (hours > 0) parts.Add($"{hours}h");
-        if (minutes > 0) parts.Add($"{minutes}m");
+        if (days > 0)
+        {
+            parts.Add($"{days}d");
+        }
+
+        if (hours > 0)
+        {
+            parts.Add($"{hours}h");
+        }
+
+        if (minutes > 0)
+        {
+            parts.Add($"{minutes}m");
+        }
+
         return parts.Count == 0 ? "—" : string.Join(' ', parts);
     }
 }

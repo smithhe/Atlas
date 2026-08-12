@@ -31,12 +31,12 @@ public static class ApiMappers
     {
         string? project = null;
         string? risk = null;
-        if (dto.ProjectId is Guid projectId)
+        if (dto.ProjectId is { } projectId)
         {
             lookups.ProjectNameById.TryGetValue(projectId, out project);
         }
 
-        if (dto.RiskId is Guid riskId)
+        if (dto.RiskId is { } riskId)
         {
             lookups.RiskTitleById.TryGetValue(riskId, out risk);
         }
@@ -86,7 +86,7 @@ public static class ApiMappers
     public static Risk MapRisk(AtlasApiDTOsRisksRiskDto dto, RiskLookups lookups)
     {
         string? project = null;
-        if (dto.ProjectId is Guid projectId)
+        if (dto.ProjectId is { } projectId)
         {
             lookups.ProjectNameById.TryGetValue(projectId, out project);
         }
@@ -405,7 +405,7 @@ public static class ApiMappers
             ? AtlasDomainEnumsTheme.Light
             : AtlasDomainEnumsTheme.Dark;
 
-    static Priority MapPriority(AtlasDomainEnumsPriority? value) => value switch
+    private static Priority MapPriority(AtlasDomainEnumsPriority? value) => value switch
     {
         AtlasDomainEnumsPriority.Low => Priority.Low,
         AtlasDomainEnumsPriority.Medium => Priority.Medium,
@@ -414,7 +414,7 @@ public static class ApiMappers
         _ => Priority.Low
     };
 
-    static Confidence MapConfidence(AtlasDomainEnumsConfidence? value) => value switch
+    private static Confidence MapConfidence(AtlasDomainEnumsConfidence? value) => value switch
     {
         AtlasDomainEnumsConfidence.Low => Confidence.Low,
         AtlasDomainEnumsConfidence.Medium => Confidence.Medium,
@@ -422,7 +422,7 @@ public static class ApiMappers
         _ => Confidence.Low
     };
 
-    static Models.TaskStatus? MapTaskStatus(AtlasDomainEnumsTaskStatus? value) => value switch
+    private static Models.TaskStatus? MapTaskStatus(AtlasDomainEnumsTaskStatus? value) => value switch
     {
         AtlasDomainEnumsTaskStatus.NotStarted => Models.TaskStatus.NotStarted,
         AtlasDomainEnumsTaskStatus.InProgress => Models.TaskStatus.InProgress,
@@ -431,7 +431,7 @@ public static class ApiMappers
         _ => null
     };
 
-    static RiskStatus MapRiskStatus(AtlasDomainEnumsRiskStatus? value) => value switch
+    private static RiskStatus MapRiskStatus(AtlasDomainEnumsRiskStatus? value) => value switch
     {
         AtlasDomainEnumsRiskStatus.Open => RiskStatus.Open,
         AtlasDomainEnumsRiskStatus.Watching => RiskStatus.Watching,
@@ -439,7 +439,7 @@ public static class ApiMappers
         _ => RiskStatus.Open
     };
 
-    static string MapSeverity(AtlasDomainEnumsSeverityLevel? value) => value switch
+    private static string MapSeverity(AtlasDomainEnumsSeverityLevel? value) => value switch
     {
         AtlasDomainEnumsSeverityLevel.Low => "Low",
         AtlasDomainEnumsSeverityLevel.Medium => "Medium",
@@ -447,7 +447,7 @@ public static class ApiMappers
         _ => "Low"
     };
 
-    static ProjectStatus? MapProjectStatus(AtlasDomainEnumsProjectStatus? value) => value switch
+    private static ProjectStatus? MapProjectStatus(AtlasDomainEnumsProjectStatus? value) => value switch
     {
         AtlasDomainEnumsProjectStatus.Active => ProjectStatus.Active,
         AtlasDomainEnumsProjectStatus.Paused => ProjectStatus.Paused,
@@ -455,7 +455,7 @@ public static class ApiMappers
         _ => null
     };
 
-    static HealthSignal? MapHealth(AtlasDomainEnumsHealthSignal? value) => value switch
+    private static HealthSignal? MapHealth(AtlasDomainEnumsHealthSignal? value) => value switch
     {
         AtlasDomainEnumsHealthSignal.Green => HealthSignal.Green,
         AtlasDomainEnumsHealthSignal.Yellow => HealthSignal.Yellow,
@@ -463,7 +463,7 @@ public static class ApiMappers
         _ => null
     };
 
-    static NoteTag MapNoteTag(AtlasDomainEnumsNoteType? value) => value switch
+    private static NoteTag MapNoteTag(AtlasDomainEnumsNoteType? value) => value switch
     {
         AtlasDomainEnumsNoteType.Blocker => NoteTag.Blocker,
         AtlasDomainEnumsNoteType.Progress => NoteTag.Progress,
@@ -473,42 +473,42 @@ public static class ApiMappers
         _ => NoteTag.Quick
     };
 
-    static LoadSignal MapLoad(AtlasDomainEnumsLoadSignal? value) => value switch
+    private static LoadSignal MapLoad(AtlasDomainEnumsLoadSignal? value) => value switch
     {
         AtlasDomainEnumsLoadSignal.Light => LoadSignal.Light,
         AtlasDomainEnumsLoadSignal.Heavy => LoadSignal.Heavy,
         _ => LoadSignal.Normal
     };
 
-    static DeliverySignal MapDelivery(AtlasDomainEnumsDeliverySignal? value) => value switch
+    private static DeliverySignal MapDelivery(AtlasDomainEnumsDeliverySignal? value) => value switch
     {
         AtlasDomainEnumsDeliverySignal.AtRisk => DeliverySignal.AtRisk,
         AtlasDomainEnumsDeliverySignal.Blocked => DeliverySignal.Blocked,
         _ => DeliverySignal.OnTrack
     };
 
-    static SupportNeededSignal MapSupport(AtlasDomainEnumsSupportNeededSignal? value) => value switch
+    private static SupportNeededSignal MapSupport(AtlasDomainEnumsSupportNeededSignal? value) => value switch
     {
         AtlasDomainEnumsSupportNeededSignal.Medium => SupportNeededSignal.Medium,
         AtlasDomainEnumsSupportNeededSignal.High => SupportNeededSignal.High,
         _ => SupportNeededSignal.Low
     };
 
-    static GrowthGoalStatus MapGrowthGoalStatus(AtlasDomainEnumsGrowthGoalStatus? value) => value switch
+    private static GrowthGoalStatus MapGrowthGoalStatus(AtlasDomainEnumsGrowthGoalStatus? value) => value switch
     {
         AtlasDomainEnumsGrowthGoalStatus.NeedsAttention => GrowthGoalStatus.NeedsAttention,
         AtlasDomainEnumsGrowthGoalStatus.Completed => GrowthGoalStatus.Completed,
         _ => GrowthGoalStatus.OnTrack
     };
 
-    static GrowthGoalActionState MapGrowthGoalActionState(AtlasDomainEnumsGrowthGoalActionState? value) => value switch
+    private static GrowthGoalActionState MapGrowthGoalActionState(AtlasDomainEnumsGrowthGoalActionState? value) => value switch
     {
         AtlasDomainEnumsGrowthGoalActionState.InProgress => GrowthGoalActionState.InProgress,
         AtlasDomainEnumsGrowthGoalActionState.Complete => GrowthGoalActionState.Complete,
         _ => GrowthGoalActionState.Planned
     };
 
-    static GrowthGoalCheckInSignal MapGrowthGoalCheckInSignal(AtlasDomainEnumsGrowthGoalCheckInSignal? value) =>
+    private static GrowthGoalCheckInSignal MapGrowthGoalCheckInSignal(AtlasDomainEnumsGrowthGoalCheckInSignal? value) =>
         value switch
         {
             AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed => GrowthGoalCheckInSignal.Mixed,

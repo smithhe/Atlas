@@ -25,7 +25,7 @@ public sealed class GetGrowthByTeamMemberEndpointTests : IClassFixture<AtlasWebA
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         GrowthDto? growth = await response.ReadJsonAsync<GrowthDto>();
         growth.Should().NotBeNull();
-        growth!.Id.Should().Be(growthId);
+        growth.Id.Should().Be(growthId);
     }
 
     [Fact]

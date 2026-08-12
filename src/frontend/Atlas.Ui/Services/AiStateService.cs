@@ -18,23 +18,23 @@ public sealed class AiDraftTarget
 /// </summary>
 public sealed class AiStateService : IAsyncDisposable
 {
-    readonly IAtlasApiClient _api;
-    readonly SelectionState _selection;
-    readonly AppCacheService _cache;
-    readonly AiSessionEventsClient _events;
+    private readonly IAtlasApiClient _api;
+    private readonly SelectionState _selection;
+    private readonly AppCacheService _cache;
+    private readonly AiSessionEventsClient _events;
 
-    readonly List<AiTranscriptTurn> _turns = [];
-    readonly List<AiSessionEventPayload> _eventsBuffer = [];
-    readonly List<AtlasApiDTOsAiAiConversationListItemDto> _conversations = [];
-    readonly List<AiAction> _actions = [];
+    private readonly List<AiTranscriptTurn> _turns = [];
+    private readonly List<AiSessionEventPayload> _eventsBuffer = [];
+    private readonly List<AtlasApiDTOsAiAiConversationListItemDto> _conversations = [];
+    private readonly List<AiAction> _actions = [];
 
-    AiDraftTarget? _draftTarget;
-    string? _activeTurnId;
-    Guid? _activeConversationId;
-    Guid? _activeSessionId;
-    bool _userChangedIsOpen;
-    bool _appliedStartupPreference;
-    bool _subscribedCache;
+    private AiDraftTarget? _draftTarget;
+    private string? _activeTurnId;
+    private Guid? _activeConversationId;
+    private Guid? _activeSessionId;
+    private bool _userChangedIsOpen;
+    private bool _appliedStartupPreference;
+    private bool _subscribedCache;
 
     public AiStateService(
         IAtlasApiClient api,
@@ -74,19 +74,34 @@ public sealed class AiStateService : IAsyncDisposable
 
     public void EnsureStartupPreference()
     {
-        if (_subscribedCache) return;
+        if (_subscribedCache)
+        {
+            return;
+        }
+
         _subscribedCache = true;
         _cache.Changed += OnCacheChanged;
         TryApplyStartupPreference();
     }
 
-    void OnCacheChanged() => TryApplyStartupPreference();
+    private void OnCacheChanged() => TryApplyStartupPreference();
 
-    void TryApplyStartupPreference()
+    private void TryApplyStartupPreference()
     {
-        if (_appliedStartupPreference || _userChangedIsOpen) return;
-        if (_cache.IsHydrating) return;
-        if (_cache.Settings is null) return;
+        if (_appliedStartupPreference || _userChangedIsOpen)
+        {
+            return;
+        }
+
+        if (_cache.IsHydrating)
+        {
+            return;
+        }
+
+        if (_cache.Settings is null)
+        {
+            return;
+        }
 
         IsOpen = _cache.Settings.DefaultAiPanelOpen;
         _appliedStartupPreference = true;
@@ -96,10 +111,17 @@ public sealed class AiStateService : IAsyncDisposable
     public void SetIsOpen(bool isOpen)
     {
         _userChangedIsOpen = true;
-        if (IsOpen == isOpen) return;
+        if (IsOpen == isOpen)
+        {
+            return;
+        }
+
         IsOpen = isOpen;
         Notify();
-        if (isOpen) _ = RefreshConversationsAsync();
+        if (isOpen)
+        {
+            _ = RefreshConversationsAsync();
+        }
     }
 
     public void SetPanelWidthPx(int? px)
@@ -112,7 +134,11 @@ public sealed class AiStateService : IAsyncDisposable
     {
         ContextTitle = contextTitle;
         _actions.Clear();
-        if (actions is not null) _actions.AddRange(actions);
+        if (actions is not null)
+        {
+            _actions.AddRange(actions);
+        }
+
         Notify();
     }
 
@@ -131,7 +157,11 @@ public sealed class AiStateService : IAsyncDisposable
     public bool InsertDraft(string text)
     {
         var trimmed = text.Trim();
-        if (_draftTarget is null || trimmed.Length == 0) return false;
+        if (_draftTarget is null || trimmed.Length == 0)
+        {
+            return false;
+        }
+
         _draftTarget.Insert(trimmed);
         return true;
     }
@@ -178,13 +208,13 @@ public sealed class AiStateService : IAsyncDisposable
 
         try
         {
-            var conversation = await _api.AtlasApiEndpointsAiGetAiConversationEndpointAsync(conversationId);
+            AtlasApiDTOsAiAiConversationDetailDto conversation = await _api.AtlasApiEndpointsAiGetAiConversationEndpointAsync(conversationId);
             _activeConversationId = conversation.ConversationId ?? conversationId;
             _turns.Clear();
 
-            foreach (var turn in conversation.Turns ?? Array.Empty<AtlasApiDTOsAiAiConversationTurnDto>())
+            foreach (AtlasApiDTOsAiAiConversationTurnDto turn in conversation.Turns ?? Array.Empty<AtlasApiDTOsAiAiConversationTurnDto>())
             {
-                var events = SortEvents(turn.Events?.Select(MapDto).Where(e => e is not null).Cast<AiSessionEventPayload>() ?? []);
+                List<AiSessionEventPayload> events = SortEvents(turn.Events?.Select(MapDto).Where(e => e is not null).Cast<AiSessionEventPayload>() ?? []);
                 _turns.Add(new AiTranscriptTurn(
                     NewTurnId(),
                     turn.Prompt ?? "",
@@ -192,8 +222,8 @@ public sealed class AiStateService : IAsyncDisposable
                     turn.SessionId));
             }
 
-            var lastTurn = conversation.Turns?.LastOrDefault();
-            if (lastTurn is not null && lastTurn.IsTerminal != true && lastTurn.SessionId is Guid sid)
+            AtlasApiDTOsAiAiConversationTurnDto? lastTurn = conversation.Turns?.LastOrDefault();
+            if (lastTurn is not null && lastTurn.IsTerminal != true && lastTurn.SessionId is { } sid)
             {
                 _activeTurnId = _turns.LastOrDefault()?.Id;
                 _activeSessionId = sid;
@@ -227,7 +257,7 @@ public sealed class AiStateService : IAsyncDisposable
 
     public void RunAction(string actionId, string? promptOverride = null)
     {
-        var action = _actions.FirstOrDefault(a => a.Id == actionId);
+        AiAction? action = _actions.FirstOrDefault(a => a.Id == actionId);
         var prompt = string.IsNullOrWhiteSpace(promptOverride)
             ? $"Please help with this action: {action?.Label ?? actionId}"
             : promptOverride.Trim();
@@ -236,12 +266,15 @@ public sealed class AiStateService : IAsyncDisposable
 
     public void SendPrompt(string prompt) => _ = SendTurnAsync(prompt);
 
-    async Task SendTurnAsync(string prompt, string? actionId = null)
+    private async Task SendTurnAsync(string prompt, string? actionId = null)
     {
         var trimmed = prompt.Trim();
-        if (trimmed.Length == 0) return;
+        if (trimmed.Length == 0)
+        {
+            return;
+        }
 
-        var view = ResolveView(ContextTitle);
+        AtlasApplicationAbstractionsAiAiViewScope? view = ResolveView(ContextTitle);
         if (view is null)
         {
             _userChangedIsOpen = true;
@@ -268,16 +301,16 @@ public sealed class AiStateService : IAsyncDisposable
         try
         {
             Guid turnSessionId;
-            if (_activeConversationId is Guid conversationId)
+            if (_activeConversationId is { } conversationId)
             {
-                var res = await _api.AtlasApiEndpointsAiContinueAiConversationEndpointAsync(
+                AtlasApiDTOsAiContinueAiConversationResponse res = await _api.AtlasApiEndpointsAiContinueAiConversationEndpointAsync(
                     conversationId,
                     new AtlasApiDTOsAiContinueAiConversationRequest { Prompt = trimmed });
                 turnSessionId = res.TurnSessionId ?? throw new InvalidOperationException("Missing turn session id");
             }
             else
             {
-                var res = await _api.AtlasApiEndpointsAiCreateAiConversationEndpointAsync(
+                AtlasApiDTOsAiCreateAiConversationResponse res = await _api.AtlasApiEndpointsAiCreateAiConversationEndpointAsync(
                     new AtlasApiDTOsAiCreateAiConversationRequest
                     {
                         Prompt = trimmed,
@@ -310,22 +343,26 @@ public sealed class AiStateService : IAsyncDisposable
         }
     }
 
-    async Task ConnectStreamAsync(Guid sessionId)
+    private async Task ConnectStreamAsync(Guid sessionId)
     {
         await _events.ConnectAsync(sessionId, OnSessionEvent, OnStreamError);
     }
 
-    void OnStreamError()
+    private void OnStreamError()
     {
         // Terminal SSE already completed successfully — ignore end-of-stream onerror.
-        if (!IsRunning) return;
+        if (!IsRunning)
+        {
+            return;
+        }
+
         Status = "Failed";
         IsRunning = false;
         _ = _events.CloseAsync();
         Notify();
     }
 
-    void OnSessionEvent(AiSessionEventPayload evt)
+    private void OnSessionEvent(AiSessionEventPayload evt)
     {
         var turnId = _activeTurnId;
         MergeEvent(evt);
@@ -337,7 +374,9 @@ public sealed class AiStateService : IAsyncDisposable
         }
 
         if (!string.IsNullOrEmpty(evt.Status))
+        {
             Status = ToDisplayStatus(evt.Status);
+        }
 
         if (evt.IsTerminal)
         {
@@ -349,17 +388,17 @@ public sealed class AiStateService : IAsyncDisposable
         Notify();
     }
 
-    async Task FinishTerminalAsync()
+    private async Task FinishTerminalAsync()
     {
         await _events.CloseAsync();
         await RefreshConversationsAsync();
     }
 
-    async Task RefreshConversationsAsync()
+    private async Task RefreshConversationsAsync()
     {
         try
         {
-            var recent = await _api.AtlasApiEndpointsAiListAiConversationsEndpointAsync(25);
+            ICollection<AtlasApiDTOsAiAiConversationListItemDto> recent = await _api.AtlasApiEndpointsAiListAiConversationsEndpointAsync(25);
             _conversations.Clear();
             _conversations.AddRange(recent);
             Notify();
@@ -370,15 +409,22 @@ public sealed class AiStateService : IAsyncDisposable
         }
     }
 
-    void MergeEvent(AiSessionEventPayload evt)
+    private void MergeEvent(AiSessionEventPayload evt)
     {
         var idx = _eventsBuffer.FindIndex(e => e.EventId == evt.EventId);
-        if (idx >= 0) _eventsBuffer[idx] = evt;
-        else _eventsBuffer.Add(evt);
+        if (idx >= 0)
+        {
+            _eventsBuffer[idx] = evt;
+        }
+        else
+        {
+            _eventsBuffer.Add(evt);
+        }
+
         _eventsBuffer.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
     }
 
-    void ReplaceTurn(string turnId, Func<AiTranscriptTurn, AiTranscriptTurn> map)
+    private void ReplaceTurn(string turnId, Func<AiTranscriptTurn, AiTranscriptTurn> map)
     {
         for (var i = 0; i < _turns.Count; i++)
         {
@@ -390,24 +436,48 @@ public sealed class AiStateService : IAsyncDisposable
         }
     }
 
-    void Notify() => Changed?.Invoke();
+    private void Notify() => Changed?.Invoke();
 
-    static AtlasApplicationAbstractionsAiAiViewScope? ResolveView(string title)
+    private static AtlasApplicationAbstractionsAiAiViewScope? ResolveView(string title)
     {
         var lower = title.ToLowerInvariant();
-        if (lower.Contains("tasks")) return AtlasApplicationAbstractionsAiAiViewScope.Tasks;
-        if (lower.Contains("dashboard")) return AtlasApplicationAbstractionsAiAiViewScope.Dashboard;
-        if (lower.Contains("team")) return AtlasApplicationAbstractionsAiAiViewScope.Team;
-        if (lower.Contains("risks") || lower.Contains("risk")) return AtlasApplicationAbstractionsAiAiViewScope.Risks;
-        if (lower.Contains("projects") || lower.Contains("project")) return AtlasApplicationAbstractionsAiAiViewScope.Projects;
-        if (lower.Contains("settings")) return AtlasApplicationAbstractionsAiAiViewScope.Settings;
+        if (lower.Contains("tasks"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Tasks;
+        }
+
+        if (lower.Contains("dashboard"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Dashboard;
+        }
+
+        if (lower.Contains("team"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Team;
+        }
+
+        if (lower.Contains("risks") || lower.Contains("risk"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Risks;
+        }
+
+        if (lower.Contains("projects") || lower.Contains("project"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Projects;
+        }
+
+        if (lower.Contains("settings"))
+        {
+            return AtlasApplicationAbstractionsAiAiViewScope.Settings;
+        }
+
         return null;
     }
 
-    static string RenderEvents(IEnumerable<AiSessionEventPayload> events)
+    private static string RenderEvents(IEnumerable<AiSessionEventPayload> events)
     {
         var text = "";
-        foreach (var evt in events.OrderBy(e => e.Sequence))
+        foreach (AiSessionEventPayload evt in events.OrderBy(e => e.Sequence))
         {
             if (evt.Type == "model.delta" && !string.IsNullOrEmpty(evt.Delta))
             {
@@ -417,7 +487,11 @@ public sealed class AiStateService : IAsyncDisposable
 
             if ((evt.Type is "session.failed" or "session.cancelled") && !string.IsNullOrEmpty(evt.Message))
             {
-                if (text.Length > 0 && !text.EndsWith('\n')) text += "\n";
+                if (text.Length > 0 && !text.EndsWith('\n'))
+                {
+                    text += "\n";
+                }
+
                 text += evt.Message + "\n";
             }
         }
@@ -425,12 +499,16 @@ public sealed class AiStateService : IAsyncDisposable
         return text;
     }
 
-    static List<AiSessionEventPayload> SortEvents(IEnumerable<AiSessionEventPayload> events) =>
+    private static List<AiSessionEventPayload> SortEvents(IEnumerable<AiSessionEventPayload> events) =>
         events.OrderBy(e => e.Sequence).ToList();
 
-    static AiSessionEventPayload? MapDto(AtlasApiDTOsAiAiSessionEventDto? dto)
+    private static AiSessionEventPayload? MapDto(AtlasApiDTOsAiAiSessionEventDto? dto)
     {
-        if (dto is null) return null;
+        if (dto is null)
+        {
+            return null;
+        }
+
         return new AiSessionEventPayload
         {
             EventId = dto.EventId ?? Guid.Empty,
@@ -440,12 +518,12 @@ public sealed class AiStateService : IAsyncDisposable
             Status = dto.Status,
             Message = dto.Message,
             Delta = dto.Delta,
-            OccurredAtUtc = dto.OccurredAtUtc ?? default,
+            OccurredAtUtc = dto.OccurredAtUtc ?? default(DateTimeOffset),
             IsTerminal = dto.IsTerminal ?? false,
         };
     }
 
-    static string ToDisplayStatus(string status) => status switch
+    private static string ToDisplayStatus(string status) => status switch
     {
         "gathering_context" => "Gathering context...",
         "using_history" => "Using conversation history...",
@@ -458,11 +536,15 @@ public sealed class AiStateService : IAsyncDisposable
         _ => status,
     };
 
-    static string NewTurnId() => Guid.NewGuid().ToString("N");
+    private static string NewTurnId() => Guid.NewGuid().ToString("N");
 
     public async ValueTask DisposeAsync()
     {
-        if (_subscribedCache) _cache.Changed -= OnCacheChanged;
+        if (_subscribedCache)
+        {
+            _cache.Changed -= OnCacheChanged;
+        }
+
         await _events.DisposeAsync();
     }
 }

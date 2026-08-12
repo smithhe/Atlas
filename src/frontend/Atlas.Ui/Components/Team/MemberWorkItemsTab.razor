@@ -13,7 +13,7 @@
             <label class="field">
                 <div class="fieldLabel">Status</div>
                 <select class="select" @bind="_statusFilter">
-                    @foreach (var s in StatusOptions)
+                    @foreach (string s in StatusOptions)
                     {
                         <option value="@s">@s</option>
                     }
@@ -35,9 +35,9 @@
             }
             else
             {
-                @foreach (var a in Filtered)
+                @foreach (AzureItem a in Filtered)
                 {
-                    var item = a;
+                    AzureItem item = a;
                     <button type="button"
                             class="focusTicketRow focusTicketRowBtn @Tones.TicketAttentionTone(item.Status)"
                             @onclick="() => OpenItem(item.Id)">
@@ -72,7 +72,7 @@
     {
         get
         {
-            var q = _query.Trim().ToLowerInvariant();
+            string q = _query.Trim().ToLowerInvariant();
             IEnumerable<AzureItem> items = Member.AzureItems;
             if (_quickFilter == "Current")
                 items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
@@ -81,7 +81,7 @@
             else if (_quickFilter == "InReview")
                 items = items.Where(a =>
                 {
-                    var s = a.Status.ToLowerInvariant();
+                    string s = a.Status.ToLowerInvariant();
                     return s.Contains("code review") || s.Contains("in review") || s.Contains("review");
                 });
 

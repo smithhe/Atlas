@@ -12,7 +12,7 @@ public sealed class ListProductOwnersQueryHandlerTests
     public async Task Handle_ReturnsRepositoryList()
     {
         var repo = new Mock<IProductOwnerRepository>();
-        IReadOnlyList<ProductOwner> expected = [new ProductOwner { Id = Guid.NewGuid(), Name = "PO" }];
+        IReadOnlyList<ProductOwner> expected = [new() { Id = Guid.NewGuid(), Name = "PO" }];
         repo.Setup(r => r.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
         var handler = new ListProductOwnersQueryHandler(repo.Object);

@@ -22,10 +22,10 @@
         @if (!IsFocusMode)
         {
             <section class="list listCard tasksListRow" aria-label="Task list">
-                @foreach (var t in Cache.Tasks)
+                @foreach (AtlasTask t in Cache.Tasks)
                 {
-                    var taskId = t.Id;
-                    var statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
+                    Guid taskId = t.Id;
+                    string statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
                     <button type="button"
                             class="listRow listRowBtn tasksTaskRow @(taskId == Selection.SelectedTaskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(taskId)"
@@ -153,7 +153,7 @@
                                 {
                                     <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
                                         <option value="">(None)</option>
-                                        @foreach (var p in Cache.Projects.OrderBy(x => x.Name))
+                                        @foreach (Project p in Cache.Projects.OrderBy(x => x.Name))
                                         {
                                             <option value="@p.Name">@p.Name</option>
                                         }
@@ -171,7 +171,7 @@
                                 {
                                     <select class="select" value="@(Selected.Risk ?? "")" @onchange="OnRiskChange">
                                         <option value="">(None)</option>
-                                        @foreach (var r in Cache.Risks.OrderBy(x => x.Title))
+                                        @foreach (Risk r in Cache.Risks.OrderBy(x => x.Title))
                                         {
                                             <option value="@r.Title">@r.Title</option>
                                         }
@@ -241,7 +241,7 @@
     {
         get
         {
-            Guid? id = IsFocusMode && Guid.TryParse(TaskId, out var focusId)
+            Guid? id = IsFocusMode && Guid.TryParse(TaskId, out Guid focusId)
                 ? focusId
                 : Selection.SelectedTaskId;
             if (id is null) return null;
@@ -264,7 +264,7 @@
 
     protected override void OnParametersSet()
     {
-        if (IsFocusMode && Guid.TryParse(TaskId, out var id))
+        if (IsFocusMode && Guid.TryParse(TaskId, out Guid id))
         {
             Selection.SelectTask(id);
             _editing = _autoEditId == id;
@@ -284,7 +284,7 @@
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (IsFocusMode && Guid.TryParse(TaskId, out var id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+        if (IsFocusMode && Guid.TryParse(TaskId, out Guid id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
         {
             Nav.NavigateTo("/tasks", replace: true);
             return;
@@ -323,16 +323,16 @@
             return;
         }
 
-        var taskId = Selected.Id;
+        Guid taskId = Selected.Id;
         Ai.RegisterDraftTarget(new AiDraftTarget
         {
             Label = "task notes",
             Insert = text =>
             {
-                var task = Cache.Tasks.FirstOrDefault(t => t.Id == taskId);
+                AtlasTask? task = Cache.Tasks.FirstOrDefault(t => t.Id == taskId);
                 if (task is null) return;
-                var current = task.Notes ?? "";
-                var next = string.IsNullOrWhiteSpace(current) ? text : $"{current.TrimEnd()}\n\n{text}";
+                string current = task.Notes;
+                string next = string.IsNullOrWhiteSpace(current) ? text : $"{current.TrimEnd()}\n\n{text}";
                 Persist(EntityClone.Task(task, notes: next));
             },
         });
@@ -365,8 +365,8 @@
                 DependencyTaskIds = Array.Empty<Guid>(),
                 LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            var res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
-            var id = res.Id ?? Guid.Empty;
+            AtlasApiDTOsTasksCreateTaskResponse res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
+            Guid id = res.Id ?? Guid.Empty;
             // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchTasksAsync();
             _autoEditId = id;
@@ -385,7 +385,7 @@
     async Task HandleDelete()
     {
         if (Selected is null || _deleting) return;
-        var task = Selected;
+        AtlasTask task = Selected;
         if (!await Dialogs.ConfirmAsync($"Delete task \"{task.Title}\"? This cannot be undone.")) return;
 
         _deleting = true;
@@ -416,7 +416,7 @@
 
     void OnPriorityChange(ChangeEventArgs e)
     {
-        if (Enum.TryParse<Priority>(e.Value?.ToString(), out var p))
+        if (Enum.TryParse(e.Value?.ToString(), out Priority p))
             Persist(EntityClone.Task(Selected!, priority: p));
     }
 
@@ -458,7 +458,7 @@
 
     static string DurationPreview(string text)
     {
-        var parsed = Duration.ParseDurationText(text);
+        Duration.ParsedDuration? parsed = Duration.ParseDurationText(text);
         return parsed is null
             ? (string.IsNullOrWhiteSpace(text) ? "—" : "Invalid")
             : Duration.FormatDurationFromMinutes(parsed.TotalMinutes);
