@@ -1,4 +1,3 @@
-using System.Linq;
 using Atlas.Application.Abstractions.AzureDevOps;
 using Atlas.Application.Abstractions.Persistence;
 using Atlas.Application.Abstractions.Time;
@@ -350,7 +349,7 @@ internal sealed class StubAzureDevOpsClient : IAzureDevOpsClient
         }
 
         CapturedWiql.Add(wiql);
-        IReadOnlyList<int> ids = top is int limit ? WorkItemIds.Take(limit).ToList() : WorkItemIds;
+        IReadOnlyList<int> ids = top is { } limit ? WorkItemIds.Take(limit).ToList() : WorkItemIds;
         return Task.FromResult(ids);
     }
 

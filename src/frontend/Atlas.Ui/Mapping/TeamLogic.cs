@@ -5,7 +5,7 @@ namespace Atlas.Ui.Mapping;
 /// <summary>Team helpers mirroring React <c>app/team.ts</c>.</summary>
 public static class TeamLogic
 {
-    static readonly HashSet<string> CurrentStatuses = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> CurrentStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "active",
         "blocked",
@@ -25,17 +25,23 @@ public static class TeamLogic
     /// </summary>
     public static ActivitySnapshot DeriveActivitySnapshot(TeamMember member)
     {
-        var noteTimes = member.Notes.Select(n => n.LastModifiedIso ?? n.CreatedIso);
-        var azureTimes = member.AzureItems.Select(a => a.ChangedDateUtc);
+        IEnumerable<string> noteTimes = member.Notes.Select(n => n.LastModifiedIso ?? n.CreatedIso);
+        IEnumerable<string?> azureTimes = member.AzureItems.Select(a => a.ChangedDateUtc);
         var lastUpdatedIso = MaxIso(noteTimes.Concat(azureTimes));
 
         var bullets = new List<string>();
 
         var focus = member.CurrentFocus.Trim();
-        if (focus.Length > 0) bullets.Add($"Focus: {focus}");
+        if (focus.Length > 0)
+        {
+            bullets.Add($"Focus: {focus}");
+        }
 
         var signalSummary = FormatSignalSummary(member.Signals);
-        if (signalSummary is not null) bullets.Add(signalSummary);
+        if (signalSummary is not null)
+        {
+            bullets.Add(signalSummary);
+        }
 
         var openItems = member.AzureItems.Where(a => IsCurrentTicketStatus(a.Status)).ToList();
         if (openItems.Count == 1)
@@ -51,7 +57,7 @@ public static class TeamLogic
             bullets.Add($"Recent: {member.AzureItems[0].Title}");
         }
 
-        var latestNote = member.Notes
+        TeamNote? latestNote = member.Notes
             .OrderByDescending(n => n.LastModifiedIso ?? n.CreatedIso)
             .FirstOrDefault();
         if (latestNote is not null)
@@ -94,14 +100,22 @@ public static class TeamLogic
             AzureItems = member.AzureItems
         };
 
-    static string? MaxIso(IEnumerable<string?> values)
+    private static string? MaxIso(IEnumerable<string?> values)
     {
         string? best = null;
         var bestMs = double.NegativeInfinity;
         foreach (var value in values)
         {
-            if (string.IsNullOrWhiteSpace(value)) continue;
-            if (!DateTimeOffset.TryParse(value, out var dto)) continue;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (!DateTimeOffset.TryParse(value, out DateTimeOffset dto))
+            {
+                continue;
+            }
+
             var ms = dto.ToUnixTimeMilliseconds();
             if (ms > bestMs)
             {
@@ -113,27 +127,57 @@ public static class TeamLogic
         return best;
     }
 
-    static string? FormatSignalSummary(TeamMemberSignals signals)
+    private static string? FormatSignalSummary(TeamMemberSignals signals)
     {
         var parts = new List<string>();
-        if (signals.Load == LoadSignal.Heavy) parts.Add("Heavy load");
-        else if (signals.Load == LoadSignal.Light) parts.Add("Light load");
+        if (signals.Load == LoadSignal.Heavy)
+        {
+            parts.Add("Heavy load");
+        }
+        else if (signals.Load == LoadSignal.Light)
+        {
+            parts.Add("Light load");
+        }
 
-        if (signals.Delivery == DeliverySignal.Blocked) parts.Add("Blocked");
-        else if (signals.Delivery == DeliverySignal.AtRisk) parts.Add("Delivery at risk");
+        if (signals.Delivery == DeliverySignal.Blocked)
+        {
+            parts.Add("Blocked");
+        }
+        else if (signals.Delivery == DeliverySignal.AtRisk)
+        {
+            parts.Add("Delivery at risk");
+        }
 
-        if (signals.SupportNeeded == SupportNeededSignal.High) parts.Add("High support need");
-        else if (signals.SupportNeeded == SupportNeededSignal.Medium) parts.Add("Medium support need");
+        if (signals.SupportNeeded == SupportNeededSignal.High)
+        {
+            parts.Add("High support need");
+        }
+        else if (signals.SupportNeeded == SupportNeededSignal.Medium)
+        {
+            parts.Add("Medium support need");
+        }
 
         return parts.Count == 0 ? null : string.Join(" · ", parts);
     }
 
-    static string FormatRelativeDays(string iso)
+    private static string FormatRelativeDays(string iso)
     {
         var days = DisplayLabels.DaysSince(iso);
-        if (days is null) return "recently";
-        if (days == 0) return "today";
-        if (days == 1) return "1 day ago";
+        if (days is null)
+        {
+            return "recently";
+        }
+
+        if (days == 0)
+        {
+            return "today";
+        }
+
+        if (days == 1)
+        {
+            return "1 day ago";
+        }
+
         return $"{days} days ago";
     }
 }

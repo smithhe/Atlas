@@ -24,64 +24,119 @@ public static class DisplayLabels
 
     public static int? DaysSince(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return null;
-        if (!DateTimeOffset.TryParse(iso, out var when)) return null;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return null;
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset when))
+        {
+            return null;
+        }
+
         var days = (int)Math.Floor((DateTimeOffset.UtcNow - when.ToUniversalTime()).TotalDays);
         return Math.Max(0, days);
     }
 
     public static int DaysBetween(string iso, string nowIso)
     {
-        var a = DateTimeOffset.Parse(iso).UtcDateTime;
-        var b = DateTimeOffset.Parse(nowIso).UtcDateTime;
+        DateTime a = DateTimeOffset.Parse(iso).UtcDateTime;
+        DateTime b = DateTimeOffset.Parse(nowIso).UtcDateTime;
         return (int)Math.Floor((b - a).TotalDays);
     }
 
     public static string GetDerivedTitle(TeamNote note)
     {
         var explicitTitle = note.Title?.Trim();
-        if (!string.IsNullOrEmpty(explicitTitle)) return explicitTitle;
+        if (!string.IsNullOrEmpty(explicitTitle))
+        {
+            return explicitTitle;
+        }
 
         var first = note.Text
             .Split('\n')
             .Select(l => l.Trim())
             .FirstOrDefault(l => l.Length > 0);
-        if (string.IsNullOrEmpty(first)) return "(untitled)";
+        if (string.IsNullOrEmpty(first))
+        {
+            return "(untitled)";
+        }
+
         return System.Text.RegularExpressions.Regex.Replace(first, @"^#{1,6}\s+", "").Trim();
     }
 
     public static string FormatDateTime(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToLocalTime().ToString("g");
     }
 
     public static string FormatDateLabel(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToString("MMM d, yyyy");
     }
 
     public static string FormatReadableDateTime(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToLocalTime().ToString("f");
     }
 
     public static string FormatIsoDateLong(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToString("MMMM d, yyyy");
     }
 
     public static string FormatIsoDateShort(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToString("MMM d");
     }
 
@@ -101,14 +156,22 @@ public static class DisplayLabels
 
     public static string FormatLocalDate(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return "—";
-        if (!DateTimeOffset.TryParse(iso, out var d)) return iso;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return "—";
+        }
+
+        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        {
+            return iso;
+        }
+
         return d.ToLocalTime().ToString("d");
     }
 
     public static string TodayIsoDateLocal()
     {
-        var d = DateTime.Now;
+        DateTime d = DateTime.Now;
         return $"{d:yyyy-MM-dd}";
     }
 }

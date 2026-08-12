@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    @if (Guid.TryParse(MemberId, out var mid))
+    @if (Guid.TryParse(MemberId, out Guid mid))
     {
         <div class="tabsBar" role="tablist" aria-label="Member tabs">
             <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{mid}")" Match="NavLinkMatch.All">Overview</NavLink>
@@ -156,7 +156,7 @@
                         <div class="fieldInline">
                             <select class="select selectCompact" value="@LinkedRiskValue" @onchange="OnLinkedRiskChange">
                                 <option value="">(None)</option>
-                                @foreach (var r in Cache.Risks.OrderBy(x => x.Title))
+                                @foreach (Risk r in Cache.Risks.OrderBy(x => x.Title))
                                 {
                                     <option value="@r.Id">@r.Title</option>
                                 }
@@ -190,22 +190,22 @@
     TeamMemberRisk? _draft;
 
     TeamMember? Member =>
-        Guid.TryParse(MemberId, out var id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
 
     TeamMemberRisk? View
     {
         get
         {
-            if (!Guid.TryParse(TeamMemberRiskId, out var rid)) return null;
-            var r = Cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
+            if (!Guid.TryParse(TeamMemberRiskId, out Guid rid)) return null;
+            TeamMemberRisk? r = Cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
             if (r is null) return null;
-            if (Guid.TryParse(MemberId, out var mid) && r.MemberId != mid) return null;
+            if (Guid.TryParse(MemberId, out Guid mid) && r.MemberId != mid) return null;
             return r;
         }
     }
 
     Risk? LinkedGlobal =>
-        View?.LinkedRiskId is Guid lid ? Cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
+        View?.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
 
     string LinkedRiskValue =>
         (_editing && _draft is not null ? _draft.LinkedRiskId : View?.LinkedRiskId)?.ToString() ?? "";
@@ -214,7 +214,7 @@
     {
         get
         {
-            var days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
+            int? days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
             if (days is null) return "—";
             if (days == 0) return "today";
             return days == 1 ? "1 day ago" : $"{days} days ago";
@@ -240,7 +240,7 @@
             return;
         }
 
-        if (Guid.TryParse(MemberId, out var id))
+        if (Guid.TryParse(MemberId, out Guid id))
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
@@ -280,7 +280,7 @@
 
     void OnLinkedRiskChange(ChangeEventArgs e)
     {
-        Guid? next = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        Guid? next = Guid.TryParse(e.Value?.ToString(), out Guid id) ? id : null;
         if (_editing && _draft is not null)
         {
             _draft.LinkedRiskId = next;
@@ -288,7 +288,7 @@
         }
 
         if (View is null) return;
-        var updated = Clone(View);
+        TeamMemberRisk updated = Clone(View);
         updated.LinkedRiskId = next;
         PersistRisk(updated);
     }
@@ -303,7 +303,7 @@
         }
 
         if (View is null) return;
-        var updated = Clone(View);
+        TeamMemberRisk updated = Clone(View);
         updated.LastReviewedIso = iso;
         PersistRisk(updated);
     }
@@ -317,7 +317,7 @@
 
     void PersistRisk(TeamMemberRisk next)
     {
-        if (!Guid.TryParse(MemberId, out var memberId)) return;
+        if (!Guid.TryParse(MemberId, out Guid memberId)) return;
         Cache.UpdateTeamMemberRisk(next);
         _ = PersistAsync(memberId, next);
     }
@@ -333,12 +333,12 @@
                 RiskType = next.RiskType,
                 Status = ApiMappers.ToApiTeamMemberRiskStatus(next.Status),
                 Trend = ApiMappers.ToApiTeamMemberRiskTrend(next.Trend),
-                FirstNoticedDate = DateTimeOffset.TryParse(next.FirstNoticedDateIso, out var d) ? d : null,
+                FirstNoticedDate = DateTimeOffset.TryParse(next.FirstNoticedDateIso, out DateTimeOffset d) ? d : null,
                 ImpactArea = next.ImpactArea,
                 Description = next.Description,
                 CurrentAction = next.CurrentAction,
                 LinkedGlobalRiskId = next.LinkedRiskId,
-                LastReviewedAt = DateTimeOffset.TryParse(next.LastReviewedIso, out var lr) ? lr : null
+                LastReviewedAt = DateTimeOffset.TryParse(next.LastReviewedIso, out DateTimeOffset lr) ? lr : null
             });
         }
         catch (Exception ex)
@@ -366,7 +366,7 @@
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (Guid.TryParse(MemberId, out var id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {
             Nav.NavigateTo("/team", replace: true);
             return;

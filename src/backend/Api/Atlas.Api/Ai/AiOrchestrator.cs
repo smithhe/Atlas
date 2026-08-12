@@ -4,7 +4,6 @@ using Atlas.Application.Features.Ai;
 using Atlas.Domain.Entities;
 using AppAiSessionEvent = Atlas.Application.Abstractions.Ai.AiSessionEvent;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 
 namespace Atlas.Api.Ai;
 

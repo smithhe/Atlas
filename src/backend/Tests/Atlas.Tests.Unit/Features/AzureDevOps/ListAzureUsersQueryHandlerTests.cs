@@ -14,7 +14,7 @@ public sealed class ListAzureUsersQueryHandlerTests
         var client = new Mock<IAzureDevOpsClient>();
         var settings = new Mock<ISettingsRepository>();
         settings.Setup(s => s.GetSingletonAsync(It.IsAny<CancellationToken>())).ReturnsAsync((Domain.Entities.Settings?)null);
-        IReadOnlyList<AzureUserSummary> expected = [new AzureUserSummary("Ada", "ada@x", null)];
+        IReadOnlyList<AzureUserSummary> expected = [new("Ada", "ada@x", null)];
         client.Setup(c => c.ListUsersAsync("https://dev.azure.com", "org", "pid", "tid", It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 

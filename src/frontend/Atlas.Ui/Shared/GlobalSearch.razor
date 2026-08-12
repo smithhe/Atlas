@@ -29,8 +29,8 @@
             {
                 @for (var i = 0; i < _results.Count; i++)
                 {
-                    var idx = i;
-                    var result = _results[i];
+                    int idx = i;
+                    SearchResult result = _results[i];
                     <button type="button"
                             id="@($"atlas-search-results-{idx}")"
                             role="option"
@@ -84,24 +84,24 @@
 
     void Rebuild()
     {
-        var q = _query.Trim().ToLowerInvariant();
+        string q = _query.Trim().ToLowerInvariant();
         if (q.Length == 0)
         {
             _results = [];
             return;
         }
 
-        var results = new List<SearchResult>();
+        List<SearchResult> results = new();
 
-        foreach (var task in Cache.Tasks)
+        foreach (AtlasTask task in Cache.Tasks)
         {
-            var haystack = string.Join(' ', new[]
+            string haystack = string.Join(' ', new[]
             {
                 task.Title, task.Project, task.Risk, DisplayLabels.FormatTaskStatus(task.Status),
                 task.Priority.ToString(), task.Notes
             }.Where(s => !string.IsNullOrEmpty(s)));
             if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
-            results.Add(new(
+            results.Add(new SearchResult(
                 $"task:{task.Id}",
                 "Task",
                 task.Title,
@@ -110,14 +110,14 @@
                 task.Id));
         }
 
-        foreach (var risk in Cache.Risks)
+        foreach (Risk risk in Cache.Risks)
         {
-            var haystack = string.Join(' ', new[]
+            string haystack = string.Join(' ', new[]
             {
                 risk.Title, risk.Project, risk.Description, risk.Evidence, risk.Status.ToString(), risk.Severity
             }.Where(s => !string.IsNullOrEmpty(s)));
             if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
-            results.Add(new(
+            results.Add(new SearchResult(
                 $"risk:{risk.Id}",
                 "Risk",
                 risk.Title,
@@ -126,11 +126,11 @@
                 risk.Id));
         }
 
-        foreach (var member in Cache.Team)
+        foreach (TeamMember member in Cache.Team)
         {
-            var haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
+            string haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
             if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
-            results.Add(new(
+            results.Add(new SearchResult(
                 $"person:{member.Id}",
                 "Person",
                 member.Name,
@@ -139,14 +139,14 @@
                 member.Id));
         }
 
-        foreach (var project in Cache.Projects)
+        foreach (Project project in Cache.Projects)
         {
-            var haystack = string.Join(' ', new[]
+            string haystack = string.Join(' ', new[]
             {
                 project.Name, project.Summary, project.Description, project.Status?.ToString()
             }.Concat(project.Tags).Where(s => !string.IsNullOrEmpty(s)));
             if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
-            results.Add(new(
+            results.Add(new SearchResult(
                 $"project:{project.Id}",
                 "Project",
                 project.Name,
@@ -157,7 +157,7 @@
 
         results.Sort((a, b) =>
         {
-            var kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
+            int kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
             return kindDiff != 0 ? kindDiff : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
         });
 

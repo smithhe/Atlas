@@ -94,11 +94,11 @@ public sealed class GrowthValidationEndpointTests : IClassFixture<AtlasWebApplic
     {
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-        string body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("StackTrace", body, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(" at Atlas.", body, StringComparison.Ordinal);
 
-        using JsonDocument document = JsonDocument.Parse(body);
+        using var document = JsonDocument.Parse(body);
         JsonElement root = document.RootElement;
 
         Assert.Equal(400, root.GetProperty("statusCode").GetInt32());

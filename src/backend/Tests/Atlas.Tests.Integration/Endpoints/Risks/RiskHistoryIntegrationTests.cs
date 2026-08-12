@@ -38,6 +38,6 @@ public sealed class RiskHistoryIntegrationTests : IClassFixture<AtlasIntegration
         Assert.NotNull(secondLoad);
         Assert.Single(firstLoad.History);
         Assert.Equal(entry.Id, firstLoad.History[0].Id);
-        Assert.Equal("First note", secondLoad!.History[0].Text);
+        Assert.Equal("First note", secondLoad.History[0].Text);
     }
 }

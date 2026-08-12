@@ -67,9 +67,9 @@
                 {
                     @for (var i = 0; i < Ai.Turns.Count; i++)
                     {
-                        var turn = Ai.Turns[i];
-                        var isLast = i == Ai.Turns.Count - 1;
-                        var isThinking = isLast && Ai.IsRunning && string.IsNullOrWhiteSpace(turn.Response);
+                        AiTranscriptTurn turn = Ai.Turns[i];
+                        bool isLast = i == Ai.Turns.Count - 1;
+                        bool isThinking = isLast && Ai.IsRunning && string.IsNullOrWhiteSpace(turn.Response);
                         <article class="aiPanelTurn" @key="turn.Id">
                             <div class="aiPanelTurnPrompt">@turn.Prompt</div>
                             <div class="aiPanelTurnResponse">
@@ -100,7 +100,7 @@
             @if (Ai.Actions.Count > 0)
             {
                 <div class="aiPanelQuickActions">
-                    @foreach (var action in Ai.Actions)
+                    @foreach (AiAction action in Ai.Actions)
                     {
                         <button class="btn btnSecondary"
                                 type="button"
@@ -137,11 +137,11 @@
                                 disabled="@(Ai.IsLoadingHistory || Ai.IsRunning)"
                                 @onchange="OnConversationChange">
                             <option value="">Recent conversations…</option>
-                            @foreach (var conversation in Ai.Conversations)
+                            @foreach (AtlasApiDTOsAiAiConversationListItemDto conversation in Ai.Conversations)
                             {
-                                var id = conversation.ConversationId?.ToString() ?? "";
-                                var updated = conversation.UpdatedAtUtc?.LocalDateTime.ToString() ?? "";
-                                var turns = conversation.TurnCount is > 1 ? $" ({conversation.TurnCount} turns)" : "";
+                                string id = conversation.ConversationId?.ToString() ?? "";
+                                string updated = conversation.UpdatedAtUtc?.LocalDateTime.ToString() ?? "";
+                                string turns = conversation.TurnCount is > 1 ? $" ({conversation.TurnCount} turns)" : "";
                                 <option value="@id">@updated — @conversation.Title@turns</option>
                             }
                         </select>
@@ -167,9 +167,9 @@
     {
         get
         {
-            for (var i = Ai.Turns.Count - 1; i >= 0; i--)
+            for (int i = Ai.Turns.Count - 1; i >= 0; i--)
             {
-                var text = Ai.Turns[i].Response?.Trim();
+                string? text = Ai.Turns[i].Response?.Trim();
                 if (!string.IsNullOrEmpty(text)) return text;
             }
             return "";
@@ -206,7 +206,7 @@
         get
         {
             if (Ai.IsRunning) return true;
-            var last = Ai.Turns.LastOrDefault();
+            AiTranscriptTurn? last = Ai.Turns.LastOrDefault();
             return last is not null && string.IsNullOrWhiteSpace(last.Response);
         }
     }
@@ -238,7 +238,7 @@
 
     void SendPrompt()
     {
-        var prompt = Ai.PromptDraft;
+        string prompt = Ai.PromptDraft;
         Ai.SetPromptDraft("");
         Ai.SendPrompt(prompt);
     }
@@ -270,7 +270,7 @@
             _copiedTurnId = turn.Id;
             _copyResetCts?.Cancel();
             _copyResetCts = new CancellationTokenSource();
-            var token = _copyResetCts.Token;
+            CancellationToken token = _copyResetCts.Token;
             _ = Task.Run(async () =>
             {
                 try
@@ -297,7 +297,7 @@
 
     void OnConversationChange(ChangeEventArgs e)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var id))
+        if (Guid.TryParse(e.Value?.ToString(), out Guid id))
             _ = Ai.OpenConversationAsync(id);
     }
 

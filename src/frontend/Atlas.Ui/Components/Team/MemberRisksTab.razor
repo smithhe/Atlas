@@ -32,10 +32,10 @@
         else
         {
             <div class="list listCard">
-                @foreach (var r in MemberRisks)
+                @foreach (TeamMemberRisk r in MemberRisks)
                 {
-                    var risk = r;
-                    var linkedGlobal = risk.LinkedRiskId is Guid lid ? Cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
+                    TeamMemberRisk risk = r;
+                    Risk? linkedGlobal = risk.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
                     <button type="button" class="listRow listRowBtn" @onclick="() => OpenRisk(risk.Id)">
                         <span class="dot dot-@risk.Severity.ToLowerInvariant()" aria-hidden="true"></span>
                         <div class="listMain">
@@ -102,7 +102,7 @@
                 <div class="fieldLabel">Link to global risk (optional)</div>
                 <select class="select" @bind="_linkedRiskId">
                     <option value="">(None)</option>
-                    @foreach (var gr in Cache.Risks.OrderBy(x => x.Title))
+                    @foreach (Risk gr in Cache.Risks.OrderBy(x => x.Title))
                     {
                         <option value="@gr.Id">@gr.Title</option>
                     }
@@ -140,14 +140,14 @@
     {
         get
         {
-            var q = _query.Trim().ToLowerInvariant();
+            string q = _query.Trim().ToLowerInvariant();
             return Cache.TeamMemberRisks
                 .Where(r => r.MemberId == MemberId)
                 .Where(r => _statusFilter == "All" || r.Status == _statusFilter)
                 .Where(r =>
                 {
                     if (string.IsNullOrEmpty(q)) return true;
-                    var hay = string.Join(' ', r.Title, r.RiskType, r.ImpactArea, r.Description, r.CurrentAction).ToLowerInvariant();
+                    string hay = string.Join(' ', r.Title, r.RiskType, r.ImpactArea, r.Description, r.CurrentAction).ToLowerInvariant();
                     return hay.Contains(q);
                 })
                 .ToList();
@@ -173,25 +173,25 @@
 
     async Task SaveCreate()
     {
-        var title = _title.Trim();
+        string title = _title.Trim();
         if (string.IsNullOrEmpty(title)) return;
         try
         {
-            Guid? linked = Guid.TryParse(_linkedRiskId, out var lid) ? lid : null;
-            var res = await Api.AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(MemberId, new AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest
+            Guid? linked = Guid.TryParse(_linkedRiskId, out Guid lid) ? lid : null;
+            AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse res = await Api.AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(MemberId, new AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest
             {
                 Title = title,
                 Severity = ApiMappers.ToApiTeamMemberRiskSeverity(_severity),
                 RiskType = _riskType.Trim(),
                 Status = ApiMappers.ToApiTeamMemberRiskStatus(_status),
                 Trend = ApiMappers.ToApiTeamMemberRiskTrend(_trend),
-                FirstNoticedDate = DateTimeOffset.TryParse(_firstNoticed, out var d) ? d : null,
+                FirstNoticedDate = DateTimeOffset.TryParse(_firstNoticed, out DateTimeOffset d) ? d : null,
                 ImpactArea = _impactArea.Trim(),
                 Description = _description.Trim(),
                 CurrentAction = _currentAction.Trim(),
                 LinkedGlobalRiskId = linked
             });
-            var id = res.Id ?? Guid.NewGuid();
+            Guid id = res.Id ?? Guid.NewGuid();
             var next = new TeamMemberRisk
             {
                 Id = id,

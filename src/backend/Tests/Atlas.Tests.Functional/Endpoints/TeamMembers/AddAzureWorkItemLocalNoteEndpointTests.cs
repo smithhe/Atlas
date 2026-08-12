@@ -88,12 +88,12 @@ public sealed class AddAzureWorkItemLocalNoteEndpointTests : IClassFixture<Atlas
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         AddAzureWorkItemLocalNoteResponse? created = await response.ReadJsonAsync<AddAzureWorkItemLocalNoteResponse>();
         created.Should().NotBeNull();
-        created!.Id.Should().NotBe(Guid.Empty);
+        created.Id.Should().NotBe(Guid.Empty);
 
         TeamMemberDto? detail = await (await client.GetAsync($"/team-members/{memberId}"))
             .ReadJsonAsync<TeamMemberDto>();
         detail.Should().NotBeNull();
-        TeamMemberAzureWorkItemDto wi = detail!.AzureWorkItems.Should()
+        TeamMemberAzureWorkItemDto wi = detail.AzureWorkItems.Should()
             .ContainSingle(x => x.Id == workItemId.ToString()).Subject;
         wi.LocalNotes.Should().ContainSingle(n => n.Id == created.Id && n.Text == "Local ADO note");
     }

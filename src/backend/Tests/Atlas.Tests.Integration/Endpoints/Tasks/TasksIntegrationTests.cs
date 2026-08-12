@@ -42,7 +42,7 @@ public sealed class TasksIntegrationTests : IClassFixture<AtlasIntegrationApplic
         HttpResponseMessage getResponse = await _client.GetAsync($"/tasks/{created.Id}");
         Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
 
-        Atlas.Api.DTOs.Tasks.TaskDto? task = await getResponse.ReadJsonAsync<Atlas.Api.DTOs.Tasks.TaskDto>();
+        TaskDto? task = await getResponse.ReadJsonAsync<TaskDto>();
         Assert.NotNull(task);
         Assert.Equal(created.Id, task.Id);
         Assert.Equal(title, task.Title);

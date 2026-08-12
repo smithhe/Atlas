@@ -5,7 +5,7 @@ namespace Atlas.Ui.Services;
 /// <summary>Browser localStorage helpers. Only <c>atlas.defaultAiPanelOpen</c> is used (match React).</summary>
 public sealed class LocalSettings(IJSRuntime js)
 {
-    const string DefaultAiPanelOpenKey = "atlas.defaultAiPanelOpen";
+    private const string DefaultAiPanelOpenKey = "atlas.defaultAiPanelOpen";
 
     public async Task<bool> LoadDefaultAiPanelOpenAsync()
     {
