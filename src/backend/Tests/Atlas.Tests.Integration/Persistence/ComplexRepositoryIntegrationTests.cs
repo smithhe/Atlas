@@ -45,7 +45,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         TaskItem? details = await tasks.GetByIdWithDetailsAsync(dependent.Id, CancellationToken.None);
         details.Should().NotBeNull();
-        details!.BlockedBy.Should().ContainSingle();
+        details.BlockedBy.Should().ContainSingle();
 
         IReadOnlyList<Guid> blockerIds = await tasks.GetDirectBlockerIdsAsync(dependent.Id, CancellationToken.None);
         blockerIds.Should().Equal(blocker.Id);
@@ -127,7 +127,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         Growth? byId = await growth.GetByIdWithDetailsAsync(plan.Id, CancellationToken.None);
         byId.Should().NotBeNull();
-        byId!.Goals.Should().ContainSingle();
+        byId.Goals.Should().ContainSingle();
         byId.Goals[0].Actions.Should().ContainSingle();
         byId.Goals[0].CheckIns.Should().ContainSingle();
         byId.FeedbackThemes.Should().ContainSingle();
@@ -135,7 +135,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         Growth? byMember = await growth.GetByTeamMemberIdWithDetailsAsync(member.Id, CancellationToken.None);
         byMember.Should().NotBeNull();
-        byMember!.Id.Should().Be(plan.Id);
+        byMember.Id.Should().Be(plan.Id);
         byMember.SkillsInProgress.Select(s => s.SortOrder).Should().Equal(1, 2);
     }
 
@@ -225,7 +225,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         TeamMember? loaded = await team.GetByIdWithDetailsAsync(member.Id, CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.Notes.Should().ContainSingle();
+        loaded.Notes.Should().ContainSingle();
         loaded.Risks.Should().ContainSingle();
         loaded.AzureWorkItemLinks.Should().ContainSingle();
         loaded.AzureWorkItemLinks[0].AzureWorkItem.Should().NotBeNull();
@@ -264,7 +264,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         Project? loaded = await projects.GetByIdWithDetailsAsync(projectId, CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.Tags.Should().ContainSingle(t => t.Value == "alpha");
+        loaded.Tags.Should().ContainSingle(t => t.Value == "alpha");
         loaded.Links.Should().ContainSingle(l => l.Label == "Docs");
 
         IReadOnlyList<Project> listed = await projects.ListAsync(CancellationToken.None);
@@ -307,7 +307,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         Risk? loaded = await risks.GetByIdWithDetailsAsync(risk.Id, CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.History.Should().ContainSingle(h => h.Text == "Noted");
+        loaded.History.Should().ContainSingle(h => h.Text == "Noted");
 
         IReadOnlyList<Risk> listed = await risks.ListAsync(CancellationToken.None);
         Risk fromList = listed.Should().ContainSingle(r => r.Id == risk.Id).Subject;
@@ -446,7 +446,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         AiSession? withEvents = await sessions.GetByIdWithEventsAsync(sessionId, CancellationToken.None);
         withEvents.Should().NotBeNull();
-        withEvents!.IsTerminal.Should().BeTrue();
+        withEvents.IsTerminal.Should().BeTrue();
         withEvents.Events.Select(e => e.Sequence).Should().Equal(1, 2, 3);
     }
 
@@ -507,7 +507,7 @@ public sealed class ComplexRepositoryIntegrationTests : IClassFixture<AtlasInteg
 
         AiConversation? loaded = await conversations.GetByIdWithTurnsAsync(newerConv.Id, CancellationToken.None);
         loaded.Should().NotBeNull();
-        loaded!.Turns.Should().ContainSingle();
+        loaded.Turns.Should().ContainSingle();
         loaded.Turns[0].Events.Should().ContainSingle(e => e.IsTerminal);
 
         // Take enough rows that our seeded pair is included even if other fixtures share a provider.

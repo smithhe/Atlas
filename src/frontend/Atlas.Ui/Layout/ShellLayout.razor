@@ -27,7 +27,7 @@
 
     <div class="@BodyGridClass" style="@AiWidthStyle">
         <nav class="leftNav" role="navigation" aria-label="Primary navigation">
-            @foreach (var item in NavItems)
+            @foreach (NavItem item in NavItems)
             {
                 <NavLink href="@item.Href" class="navBtn" ActiveClass="navBtnActive">@item.Label</NavLink>
             }
@@ -93,7 +93,7 @@
     {
         get
         {
-            var width = Ai.PanelWidthPx is int px
+            string width = Ai.PanelWidthPx is { } px
                 ? $"{Math.Max(MinAiWidth, px)}px"
                 : DefaultAiWidthCss;
             return $"--aiWidth: {width}";
@@ -104,7 +104,7 @@
     {
         get
         {
-            var path = new Uri(Nav.Uri).AbsolutePath;
+            string path = new Uri(Nav.Uri).AbsolutePath;
             if (path.StartsWith("/dashboard", StringComparison.OrdinalIgnoreCase)) return "Context: Dashboard";
             if (path.StartsWith("/tasks", StringComparison.OrdinalIgnoreCase)) return "Context: Tasks";
             if (path.StartsWith("/team", StringComparison.OrdinalIgnoreCase)) return "Context: Team";
@@ -162,7 +162,7 @@
             return;
         }
 
-        var current = Ai.PanelWidthPx ?? MinAiWidth;
+        int current = Ai.PanelWidthPx ?? MinAiWidth;
         if (e.Key == "ArrowLeft") Ai.SetPanelWidthPx(current + 20);
         if (e.Key == "ArrowRight") Ai.SetPanelWidthPx(Math.Max(MinAiWidth, current - 20));
     }
@@ -171,9 +171,9 @@
     public void OnAiResizeMove(double clientX, double innerWidth)
     {
         if (!_resizing) return;
-        var dx = _resizeStartX - clientX;
-        var next = _resizeStartWidth + dx;
-        var max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
+        double dx = _resizeStartX - clientX;
+        double next = _resizeStartWidth + dx;
+        int max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
         Ai.SetPanelWidthPx(Math.Max(MinAiWidth, Math.Min(max, (int)Math.Floor(next))));
     }
 

@@ -3,7 +3,6 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Atlas.Application.Abstractions.Ai;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Atlas.Api.Ai;

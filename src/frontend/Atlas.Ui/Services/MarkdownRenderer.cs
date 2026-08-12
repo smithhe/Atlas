@@ -9,12 +9,12 @@ namespace Atlas.Ui.Services;
 /// </summary>
 public sealed class MarkdownRenderer
 {
-    static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
         .DisableHtml() // Match react-markdown: raw HTML in source is not rendered
         .Build();
 
-    readonly HtmlSanitizer _sanitizer;
+    private readonly HtmlSanitizer _sanitizer;
 
     public MarkdownRenderer()
     {
@@ -61,7 +61,10 @@ public sealed class MarkdownRenderer
 
     public string ToSafeHtml(string? markdown)
     {
-        if (string.IsNullOrWhiteSpace(markdown)) return "";
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            return "";
+        }
 
         var raw = Markdown.ToHtml(markdown, Pipeline);
         var sanitized = _sanitizer.Sanitize(raw);

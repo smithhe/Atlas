@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
@@ -13,20 +12,20 @@ namespace Atlas.Ui.Services;
 /// </summary>
 public sealed class AppCacheService
 {
-    readonly IAtlasApiClient _api;
-    readonly LocalSettings _localSettings;
-    readonly SelectionState _selection;
-    readonly object _gate = new();
+    private readonly IAtlasApiClient _api;
+    private readonly LocalSettings _localSettings;
+    private readonly SelectionState _selection;
+    private readonly object _gate = new();
 
-    Task? _hydration;
-    bool _defaultAiPanelOpen;
+    private Task? _hydration;
+    private bool _defaultAiPanelOpen;
 
-    LoadState _settings = LoadState.Pending;
-    LoadState _projects = LoadState.Pending;
-    LoadState _productOwners = LoadState.Pending;
-    LoadState _team = LoadState.Pending;
-    LoadState _risks = LoadState.Pending;
-    LoadState _tasks = LoadState.Pending;
+    private LoadState _settings = LoadState.Pending;
+    private LoadState _projects = LoadState.Pending;
+    private LoadState _productOwners = LoadState.Pending;
+    private LoadState _team = LoadState.Pending;
+    private LoadState _risks = LoadState.Pending;
+    private LoadState _tasks = LoadState.Pending;
 
     public AppCacheService(IAtlasApiClient api, LocalSettings localSettings, SelectionState selection)
     {
@@ -53,22 +52,38 @@ public sealed class AppCacheService
 
     public bool TasksReady
     {
-        get { lock (_gate) return _tasks == LoadState.Ready; }
+        get { lock (_gate)
+            {
+                return _tasks == LoadState.Ready;
+            }
+        }
     }
 
     public bool RisksReady
     {
-        get { lock (_gate) return _risks == LoadState.Ready; }
+        get { lock (_gate)
+            {
+                return _risks == LoadState.Ready;
+            }
+        }
     }
 
     public bool ProjectsReady
     {
-        get { lock (_gate) return _projects == LoadState.Ready; }
+        get { lock (_gate)
+            {
+                return _projects == LoadState.Ready;
+            }
+        }
     }
 
     public bool TeamReady
     {
-        get { lock (_gate) return _team == LoadState.Ready; }
+        get { lock (_gate)
+            {
+                return _team == LoadState.Ready;
+            }
+        }
     }
 
     public Settings? Settings { get; private set; }
@@ -80,14 +95,15 @@ public sealed class AppCacheService
     public IReadOnlyList<AtlasTask> Tasks { get; private set; } = Array.Empty<AtlasTask>();
 
     /// <summary>Per-member growth records keyed by team member id (lazy-loaded).</summary>
-    readonly Dictionary<Guid, Growth> _growthByMemberId = new();
-    readonly Dictionary<Guid, Task<Growth?>> _growthLoads = new();
-    readonly Dictionary<Guid, GrowthLoadStatus> _growthLoadStatus = new();
-    readonly Dictionary<Guid, string?> _growthLoadErrors = new();
-    readonly Dictionary<Guid, long> _growthLoadGenerations = new();
-    readonly Dictionary<Guid, CancellationTokenSource> _growthLoadCancellations = new();
+    private readonly Dictionary<Guid, Growth> _growthByMemberId = new();
 
-    const string GrowthEnsureFailedMessage = "Unable to ensure growth record for team member.";
+    private readonly Dictionary<Guid, Task<Growth?>> _growthLoads = new();
+    private readonly Dictionary<Guid, GrowthLoadStatus> _growthLoadStatus = new();
+    private readonly Dictionary<Guid, string?> _growthLoadErrors = new();
+    private readonly Dictionary<Guid, long> _growthLoadGenerations = new();
+    private readonly Dictionary<Guid, CancellationTokenSource> _growthLoadCancellations = new();
+
+    private const string GrowthEnsureFailedMessage = "Unable to ensure growth record for team member.";
 
     public string? LastError { get; private set; }
 
@@ -102,7 +118,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task HydrateAsync(CancellationToken cancellationToken)
+    private async Task HydrateAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -201,7 +217,11 @@ public sealed class AppCacheService
             r.LinkedTaskIds.Contains(taskId)
                 ? CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != taskId).ToList())
                 : r).ToList();
-        if (_selection.SelectedTaskId == taskId) _selection.SelectTask(null);
+        if (_selection.SelectedTaskId == taskId)
+        {
+            _selection.SelectTask(null);
+        }
+
         Notify();
     }
 
@@ -215,13 +235,13 @@ public sealed class AppCacheService
 
     public void UpdateRisk(Risk risk)
     {
-        var previous = Risks.FirstOrDefault(r => r.Id == risk.Id);
+        Risk? previous = Risks.FirstOrDefault(r => r.Id == risk.Id);
         Risks = Risks.Select(r => r.Id == risk.Id ? risk : r).ToList();
         SyncProjectLinkedRiskIds(risk);
         if (previous is not null && previous.Title != risk.Title)
         {
             Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: risk.Title) : t).ToList();
-            foreach (var task in Tasks.Where(t => t.Risk == risk.Title))
+            foreach (AtlasTask task in Tasks.Where(t => t.Risk == risk.Title))
             {
                 SyncRiskLinkedTaskIds(task);
             }
@@ -232,7 +252,7 @@ public sealed class AppCacheService
 
     public void RemoveRisk(Guid riskId)
     {
-        var previous = Risks.FirstOrDefault(r => r.Id == riskId);
+        Risk? previous = Risks.FirstOrDefault(r => r.Id == riskId);
         Risks = Risks.Where(r => r.Id != riskId).ToList();
         Projects = Projects.Select(p =>
             p.LinkedRiskIds.Contains(riskId)
@@ -243,7 +263,11 @@ public sealed class AppCacheService
             Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: null, clearRisk: true) : t).ToList();
         }
 
-        if (_selection.SelectedRiskId == riskId) _selection.SelectRisk(null);
+        if (_selection.SelectedRiskId == riskId)
+        {
+            _selection.SelectRisk(null);
+        }
+
         Notify();
     }
 
@@ -256,7 +280,7 @@ public sealed class AppCacheService
 
     public void UpdateProject(Project project)
     {
-        var previous = Projects.FirstOrDefault(p => p.Id == project.Id);
+        Project? previous = Projects.FirstOrDefault(p => p.Id == project.Id);
         Projects = Projects.Select(p => p.Id == project.Id ? project : p).ToList();
         if (previous is not null && previous.Name != project.Name)
         {
@@ -269,7 +293,7 @@ public sealed class AppCacheService
 
     public void RemoveProject(Guid projectId)
     {
-        var previous = Projects.FirstOrDefault(p => p.Id == projectId);
+        Project? previous = Projects.FirstOrDefault(p => p.Id == projectId);
         Projects = Projects.Where(p => p.Id != projectId).ToList();
         if (previous is not null)
         {
@@ -277,13 +301,17 @@ public sealed class AppCacheService
             Risks = Risks.Select(r => r.Project == previous.Name ? CloneRisk(r, project: null, clearProject: true) : r).ToList();
         }
 
-        if (_selection.SelectedProjectId == projectId) _selection.SelectProject(null);
+        if (_selection.SelectedProjectId == projectId)
+        {
+            _selection.SelectProject(null);
+        }
+
         Notify();
     }
 
     public void UpdateTeamMember(TeamMember member)
     {
-        var next = TeamLogic.WithDerivedActivitySnapshot(member);
+        TeamMember next = TeamLogic.WithDerivedActivitySnapshot(member);
         Team = Team.Select(m => m.Id == next.Id ? next : m).ToList();
         Notify();
     }
@@ -310,7 +338,7 @@ public sealed class AppCacheService
     {
         lock (_gate)
         {
-            return _growthByMemberId.TryGetValue(memberId, out var g) ? g : null;
+            return _growthByMemberId.TryGetValue(memberId, out Growth? g) ? g : null;
         }
     }
 
@@ -347,7 +375,7 @@ public sealed class AppCacheService
     {
         lock (_gate)
         {
-            if (_growthLoadCancellations.TryGetValue(memberId, out var cts))
+            if (_growthLoadCancellations.TryGetValue(memberId, out CancellationTokenSource? cts))
             {
                 cts.Cancel();
                 cts.Dispose();
@@ -363,7 +391,7 @@ public sealed class AppCacheService
         return EnsureGrowthLoadedAsync(memberId, cancellationToken);
     }
 
-    bool IsCurrentGrowthLoad(Guid memberId, long generation)
+    private bool IsCurrentGrowthLoad(Guid memberId, long generation)
     {
         lock (_gate)
         {
@@ -371,15 +399,17 @@ public sealed class AppCacheService
         }
     }
 
-    void CompleteGrowthLoad(Guid memberId, long generation)
+    private void CompleteGrowthLoad(Guid memberId, long generation)
     {
         lock (_gate)
         {
             if (_growthLoadGenerations.GetValueOrDefault(memberId) != generation)
+            {
                 return;
+            }
 
             _growthLoads.Remove(memberId);
-            if (_growthLoadCancellations.TryGetValue(memberId, out var cts))
+            if (_growthLoadCancellations.TryGetValue(memberId, out CancellationTokenSource? cts))
             {
                 cts.Dispose();
                 _growthLoadCancellations.Remove(memberId);
@@ -387,16 +417,28 @@ public sealed class AppCacheService
         }
     }
 
-    static bool IsRicherGrowthCache(Growth existing, Growth incoming)
+    private static bool IsRicherGrowthCache(Growth existing, Growth incoming)
     {
         if (incoming.Goals.Count == 0 && existing.Goals.Count > 0)
+        {
             return true;
+        }
+
         if (incoming.SkillsInProgress.Count == 0 && existing.SkillsInProgress.Count > 0)
+        {
             return true;
+        }
+
         if (incoming.FeedbackThemes.Count == 0 && existing.FeedbackThemes.Count > 0)
+        {
             return true;
+        }
+
         if (string.IsNullOrWhiteSpace(incoming.FocusAreasMarkdown) && !string.IsNullOrWhiteSpace(existing.FocusAreasMarkdown))
+        {
             return true;
+        }
+
         return false;
     }
 
@@ -405,55 +447,69 @@ public sealed class AppCacheService
     /// Lock owns generation reads/writes; cache/status mutation and Notify happen outside the lock.
     /// When incoming growth is poorer than existing cache, status still advances for the current generation.
     /// </summary>
-    bool TryCommitGrowthLoadResult(Guid memberId, long generation, Growth? growth, GrowthLoadStatus status, string? error = null)
+    private bool TryCommitGrowthLoadResult(Guid memberId, long generation, Growth? growth, GrowthLoadStatus status, string? error = null)
     {
-        var shouldNotify = false;
+        bool shouldNotify;
 
         lock (_gate)
         {
             if (_growthLoadGenerations.GetValueOrDefault(memberId) != generation)
+            {
                 return false;
+            }
 
             if (growth is not null)
             {
-                if (!_growthByMemberId.TryGetValue(memberId, out var existing) || !IsRicherGrowthCache(existing, growth))
+                if (!_growthByMemberId.TryGetValue(memberId, out Growth? existing) || !IsRicherGrowthCache(existing, growth))
+                {
                     _growthByMemberId[memberId] = growth;
+                }
             }
 
             _growthLoadStatus[memberId] = status;
             if (error is null)
+            {
                 _growthLoadErrors.Remove(memberId);
+            }
             else
+            {
                 _growthLoadErrors[memberId] = error;
+            }
 
             shouldNotify = true;
         }
 
         if (shouldNotify)
+        {
             Notify();
+        }
 
         return true;
     }
 
-    Task<Growth?> StartGuardedGrowthLoadAsync(Guid memberId, CancellationToken cancellationToken, Func<Guid, long, CancellationToken, Task<Growth?>> loadFactory)
+    private Task<Growth?> StartGuardedGrowthLoadAsync(Guid memberId, CancellationToken cancellationToken, Func<Guid, long, CancellationToken, Task<Growth?>> loadFactory)
     {
         Task<Growth?> load;
-        var startedLoading = false;
+        bool startedLoading;
 
         lock (_gate)
         {
-            if (_growthByMemberId.TryGetValue(memberId, out var cached))
+            if (_growthByMemberId.TryGetValue(memberId, out Growth? cached))
+            {
                 return Task.FromResult<Growth?>(cached);
+            }
 
             if (_growthLoads.TryGetValue(memberId, out load!))
+            {
                 return load;
+            }
 
             var generation = _growthLoadGenerations.GetValueOrDefault(memberId) + 1;
             _growthLoadGenerations[memberId] = generation;
             _growthLoadStatus[memberId] = GrowthLoadStatus.Loading;
             _growthLoadErrors.Remove(memberId);
 
-            if (_growthLoadCancellations.TryGetValue(memberId, out var previousCts))
+            if (_growthLoadCancellations.TryGetValue(memberId, out CancellationTokenSource? previousCts))
             {
                 previousCts.Cancel();
                 previousCts.Dispose();
@@ -467,24 +523,28 @@ public sealed class AppCacheService
         }
 
         if (startedLoading)
+        {
             Notify();
+        }
 
         return load;
     }
 
-    async Task<Growth?> HydrateGrowthAsync(Guid memberId, Guid growthId, long generation, CancellationToken cancellationToken)
+    private async Task<Growth?> HydrateGrowthAsync(Guid memberId, Guid growthId, long generation, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var dto = await _api.AtlasApiEndpointsGrowthGetGrowthEndpointAsync(growthId, cancellationToken);
+        AtlasApiDTOsGrowthGrowthDto dto = await _api.AtlasApiEndpointsGrowthGetGrowthEndpointAsync(growthId, cancellationToken);
         if (!IsCurrentGrowthLoad(memberId, generation))
+        {
             return null;
+        }
 
-        var mapped = ApiMappers.MapGrowth(dto);
+        Growth mapped = ApiMappers.MapGrowth(dto);
         TryCommitGrowthLoadResult(memberId, generation, mapped, GrowthLoadStatus.Succeeded);
         return GetGrowth(memberId) ?? mapped;
     }
 
-    async Task<Growth?> LoadGrowthAsync(Guid memberId, long generation, CancellationToken cancellationToken)
+    private async Task<Growth?> LoadGrowthAsync(Guid memberId, long generation, CancellationToken cancellationToken)
     {
         try
         {
@@ -497,12 +557,14 @@ public sealed class AppCacheService
             }
             catch (AtlasApiException ex) when (ex.StatusCode is 404)
             {
-                var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
-                var growthId = ensured.GrowthId ?? Guid.Empty;
+                AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
+                Guid growthId = ensured.GrowthId ?? Guid.Empty;
                 if (growthId == Guid.Empty)
                 {
                     if (!IsCurrentGrowthLoad(memberId, generation))
+                    {
                         return null;
+                    }
 
                     LastError = GrowthEnsureFailedMessage;
                     TryCommitGrowthLoadResult(memberId, generation, null, GrowthLoadStatus.Failed, GrowthEnsureFailedMessage);
@@ -513,9 +575,11 @@ public sealed class AppCacheService
             }
 
             if (!IsCurrentGrowthLoad(memberId, generation))
+            {
                 return null;
+            }
 
-            var mapped = ApiMappers.MapGrowth(dto);
+            Growth mapped = ApiMappers.MapGrowth(dto);
             TryCommitGrowthLoadResult(memberId, generation, mapped, GrowthLoadStatus.Succeeded);
             return GetGrowth(memberId) ?? mapped;
         }
@@ -526,7 +590,9 @@ public sealed class AppCacheService
         catch (Exception ex)
         {
             if (!IsCurrentGrowthLoad(memberId, generation))
+            {
                 return null;
+            }
 
             var message = ex is AtlasApiException apiEx
                 ? $"Unable to load growth data ({apiEx.StatusCode})."
@@ -541,14 +607,14 @@ public sealed class AppCacheService
         }
     }
 
-    async Task<Growth?> EnsureGrowthIdHydrateLoadAsync(Guid memberId, long generation, CancellationToken cancellationToken)
+    private async Task<Growth?> EnsureGrowthIdHydrateLoadAsync(Guid memberId, long generation, CancellationToken cancellationToken)
     {
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
-            var growthId = ensured.GrowthId ?? Guid.Empty;
+            AtlasApiDTOsGrowthEnsureGrowthForTeamMemberResponse ensured = await _api.AtlasApiEndpointsGrowthEnsureGrowthForTeamMemberEndpointAsync(memberId, cancellationToken);
+            Guid growthId = ensured.GrowthId ?? Guid.Empty;
             if (growthId == Guid.Empty)
             {
                 if (IsCurrentGrowthLoad(memberId, generation))
@@ -569,11 +635,15 @@ public sealed class AppCacheService
         catch (Exception ex)
         {
             if (!IsCurrentGrowthLoad(memberId, generation))
+            {
                 return null;
+            }
 
-            var existing = GetGrowth(memberId);
+            Growth? existing = GetGrowth(memberId);
             if (existing is not null && existing.Id != Guid.Empty)
+            {
                 return existing;
+            }
 
             var message = ex is AtlasApiException apiEx
                 ? $"Unable to load growth data ({apiEx.StatusCode})."
@@ -590,11 +660,13 @@ public sealed class AppCacheService
 
     public async Task<Guid> EnsureGrowthIdAsync(Guid memberId, CancellationToken cancellationToken = default)
     {
-        var cached = GetGrowth(memberId);
+        Growth? cached = GetGrowth(memberId);
         if (cached is not null && cached.Id != Guid.Empty)
+        {
             return cached.Id;
+        }
 
-        Task<Growth?>? inFlight = null;
+        Task<Growth?>? inFlight;
         lock (_gate)
         {
             _growthLoads.TryGetValue(memberId, out inFlight);
@@ -602,28 +674,38 @@ public sealed class AppCacheService
 
         if (inFlight is not null)
         {
-            var loaded = await inFlight;
+            Growth? loaded = await inFlight;
             if (loaded is not null && loaded.Id != Guid.Empty)
+            {
                 return loaded.Id;
+            }
 
             cached = GetGrowth(memberId);
             if (cached is not null && cached.Id != Guid.Empty)
+            {
                 return cached.Id;
+            }
         }
         else if (GetGrowthLoadStatus(memberId) is not GrowthLoadStatus.Failed)
         {
-            var loaded = await EnsureGrowthLoadedAsync(memberId, cancellationToken);
+            Growth? loaded = await EnsureGrowthLoadedAsync(memberId, cancellationToken);
             if (loaded is not null && loaded.Id != Guid.Empty)
+            {
                 return loaded.Id;
+            }
 
             cached = GetGrowth(memberId);
             if (cached is not null && cached.Id != Guid.Empty)
+            {
                 return cached.Id;
+            }
         }
 
-        var hydrateLoad = await StartGuardedGrowthLoadAsync(memberId, cancellationToken, EnsureGrowthIdHydrateLoadAsync);
+        Growth? hydrateLoad = await StartGuardedGrowthLoadAsync(memberId, cancellationToken, EnsureGrowthIdHydrateLoadAsync);
         if (hydrateLoad is not null && hydrateLoad.Id != Guid.Empty)
+        {
             return hydrateLoad.Id;
+        }
 
         cached = GetGrowth(memberId);
         return cached?.Id ?? Guid.Empty;
@@ -636,10 +718,10 @@ public sealed class AppCacheService
         Notify();
     }
 
-    Guid? FindProjectIdByName(string? name) =>
+    private Guid? FindProjectIdByName(string? name) =>
         string.IsNullOrWhiteSpace(name) ? null : Projects.FirstOrDefault(p => p.Name == name)?.Id;
 
-    Guid? FindRiskIdByTitle(string? title) =>
+    private Guid? FindRiskIdByTitle(string? title) =>
         string.IsNullOrWhiteSpace(title) ? null : Risks.FirstOrDefault(r => r.Title == title)?.Id;
 
     public AtlasApiDTOsTasksCreateTaskRequest ToCreateTaskRequest(AtlasTask task) =>
@@ -728,55 +810,77 @@ public sealed class AppCacheService
             Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
         };
 
-    static DateTimeOffset? ParseDate(string? iso)
+    private static DateTimeOffset? ParseDate(string? iso)
     {
-        if (string.IsNullOrWhiteSpace(iso)) return null;
-        return DateTimeOffset.TryParse(iso, out var d) ? d : null;
+        if (string.IsNullOrWhiteSpace(iso))
+        {
+            return null;
+        }
+
+        return DateTimeOffset.TryParse(iso, out DateTimeOffset d) ? d : null;
     }
 
-    void SyncProjectLinkedTaskIds(AtlasTask task)
+    private void SyncProjectLinkedTaskIds(AtlasTask task)
     {
         Projects = Projects.Select(p =>
         {
             var shouldInclude = !string.IsNullOrEmpty(task.Project) && p.Name == task.Project;
             var has = p.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
+            {
                 return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Append(task.Id).ToList());
+            }
+
             if (!shouldInclude && has)
+            {
                 return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != task.Id).ToList());
+            }
+
             return p;
         }).ToList();
     }
 
-    void SyncRiskLinkedTaskIds(AtlasTask task)
+    private void SyncRiskLinkedTaskIds(AtlasTask task)
     {
         Risks = Risks.Select(r =>
         {
             var shouldInclude = !string.IsNullOrEmpty(task.Risk) && r.Title == task.Risk;
             var has = r.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
+            {
                 return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Append(task.Id).ToList());
+            }
+
             if (!shouldInclude && has)
+            {
                 return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != task.Id).ToList());
+            }
+
             return r;
         }).ToList();
     }
 
-    void SyncProjectLinkedRiskIds(Risk risk)
+    private void SyncProjectLinkedRiskIds(Risk risk)
     {
         Projects = Projects.Select(p =>
         {
             var shouldInclude = !string.IsNullOrEmpty(risk.Project) && p.Name == risk.Project;
             var has = p.LinkedRiskIds.Contains(risk.Id);
             if (shouldInclude && !has)
+            {
                 return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Append(risk.Id).ToList());
+            }
+
             if (!shouldInclude && has)
+            {
                 return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != risk.Id).ToList());
+            }
+
             return p;
         }).ToList();
     }
 
-    static AtlasTask CloneTask(AtlasTask t, string? project = null, string? risk = null, bool clearProject = false, bool clearRisk = false) =>
+    private static AtlasTask CloneTask(AtlasTask t, string? project = null, string? risk = null, bool clearProject = false, bool clearRisk = false) =>
         new()
         {
             Id = t.Id,
@@ -795,7 +899,7 @@ public sealed class AppCacheService
             LastTouchedIso = t.LastTouchedIso
         };
 
-    static Project CloneProject(Project p, IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedRiskIds = null) =>
+    private static Project CloneProject(Project p, IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedRiskIds = null) =>
         new()
         {
             Id = p.Id,
@@ -815,7 +919,7 @@ public sealed class AppCacheService
             TeamMemberIds = p.TeamMemberIds
         };
 
-    static Risk CloneRisk(Risk r, string? project = null, bool clearProject = false, IReadOnlyList<Guid>? linkedTaskIds = null) =>
+    private static Risk CloneRisk(Risk r, string? project = null, bool clearProject = false, IReadOnlyList<Guid>? linkedTaskIds = null) =>
         new()
         {
             Id = r.Id,
@@ -832,7 +936,7 @@ public sealed class AppCacheService
             LastUpdatedIso = r.LastUpdatedIso
         };
 
-    async Task LoadSettingsAsync(CancellationToken cancellationToken)
+    private async Task LoadSettingsAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -847,7 +951,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task LoadProjectsAsync(CancellationToken cancellationToken)
+    private async Task LoadProjectsAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -864,7 +968,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task LoadProductOwnersAsync(CancellationToken cancellationToken)
+    private async Task LoadProductOwnersAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -881,7 +985,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task LoadTeamAsync(CancellationToken cancellationToken)
+    private async Task LoadTeamAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -908,7 +1012,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task LoadRisksAsync(CancellationToken cancellationToken)
+    private async Task LoadRisksAsync(CancellationToken cancellationToken)
     {
         if (_projects != LoadState.Ready)
         {
@@ -935,7 +1039,7 @@ public sealed class AppCacheService
         }
     }
 
-    async Task LoadTasksAsync(CancellationToken cancellationToken)
+    private async Task LoadTasksAsync(CancellationToken cancellationToken)
     {
         if (_projects != LoadState.Ready || _risks != LoadState.Ready)
         {
@@ -961,7 +1065,7 @@ public sealed class AppCacheService
         }
     }
 
-    void SetState(ref LoadState field, LoadState value)
+    private void SetState(ref LoadState field, LoadState value)
     {
         lock (_gate)
         {
@@ -971,7 +1075,7 @@ public sealed class AppCacheService
         Notify();
     }
 
-    static void FailIfPending(ref LoadState field)
+    private static void FailIfPending(ref LoadState field)
     {
         if (field == LoadState.Pending)
         {
@@ -979,9 +1083,9 @@ public sealed class AppCacheService
         }
     }
 
-    void Notify() => Changed?.Invoke();
+    private void Notify() => Changed?.Invoke();
 
-    enum LoadState
+    private enum LoadState
     {
         Pending,
         Ready,

@@ -2,7 +2,7 @@ namespace Atlas.AzureDevOps;
 
 public sealed class AzureDevOpsClient : IAzureDevOpsClient
 {
-    private static readonly IReadOnlyList<string> _workItemFields =
+    private static readonly IReadOnlyList<string> WorkItemFields =
     [
         "System.Id",
         "System.Title",
@@ -135,7 +135,7 @@ public sealed class AzureDevOpsClient : IAzureDevOpsClient
         var url = $"{NormalizeBaseUrl(baseUrl)}/{organization}/{projectSegment}/_apis/wit/workitemsbatch?api-version=7.1";
         using HttpRequestMessage req = CreateRequest(HttpMethod.Post, url);
         req.Content = new StringContent(
-            JsonSerializer.Serialize(new { ids = workItemIds, fields = _workItemFields }),
+            JsonSerializer.Serialize(new { ids = workItemIds, fields = WorkItemFields }),
             Encoding.UTF8,
             "application/json");
 

@@ -15,8 +15,16 @@ public static class Tones
 
     public static string PriorityTone(Priority? priority)
     {
-        if (priority is null or Priority.Low) return "toneNeutral";
-        if (priority is Priority.Medium) return "toneWarn";
+        if (priority is null or Priority.Low)
+        {
+            return "toneNeutral";
+        }
+
+        if (priority is Priority.Medium)
+        {
+            return "toneWarn";
+        }
+
         return "toneBad";
     }
 
@@ -75,17 +83,37 @@ public static class Tones
     public static string SignalTone(string value)
     {
         var v = value.ToLowerInvariant();
-        if (v.Contains("blocked")) return "toneBad";
-        if (v.Contains("atrisk") || v.Contains("heavy") || v == "high" || v.Contains("medium")) return "toneWarn";
-        if (v.Contains("ontrack") || v.Contains("light") || v == "low") return "toneGood";
+        if (v.Contains("blocked"))
+        {
+            return "toneBad";
+        }
+
+        if (v.Contains("atrisk") || v.Contains("heavy") || v == "high" || v.Contains("medium"))
+        {
+            return "toneWarn";
+        }
+
+        if (v.Contains("ontrack") || v.Contains("light") || v == "low")
+        {
+            return "toneGood";
+        }
+
         return "toneNeutral";
     }
 
     public static string TicketAttentionTone(string status)
     {
         var s = status.ToLowerInvariant();
-        if (s.Contains("blocked")) return "toneBad";
-        if (s.Contains("code review") || s.Contains("in review") || s.Contains("review")) return "toneWarn";
+        if (s.Contains("blocked"))
+        {
+            return "toneBad";
+        }
+
+        if (s.Contains("code review") || s.Contains("in review") || s.Contains("review"))
+        {
+            return "toneWarn";
+        }
+
         return "toneNeutral";
     }
 }

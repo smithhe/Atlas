@@ -12,28 +12,44 @@ public sealed class SelectionState
 
     public void SelectTask(Guid? taskId)
     {
-        if (SelectedTaskId == taskId) return;
+        if (SelectedTaskId == taskId)
+        {
+            return;
+        }
+
         SelectedTaskId = taskId;
         Changed?.Invoke();
     }
 
     public void SelectRisk(Guid? riskId)
     {
-        if (SelectedRiskId == riskId) return;
+        if (SelectedRiskId == riskId)
+        {
+            return;
+        }
+
         SelectedRiskId = riskId;
         Changed?.Invoke();
     }
 
     public void SelectTeamMember(Guid? memberId)
     {
-        if (SelectedTeamMemberId == memberId) return;
+        if (SelectedTeamMemberId == memberId)
+        {
+            return;
+        }
+
         SelectedTeamMemberId = memberId;
         Changed?.Invoke();
     }
 
     public void SelectProject(Guid? projectId)
     {
-        if (SelectedProjectId == projectId) return;
+        if (SelectedProjectId == projectId)
+        {
+            return;
+        }
+
         SelectedProjectId = projectId;
         Changed?.Invoke();
     }

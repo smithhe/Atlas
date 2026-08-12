@@ -23,7 +23,7 @@
                 <div class="fieldLabel">Tag</div>
                 <select class="select" @bind="_tagFilter">
                     <option value="All">Any tag</option>
-                    @foreach (var t in NoteTags)
+                    @foreach (NoteTag t in NoteTags)
                     {
                         <option value="@t">@t</option>
                     }
@@ -53,10 +53,10 @@
             }
             else
             {
-                @foreach (var n in FilteredSorted)
+                @foreach (TeamNote n in FilteredSorted)
                 {
-                    var note = n;
-                    var expanded = _expandedNoteId == note.Id;
+                    TeamNote note = n;
+                    bool expanded = _expandedNoteId == note.Id;
                     <div class="listRow memberNotesRow memberNotesRowBtn @(expanded ? "memberNotesRowExpanded" : null)"
                          role="button"
                          tabindex="0"
@@ -198,7 +198,7 @@
             <label class="field">
                 <div class="fieldLabel">Tag</div>
                 <select class="select" value="@_newTag" @onchange="e => _newTag = Enum.Parse<NoteTag>((string)e.Value!)">
-                    @foreach (var t in NoteTags)
+                    @foreach (NoteTag t in NoteTags)
                     {
                         <option value="@t">@t</option>
                     }
@@ -249,15 +249,15 @@
     string _draftText = "", _draftAdo = "", _draftPr = "";
 
     TeamNote? SelectedNote =>
-        _selectedNoteId is Guid id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
+        _selectedNoteId is { } id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
 
     List<TeamNote> FilteredSorted
     {
         get
         {
-            var q = _query.Trim().ToLowerInvariant();
-            var now = DateTimeOffset.UtcNow;
-            var weekMs = TimeSpan.FromDays(7);
+            string q = _query.Trim().ToLowerInvariant();
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            TimeSpan weekMs = TimeSpan.FromDays(7);
 
             bool Matches(TeamNote n)
             {
@@ -265,7 +265,7 @@
                     return false;
                 if (_quickFilter == "ThisWeek")
                 {
-                    if (!DateTimeOffset.TryParse(n.CreatedIso, out var created) || now - created.ToUniversalTime() > weekMs)
+                    if (!DateTimeOffset.TryParse(n.CreatedIso, out DateTimeOffset created) || now - created.ToUniversalTime() > weekMs)
                         return false;
                 }
                 else if (_quickFilter == "ActionItems" && !IsActionItemNote(n)) return false;
@@ -273,15 +273,15 @@
                 else if (_quickFilter == "Risks" && !IsRiskNote(n)) return false;
 
                 if (string.IsNullOrEmpty(q)) return true;
-                var hay = string.Join(' ', n.Tag, n.Title ?? "", DisplayLabels.GetDerivedTitle(n), n.Text, n.AdoWorkItemId ?? "", n.PrUrl ?? "").ToLowerInvariant();
+                string hay = string.Join(' ', n.Tag, n.Title ?? "", DisplayLabels.GetDerivedTitle(n), n.Text, n.AdoWorkItemId ?? "", n.PrUrl ?? "").ToLowerInvariant();
                 return hay.Contains(q);
             }
 
-            var list = Member.Notes.Where(Matches).ToList();
+            List<TeamNote> list = Member.Notes.Where(Matches).ToList();
             list.Sort((a, b) =>
             {
-                var at = DateTimeOffset.TryParse(a.CreatedIso, out var ad) ? ad.ToUnixTimeMilliseconds() : 0;
-                var bt = DateTimeOffset.TryParse(b.CreatedIso, out var bd) ? bd.ToUnixTimeMilliseconds() : 0;
+                long at = DateTimeOffset.TryParse(a.CreatedIso, out DateTimeOffset ad) ? ad.ToUnixTimeMilliseconds() : 0;
+                long bt = DateTimeOffset.TryParse(b.CreatedIso, out DateTimeOffset bd) ? bd.ToUnixTimeMilliseconds() : 0;
                 return _sortBy == "Newest" ? bt.CompareTo(at) : at.CompareTo(bt);
             });
             return list;
@@ -290,20 +290,20 @@
 
     static bool IsActionItemNote(TeamNote note)
     {
-        var t = note.Text.ToLowerInvariant();
+        string t = note.Text.ToLowerInvariant();
         return t.Contains("- [ ]") || t.Contains("action item") || t.Contains("next:") || t.Contains("todo");
     }
 
     static bool IsOneOnOneNote(TeamNote note)
     {
-        var t = note.Text.ToLowerInvariant();
+        string t = note.Text.ToLowerInvariant();
         return t.Contains("1:1") || t.Contains("one-on-one") || t.Contains("one on one");
     }
 
     static bool IsRiskNote(TeamNote note)
     {
         if (note.Tag is NoteTag.Concern or NoteTag.Blocker) return true;
-        var t = note.Text.ToLowerInvariant();
+        string t = note.Text.ToLowerInvariant();
         return t.Contains("risk") || t.Contains("mitigation") || t.Contains("watchout") || t.Contains("watch-outs");
     }
 
@@ -393,8 +393,8 @@
     async Task SaveNoteEdit()
     {
         if (SelectedNote is null) return;
-        var note = SelectedNote;
-        var updated = CloneNote(note);
+        TeamNote note = SelectedNote;
+        TeamNote updated = CloneNote(note);
         updated.Text = _draftText;
         updated.AdoWorkItemId = string.IsNullOrWhiteSpace(_draftAdo) ? null : _draftAdo.Trim();
         updated.PrUrl = string.IsNullOrWhiteSpace(_draftPr) ? null : _draftPr.Trim();
@@ -410,7 +410,7 @@
                 AdoWorkItemId = updated.AdoWorkItemId,
                 PrUrl = updated.PrUrl
             });
-            var nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
+            List<TeamNote> nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
             Cache.UpdateTeamMember(CloneMemberWithNotes(Member, nextNotes));
             _isEditOpen = false;
             SyncDraftTarget();
@@ -443,12 +443,12 @@
     async Task CreateNote()
     {
         if (string.IsNullOrWhiteSpace(_newText)) return;
-        var title = _newTitle.Trim();
-        var ado = _newAdo.Trim();
-        var pr = _newPr.Trim();
+        string title = _newTitle.Trim();
+        string ado = _newAdo.Trim();
+        string pr = _newPr.Trim();
         try
         {
-            var res = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(Member.Id, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
+            AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse res = await Api.AtlasApiEndpointsTeamMembersNotesAddTeamNoteEndpointAsync(Member.Id, new AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest
             {
                 Type = ApiMappers.ToApiNoteType(_newTag),
                 Title = string.IsNullOrEmpty(title) ? null : title,
@@ -456,7 +456,7 @@
                 AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
                 PrUrl = string.IsNullOrEmpty(pr) ? null : pr
             });
-            var id = res.Id ?? Guid.NewGuid();
+            Guid id = res.Id ?? Guid.NewGuid();
             var now = DateTimeOffset.UtcNow.ToString("o");
             var saved = new TeamNote
             {

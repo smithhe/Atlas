@@ -259,7 +259,7 @@ else
                                 else
                                 {
                                     <ul class="ggBullets">
-                                        @foreach (var criterion in Goal.SuccessCriteria)
+                                        @foreach (string criterion in Goal.SuccessCriteria)
                                         {
                                             <li>@criterion</li>
                                         }
@@ -310,11 +310,11 @@ else
                             }
                             else
                             {
-                                @foreach (var a in VisibleActions)
+                                @foreach (GrowthGoalAction a in VisibleActions)
                                 {
-                                    var action = a;
-                                    var notesPreview = GetNotesPreview(action.Notes);
-                                    var done = action.State == GrowthGoalActionState.Complete;
+                                    GrowthGoalAction action = a;
+                                    string notesPreview = GetNotesPreview(action.Notes);
+                                    bool done = action.State == GrowthGoalActionState.Complete;
                                     <button type="button"
                                             class="ggRow ggRowBtn @(_selectedActionId == action.Id ? "ggRowSelected" : null)"
                                             role="row"
@@ -362,9 +362,9 @@ else
                             }
                             else
                             {
-                                @foreach (var c in Goal.CheckIns)
+                                @foreach (GrowthGoalCheckIn c in Goal.CheckIns)
                                 {
-                                    var checkIn = c;
+                                    GrowthGoalCheckIn checkIn = c;
                                     <button type="button"
                                             class="ggRow ggRow3 ggRowBtn @(_selectedCheckInId == checkIn.Id ? "ggRowSelected" : null)"
                                             role="row"
@@ -538,25 +538,25 @@ else
     void BackToGrowth() => Nav.NavigateTo($"/team/{MemberId}/growth");
 
     TeamMember? Member =>
-        Guid.TryParse(MemberId, out var id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
 
     Growth? Growth =>
-        Guid.TryParse(MemberId, out var id) ? Cache.GetGrowth(id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? Cache.GetGrowth(id) : null;
 
     GrowthGoal? Goal
     {
         get
         {
-            if (Growth is null || !Guid.TryParse(GoalId, out var gid)) return null;
+            if (Growth is null || !Guid.TryParse(GoalId, out Guid gid)) return null;
             return Growth.Goals.FirstOrDefault(g => g.Id == gid);
         }
     }
 
     GrowthGoalAction? SelectedAction =>
-        _selectedActionId is Guid id ? Goal?.Actions.FirstOrDefault(a => a.Id == id) : null;
+        _selectedActionId is { } id ? Goal?.Actions.FirstOrDefault(a => a.Id == id) : null;
 
     GrowthGoalCheckIn? SelectedCheckIn =>
-        _selectedCheckInId is Guid id ? Goal?.CheckIns.FirstOrDefault(c => c.Id == id) : null;
+        _selectedCheckInId is { } id ? Goal?.CheckIns.FirstOrDefault(c => c.Id == id) : null;
 
     int ProgressTotal => Goal?.Actions.Count ?? 0;
     int ProgressDone => Goal?.Actions.Count(a => a.State == GrowthGoalActionState.Complete) ?? 0;
@@ -566,7 +566,7 @@ else
     {
         get
         {
-            var actions = Goal?.Actions ?? Array.Empty<GrowthGoalAction>();
+            IReadOnlyList<GrowthGoalAction> actions = Goal?.Actions ?? Array.Empty<GrowthGoalAction>();
             IEnumerable<GrowthGoalAction> filtered = _actionFilter == "All"
                 ? actions
                 : actions.Where(a => a.State.ToString() == _actionFilter);
@@ -596,8 +596,8 @@ else
 
     protected override void OnParametersSet()
     {
-        var routeChanged = !string.Equals(_routeMemberId, MemberId, StringComparison.Ordinal)
-            || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
+        bool routeChanged = !string.Equals(_routeMemberId, MemberId, StringComparison.Ordinal)
+                            || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
         _routeMemberId = MemberId;
         _routeGoalId = GoalId;
 
@@ -610,7 +610,7 @@ else
             return;
         }
 
-        if (Guid.TryParse(MemberId, out var id))
+        if (Guid.TryParse(MemberId, out Guid id))
         {
             Selection.SelectTeamMember(id);
             _loadStatus = Cache.GetGrowthLoadStatus(id);
@@ -640,9 +640,9 @@ else
     {
         CancelAllDebounces();
         _goalPersistVersion++;
-        foreach (var key in _actionPersistVersion.Keys.ToList())
+        foreach (Guid key in _actionPersistVersion.Keys.ToList())
             _actionPersistVersion[key]++;
-        foreach (var key in _checkInPersistVersion.Keys.ToList())
+        foreach (Guid key in _checkInPersistVersion.Keys.ToList())
             _checkInPersistVersion[key]++;
     }
 
@@ -651,9 +651,9 @@ else
         CancelAllDebounces();
         _routeGeneration++;
         _goalPersistVersion++;
-        foreach (var key in _actionPersistVersion.Keys.ToList())
+        foreach (Guid key in _actionPersistVersion.Keys.ToList())
             _actionPersistVersion[key]++;
-        foreach (var key in _checkInPersistVersion.Keys.ToList())
+        foreach (Guid key in _checkInPersistVersion.Keys.ToList())
             _checkInPersistVersion[key]++;
         _goalValidationError = "";
         _actionValidationError = "";
@@ -676,14 +676,14 @@ else
         _goalDebounce?.Dispose();
         _goalDebounce = null;
 
-        foreach (var key in _actionDebounce.Keys.ToList())
+        foreach (Guid key in _actionDebounce.Keys.ToList())
         {
             _actionDebounce[key].Cancel();
             _actionDebounce[key].Dispose();
             _actionDebounce.Remove(key);
         }
 
-        foreach (var key in _checkInDebounce.Keys.ToList())
+        foreach (Guid key in _checkInDebounce.Keys.ToList())
         {
             _checkInDebounce[key].Cancel();
             _checkInDebounce[key].Dispose();
@@ -693,9 +693,9 @@ else
 
     PersistIdentity CapturePersistIdentity(Guid? entityId = null) => new(
         _routeGeneration,
-        Guid.TryParse(MemberId, out var memberId) ? memberId : Guid.Empty,
+        Guid.TryParse(MemberId, out Guid memberId) ? memberId : Guid.Empty,
         Growth?.Id ?? Guid.Empty,
-        Guid.TryParse(GoalId, out var goalId) ? goalId : Guid.Empty,
+        Guid.TryParse(GoalId, out Guid goalId) ? goalId : Guid.Empty,
         entityId);
 
     bool IsActivePersistIdentity(PersistIdentity identity) =>
@@ -705,9 +705,9 @@ else
         && identity.MemberId != Guid.Empty
         && identity.GrowthId != Guid.Empty
         && identity.GoalId != Guid.Empty
-        && Guid.TryParse(MemberId, out var memberId)
+        && Guid.TryParse(MemberId, out Guid memberId)
         && memberId == identity.MemberId
-        && Guid.TryParse(GoalId, out var goalId)
+        && Guid.TryParse(GoalId, out Guid goalId)
         && goalId == identity.GoalId
         && Growth?.Id == identity.GrowthId;
 
@@ -740,7 +740,7 @@ else
     {
         lock (_persistGateLock)
         {
-            if (!_actionPersistGates.TryGetValue(actionId, out var gate))
+            if (!_actionPersistGates.TryGetValue(actionId, out SemaphoreSlim? gate))
             {
                 gate = new SemaphoreSlim(1, 1);
                 _actionPersistGates[actionId] = gate;
@@ -754,7 +754,7 @@ else
     {
         lock (_persistGateLock)
         {
-            if (!_checkInPersistGates.TryGetValue(checkInId, out var gate))
+            if (!_checkInPersistGates.TryGetValue(checkInId, out SemaphoreSlim? gate))
             {
                 gate = new SemaphoreSlim(1, 1);
                 _checkInPersistGates[checkInId] = gate;
@@ -768,7 +768,7 @@ else
         Growth?.Goals.FirstOrDefault(g => g.Id == goalId);
 
     GrowthGoal? GetGoalSnapshot() =>
-        Guid.TryParse(GoalId, out var gid) ? GetGoalSnapshot(gid) : null;
+        Guid.TryParse(GoalId, out Guid gid) ? GetGoalSnapshot(gid) : null;
 
     GrowthGoalAction? GetActionSnapshot(Guid goalId, Guid actionId) =>
         GetGoalSnapshot(goalId)?.Actions.FirstOrDefault(a => a.Id == actionId);
@@ -778,7 +778,7 @@ else
 
     async Task RetryLoad()
     {
-        if (!Guid.TryParse(MemberId, out var memberId))
+        if (!Guid.TryParse(MemberId, out Guid memberId))
             return;
 
         _retrying = true;
@@ -804,35 +804,35 @@ else
 
         InvalidatePersistWork();
 
-        if (Guid.TryParse(MemberId, out var memberId))
+        if (Guid.TryParse(MemberId, out Guid memberId))
             await Cache.RetryGrowthLoadAsync(memberId);
     }
 
     void CommitGoal(Func<GrowthGoal, GrowthGoal> update, bool persistGoal = true, Guid? persistActionId = null, Guid? persistCheckInId = null)
     {
-        if (!Guid.TryParse(MemberId, out var mid) || !Guid.TryParse(GoalId, out var gid) || Growth is null)
+        if (!Guid.TryParse(MemberId, out Guid mid) || !Guid.TryParse(GoalId, out Guid gid) || Growth is null)
             return;
 
-        var currentGoal = Growth.Goals.FirstOrDefault(g => g.Id == gid);
+        GrowthGoal? currentGoal = Growth.Goals.FirstOrDefault(g => g.Id == gid);
         if (currentGoal is null)
             return;
 
-        var baseGoal = CloneGoal(currentGoal);
+        GrowthGoal baseGoal = CloneGoal(currentGoal);
         baseGoal.LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o");
-        var nextGoal = update(baseGoal);
+        GrowthGoal nextGoal = update(baseGoal);
 
-        if (persistActionId is Guid aid)
+        if (persistActionId is { } aid)
         {
-            var action = nextGoal.Actions.First(a => a.Id == aid);
+            GrowthGoalAction action = nextGoal.Actions.First(a => a.Id == aid);
             _actionValidationError = GrowthUiHelpers.ValidateActionPersist(action) ?? "";
             if (!string.IsNullOrEmpty(_actionValidationError))
                 return;
             _goalValidationError = "";
             _checkInValidationError = "";
         }
-        else if (persistCheckInId is Guid cid)
+        else if (persistCheckInId is { } cid)
         {
-            var checkIn = nextGoal.CheckIns.First(c => c.Id == cid);
+            GrowthGoalCheckIn checkIn = nextGoal.CheckIns.First(c => c.Id == cid);
             _checkInValidationError = GrowthUiHelpers.ValidateCheckInPersist(checkIn) ?? "";
             if (!string.IsNullOrEmpty(_checkInValidationError))
                 return;
@@ -861,20 +861,20 @@ else
         if (Growth.Id == Guid.Empty)
             return;
 
-        if (persistActionId is Guid actionId)
+        if (persistActionId is { } actionId)
         {
             _actionPersistVersion[actionId] = _actionPersistVersion.GetValueOrDefault(actionId) + 1;
-            var version = _actionPersistVersion[actionId];
-            var identity = CapturePersistIdentity(actionId);
+            long version = _actionPersistVersion[actionId];
+            PersistIdentity identity = CapturePersistIdentity(actionId);
             DebounceAction(actionId, () => PersistActionAsync(identity, version));
             return;
         }
 
-        if (persistCheckInId is Guid checkInId)
+        if (persistCheckInId is { } checkInId)
         {
             _checkInPersistVersion[checkInId] = _checkInPersistVersion.GetValueOrDefault(checkInId) + 1;
-            var version = _checkInPersistVersion[checkInId];
-            var identity = CapturePersistIdentity(checkInId);
+            long version = _checkInPersistVersion[checkInId];
+            PersistIdentity identity = CapturePersistIdentity(checkInId);
             DebounceCheckIn(checkInId, () => PersistCheckInAsync(identity, version));
             return;
         }
@@ -882,8 +882,8 @@ else
         if (persistGoal)
         {
             _goalPersistVersion++;
-            var version = _goalPersistVersion;
-            var identity = CapturePersistIdentity();
+            long version = _goalPersistVersion;
+            PersistIdentity identity = CapturePersistIdentity();
             DebounceGoal(() => PersistGoalAsync(identity, version));
         }
     }
@@ -895,7 +895,7 @@ else
     {
         CommitGoal(g =>
         {
-            g.Priority = Enum.TryParse<Priority>(e.Value?.ToString(), out var p) ? p : null;
+            g.Priority = Enum.TryParse(e.Value?.ToString(), out Priority p) ? p : null;
             return g;
         });
     }
@@ -930,7 +930,7 @@ else
             g.Actions = g.Actions.Select(a =>
             {
                 if (a.Id != actionId) return a;
-                var copy = CloneAction(a);
+                GrowthGoalAction copy = CloneAction(a);
                 patch(copy);
                 return copy;
             }).ToList();
@@ -939,39 +939,39 @@ else
 
     void OnActionTitleInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
+        if (_selectedActionId is not { } id) return;
         PatchAction(id, a => a.Title = e.Value?.ToString() ?? "");
     }
 
     void OnActionStateChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
+        if (_selectedActionId is not { } id) return;
         PatchAction(id, a => a.State = Enum.Parse<GrowthGoalActionState>((string)e.Value!));
     }
 
     void OnActionDueChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
+        if (_selectedActionId is not { } id) return;
         var v = e.Value?.ToString();
         PatchAction(id, a => a.DueDateIso = string.IsNullOrEmpty(v) ? null : v);
     }
 
     void OnActionPriorityChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
-        PatchAction(id, a => a.Priority = Enum.TryParse<Priority>(e.Value?.ToString(), out var p) ? p : Priority.Medium);
+        if (_selectedActionId is not { } id) return;
+        PatchAction(id, a => a.Priority = Enum.TryParse(e.Value?.ToString(), out Priority p) ? p : Priority.Medium);
     }
 
     void OnActionNotesInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
+        if (_selectedActionId is not { } id) return;
         PatchAction(id, a => a.Notes = e.Value?.ToString());
     }
 
     void OnActionLinksInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not Guid id) return;
-        var links = (e.Value?.ToString() ?? "")
+        if (_selectedActionId is not { } id) return;
+        List<string> links = (e.Value?.ToString() ?? "")
             .Split('\n')
             .Select(s => s.Trim())
             .Where(s => s.Length > 0)
@@ -994,13 +994,13 @@ else
     static string FormatOverviewDate(string? iso)
     {
         if (string.IsNullOrWhiteSpace(iso)) return "—";
-        var datePart = iso.Length >= 10 ? iso[..10] : iso;
+        string datePart = iso.Length >= 10 ? iso[..10] : iso;
         return DisplayLabels.FormatDateLabel(datePart);
     }
 
     static string GetNotesPreview(string? notes)
     {
-        var lines = (notes ?? "").Trim().Split('\n');
+        string[] lines = (notes ?? "").Trim().Split('\n');
         return lines.Length == 0 ? "" : lines[0];
     }
 
@@ -1009,19 +1009,19 @@ else
 
     void OnCheckInDateChange(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not Guid id) return;
+        if (_selectedCheckInId is not { } id) return;
         PatchCheckIn(id, c => c.DateIso = e.Value?.ToString() ?? c.DateIso);
     }
 
     void OnCheckInSignalChange(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not Guid id) return;
+        if (_selectedCheckInId is not { } id) return;
         PatchCheckIn(id, c => c.Signal = Enum.Parse<GrowthGoalCheckInSignal>((string)e.Value!));
     }
 
     void OnCheckInNoteInput(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not Guid id) return;
+        if (_selectedCheckInId is not { } id) return;
         PatchCheckIn(id, c => c.Note = e.Value?.ToString() ?? "");
     }
 
@@ -1031,7 +1031,7 @@ else
             g.CheckIns = g.CheckIns.Select(c =>
             {
                 if (c.Id != checkInId) return c;
-                var copy = CloneCheckIn(c);
+                GrowthGoalCheckIn copy = CloneCheckIn(c);
                 patch(copy);
                 return copy;
             }).ToList();
@@ -1040,10 +1040,10 @@ else
 
     async Task AddAction()
     {
-        if (Growth is null || !Guid.TryParse(GoalId, out var gid) || Growth.Id == Guid.Empty) return;
+        if (Growth is null || !Guid.TryParse(GoalId, out Guid gid) || Growth.Id == Guid.Empty) return;
         try
         {
-            var res = await Api.AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest
+            AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionResponse res = await Api.AtlasApiEndpointsGrowthGoalsActionsAddGrowthGoalActionEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsActionsAddGrowthGoalActionRequest
             {
                 Title = "New action",
                 State = AtlasDomainEnumsGrowthGoalActionState.Planned,
@@ -1056,12 +1056,12 @@ else
                 return;
             }
 
-            var id = res.Id!.Value;
+            Guid id = res.Id!.Value;
             CommitGoal(g =>
             {
-                var actions = new List<GrowthGoalAction>
+                List<GrowthGoalAction> actions = new()
                 {
-                    new()
+                    new GrowthGoalAction
                     {
                         Id = id,
                         Title = "New action",
@@ -1086,13 +1086,13 @@ else
 
     async Task AddCheckIn()
     {
-        if (Growth is null || !Guid.TryParse(GoalId, out var gid) || Growth.Id == Guid.Empty) return;
-        var today = DisplayLabels.TodayIsoDateLocal();
+        if (Growth is null || !Guid.TryParse(GoalId, out Guid gid) || Growth.Id == Guid.Empty) return;
+        string today = DisplayLabels.TodayIsoDateLocal();
         try
         {
-            var res = await Api.AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest
+            AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInResponse res = await Api.AtlasApiEndpointsGrowthGoalsCheckInsAddGrowthGoalCheckInEndpointAsync(Growth.Id, gid, new AtlasApiDTOsGrowthGoalsCheckInsAddGrowthGoalCheckInRequest
             {
-                Date = DateTimeOffset.TryParse(today, out var d) ? d : DateTimeOffset.Now,
+                Date = DateTimeOffset.TryParse(today, out DateTimeOffset d) ? d : DateTimeOffset.Now,
                 Signal = AtlasDomainEnumsGrowthGoalCheckInSignal.Mixed,
                 Note = DefaultCheckInNote
             });
@@ -1103,12 +1103,12 @@ else
                 return;
             }
 
-            var id = res.Id!.Value;
+            Guid id = res.Id!.Value;
             CommitGoal(g =>
             {
-                var checkIns = new List<GrowthGoalCheckIn>
+                List<GrowthGoalCheckIn> checkIns = new()
                 {
-                    new() { Id = id, DateIso = today, Signal = GrowthGoalCheckInSignal.Mixed, Note = DefaultCheckInNote }
+                    new GrowthGoalCheckIn { Id = id, DateIso = today, Signal = GrowthGoalCheckInSignal.Mixed, Note = DefaultCheckInNote }
                 };
                 checkIns.AddRange(g.CheckIns);
                 g.CheckIns = checkIns;
@@ -1132,8 +1132,8 @@ else
         _goalDebounce?.Cancel();
         _goalDebounce?.Dispose();
         _goalDebounce = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
-        var token = _goalDebounce.Token;
-        var routeGen = _routeGeneration;
+        CancellationToken token = _goalDebounce.Token;
+        long routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
@@ -1151,7 +1151,7 @@ else
         if (_disposed || _lifetimeCts.IsCancellationRequested)
             return;
 
-        if (_actionDebounce.TryGetValue(id, out var existing))
+        if (_actionDebounce.TryGetValue(id, out CancellationTokenSource? existing))
         {
             existing.Cancel();
             existing.Dispose();
@@ -1159,7 +1159,7 @@ else
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         _actionDebounce[id] = cts;
-        var routeGen = _routeGeneration;
+        long routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
@@ -1177,7 +1177,7 @@ else
         if (_disposed || _lifetimeCts.IsCancellationRequested)
             return;
 
-        if (_checkInDebounce.TryGetValue(id, out var existing))
+        if (_checkInDebounce.TryGetValue(id, out CancellationTokenSource? existing))
         {
             existing.Cancel();
             existing.Dispose();
@@ -1185,7 +1185,7 @@ else
 
         var cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         _checkInDebounce[id] = cts;
-        var routeGen = _routeGeneration;
+        long routeGen = _routeGeneration;
         _ = Task.Run(async () =>
         {
             try
@@ -1222,11 +1222,11 @@ else
                 if (version != _goalPersistVersion)
                     return;
 
-                var goal = GetGoalSnapshot(identity.GoalId);
+                GrowthGoal? goal = GetGoalSnapshot(identity.GoalId);
                 if (goal is null)
                     return;
 
-                var validation = GrowthUiHelpers.ValidateGoalPersist(goal);
+                string? validation = GrowthUiHelpers.ValidateGoalPersist(goal);
                 if (validation is not null)
                 {
                     _goalValidationError = validation;
@@ -1240,8 +1240,8 @@ else
                     Title = goal.Title,
                     Description = goal.Description,
                     Status = ApiMappers.ToApiGrowthGoalStatus(goal.Status),
-                    StartDate = DateTimeOffset.TryParse(goal.StartDateIso, out var sd) ? sd : null,
-                    TargetDate = DateTimeOffset.TryParse(goal.TargetDateIso, out var td) ? td : null,
+                    StartDate = DateTimeOffset.TryParse(goal.StartDateIso, out DateTimeOffset sd) ? sd : null,
+                    TargetDate = DateTimeOffset.TryParse(goal.TargetDateIso, out DateTimeOffset td) ? td : null,
                     Category = goal.Category,
                     Priority = goal.Priority is null ? null : ApiMappers.ToApiPriority(goal.Priority.Value),
                     ProgressPercent = goal.ProgressPercent,
@@ -1284,10 +1284,10 @@ else
 
     async Task PersistActionAsync(PersistIdentity identity, long version)
     {
-        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not Guid actionId)
+        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not { } actionId)
             return;
 
-        var gate = GetActionPersistGate(actionId);
+        SemaphoreSlim gate = GetActionPersistGate(actionId);
         try
         {
             await gate.WaitAsync(_lifetimeCts.Token);
@@ -1304,14 +1304,14 @@ else
         {
             while (!_disposed && !_lifetimeCts.IsCancellationRequested && IsActivePersistIdentity(identity))
             {
-                if (!_actionPersistVersion.TryGetValue(actionId, out var current) || version != current)
+                if (!_actionPersistVersion.TryGetValue(actionId, out long current) || version != current)
                     return;
 
-                var action = GetActionSnapshot(identity.GoalId, actionId);
+                GrowthGoalAction? action = GetActionSnapshot(identity.GoalId, actionId);
                 if (action is null)
                     return;
 
-                var validation = GrowthUiHelpers.ValidateActionPersist(action);
+                string? validation = GrowthUiHelpers.ValidateActionPersist(action);
                 if (validation is not null)
                 {
                     _actionValidationError = validation;
@@ -1324,7 +1324,7 @@ else
                 {
                     Title = action.Title,
                     State = ApiMappers.ToApiGrowthGoalActionState(action.State),
-                    DueDate = DateTimeOffset.TryParse(action.DueDateIso, out var d) ? d : null,
+                    DueDate = DateTimeOffset.TryParse(action.DueDateIso, out DateTimeOffset d) ? d : null,
                     Priority = action.Priority is null ? null : ApiMappers.ToApiPriority(action.Priority.Value),
                     Notes = action.Notes,
                     Evidence = action.Links.Count > 0 ? string.Join('\n', action.Links) : null
@@ -1345,7 +1345,7 @@ else
         }
         catch (Exception ex)
         {
-            if (_actionPersistVersion.TryGetValue(actionId, out var current) && version == current && !_disposed && IsActivePersistIdentity(identity))
+            if (_actionPersistVersion.TryGetValue(actionId, out long current) && version == current && !_disposed && IsActivePersistIdentity(identity))
             {
                 failure = ex;
                 shouldRecover = true;
@@ -1365,10 +1365,10 @@ else
 
     async Task PersistCheckInAsync(PersistIdentity identity, long version)
     {
-        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not Guid checkInId)
+        if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActivePersistIdentity(identity) || identity.EntityId is not { } checkInId)
             return;
 
-        var gate = GetCheckInPersistGate(checkInId);
+        SemaphoreSlim gate = GetCheckInPersistGate(checkInId);
         try
         {
             await gate.WaitAsync(_lifetimeCts.Token);
@@ -1385,14 +1385,14 @@ else
         {
             while (!_disposed && !_lifetimeCts.IsCancellationRequested && IsActivePersistIdentity(identity))
             {
-                if (!_checkInPersistVersion.TryGetValue(checkInId, out var current) || version != current)
+                if (!_checkInPersistVersion.TryGetValue(checkInId, out long current) || version != current)
                     return;
 
-                var checkIn = GetCheckInSnapshot(identity.GoalId, checkInId);
+                GrowthGoalCheckIn? checkIn = GetCheckInSnapshot(identity.GoalId, checkInId);
                 if (checkIn is null)
                     return;
 
-                var validation = GrowthUiHelpers.ValidateCheckInPersist(checkIn);
+                string? validation = GrowthUiHelpers.ValidateCheckInPersist(checkIn);
                 if (validation is not null)
                 {
                     _checkInValidationError = validation;
@@ -1403,7 +1403,7 @@ else
 
                 await Api.AtlasApiEndpointsGrowthGoalsCheckInsUpdateGrowthGoalCheckInEndpointAsync(identity.GrowthId, identity.GoalId, checkIn.Id, new AtlasApiDTOsGrowthGoalsCheckInsUpdateGrowthGoalCheckInRequest
                 {
-                    Date = DateTimeOffset.TryParse(checkIn.DateIso, out var d) ? d : null,
+                    Date = DateTimeOffset.TryParse(checkIn.DateIso, out DateTimeOffset d) ? d : null,
                     Signal = ApiMappers.ToApiGrowthGoalCheckInSignal(checkIn.Signal),
                     Note = checkIn.Note.Trim()
                 });
@@ -1423,7 +1423,7 @@ else
         }
         catch (Exception ex)
         {
-            if (_checkInPersistVersion.TryGetValue(checkInId, out var current) && version == current && !_disposed && IsActivePersistIdentity(identity))
+            if (_checkInPersistVersion.TryGetValue(checkInId, out long current) && version == current && !_disposed && IsActivePersistIdentity(identity))
             {
                 failure = ex;
                 shouldRecover = true;
@@ -1483,7 +1483,7 @@ else
         if (_disposed)
             return;
 
-        if (Guid.TryParse(MemberId, out var id))
+        if (Guid.TryParse(MemberId, out Guid id))
         {
             _loadStatus = Cache.GetGrowthLoadStatus(id);
             _loadError = Cache.GetGrowthLoadError(id);
