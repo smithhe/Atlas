@@ -35,3 +35,11 @@ Committed spec: [`openapi/atlas.v1.json`](openapi/atlas.v1.json). Regenerate (no
 ```bash
 bash scripts/regenerate-openapi.sh
 ```
+
+## License
+
+Atlas is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+
+You may use Atlas without a paid license for personal, hobby, research, education, charity, and government use, as defined in the license. Any commercial use — including use at a for-profit company — requires a separate commercial license. Atlas is source-available software; it is not OSI-approved open source.
+
+For commercial licensing, open a [GitHub issue](https://github.com/smithhe/Atlas/issues). Contributions are accepted under the same license.
