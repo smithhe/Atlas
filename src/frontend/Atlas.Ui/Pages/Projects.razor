@@ -23,11 +23,11 @@
         {
             <section class="pane paneLeft" aria-label="Project list">
                 <div class="list listCard">
-                    @foreach (var p in Cache.Projects)
+                    @foreach (Project p in Cache.Projects)
                     {
-                        var projectId = p.Id;
-                        var projectName = p.Name;
-                        var projectSummary = p.Summary;
+                        Guid projectId = p.Id;
+                        string projectName = p.Name;
+                        string projectSummary = p.Summary;
                         <button type="button"
                                 class="listRow listRowBtn @(projectId == Selection.SelectedProjectId ? "listRowActive" : null)"
                                 @onclick="() => SelectFromList(projectId)"
@@ -176,7 +176,7 @@
                             <div class="projectTabBody" aria-label="Project tasks tab">
                                 <section class="card subtle projectTabSection" aria-label="Linked tasks">
                                     <div class="list">
-                                        @foreach (var t in Cache.Tasks.Where(t => t.Project == Selected.Name))
+                                        @foreach (AtlasTask t in Cache.Tasks.Where(t => t.Project == Selected.Name))
                                         {
                                             <button type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
                                                 <div class="listMain">
@@ -198,7 +198,7 @@
                             <div class="projectTabBody" aria-label="Project risks tab">
                                 <section class="card subtle projectTabSection" aria-label="Linked risks">
                                     <div class="list">
-                                        @foreach (var r in Cache.Risks.Where(r => r.Project == Selected.Name))
+                                        @foreach (Risk r in Cache.Risks.Where(r => r.Project == Selected.Name))
                                         {
                                             <button type="button" class="listRow listRowBtn" @onclick="() => GoRisk(r.Id)">
                                                 <div class="listMain">
@@ -244,7 +244,7 @@
     {
         get
         {
-            Guid? id = IsFocusMode && Guid.TryParse(ProjectId, out var focusId)
+            Guid? id = IsFocusMode && Guid.TryParse(ProjectId, out Guid focusId)
                 ? focusId
                 : Selection.SelectedProjectId;
             if (id is null) return null;
@@ -270,7 +270,7 @@
     {
         SyncTabFromUri();
 
-        if (IsFocusMode && Guid.TryParse(ProjectId, out var id))
+        if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id))
         {
             Selection.SelectProject(id);
             if (Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
@@ -305,21 +305,21 @@
 
     string ReadTabFromUri()
     {
-        var raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
+        string? raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
         return raw is "tasks" or "risks" ? raw : "overview";
     }
 
     static string? GetQueryParam(string uri, string key)
     {
-        var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+        int qIndex = uri.IndexOf('?', StringComparison.Ordinal);
         if (qIndex < 0) return null;
-        var query = uri[(qIndex + 1)..];
-        var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+        string query = uri[(qIndex + 1)..];
+        int hashIndex = query.IndexOf('#', StringComparison.Ordinal);
         if (hashIndex >= 0) query = query[..hashIndex];
-        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        foreach (string part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
         {
-            var eq = part.IndexOf('=', StringComparison.Ordinal);
-            var name = eq < 0 ? part : part[..eq];
+            int eq = part.IndexOf('=', StringComparison.Ordinal);
+            string name = eq < 0 ? part : part[..eq];
             if (!string.Equals(Uri.UnescapeDataString(name), key, StringComparison.OrdinalIgnoreCase))
                 continue;
             return eq < 0 ? "" : Uri.UnescapeDataString(part[(eq + 1)..]);
@@ -330,20 +330,20 @@
 
     void SetTab(string tab)
     {
-        var next = tab is "tasks" or "risks" ? tab : "overview";
+        string next = tab is "tasks" or "risks" ? tab : "overview";
         _tab = next;
         if (_editing && next != "overview")
         {
             _editing = false;
         }
 
-        var uri = Nav.GetUriWithQueryParameter("tab", next);
+        string uri = Nav.GetUriWithQueryParameter("tab", next);
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (IsFocusMode && Guid.TryParse(ProjectId, out var id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+        if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
         {
             Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             return;
@@ -382,7 +382,7 @@
         _tab = "overview";
         _editing = true;
         // React pins URL to overview while editing.
-        var uri = Nav.GetUriWithQueryParameter("tab", "overview");
+        string uri = Nav.GetUriWithQueryParameter("tab", "overview");
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
@@ -398,9 +398,9 @@
         _saving = true;
         try
         {
-            Enum.TryParse<ProjectStatus>(_draftStatus, out var status);
-            Enum.TryParse<HealthSignal>(_draftHealth, out var health);
-            var next = EntityClone.Project(
+            Enum.TryParse(_draftStatus, out ProjectStatus status);
+            Enum.TryParse(_draftHealth, out HealthSignal health);
+            Project next = EntityClone.Project(
                 Selected,
                 name: string.IsNullOrWhiteSpace(_draftName) ? Selected.Name : _draftName.Trim(),
                 summary: _draftSummary,
@@ -435,11 +435,11 @@
     {
         get
         {
-            var uri = Nav.Uri;
-            var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+            string uri = Nav.Uri;
+            int qIndex = uri.IndexOf('?', StringComparison.Ordinal);
             if (qIndex < 0) return "";
-            var query = uri[qIndex..];
-            var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+            string query = uri[qIndex..];
+            int hashIndex = query.IndexOf('#', StringComparison.Ordinal);
             return hashIndex >= 0 ? query[..hashIndex] : query;
         }
     }
@@ -455,9 +455,9 @@
     async Task HandleAddProject()
     {
         if (_creating) return;
-        var requested = await Dialogs.PromptAsync("Project name", "New project");
+        string? requested = await Dialogs.PromptAsync("Project name", "New project");
         if (requested is null) return;
-        var name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
+        string name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
         _creating = true;
         try
         {
@@ -475,8 +475,8 @@
                 TeamMemberIds = Array.Empty<Guid>(),
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            var res = await Api.AtlasApiEndpointsProjectsCreateProjectEndpointAsync(Cache.ToCreateProjectRequest(draft));
-            var id = res.Id ?? Guid.Empty;
+            AtlasApiDTOsProjectsCreateProjectResponse res = await Api.AtlasApiEndpointsProjectsCreateProjectEndpointAsync(Cache.ToCreateProjectRequest(draft));
+            Guid id = res.Id ?? Guid.Empty;
             // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchProjectsAsync();
             _autoEditId = id;
@@ -495,7 +495,7 @@
     async Task HandleDelete()
     {
         if (Selected is null || _deleting) return;
-        var project = Selected;
+        Project project = Selected;
         if (!await Dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone.")) return;
 
         _deleting = true;

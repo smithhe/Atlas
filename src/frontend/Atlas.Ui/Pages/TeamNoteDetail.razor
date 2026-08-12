@@ -85,7 +85,7 @@
                     @if (_editing)
                     {
                         <select class="select" value="@_draftTag" @onchange="e => _draftTag = Enum.Parse<NoteTag>((string)e.Value!)">
-                            @foreach (var t in NoteTags)
+                            @foreach (NoteTag t in NoteTags)
                             {
                                 <option value="@t">@t</option>
                             }
@@ -156,7 +156,7 @@
     {
         get
         {
-            if (!Guid.TryParse(MemberId, out var id)) return null;
+            if (!Guid.TryParse(MemberId, out Guid id)) return null;
             return Cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
@@ -165,7 +165,7 @@
     {
         get
         {
-            if (Member is null || !Guid.TryParse(NoteId, out var nid)) return null;
+            if (Member is null || !Guid.TryParse(NoteId, out Guid nid)) return null;
             return Member.Notes.FirstOrDefault(n => n.Id == nid);
         }
     }
@@ -185,7 +185,7 @@
             return;
         }
 
-        if (Guid.TryParse(MemberId, out var id))
+        if (Guid.TryParse(MemberId, out Guid id))
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
@@ -259,9 +259,9 @@
     async Task SaveEdit()
     {
         if (Member is null || Note is null) return;
-        var nextTitle = _draftTitle.Trim();
-        var ado = _draftAdo.Trim();
-        var pr = _draftPr.Trim();
+        string nextTitle = _draftTitle.Trim();
+        string ado = _draftAdo.Trim();
+        string pr = _draftPr.Trim();
         var updated = new TeamNote
         {
             Id = Note.Id,
@@ -284,7 +284,7 @@
                 AdoWorkItemId = updated.AdoWorkItemId,
                 PrUrl = updated.PrUrl
             });
-            var nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
+            List<TeamNote> nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
             Cache.UpdateTeamMember(new TeamMember
             {
                 Id = Member.Id,
@@ -310,7 +310,7 @@
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (Guid.TryParse(MemberId, out var id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {
             Nav.NavigateTo("/team", replace: true);
             return;

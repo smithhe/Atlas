@@ -14,7 +14,7 @@ public sealed class ListAzureProjectsQueryHandlerTests
         var client = new Mock<IAzureDevOpsClient>();
         var settings = new Mock<ISettingsRepository>();
         settings.Setup(s => s.GetSingletonAsync(It.IsAny<CancellationToken>())).ReturnsAsync((Domain.Entities.Settings?)null);
-        IReadOnlyList<AzureProjectSummary> expected = [new AzureProjectSummary("1", "Atlas")];
+        IReadOnlyList<AzureProjectSummary> expected = [new("1", "Atlas")];
         client.Setup(c => c.ListProjectsAsync("https://dev.azure.com", "contoso", It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 

@@ -18,7 +18,7 @@ public sealed class ListImportedAzureUsersQueryHandlerTests
         teamMappings.Setup(m => m.ListUniqueNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(["ada@x", "bob@x"]);
         poMappings.Setup(m => m.ListUniqueNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(["BOB@x", "cara@x"]);
 
-        IReadOnlyList<AzureUser> expected = [new AzureUser { Id = Guid.NewGuid(), DisplayName = "Ada", UniqueName = "ada@x" }];
+        IReadOnlyList<AzureUser> expected = [new() { Id = Guid.NewGuid(), DisplayName = "Ada", UniqueName = "ada@x" }];
         azureUsers.Setup(u => u.GetByUniqueNamesAsync(
                 It.Is<IReadOnlyList<string>>(names => names.Count == 3),
                 It.IsAny<CancellationToken>()))

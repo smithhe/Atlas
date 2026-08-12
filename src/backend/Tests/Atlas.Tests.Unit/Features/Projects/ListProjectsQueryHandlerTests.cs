@@ -12,7 +12,7 @@ public sealed class ListProjectsQueryHandlerTests
     public async Task Handle_ReturnsRepositoryList()
     {
         var projects = new Mock<IProjectRepository>();
-        IReadOnlyList<Project> expected = [new Project { Id = Guid.NewGuid(), Name = "A", Summary = "S" }];
+        IReadOnlyList<Project> expected = [new() { Id = Guid.NewGuid(), Name = "A", Summary = "S" }];
         projects.Setup(p => p.ListAsync(It.IsAny<CancellationToken>())).ReturnsAsync(expected);
 
         var handler = new ListProjectsQueryHandler(projects.Object);

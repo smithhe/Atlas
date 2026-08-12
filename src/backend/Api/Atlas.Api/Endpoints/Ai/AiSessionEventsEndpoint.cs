@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Atlas.Api.DTOs.Ai;
 using Atlas.Application.Abstractions.Ai;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 
 namespace Atlas.Api.Endpoints.Ai;

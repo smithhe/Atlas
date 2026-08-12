@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
-using Atlas.Tests.Functional;
 
 namespace Atlas.Tests.Functional.Endpoints.Health;
 

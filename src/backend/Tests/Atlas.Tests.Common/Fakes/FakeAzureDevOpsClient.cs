@@ -6,20 +6,20 @@ public sealed class FakeAzureDevOpsClient : IAzureDevOpsClient
 {
     public IReadOnlyList<AzureProjectSummary> Projects { get; set; } =
     [
-        new AzureProjectSummary("proj-1", "Atlas"),
-        new AzureProjectSummary("proj-2", "Platform")
+        new("proj-1", "Atlas"),
+        new("proj-2", "Platform")
     ];
 
     public IReadOnlyList<AzureTeamSummary> Teams { get; set; } =
     [
-        new AzureTeamSummary("team-1", "Core"),
-        new AzureTeamSummary("team-2", "Growth")
+        new("team-1", "Core"),
+        new("team-2", "Growth")
     ];
 
     public IReadOnlyList<AzureUserSummary> Users { get; set; } =
     [
-        new AzureUserSummary("Ada Lovelace", "ada@example.com", "user-1"),
-        new AzureUserSummary("Grace Hopper", "grace@example.com", "user-2")
+        new("Ada Lovelace", "ada@example.com", "user-1"),
+        new("Grace Hopper", "grace@example.com", "user-2")
     ];
 
     public AzureTeamAreaPaths TeamAreaPaths { get; set; } = new(
@@ -30,10 +30,10 @@ public sealed class FakeAzureDevOpsClient : IAzureDevOpsClient
 
     public IReadOnlyList<AzureWorkItemDetails> WorkItems { get; set; } =
     [
-        new AzureWorkItemDetails(
+        new(
             101, 1, DateTimeOffset.UtcNow, "Fix login", "Active", "Bug",
             "Atlas\\Core", "Atlas\\Sprint 1", "ada@example.com", "https://dev.azure.com/wi/101"),
-        new AzureWorkItemDetails(
+        new(
             102, 1, DateTimeOffset.UtcNow, "Add tests", "New", "Task",
             "Atlas\\Platform", "Atlas\\Sprint 1", "grace@example.com", "https://dev.azure.com/wi/102")
     ];
@@ -74,7 +74,7 @@ public sealed class FakeAzureDevOpsClient : IAzureDevOpsClient
         string wiql,
         int? top = null,
         CancellationToken cancellationToken = default) =>
-        Task.FromResult(top is int limit ? WorkItemIds.Take(limit).ToList() : WorkItemIds);
+        Task.FromResult(top is { } limit ? WorkItemIds.Take(limit).ToList() : WorkItemIds);
 
     public Task<IReadOnlyList<AzureWorkItemDetails>> GetWorkItemsAsync(
         string baseUrl,

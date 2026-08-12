@@ -44,9 +44,9 @@
             else
             {
                 <ul class="memberOverviewBullets">
-                    @foreach (var t in TopCurrentTickets)
+                    @foreach (AzureItem t in TopCurrentTickets)
                     {
-                        var workItemId = t.Id;
+                        string workItemId = t.Id;
                         <li>
                             <button type="button"
                                     class="linkBtn @Tones.TicketAttentionTone(t.Status)"
@@ -95,7 +95,7 @@
             else
             {
                 <div class="notesList" style="margin-top: 0">
-                    @foreach (var n in PinnedNotes)
+                    @foreach (TeamNote n in PinnedNotes)
                     {
                         <button type="button" class="noteRow noteRowBtn" title="Open Notes tab" @onclick="OnGoToNotes">
                             <div class="noteMeta">
@@ -124,7 +124,7 @@
             else
             {
                 <ul class="memberOverviewBullets">
-                    @foreach (var b in Member.ActivitySnapshot.Bullets)
+                    @foreach (string b in Member.ActivitySnapshot.Bullets)
                     {
                         <li>@b</li>
                     }
@@ -160,7 +160,7 @@
                 <div class="fieldLabel">Time zone</div>
                 <select class="select" @bind="_profileTz">
                     <option value="">(Select)</option>
-                    @foreach (var tz in TimeZones)
+                    @foreach ((string Value, string Label) tz in TimeZones)
                     {
                         <option value="@tz.Value">@tz.Label</option>
                     }
@@ -186,7 +186,7 @@
             <label class="field">
                 <div class="fieldLabel">Load</div>
                 <select class="select" value="@_draftLoad" @onchange="e => _draftLoad = Enum.Parse<LoadSignal>((string)e.Value!)">
-                    @foreach (var x in LoadOptions)
+                    @foreach (LoadSignal x in LoadOptions)
                     {
                         <option value="@x">@x</option>
                     }
@@ -195,7 +195,7 @@
             <label class="field">
                 <div class="fieldLabel">Delivery</div>
                 <select class="select" value="@_draftDelivery" @onchange="e => _draftDelivery = Enum.Parse<DeliverySignal>((string)e.Value!)">
-                    @foreach (var x in DeliveryOptions)
+                    @foreach (DeliverySignal x in DeliveryOptions)
                     {
                         <option value="@x">@(x == DeliverySignal.OnTrack ? "On Track" : x == DeliverySignal.AtRisk ? "At Risk" : x.ToString())</option>
                     }
@@ -204,7 +204,7 @@
             <label class="field">
                 <div class="fieldLabel">Support needed</div>
                 <select class="select" value="@_draftSupport" @onchange="e => _draftSupport = Enum.Parse<SupportNeededSignal>((string)e.Value!)">
-                    @foreach (var x in SupportOptions)
+                    @foreach (SupportNeededSignal x in SupportOptions)
                     {
                         <option value="@x">@x</option>
                     }
@@ -273,9 +273,9 @@
     {
         get
         {
-            var byId = Member.Notes.ToDictionary(n => n.Id);
+            Dictionary<Guid, TeamNote> byId = Member.Notes.ToDictionary(n => n.Id);
             return Member.PinnedNoteIds
-                .Select(id => byId.TryGetValue(id, out var n) ? n : null)
+                .Select(id => byId.TryGetValue(id, out TeamNote? n) ? n : null)
                 .Where(n => n is not null)
                 .Cast<TeamNote>()
                 .Take(3)
@@ -285,7 +285,7 @@
 
     static string GetPreview(TeamNote note)
     {
-        var text = System.Text.RegularExpressions.Regex.Replace(note.Text, @"\s+", " ").Trim();
+        string text = System.Text.RegularExpressions.Regex.Replace(note.Text, @"\s+", " ").Trim();
         return text.Length <= 120 ? text : text[..120].Trim() + "…";
     }
 
@@ -306,7 +306,7 @@
 
     async Task SaveProfile()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.Name = string.IsNullOrWhiteSpace(_profileName) ? Member.Name : _profileName.Trim();
         next.Role = string.IsNullOrWhiteSpace(_profileRole) ? null : _profileRole.Trim();
         next.Profile = new TeamMemberProfile
@@ -328,7 +328,7 @@
 
     async Task SaveSignals()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
         {
             Load = _draftLoad,
@@ -353,7 +353,7 @@
 
     async Task SaveFocus()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.CurrentFocus = _focusDraft.Trim();
         await OnUpdate.InvokeAsync(next);
         CloseFocusModal();
@@ -361,7 +361,7 @@
 
     async Task CycleLoad()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
         {
             Load = Cycle(Member.Signals.Load, LoadOptions),
@@ -373,7 +373,7 @@
 
     async Task CycleDelivery()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
         {
             Load = Member.Signals.Load,
@@ -385,7 +385,7 @@
 
     async Task CycleSupport()
     {
-        var next = CloneMember(Member);
+        TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
         {
             Load = Member.Signals.Load,
@@ -397,7 +397,7 @@
 
     static T Cycle<T>(T value, T[] options) where T : struct
     {
-        var idx = Array.IndexOf(options, value);
+        int idx = Array.IndexOf(options, value);
         if (idx < 0) return options[0];
         return options[(idx + 1) % options.Length];
     }

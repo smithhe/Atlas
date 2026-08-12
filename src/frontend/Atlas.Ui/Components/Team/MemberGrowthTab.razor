@@ -36,9 +36,9 @@
         else
         {
             <div class="growthGoalsGrid">
-                @foreach (var g in ActiveGoals)
+                @foreach (GrowthGoal g in ActiveGoals)
                 {
-                    var goal = g;
+                    GrowthGoal goal = g;
                     <button type="button" class="card subtle growthGoalCard growthGoalCardBtn"
                             @onclick="() => OpenGoal(goal.Id)">
                         <div class="pad">
@@ -70,7 +70,7 @@
                     <div class="growthChipsRow" aria-label="Skills in progress">
                         @for (var i = 0; i < Skills.Count; i++)
                         {
-                            var idx = i;
+                            int idx = i;
                             <button type="button" class="pill toneNeutral pillBtn" @onclick="() => OpenEditSkill(idx)">@Skills[idx]</button>
                         }
                     </div>
@@ -92,7 +92,7 @@
                     <div class="mutedSmall" style="margin-top: 6px">
                         Recent note signals:
                         @{
-                            var signals = Member.Notes.Where(n => n.Tag is NoteTag.Praise or NoteTag.Concern or NoteTag.Blocker).Take(4).ToList();
+                            List<TeamNote> signals = Member.Notes.Where(n => n.Tag is NoteTag.Praise or NoteTag.Concern or NoteTag.Blocker).Take(4).ToList();
                         }
                         @(signals.Count == 0 ? "none" : string.Join(" • ", signals.Select(n => $"{DisplayLabels.FormatLocalDate(n.CreatedIso)}: {DisplayLabels.GetDerivedTitle(n)}")))
                     </div>
@@ -103,9 +103,9 @@
         {
             <div class="card subtle">
                 <div class="growthList">
-                    @foreach (var t in Themes)
+                    @foreach (GrowthFeedbackTheme t in Themes)
                     {
-                        var theme = t;
+                        GrowthFeedbackTheme theme = t;
                         <button type="button" class="growthListRow growthListRowBtn" title="Edit theme" @onclick="() => OpenEditTheme(theme.Id)">
                             <div class="growthListMain">
                                 <div class="growthListTitle">@theme.Title</div>
@@ -213,14 +213,14 @@
                 <div class="fieldLabel">Current level</div>
                 <select class="select" @bind="_skillFrom">
                     <option value="">(Select)</option>
-                    @foreach (var x in SkillLevels) { <option value="@x">@x</option> }
+                    @foreach (string x in SkillLevels) { <option value="@x">@x</option> }
                 </select>
             </label>
             <label class="field">
                 <div class="fieldLabel">Target level</div>
                 <select class="select" @bind="_skillTo">
                     <option value="">(Select)</option>
-                    @foreach (var x in SkillLevels) { <option value="@x">@x</option> }
+                    @foreach (string x in SkillLevels) { <option value="@x">@x</option> }
                 </select>
             </label>
         </div>
@@ -353,7 +353,7 @@
     {
         get
         {
-            var error = GrowthUiHelpers.ValidateThemeFields(_themeTitle, _themeDesc, _themeObserved);
+            string? error = GrowthUiHelpers.ValidateThemeFields(_themeTitle, _themeDesc, _themeObserved);
             if (error is null)
                 return "";
             if (!string.IsNullOrWhiteSpace(_themeTitle) || !string.IsNullOrWhiteSpace(_themeDesc) || !string.IsNullOrWhiteSpace(_themeObserved) || !_themeIsNew)
@@ -427,7 +427,7 @@
 
     async Task<Guid?> RequireGrowthIdAsync(string operation)
     {
-        var growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
+        Guid growthId = await Cache.EnsureGrowthIdAsync(Member.Id);
         if (growthId != Guid.Empty)
             return growthId;
 
@@ -437,8 +437,8 @@
 
     Growth BaseGrowth(Guid? knownId = null)
     {
-        var g = Growth;
-        var id = knownId is Guid kid && kid != Guid.Empty
+        Growth? g = Growth;
+        Guid id = knownId is { } kid && kid != Guid.Empty
             ? kid
             : g?.Id ?? Guid.Empty;
         if (g is null)
@@ -488,23 +488,23 @@
         if (!CanSaveGoal)
             return;
 
-        var title = _goalTitle.Trim();
+        string title = _goalTitle.Trim();
         try
         {
-            var growthId = await RequireGrowthIdAsync("add a growth goal");
-            if (growthId is not Guid gid)
+            Guid? growthId = await RequireGrowthIdAsync("add a growth goal");
+            if (growthId is not { } gid)
                 return;
 
-            Priority? priority = Enum.TryParse<Priority>(_goalPriority, out var p) ? p : null;
-            var res = await Api.AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(gid, new AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest
+            Priority? priority = Enum.TryParse(_goalPriority, out Priority p) ? p : null;
+            AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse res = await Api.AtlasApiEndpointsGrowthGoalsAddGrowthGoalEndpointAsync(gid, new AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest
             {
                 Title = title,
                 Description = _goalDesc.Trim(),
                 Status = ApiMappers.ToApiGrowthGoalStatus(_goalStatus),
                 Category = string.IsNullOrWhiteSpace(_goalCategory) ? null : _goalCategory.Trim(),
                 Priority = priority is null ? null : ApiMappers.ToApiPriority(priority.Value),
-                StartDate = DateTimeOffset.TryParse(_goalStart, out var sd) ? sd : null,
-                TargetDate = DateTimeOffset.TryParse(_goalTarget, out var td) ? td : null
+                StartDate = DateTimeOffset.TryParse(_goalStart, out DateTimeOffset sd) ? sd : null,
+                TargetDate = DateTimeOffset.TryParse(_goalTarget, out DateTimeOffset td) ? td : null
             });
             if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
             {
@@ -513,7 +513,7 @@
                 return;
             }
 
-            var goalId = res.Id!.Value;
+            Guid goalId = res.Id!.Value;
             var nextGoal = new GrowthGoal
             {
                 Id = goalId,
@@ -529,7 +529,7 @@
                 CheckIns = Array.Empty<GrowthGoalCheckIn>(),
                 SuccessCriteria = Array.Empty<string>()
             };
-            var g = BaseGrowth(gid);
+            Growth g = BaseGrowth(gid);
             CommitGrowth(new Growth
             {
                 Id = gid,
@@ -557,8 +557,8 @@
 
     void OpenEditSkill(int idx)
     {
-        var text = Skills.ElementAtOrDefault(idx) ?? "";
-        var parsed = GrowthUiHelpers.ParseSkillText(text);
+        string text = Skills.ElementAtOrDefault(idx) ?? "";
+        (string Label, string From, string To) parsed = GrowthUiHelpers.ParseSkillText(text);
         _skillIndex = idx;
         _skillLabel = parsed.Label;
         _skillFrom = parsed.From;
@@ -578,16 +578,16 @@
         if (!CanSaveSkill)
             return;
 
-        var nextText = FormattedSkillText;
+        string nextText = FormattedSkillText;
         try
         {
-            var g = BaseGrowth();
-            var skills = g.SkillsInProgress.ToList();
+            Growth g = BaseGrowth();
+            List<string> skills = g.SkillsInProgress.ToList();
             if (_skillIndex is null) skills.Add(nextText);
             else skills[_skillIndex.Value] = nextText;
-            var normalized = skills.Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            var growthId = await RequireGrowthIdAsync("save skills");
-            if (growthId is not Guid gid)
+            List<string> normalized = skills.Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            Guid? growthId = await RequireGrowthIdAsync("save skills");
+            if (growthId is not { } gid)
                 return;
 
             await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(gid, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
@@ -616,10 +616,10 @@
         if (_skillIndex is null) return;
         try
         {
-            var g = BaseGrowth();
-            var skills = g.SkillsInProgress.Where((_, i) => i != _skillIndex.Value).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            var growthId = await RequireGrowthIdAsync("remove skill");
-            if (growthId is not Guid gid)
+            Growth g = BaseGrowth();
+            List<string> skills = g.SkillsInProgress.Where((_, i) => i != _skillIndex.Value).Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            Guid? growthId = await RequireGrowthIdAsync("remove skill");
+            if (growthId is not { } gid)
                 return;
 
             await Api.AtlasApiEndpointsGrowthSetGrowthSkillsInProgressEndpointAsync(gid, new AtlasApiDTOsGrowthSetGrowthSkillsInProgressRequest
@@ -653,7 +653,7 @@
 
     void OpenEditTheme(Guid themeId)
     {
-        var t = Themes.FirstOrDefault(x => x.Id == themeId);
+        GrowthFeedbackTheme? t = Themes.FirstOrDefault(x => x.Id == themeId);
         if (t is null) return;
         _themeIsNew = false;
         _themeId = t.Id;
@@ -675,20 +675,20 @@
         if (!CanSaveTheme)
             return;
 
-        var title = _themeTitle.Trim();
-        var description = _themeDesc.Trim();
-        var observed = string.IsNullOrWhiteSpace(_themeObserved) ? null : _themeObserved.Trim();
+        string title = _themeTitle.Trim();
+        string description = _themeDesc.Trim();
+        string? observed = string.IsNullOrWhiteSpace(_themeObserved) ? null : _themeObserved.Trim();
 
         try
         {
-            var growthId = await RequireGrowthIdAsync("save feedback theme");
-            if (growthId is not Guid gid)
+            Guid? growthId = await RequireGrowthIdAsync("save feedback theme");
+            if (growthId is not { } gid)
                 return;
 
-            var g = BaseGrowth(gid);
+            Growth g = BaseGrowth(gid);
             if (_themeIsNew)
             {
-                var res = await Api.AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(gid, new AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest
+                AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse res = await Api.AtlasApiEndpointsGrowthFeedbackThemesAddFeedbackThemeEndpointAsync(gid, new AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest
                 {
                     Title = title,
                     Description = description,
@@ -701,7 +701,7 @@
                     return;
                 }
 
-                var id = res.Id!.Value;
+                Guid id = res.Id!.Value;
                 CommitGrowth(new Growth
                 {
                     Id = gid,
@@ -718,7 +718,7 @@
                     FocusAreasMarkdown = g.FocusAreasMarkdown
                 });
             }
-            else if (_themeId is Guid tid)
+            else if (_themeId is { } tid)
             {
                 await Api.AtlasApiEndpointsGrowthFeedbackThemesUpdateFeedbackThemeEndpointAsync(gid, tid, new AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest
                 {
@@ -755,14 +755,14 @@
 
     async Task DeleteTheme()
     {
-        if (_themeId is not Guid themeId) return;
+        if (_themeId is not { } themeId) return;
         try
         {
-            var growthId = await RequireGrowthIdAsync("delete feedback theme");
-            if (growthId is not Guid gid)
+            Guid? growthId = await RequireGrowthIdAsync("delete feedback theme");
+            if (growthId is not { } gid)
                 return;
 
-            var g = BaseGrowth(gid);
+            Growth g = BaseGrowth(gid);
             await Api.AtlasApiEndpointsGrowthFeedbackThemesDeleteFeedbackThemeEndpointAsync(gid, themeId);
             CommitGrowth(new Growth
             {
@@ -794,11 +794,11 @@
 
         try
         {
-            var growthId = await RequireGrowthIdAsync("save focus areas");
-            if (growthId is not Guid gid)
+            Guid? growthId = await RequireGrowthIdAsync("save focus areas");
+            if (growthId is not { } gid)
                 return;
 
-            var g = BaseGrowth(gid);
+            Growth g = BaseGrowth(gid);
             await Api.AtlasApiEndpointsGrowthUpdateGrowthFocusAreasEndpointAsync(gid, new AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest
             {
                 FocusAreasMarkdown = _focusDraft

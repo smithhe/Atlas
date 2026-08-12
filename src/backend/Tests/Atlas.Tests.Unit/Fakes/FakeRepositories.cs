@@ -1,4 +1,3 @@
-using System.Linq;
 using Atlas.Application.Abstractions.Persistence;
 using Atlas.Domain.Entities;
 
@@ -124,21 +123,21 @@ internal sealed class FakeGrowthRepository : IGrowthRepository
 
 internal sealed class FakeSettingsRepository : ISettingsRepository
 {
-    public Domain.Entities.Settings? Singleton { get; set; }
+    public Settings? Singleton { get; set; }
 
-    public Task<Domain.Entities.Settings?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+    public Task<Settings?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Singleton?.Id == id ? Singleton : null);
 
-    public Task<Domain.Entities.Settings?> GetSingletonAsync(CancellationToken cancellationToken = default) =>
+    public Task<Settings?> GetSingletonAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(Singleton);
 
-    public Task AddAsync(Domain.Entities.Settings settings, CancellationToken cancellationToken = default)
+    public Task AddAsync(Settings settings, CancellationToken cancellationToken = default)
     {
         Singleton = settings;
         return Task.CompletedTask;
     }
 
-    public void Remove(Domain.Entities.Settings settings) => Singleton = null;
+    public void Remove(Settings settings) => Singleton = null;
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(1);
 }

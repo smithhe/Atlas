@@ -21,7 +21,7 @@ public sealed class AiSessionEventsEndpointTests : IClassFixture<AtlasWebApplica
     [Fact]
     public async Task GetSessionEvents_WhenEventsAlreadyPersisted_ReplaysTerminalEvent()
     {
-        CreateAiConversationResponse? created = await CreateConversationAsync("Replay events");
+        CreateAiConversationResponse created = await CreateConversationAsync("Replay events");
         IAiSessionStore store = _factory.Services.GetRequiredService<IAiSessionStore>();
 
         await store.PublishEventAsync(
@@ -51,7 +51,7 @@ public sealed class AiSessionEventsEndpointTests : IClassFixture<AtlasWebApplica
     [Fact]
     public async Task GetSessionEvents_WhenConnectedFirst_StreamsLiveTerminalEvent()
     {
-        CreateAiConversationResponse? created = await CreateConversationAsync("Live stream events");
+        CreateAiConversationResponse created = await CreateConversationAsync("Live stream events");
         IAiSessionStore store = _factory.Services.GetRequiredService<IAiSessionStore>();
 
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/ai/sessions/{created.TurnSessionId}/events");
@@ -108,6 +108,6 @@ public sealed class AiSessionEventsEndpointTests : IClassFixture<AtlasWebApplica
                 RiskId: null,
                 TeamMemberId: null))).ReadJsonAsync<CreateAiConversationResponse>();
         created.Should().NotBeNull();
-        return created!;
+        return created;
     }
 }

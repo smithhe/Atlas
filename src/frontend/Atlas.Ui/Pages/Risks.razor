@@ -22,13 +22,13 @@
         @if (!IsFocusMode)
         {
             <section class="list listCard risksListRow" aria-label="Risk list">
-                @foreach (var r in Cache.Risks)
+                @foreach (Risk r in Cache.Risks)
                 {
-                    var riskId = r.Id;
-                    var riskTitle = r.Title;
-                    var riskStatus = r.Status;
-                    var riskSeverity = r.Severity;
-                    var riskProject = r.Project;
+                    Guid riskId = r.Id;
+                    string riskTitle = r.Title;
+                    RiskStatus riskStatus = r.Status;
+                    string riskSeverity = r.Severity;
+                    string? riskProject = r.Project;
                     <button type="button"
                             class="listRow listRowBtn @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(riskId)"
@@ -142,7 +142,7 @@
                                 {
                                     <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
                                         <option value="">(None)</option>
-                                        @foreach (var p in Cache.Projects.OrderBy(x => x.Name))
+                                        @foreach (Project p in Cache.Projects.OrderBy(x => x.Name))
                                         {
                                             <option value="@p.Name">@p.Name</option>
                                         }
@@ -184,7 +184,7 @@
                             <div class="mt-lg">
                                 <div class="cardTitle" style="margin-bottom: 8px">History</div>
                                 <div class="list">
-                                    @foreach (var h in Selected.History.OrderByDescending(x => x.CreatedIso))
+                                    @foreach (RiskHistoryEntry h in Selected.History.OrderByDescending(x => x.CreatedIso))
                                     {
                                         <div class="listRow">
                                             <div class="listMain">
@@ -218,7 +218,7 @@
     {
         get
         {
-            Guid? id = IsFocusMode && Guid.TryParse(RiskId, out var focusId)
+            Guid? id = IsFocusMode && Guid.TryParse(RiskId, out Guid focusId)
                 ? focusId
                 : Selection.SelectedRiskId;
             if (id is null) return null;
@@ -241,7 +241,7 @@
 
     protected override void OnParametersSet()
     {
-        if (IsFocusMode && Guid.TryParse(RiskId, out var id))
+        if (IsFocusMode && Guid.TryParse(RiskId, out Guid id))
         {
             Selection.SelectRisk(id);
             _editing = _autoEditId == id;
@@ -259,7 +259,7 @@
 
     void OnChanged() => InvokeAsync(() =>
     {
-        if (IsFocusMode && Guid.TryParse(RiskId, out var id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+        if (IsFocusMode && Guid.TryParse(RiskId, out Guid id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
         {
             Nav.NavigateTo("/risks", replace: true);
             return;
@@ -313,8 +313,8 @@
                 History = Array.Empty<RiskHistoryEntry>(),
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            var res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
-            var id = res.Id ?? Guid.Empty;
+            AtlasApiDTOsRisksCreateRiskResponse res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
+            Guid id = res.Id ?? Guid.Empty;
             // Refetch before selecting so list re-render cannot race Playwright list clicks.
             await Cache.RefetchRisksAsync();
             _autoEditId = id;
@@ -333,7 +333,7 @@
     async Task HandleDelete()
     {
         if (Selected is null || _deleting) return;
-        var risk = Selected;
+        Risk risk = Selected;
         if (!await Dialogs.ConfirmAsync($"Delete risk \"{risk.Title}\"? This cannot be undone.")) return;
 
         _deleting = true;
@@ -361,7 +361,7 @@
 
     void OnStatusChange(ChangeEventArgs e)
     {
-        if (Enum.TryParse<RiskStatus>(e.Value?.ToString(), out var s))
+        if (Enum.TryParse(e.Value?.ToString(), out RiskStatus s))
             Persist(EntityClone.Risk(Selected!, status: s));
     }
 

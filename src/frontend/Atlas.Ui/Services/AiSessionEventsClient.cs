@@ -8,18 +8,18 @@ namespace Atlas.Ui.Services;
 /// </summary>
 public sealed class AiSessionEventsClient : IAsyncDisposable
 {
-    static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    readonly IJSRuntime _js;
-    readonly string _apiBaseUrl;
-    DotNetObjectReference<AiSessionEventsClient>? _selfRef;
-    string? _activeStreamId;
-    Action<AiSessionEventPayload>? _onEvent;
-    Action? _onError;
+    private readonly IJSRuntime _js;
+    private readonly string _apiBaseUrl;
+    private DotNetObjectReference<AiSessionEventsClient>? _selfRef;
+    private string? _activeStreamId;
+    private Action<AiSessionEventPayload>? _onEvent;
+    private Action? _onError;
 
     public AiSessionEventsClient(IJSRuntime js, IConfiguration config)
     {
@@ -65,12 +65,18 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
     [JSInvokable]
     public void OnSessionEventJson(string json)
     {
-        if (_onEvent is null || string.IsNullOrWhiteSpace(json)) return;
+        if (_onEvent is null || string.IsNullOrWhiteSpace(json))
+        {
+            return;
+        }
 
         try
         {
-            var evt = JsonSerializer.Deserialize<AiSessionEventPayload>(json, JsonOptions);
-            if (evt is not null) _onEvent(evt);
+            AiSessionEventPayload? evt = JsonSerializer.Deserialize<AiSessionEventPayload>(json, JsonOptions);
+            if (evt is not null)
+            {
+                _onEvent(evt);
+            }
         }
         catch
         {

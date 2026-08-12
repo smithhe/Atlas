@@ -2,7 +2,6 @@
 @implements IDisposable
 @inject IAtlasApiClient Api
 @inject AppCacheService Cache
-@inject NavigationManager Nav
 
 <PageTitle>Azure Import — Atlas</PageTitle>
 
@@ -49,10 +48,10 @@
                     <span class="mutedSmall" style="margin-left: auto">@_selectedUsers.Count selected</span>
                 </div>
                 <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
-                    @foreach (var u in _users)
+                    @foreach (AtlasApiDTOsAzureDevOpsAzureUserDto u in _users)
                     {
-                        var unique = u.UniqueName ?? "";
-                        var selected = _selectedUsers.Contains(unique);
+                        string unique = u.UniqueName ?? "";
+                        bool selected = _selectedUsers.Contains(unique);
                         <label class="listRow listRowBtn @(selected ? "listRowActive" : null)" style="cursor: pointer">
                             <input type="checkbox" checked="@selected" @onchange="e => ToggleUser(unique, e)" />
                             <div class="listMain">
@@ -111,7 +110,7 @@
                         <div class="fieldLabel">Target project</div>
                         <select class="input" value="@_projectId" @onchange="OnProjectChange">
                             <option value="">Select project</option>
-                            @foreach (var p in Cache.Projects)
+                            @foreach (Project p in Cache.Projects)
                             {
                                 <option value="@p.Id">@p.Name</option>
                             }
@@ -121,7 +120,7 @@
                         <div class="fieldLabel">Assign to</div>
                         <select class="input" value="@_teamMemberId" @onchange="OnTeamMemberChange">
                             <option value="">Auto-assign from mapping</option>
-                            @foreach (var m in Cache.Team)
+                            @foreach (TeamMember m in Cache.Team)
                             {
                                 <option value="@m.Id">@m.Name</option>
                             }
@@ -158,12 +157,12 @@
                     <div class="tableCell tableHeader">Assigned</div>
                     <div class="tableCell tableHeader">Type</div>
 
-                    @foreach (var item in _importWorkItems)
+                    @foreach (AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto item in _importWorkItems)
                     {
                         if (item.Id is null) continue;
-                        var itemId = item.Id.Value;
-                        var isSelected = _selectedWorkItems.Contains(itemId);
-                        var assigned = item.SuggestedTeamMemberId is Guid mid
+                        Guid itemId = item.Id.Value;
+                        bool isSelected = _selectedWorkItems.Contains(itemId);
+                        string? assigned = item.SuggestedTeamMemberId is { } mid
                             ? Cache.Team.FirstOrDefault(m => m.Id == mid)?.Name
                             : null;
                         <div class="tableRow">
@@ -217,7 +216,7 @@
     string? _productOwnerWarning;
 
     string? _selectedProjectName =>
-        Guid.TryParse(_projectId, out var id)
+        Guid.TryParse(_projectId, out Guid id)
             ? Cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
             : null;
 
@@ -236,7 +235,7 @@
         _error = null;
         try
         {
-            AtlasApiDTOsAzureDevOpsAzureConnectionDto? conn = null;
+            AtlasApiDTOsAzureDevOpsAzureConnectionDto? conn;
             try
             {
                 conn = await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
@@ -260,10 +259,10 @@
             }
             else
             {
-                var list = await Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(
+                ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> list = await Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(
                     conn.Organization!, conn.ProjectId!, conn.TeamId!);
-                var imported = await Api.AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpointAsync();
-                var importedSet = new HashSet<string>(
+                ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> imported = await Api.AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpointAsync();
+                HashSet<string> importedSet = new(
                     imported
                         .Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant())
                         .Where(s => s.Length > 0),
@@ -304,11 +303,11 @@
             .Where(s => s.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-    void ClearSelectedUsers() => _selectedUsers = new(StringComparer.Ordinal);
+    void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
 
     void ToggleUser(string uniqueName, ChangeEventArgs e)
     {
-        var next = new HashSet<string>(_selectedUsers, StringComparer.Ordinal);
+        HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
             next.Add(uniqueName);
         else
@@ -318,7 +317,7 @@
 
     void ToggleWorkItem(Guid id, ChangeEventArgs e)
     {
-        var next = new HashSet<Guid>(_selectedWorkItems);
+        HashSet<Guid> next = new(_selectedWorkItems);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
             next.Add(id);
         else
@@ -348,17 +347,17 @@
         _importingUsers = true;
         try
         {
-            var selected = SelectedUserDtos();
+            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = SelectedUserDtos();
             await Api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
                 new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest { Users = selected });
             await Cache.RefetchTeamAsync();
-            var selectedSet = new HashSet<string>(
+            HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
                 StringComparer.Ordinal);
             _users = _users
                 .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                 .ToList();
-            _selectedUsers = new(StringComparer.Ordinal);
+            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
         }
         catch (Exception ex)
         {
@@ -378,21 +377,21 @@
         _importingProductOwners = true;
         try
         {
-            var selected = SelectedUserDtos();
-            var result = await Api.AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpointAsync(
+            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = SelectedUserDtos();
+            AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto result = await Api.AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpointAsync(
                 new AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest { Users = selected });
             await Cache.RefetchProductOwnersAsync();
-            var selectedSet = new HashSet<string>(
+            HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
                 StringComparer.Ordinal);
             _users = _users
                 .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                 .ToList();
-            _selectedUsers = new(StringComparer.Ordinal);
-            var reused = result.ReusedProductOwnerNames?.ToList() ?? [];
+            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+            List<AtlasApiDTOsAzureDevOpsReusedProductOwnerNameDto> reused = result.ReusedProductOwnerNames?.ToList() ?? [];
             if (reused.Count > 0)
             {
-                var details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
+                string details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
                 _productOwnerWarning =
                     $"{reused.Count} product owner{(reused.Count == 1 ? "" : "s")} reused existing names: {details}";
             }
@@ -410,13 +409,13 @@
     async Task OnLinkWorkItems()
     {
         if (_linkingWorkItems || string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0) return;
-        if (!Guid.TryParse(_projectId, out var projectId)) return;
+        if (!Guid.TryParse(_projectId, out Guid projectId)) return;
         _error = null;
         _productOwnerWarning = null;
         _linkingWorkItems = true;
         try
         {
-            Guid? teamMemberId = Guid.TryParse(_teamMemberId, out var mid) ? mid : null;
+            Guid? teamMemberId = Guid.TryParse(_teamMemberId, out Guid mid) ? mid : null;
             await Api.AtlasApiEndpointsAzureDevOpsLinkAzureWorkItemsEndpointAsync(
                 new AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest
                 {
