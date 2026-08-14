@@ -13,7 +13,7 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Attention Required</div>
-                <div class="mutedSmall">Stale soon: @_staleSoonDays d • Stale: @_staleDays d</div>
+                <div class="mutedSmall">Stale soon: @(_staleSoonDays)d • Stale: @(_staleDays)d</div>
             </header>
             <div class="list">
                 <div class="dashboardGroup" data-testid="dashboard-needs-action">
@@ -37,7 +37,7 @@
                                 </div>
                                 @if (!string.IsNullOrEmpty(row.Pill))
                                 {
-                                    <span class="pill">@row.Pill</span>
+                                    <div class="pill">@row.Pill</div>
                                 }
                             </button>
                         }
@@ -65,7 +65,7 @@
                                 </div>
                                 @if (!string.IsNullOrEmpty(row.Pill))
                                 {
-                                    <span class="pill">@row.Pill</span>
+                                    <div class="pill">@row.Pill</div>
                                 }
                             </button>
                         }
@@ -82,10 +82,11 @@
                 <div class="dashboardGroup">
                     <div class="dashboardGroupHeader">
                         <div class="dashboardGroupTitle">Today</div>
+                        <div class="mutedSmall">Due today or recently-touched commitments</div>
                     </div>
                     @if (_commitmentToday.Count == 0)
                     {
-                        <div class="dashboardEmpty">No commitments for today.</div>
+                        <div class="dashboardEmpty">No items.</div>
                     }
                     else
                     {
@@ -95,19 +96,21 @@
                                 <span class="dot @PriorityDot(t.Priority)"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@t.Title</div>
-                                    <div class="listMeta">@DisplayLabels.FormatTaskStatus(t.Status) • @t.Priority</div>
+                                    <div class="listMeta">@TaskWhy(t)</div>
                                 </div>
+                                <div class="pill">@CommitmentTodayPill(t)</div>
                             </button>
                         }
                     }
                 </div>
                 <div class="dashboardGroup">
                     <div class="dashboardGroupHeader">
-                        <div class="dashboardGroupTitle">This week</div>
+                        <div class="dashboardGroupTitle">This Week</div>
+                        <div class="mutedSmall">Due soon or medium-term commitments</div>
                     </div>
                     @if (_commitmentWeek.Count == 0)
                     {
-                        <div class="dashboardEmpty">No commitments this week.</div>
+                        <div class="dashboardEmpty">No items.</div>
                     }
                     else
                     {
@@ -117,12 +120,17 @@
                                 <span class="dot @PriorityDot(t.Priority)"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@t.Title</div>
-                                    <div class="listMeta">@(t.DueDate ?? "no due") • @t.Priority</div>
+                                    <div class="listMeta">@TaskWhy(t)</div>
                                 </div>
+                                <div class="pill">@CommitmentWeekPill(t)</div>
                             </button>
                         }
                     }
                 </div>
+            </div>
+
+            <div class="cardFooter">
+                <button class="btn" type="button" @onclick="AskAiAttention">Ask AI: What needs my attention?</button>
             </div>
         </section>
 
@@ -149,9 +157,9 @@
                             <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
                             <div class="listMain">
                                 <div class="listTitle">@m.Name</div>
-                                <div class="listMeta">@(string.IsNullOrEmpty(m.CurrentFocus) ? "—" : m.CurrentFocus)</div>
+                                <div class="listMeta">@m.CurrentFocus</div>
                             </div>
-                            <span class="pill @freshnessTone">@freshness</span>
+                            <div class="pill @freshnessTone">@freshness</div>
                         </button>
                     }
                 }
@@ -178,7 +186,7 @@
                                 <div class="listTitle">@d.Title</div>
                                 <div class="listMeta">@d.Detail</div>
                             </div>
-                            <span class="pill pillTag">@d.Tag</span>
+                            <div class="pill pillTag">@d.Tag</div>
                         </button>
                     }
                 }
@@ -199,6 +207,8 @@
     List<DriftRow> _drift = [];
     int _staleDays = 10;
     int _staleSoonDays = 7;
+    string _nowIso = "";
+    string _todayIsoDate = "";
 
     protected override void OnInitialized()
     {
@@ -218,6 +228,8 @@
     {
         var nowIso = DateTimeOffset.UtcNow.ToString("o");
         string todayIsoDate = nowIso[..10];
+        _nowIso = nowIso;
+        _todayIsoDate = todayIsoDate;
         _staleDays = Cache.Settings?.StaleDays ?? 10;
         _staleSoonDays = Math.Max(1, _staleDays - 3);
         int staleDays = _staleDays;
@@ -449,6 +461,18 @@
         Priority.Low => "dot-low",
         _ => "dot-stale"
     };
+
+    string CommitmentTodayPill(AtlasTask t) =>
+        !string.IsNullOrEmpty(t.DueDate)
+            ? $"due {(t.DueDate == _todayIsoDate ? "today" : t.DueDate)}"
+            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, _nowIso)}d";
+
+    string CommitmentWeekPill(AtlasTask t) =>
+        !string.IsNullOrEmpty(t.DueDate)
+            ? $"due {t.DueDate}"
+            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, _nowIso)}d";
+
+    void AskAiAttention() => Ai.RunAction("suggest-next-action");
 
     void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
     void GoTeam(Guid id) => Nav.NavigateTo($"/team/{id}");

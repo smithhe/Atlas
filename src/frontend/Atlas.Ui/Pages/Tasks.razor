@@ -21,11 +21,116 @@
     <div class="tasksStack @(IsFocusMode ? "tasksStackFocus" : null) @(!ShowDetail ? "tasksStackNoDetail" : null)">
         @if (!IsFocusMode)
         {
-            <section class="list listCard tasksListRow" aria-label="Task list">
-                @foreach (AtlasTask t in Cache.Tasks)
+            <section class="card tight tasksFiltersRow" aria-label="Task filters">
+                <label class="field">
+                    <div class="fieldLabel">Project</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_projectFilter" @onchange="OnProjectFilterChange">
+                            <option value="All">All</option>
+                            <option value="">(None)</option>
+                            @foreach (string p in ProjectOptions)
+                            {
+                                <option value="@p">@p</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Project" @onclick='() => ToggleSort("Project")'>
+                            @SortButtonGlyph("Project")
+                        </button>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Risk</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_riskFilter" @onchange="OnRiskFilterChange">
+                            <option value="All">All</option>
+                            <option value="">(None)</option>
+                            @foreach (string r in RiskOptions)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Risk" @onclick='() => ToggleSort("Risk")'>
+                            @SortButtonGlyph("Risk")
+                        </button>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Priority</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_priorityFilter" @onchange="OnPriorityFilterChange">
+                            <option value="All">All</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Priority" @onclick='() => ToggleSort("Priority")'>
+                            @SortButtonGlyph("Priority")
+                        </button>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Status</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_statusFilter" @onchange="OnStatusFilterChange">
+                            <option value="All">All</option>
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Blocked">Blocked</option>
+                            <option value="Done">Done</option>
+                        </select>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Staleness</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_stalenessFilter" @onchange="OnStalenessFilterChange">
+                            <option value="All">All</option>
+                            <option value="Fresh">Fresh</option>
+                            <option value="Warning">Getting close</option>
+                            <option value="Stale">Stale</option>
+                        </select>
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Staleness" @onclick='() => ToggleSort("Staleness")'>
+                            @SortButtonGlyph("Staleness")
+                        </button>
+                    </div>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Est. Duration</div>
+                    <div class="fieldInline">
+                        <select class="select selectCompact" value="@_durationFilter" @onchange="OnDurationFilterChange">
+                            <option value="All">All</option>
+                            <option value="&lt;=30m">≤ 30m</option>
+                            <option value="&lt;=2h">≤ 2h</option>
+                            <option value="&lt;=4h">≤ 4h</option>
+                            <option value="&lt;=1d">≤ 1d</option>
+                            <option value="&gt;1d">&gt; 1d</option>
+                            <option value="Invalid">Invalid</option>
+                        </select>
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Estimated Duration" @onclick='() => ToggleSort("Estimated Duration")'>
+                            @SortButtonGlyph("Estimated Duration")
+                        </button>
+                    </div>
+                </label>
+            </section>
+        }
+
+        @if (!IsFocusMode)
+        {
+            <section class="list listCard tasksListRow @(ShowDetail && FilteredSorted.Count > 5 ? "tasksListCapped" : null)"
+                     aria-label="Task list">
+                @foreach (AtlasTask t in FilteredSorted)
                 {
                     Guid taskId = t.Id;
                     string statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
+                    int days = DisplayLabels.DaysSince(t.LastTouchedIso) ?? 0;
+                    string activity = ActivityColor(days);
+                    int depCount = BlockedByCount(t);
                     <button type="button"
                             class="listRow listRowBtn tasksTaskRow @(taskId == Selection.SelectedTaskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(taskId)"
@@ -35,21 +140,25 @@
                             <div class="listMeta listMetaWrap">
                                 @if (!string.IsNullOrEmpty(t.Project)) { <text> • @t.Project</text> }
                                 @if (!string.IsNullOrEmpty(t.Risk)) { <text> • Risk: @t.Risk</text> }
+                                @if (depCount > 0) { <text> • Blocked by @depCount</text> }
                             </div>
                             <div class="listMeta listMetaWrap">
                                 @(string.IsNullOrEmpty(t.DueDate) ? " " : $"Due {t.DueDate}")
                             </div>
                         </div>
                         <div class="pillRow tasksTaskRowPills">
-                            <div class="pill">@DurationPreview(t.EstimatedDurationText)</div>
+                            <div class="pill">@ListDurationPill(t.EstimatedDurationText)</div>
                             <div class="pill @Tones.TaskStatusTone(t.Status)">@statusLabel</div>
                             <div class="pill @Tones.PriorityTone(t.Priority)">@t.Priority</div>
+                            <span class="activityDot activityDot-@activity"
+                                  title="Activity: @days d ago (stale threshold @StaleDays d)"
+                                  aria-label="Activity: @days days ago"></span>
                         </div>
                     </button>
                 }
-                @if (Cache.Tasks.Count == 0)
+                @if (FilteredSorted.Count == 0)
                 {
-                    <div class="muted pad">No tasks yet.</div>
+                    <div class="muted pad">No tasks match your filters.</div>
                 }
             </section>
         }
@@ -63,18 +172,40 @@
                 }
                 else
                 {
+                    AtlasTask task = Selected;
+                    string statusLabel = DisplayLabels.FormatTaskStatus(task.Status);
+                    bool stale = (DisplayLabels.DaysSince(task.LastTouchedIso) ?? 0) >= StaleDays;
+                    string? assigneeName = AssigneeName(task.AssigneeId);
+                    Duration.ParsedDuration? estimateParsed = Duration.ParseDurationText(task.EstimatedDurationText);
+                    string estimatePreview = estimateParsed is null ? "Invalid" : Duration.FormatDurationFromMinutes(estimateParsed.TotalMinutes);
+                    Duration.ParsedDuration? actualParsed = Duration.ParseDurationText(task.ActualDurationText);
+                    string actualPreview = actualParsed is not null
+                        ? Duration.FormatDurationFromMinutes(actualParsed.TotalMinutes)
+                        : (string.IsNullOrWhiteSpace(task.ActualDurationText) ? "—" : "Invalid");
+                    IReadOnlyList<AtlasTask> visibleBlockers = GetVisibleBlockers(task);
+                    IReadOnlyList<AtlasTask> blockerCandidates = GetBlockerCandidates(task);
+                    HashSet<Guid> tasksThatDependOnMe = GetTasksThatDependOnMe(task.Id);
+                    bool hasCycle = task.DependencyTaskIds.Any(id => tasksThatDependOnMe.Contains(id));
+                    Guid? resolvedBlockerId = ResolveBlockerIdFromInput(_addBlockerText, blockerCandidates);
+
                     <div class="card pad">
                         <div class="detailHeader">
                             <div>
                                 <div class="detailTitle">Task Detail</div>
-                                <div class="mutedSmall">Last touched: @DisplayLabels.FormatDateTime(Selected.LastTouchedIso)</div>
+                                <div class="mutedSmall">
+                                    Last touched: @DisplayLabels.FormatDateTime(task.LastTouchedIso)@(stale ? " • stale" : "")
+                                </div>
                             </div>
                             <div class="rowTiny">
                                 @if (!_editing)
                                 {
                                     <div class="pillRow">
-                                        <span class="pill @Tones.TaskStatusTone(Selected.Status)">@DisplayLabels.FormatTaskStatus(Selected.Status)</span>
-                                        <span class="pill @Tones.PriorityTone(Selected.Priority)">@Selected.Priority</span>
+                                        <span class="pill @Tones.TaskStatusTone(task.Status)">@statusLabel</span>
+                                        <span class="pill @Tones.PriorityTone(task.Priority)">@task.Priority</span>
+                                        @if (!string.IsNullOrEmpty(assigneeName))
+                                        {
+                                            <span class="pill toneNeutral">Assignee: @assigneeName</span>
+                                        }
                                     </div>
                                 }
                                 <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(_editing ? "Done" : "Edit")</button>
@@ -98,14 +229,14 @@
                             {
                                 <label class="field span2">
                                     <div class="fieldLabel">Title</div>
-                                    <input class="input" value="@Selected.Title" @oninput="OnTitleInput" />
+                                    <input class="input" value="@task.Title" @oninput="OnTitleInput" />
                                 </label>
                             }
                             else
                             {
                                 <div class="field span2">
                                     <div class="fieldLabel">Title</div>
-                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Title) ? "—" : Selected.Title)</div>
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(task.Title) ? "—" : task.Title)</div>
                                 </div>
                             }
 
@@ -113,7 +244,7 @@
                                 <div class="fieldLabel">Status</div>
                                 @if (_editing)
                                 {
-                                    <select class="select" value="@DisplayLabels.FormatTaskStatus(Selected.Status)" @onchange="OnStatusChange">
+                                    <select class="select" value="@statusLabel" @onchange="OnStatusChange">
                                         <option value="Not Started">Not Started</option>
                                         <option value="In Progress">In Progress</option>
                                         <option value="Blocked">Blocked</option>
@@ -123,16 +254,16 @@
                                 else
                                 {
                                     <div class="noteDetailReadonly">
-                                        <span class="pill @Tones.TaskStatusTone(Selected.Status)">@DisplayLabels.FormatTaskStatus(Selected.Status)</span>
+                                        <span class="pill @Tones.TaskStatusTone(task.Status)">@statusLabel</span>
                                     </div>
                                 }
                             </div>
 
                             <div class="field">
-                                <div class="fieldLabel">Priority</div>
+                                <div class="fieldLabel">Priority (required)</div>
                                 @if (_editing)
                                 {
-                                    <select class="select" value="@Selected.Priority.ToString()" @onchange="OnPriorityChange">
+                                    <select class="select" value="@task.Priority.ToString()" @onchange="OnPriorityChange">
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
                                         <option value="High">High</option>
@@ -141,83 +272,213 @@
                                 }
                                 else
                                 {
-                                    <div class="noteDetailReadonly">
-                                        <span class="pill @Tones.PriorityTone(Selected.Priority)">@Selected.Priority</span>
+                                    <div class="noteDetailReadonly">@task.Priority</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Assignee (optional)</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(task.AssigneeId?.ToString() ?? "")" @onchange="OnAssigneeChange">
+                                        <option value="">(None)</option>
+                                        @foreach (TeamMember m in AssigneeOptions)
+                                        {
+                                            <option value="@m.Id">@m.Name</option>
+                                        }
+                                        @if (task.AssigneeId is not null && !MemberById.ContainsKey(task.AssigneeId.Value))
+                                        {
+                                            <option value="@task.AssigneeId">@task.AssigneeId (unknown)</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(assigneeName ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Estimated Duration (required)</div>
+                                @if (_editing)
+                                {
+                                    <input class="input" placeholder="e.g., 1d, 2h30m" value="@task.EstimatedDurationText" @oninput="OnEstimateInput" />
+                                    <div class="mutedSmall @(estimateParsed is null ? "textBad" : null)">Estimated: @estimatePreview</div>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(task.EstimatedDurationText) ? "—" : task.EstimatedDurationText)</div>
+                                    <div class="mutedSmall @(estimateParsed is null ? "textBad" : null)">Estimated: @estimatePreview</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Confidence</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@task.EstimateConfidence.ToString()" @onchange="OnConfidenceChange">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@task.EstimateConfidence</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Project (optional)</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(task.Project ?? "")" @onchange="OnProjectChange">
+                                        <option value="">(None)</option>
+                                        @foreach (string p in ProjectOptions)
+                                        {
+                                            <option value="@p">@p</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(task.Project ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Risk (optional)</div>
+                                @if (_editing)
+                                {
+                                    <select class="select" value="@(task.Risk ?? "")" @onchange="OnRiskChange">
+                                        <option value="">(None)</option>
+                                        @foreach (string r in RiskOptions)
+                                        {
+                                            <option value="@r">@r</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(task.Risk ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field">
+                                <div class="fieldLabel">Due date (optional)</div>
+                                @if (_editing)
+                                {
+                                    <input class="input" type="date" value="@(task.DueDate ?? "")" @onchange="OnDueDateChange" />
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(task.DueDate ?? "—")</div>
+                                }
+                            </div>
+
+                            <div class="field span2">
+                                <div class="fieldLabel">Actual Duration (optional)</div>
+                                @if (_editing)
+                                {
+                                    <input class="input" placeholder="e.g., 1d2h, 45m" value="@(task.ActualDurationText ?? "")" @oninput="OnActualInput" />
+                                    <div class="mutedSmall @(task.ActualDurationText is not null && !string.IsNullOrWhiteSpace(task.ActualDurationText) && actualParsed is null ? "textBad" : null)">Actual: @actualPreview</div>
+                                }
+                                else
+                                {
+                                    <div class="noteDetailReadonly">@(string.IsNullOrWhiteSpace(task.ActualDurationText) ? "—" : task.ActualDurationText)</div>
+                                    <div class="mutedSmall @(task.ActualDurationText is not null && !string.IsNullOrWhiteSpace(task.ActualDurationText) && actualParsed is null ? "textBad" : null)">Actual: @actualPreview</div>
+                                }
+                            </div>
+
+                            <div class="field span2">
+                                <div class="fieldLabel">Blockers (optional)</div>
+                                <div class="card tight blockersCard">
+                                    @if (_editing)
+                                    {
+                                        <div class="blockersAddRow">
+                                            <input class="input blockersAddSelect"
+                                                   list="blockerCandidatesList"
+                                                   placeholder="Add blocker…"
+                                                   value="@_addBlockerText"
+                                                   @oninput="OnAddBlockerInput" />
+                                            <datalist id="blockerCandidatesList">
+                                                @foreach (AtlasTask candidate in blockerCandidates)
+                                                {
+                                                    bool disabled = tasksThatDependOnMe.Contains(candidate.Id);
+                                                    string label = $"{candidate.Title}{(string.IsNullOrEmpty(candidate.Project) ? "" : $" • {candidate.Project}")}{(disabled ? " • (would create cycle)" : "")} [{candidate.Id}]";
+                                                    <option value="@label"></option>
+                                                }
+                                            </datalist>
+                                            <button type="button"
+                                                    class="btn btnSecondary"
+                                                    disabled="@(resolvedBlockerId is null || tasksThatDependOnMe.Contains(resolvedBlockerId.Value))"
+                                                    @onclick="AddBlocker">
+                                                Add
+                                            </button>
+                                        </div>
+                                    }
+
+                                    <div class="blockersList" role="list" aria-label="Blockers">
+                                        @if (visibleBlockers.Count == 0)
+                                        {
+                                            <div class="mutedSmall">No active blockers.</div>
+                                        }
+                                        @foreach (AtlasTask blocker in visibleBlockers)
+                                        {
+                                            string blockerStatus = DisplayLabels.FormatTaskStatus(blocker.Status);
+                                            string suffix = $"{(string.IsNullOrEmpty(blocker.Project) ? "" : $" • {blocker.Project}")}{(string.IsNullOrEmpty(blocker.Risk) ? "" : $" • Risk: {blocker.Risk}")}";
+                                            <div class="blockersItem" role="listitem">
+                                                <div class="blockersItemText">
+                                                    <div class="blockersItemTitle">@blocker.Title</div>
+                                                    <div class="blockersItemMeta">@suffix</div>
+                                                </div>
+                                                <div class="blockersItemRight">
+                                                    <span class="pill @Tones.TaskStatusTone(blocker.Status)">@blockerStatus</span>
+                                                    @if (_editing)
+                                                    {
+                                                        <button type="button"
+                                                                class="btn btnGhost blockersRemoveBtn"
+                                                                title="Remove blocker"
+                                                                @onclick="() => RemoveBlocker(blocker.Id)">
+                                                            Remove
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                @if (hasCycle)
+                                {
+                                    <div class="mutedSmall textBad">One or more selected dependencies would create a cycle; please remove them.</div>
+                                }
+                                @if (_editing && task.DependencyTaskIds.Count > 0)
+                                {
+                                    <div class="rowTiny">
+                                        <button type="button" class="btn btnGhost" @onclick="ClearDependencies">Clear dependencies</button>
                                     </div>
                                 }
                             </div>
 
-                            <div class="field">
-                                <div class="fieldLabel">Project</div>
-                                @if (_editing)
-                                {
-                                    <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
-                                        <option value="">(None)</option>
-                                        @foreach (Project p in Cache.Projects.OrderBy(x => x.Name))
-                                        {
-                                            <option value="@p.Name">@p.Name</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">@(Selected.Project ?? "—")</div>
-                                }
-                            </div>
-
-                            <div class="field">
-                                <div class="fieldLabel">Risk</div>
-                                @if (_editing)
-                                {
-                                    <select class="select" value="@(Selected.Risk ?? "")" @onchange="OnRiskChange">
-                                        <option value="">(None)</option>
-                                        @foreach (Risk r in Cache.Risks.OrderBy(x => x.Title))
-                                        {
-                                            <option value="@r.Title">@r.Title</option>
-                                        }
-                                    </select>
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">@(Selected.Risk ?? "—")</div>
-                                }
-                            </div>
-
-                            <div class="field">
-                                <div class="fieldLabel">Due date</div>
-                                @if (_editing)
-                                {
-                                    <input class="input" type="date" value="@(Selected.DueDate ?? "")" @onchange="OnDueDateChange" />
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">@(Selected.DueDate ?? "—")</div>
-                                }
-                            </div>
-
-                            <div class="field">
-                                <div class="fieldLabel">Est. duration</div>
-                                @if (_editing)
-                                {
-                                    <input class="input" value="@Selected.EstimatedDurationText" @oninput="OnEstimateInput" />
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">@DurationPreview(Selected.EstimatedDurationText)</div>
-                                }
-                            </div>
-
-                            <label class="field span2">
+                            <div class="field span2">
                                 <div class="fieldLabel">Notes</div>
                                 @if (_editing)
                                 {
-                                    <textarea class="textarea" value="@Selected.Notes" @oninput="OnNotesInput"></textarea>
+                                    <textarea class="textarea textareaAutoGrow"
+                                              value="@task.Notes"
+                                              @oninput="OnNotesInput"></textarea>
                                 }
                                 else
                                 {
-                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Notes) ? "—" : Selected.Notes)</div>
+                                    <div class="noteDetailReadonly" style="white-space: pre-wrap">
+                                        @(string.IsNullOrWhiteSpace(task.Notes) ? "—" : task.Notes)
+                                    </div>
                                 }
-                            </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <button class="btn" type="button" @onclick="TouchTask">Touch / Update Activity</button>
                         </div>
                     </div>
                 }
@@ -233,9 +494,36 @@
     bool _creating;
     bool _deleting;
     Guid? _autoEditId;
+    string _addBlockerText = "";
+
+    string _projectFilter = "All";
+    string _riskFilter = "All";
+    string _statusFilter = "All";
+    string _priorityFilter = "All";
+    string _stalenessFilter = "All";
+    string _durationFilter = "All";
+    string _sortBy = "Priority";
+    string _sortDir = "Desc";
 
     bool IsFocusMode => !string.IsNullOrEmpty(TaskId);
     bool ShowDetail => IsFocusMode || Selection.SelectedTaskId is not null;
+    int StaleDays => Cache.Settings?.StaleDays ?? 10;
+    int WarnStart => Math.Max(1, StaleDays - 2);
+
+    IReadOnlyList<string> ProjectOptions =>
+        Cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+
+    IReadOnlyList<string> RiskOptions =>
+        Cache.Risks.Select(r => r.Title).OrderBy(t => t, StringComparer.Ordinal).ToList();
+
+    IReadOnlyList<TeamMember> AssigneeOptions =>
+        Cache.Team.OrderBy(m => m.Name, StringComparer.Ordinal).ToList();
+
+    Dictionary<Guid, TeamMember> MemberById =>
+        Cache.Team.ToDictionary(m => m.Id);
+
+    Dictionary<Guid, AtlasTask> TaskById =>
+        Cache.Tasks.ToDictionary(t => t.Id);
 
     AtlasTask? Selected
     {
@@ -248,6 +536,8 @@
             return Cache.Tasks.FirstOrDefault(t => t.Id == id);
         }
     }
+
+    IReadOnlyList<AtlasTask> FilteredSorted => BuildFilteredSorted();
 
     protected override void OnInitialized()
     {
@@ -274,9 +564,10 @@
             }
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id)
+        if (Selected is not null)
         {
-            _editing = true;
+            _editing = _autoEditId == Selected.Id;
+            _addBlockerText = "";
         }
 
         SyncDraftTarget();
@@ -302,6 +593,7 @@
     {
         Selection.SelectTask(id);
         _editing = _autoEditId == id;
+        _addBlockerText = "";
         SyncDraftTarget();
     }
 
@@ -312,6 +604,7 @@
         {
             _autoEditId = null;
         }
+
         SyncDraftTarget();
     }
 
@@ -367,10 +660,11 @@
             };
             AtlasApiDTOsTasksCreateTaskResponse res = await Api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(Cache.ToCreateTaskRequest(draft));
             Guid id = res.Id ?? Guid.Empty;
-            // Refetch before selecting so list re-render cannot race Playwright list clicks.
-            await Cache.RefetchTasksAsync();
+            draft.Id = id;
+            Cache.AddTask(draft);
             _autoEditId = id;
-            SelectFromList(id);
+            _editing = true;
+            SyncDraftTarget();
         }
         catch (Exception)
         {
@@ -395,7 +689,6 @@
             Cache.RemoveTask(task.Id);
             if (IsFocusMode) Nav.NavigateTo("/tasks", replace: true);
             if (_autoEditId == task.Id) _autoEditId = null;
-            await Cache.RefetchTasksAsync();
         }
         catch (Exception)
         {
@@ -407,9 +700,16 @@
         }
     }
 
+    void TouchTask() =>
+        Persist(EntityClone.Task(Selected!, lastTouchedIso: DateTimeOffset.UtcNow.ToString("o")));
+
     void OnTitleInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, title: e.Value?.ToString() ?? ""));
     void OnEstimateInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, estimatedDurationText: e.Value?.ToString() ?? ""));
-    void OnNotesInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
+    void OnNotesInput(ChangeEventArgs e) =>
+        Persist(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
+
+    void OnActualInput(ChangeEventArgs e) =>
+        Persist(EntityClone.Task(Selected!, actualDurationText: e.Value?.ToString(), setActual: true));
 
     void OnStatusChange(ChangeEventArgs e) =>
         Persist(EntityClone.Task(Selected!, status: DisplayLabels.ParseTaskStatus(e.Value?.ToString()), setStatus: true));
@@ -417,25 +717,102 @@
     void OnPriorityChange(ChangeEventArgs e)
     {
         if (Enum.TryParse(e.Value?.ToString(), out Priority p))
+        {
             Persist(EntityClone.Task(Selected!, priority: p));
+        }
+    }
+
+    void OnConfidenceChange(ChangeEventArgs e)
+    {
+        if (Enum.TryParse(e.Value?.ToString(), out Confidence c))
+        {
+            Persist(EntityClone.Task(Selected!, estimateConfidence: c));
+        }
+    }
+
+    void OnAssigneeChange(ChangeEventArgs e)
+    {
+        string? v = e.Value?.ToString();
+        if (string.IsNullOrEmpty(v))
+        {
+            Persist(EntityClone.Task(Selected!, assigneeId: null, setAssignee: true));
+            return;
+        }
+
+        if (Guid.TryParse(v, out Guid id))
+        {
+            Persist(EntityClone.Task(Selected!, assigneeId: id, setAssignee: true));
+        }
     }
 
     void OnProjectChange(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
+        string? v = e.Value?.ToString();
         Persist(EntityClone.Task(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
     }
 
     void OnRiskChange(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
+        string? v = e.Value?.ToString();
         Persist(EntityClone.Task(Selected!, risk: string.IsNullOrEmpty(v) ? null : v, setRisk: true));
     }
 
     void OnDueDateChange(ChangeEventArgs e)
     {
-        var v = e.Value?.ToString();
+        string? v = e.Value?.ToString();
         Persist(EntityClone.Task(Selected!, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
+    }
+
+    void OnAddBlockerInput(ChangeEventArgs e) => _addBlockerText = e.Value?.ToString() ?? "";
+
+    void AddBlocker()
+    {
+        if (Selected is null) return;
+        IReadOnlyList<AtlasTask> candidates = GetBlockerCandidates(Selected);
+        Guid? id = ResolveBlockerIdFromInput(_addBlockerText, candidates);
+        if (id is null) return;
+        if (GetTasksThatDependOnMe(Selected.Id).Contains(id.Value)) return;
+
+        IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Append(id.Value).Distinct().ToList();
+        Persist(EntityClone.Task(Selected, dependencyTaskIds: next));
+        _addBlockerText = "";
+    }
+
+    void RemoveBlocker(Guid blockerId)
+    {
+        if (Selected is null) return;
+        IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Where(id => id != blockerId).ToList();
+        Persist(EntityClone.Task(Selected, dependencyTaskIds: next));
+    }
+
+    void ClearDependencies()
+    {
+        if (Selected is null) return;
+        Persist(EntityClone.Task(Selected, dependencyTaskIds: Array.Empty<Guid>()));
+    }
+
+    void OnProjectFilterChange(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "All";
+    void OnRiskFilterChange(ChangeEventArgs e) => _riskFilter = e.Value?.ToString() ?? "All";
+    void OnStatusFilterChange(ChangeEventArgs e) => _statusFilter = e.Value?.ToString() ?? "All";
+    void OnPriorityFilterChange(ChangeEventArgs e) => _priorityFilter = e.Value?.ToString() ?? "All";
+    void OnStalenessFilterChange(ChangeEventArgs e) => _stalenessFilter = e.Value?.ToString() ?? "All";
+    void OnDurationFilterChange(ChangeEventArgs e) => _durationFilter = e.Value?.ToString() ?? "All";
+
+    string SortButtonGlyph(string category) =>
+        _sortBy != category ? "↕" : _sortDir == "Asc" ? "▲" : "▼";
+
+    void ToggleSort(string category)
+    {
+        if (_sortBy == category)
+        {
+            _sortDir = _sortDir == "Asc" ? "Desc" : "Asc";
+        }
+        else
+        {
+            _sortBy = category;
+            _sortDir = category is "Project" or "Risk" or "Title" ? "Asc" : "Desc";
+        }
+
     }
 
     void Persist(AtlasTask next)
@@ -456,12 +833,183 @@
         }
     }
 
-    static string DurationPreview(string text)
+    string ActivityColor(int days) =>
+        days >= StaleDays ? "red" : days >= WarnStart ? "yellow" : "green";
+
+    int BlockedByCount(AtlasTask task) =>
+        task.DependencyTaskIds.Count(id =>
+            TaskById.TryGetValue(id, out AtlasTask? dep) && dep.Status != Models.TaskStatus.Done);
+
+    string? AssigneeName(Guid? assigneeId)
+    {
+        if (assigneeId is null) return null;
+        return MemberById.TryGetValue(assigneeId.Value, out TeamMember? member)
+            ? member.Name
+            : assigneeId.Value.ToString();
+    }
+
+    static string ListDurationPill(string text)
     {
         Duration.ParsedDuration? parsed = Duration.ParseDurationText(text);
-        return parsed is null
-            ? (string.IsNullOrWhiteSpace(text) ? "—" : "Invalid")
-            : Duration.FormatDurationFromMinutes(parsed.TotalMinutes);
+        return Duration.FormatDurationFromMinutes(parsed?.TotalMinutes ?? 0);
+    }
+
+    IReadOnlyList<AtlasTask> BuildFilteredSorted()
+    {
+        List<(AtlasTask t, int i)> indexed = Cache.Tasks.Where(PassesFilters).Select((t, i) => (t, i)).ToList();
+        int dir = _sortDir == "Asc" ? 1 : -1;
+        indexed.Sort((a, b) =>
+        {
+            int c = CompareTasks(a.t, b.t, dir);
+            return c != 0 ? c : a.i.CompareTo(b.i);
+        });
+        return indexed.Select(x => x.t).ToList();
+    }
+
+    bool PassesFilters(AtlasTask t)
+    {
+        if (_statusFilter != "All" && DisplayLabels.FormatTaskStatus(t.Status) != _statusFilter) return false;
+        if (_priorityFilter != "All" && t.Priority.ToString() != _priorityFilter) return false;
+        if (_projectFilter != "All" && (t.Project ?? "") != _projectFilter) return false;
+        if (_riskFilter != "All" && (t.Risk ?? "") != _riskFilter) return false;
+
+        int days = DisplayLabels.DaysSince(t.LastTouchedIso) ?? 0;
+        string bucket = days >= StaleDays ? "Stale" : days >= WarnStart ? "Warning" : "Fresh";
+        if (_stalenessFilter != "All" && bucket != _stalenessFilter) return false;
+
+        Duration.ParsedDuration? parsed = Duration.ParseDurationText(t.EstimatedDurationText);
+        int? mins = parsed?.TotalMinutes;
+        if (_durationFilter == "Invalid") return mins is null;
+        if (_durationFilter != "All")
+        {
+            if (mins is null) return false;
+            if (_durationFilter == "<=30m" && mins > 30) return false;
+            if (_durationFilter == "<=2h" && mins > 120) return false;
+            if (_durationFilter == "<=4h" && mins > 240) return false;
+            if (_durationFilter == "<=1d" && mins > 1440) return false;
+            if (_durationFilter == ">1d" && mins <= 1440) return false;
+        }
+
+        return true;
+    }
+
+    int CompareTasks(AtlasTask a, AtlasTask b, int dir)
+    {
+        if (_sortBy == "Priority")
+        {
+            return (PriorityRank(a.Priority) - PriorityRank(b.Priority)) * dir;
+        }
+
+        if (_sortBy == "Project")
+        {
+            return string.Compare(a.Project ?? "", b.Project ?? "", StringComparison.Ordinal) * dir;
+        }
+
+        if (_sortBy == "Risk")
+        {
+            return string.Compare(a.Risk ?? "", b.Risk ?? "", StringComparison.Ordinal) * dir;
+        }
+
+        if (_sortBy == "Title")
+        {
+            return string.Compare(a.Title, b.Title, StringComparison.Ordinal) * dir;
+        }
+
+        if (_sortBy == "Estimated Duration")
+        {
+            int? am = Duration.ParseDurationText(a.EstimatedDurationText)?.TotalMinutes;
+            int? bm = Duration.ParseDurationText(b.EstimatedDurationText)?.TotalMinutes;
+            if (am is null && bm is null) return 0;
+            if (am is null) return 1;
+            if (bm is null) return -1;
+            return (am.Value - bm.Value) * dir;
+        }
+
+        int ad = DisplayLabels.DaysSince(a.LastTouchedIso) ?? 0;
+        int bd = DisplayLabels.DaysSince(b.LastTouchedIso) ?? 0;
+        int ab = ad >= StaleDays ? 3 : ad >= WarnStart ? 2 : 1;
+        int bb = bd >= StaleDays ? 3 : bd >= WarnStart ? 2 : 1;
+        if (ab != bb) return (ab - bb) * dir;
+        return (ad - bd) * dir;
+    }
+
+    static int PriorityRank(Priority p) => p switch
+    {
+        Priority.Critical => 4,
+        Priority.High => 3,
+        Priority.Medium => 2,
+        _ => 1
+    };
+
+    IReadOnlyList<AtlasTask> GetVisibleBlockers(AtlasTask task) =>
+        task.DependencyTaskIds
+            .Select(id => TaskById.GetValueOrDefault(id))
+            .Where(t => t is not null && t.Status != Models.TaskStatus.Done)
+            .Cast<AtlasTask>()
+            .ToList();
+
+    IReadOnlyList<AtlasTask> GetBlockerCandidates(AtlasTask task)
+    {
+        HashSet<Guid> chosen = task.DependencyTaskIds.ToHashSet();
+        return Cache.Tasks
+            .Where(t => t.Id != task.Id)
+            .Where(t => t.Status != Models.TaskStatus.Done)
+            .Where(t => !chosen.Contains(t.Id))
+            .OrderBy(t => t.Title, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    HashSet<Guid> GetTasksThatDependOnMe(Guid taskId)
+    {
+        var dependentsById = new Dictionary<Guid, List<Guid>>();
+        foreach (AtlasTask t in Cache.Tasks)
+        {
+            foreach (Guid dep in t.DependencyTaskIds)
+            {
+                if (!dependentsById.TryGetValue(dep, out List<Guid>? arr))
+                {
+                    arr = new List<Guid>();
+                    dependentsById[dep] = arr;
+                }
+
+                arr.Add(t.Id);
+            }
+        }
+
+        var seen = new HashSet<Guid>();
+        var queue = new Queue<Guid>();
+        queue.Enqueue(taskId);
+        while (queue.Count > 0)
+        {
+            Guid cur = queue.Dequeue();
+            if (!dependentsById.TryGetValue(cur, out List<Guid>? deps)) continue;
+            foreach (Guid next in deps)
+            {
+                if (next == taskId) continue;
+                if (!seen.Add(next)) continue;
+                queue.Enqueue(next);
+            }
+        }
+
+        return seen;
+    }
+
+    static Guid? ResolveBlockerIdFromInput(string inputRaw, IReadOnlyList<AtlasTask> blockerCandidates)
+    {
+        string input = inputRaw.Trim();
+        if (input.Length == 0) return null;
+
+        System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(input, @"\[([^\]]+)\]\s*$");
+        if (m.Success && Guid.TryParse(m.Groups[1].Value.Trim(), out Guid fromBracket))
+        {
+            return fromBracket;
+        }
+
+        AtlasTask? byId = blockerCandidates.FirstOrDefault(t => t.Id.ToString() == input);
+        if (byId is not null) return byId.Id;
+
+        AtlasTask? exactTitle = blockerCandidates.FirstOrDefault(t => t.Title == input);
+        return exactTitle?.Id;
     }
 
     public void Dispose()

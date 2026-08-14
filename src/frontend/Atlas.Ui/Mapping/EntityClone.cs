@@ -52,7 +52,8 @@ public static class EntityClone
         bool setDescription = false, ProjectStatus? status = null, HealthSignal? health = null,
         string? targetDateIso = null, bool setTarget = false, Priority? priority = null, bool setPriority = false,
         Guid? productOwnerId = null, bool setOwner = false, IReadOnlyList<string>? tags = null,
-        IReadOnlyList<ProjectLink>? links = null, string? lastUpdatedIso = null,
+        IReadOnlyList<ProjectLink>? links = null, ProjectCheckIn? latestCheckIn = null, bool setLatestCheckIn = false,
+        string? lastUpdatedIso = null,
         IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedRiskIds = null,
         IReadOnlyList<Guid>? teamMemberIds = null) =>
         new()
@@ -68,6 +69,7 @@ public static class EntityClone
             ProductOwnerId = setOwner ? productOwnerId : p.ProductOwnerId,
             Tags = tags ?? p.Tags,
             Links = links ?? p.Links,
+            LatestCheckIn = setLatestCheckIn ? latestCheckIn : p.LatestCheckIn,
             LastUpdatedIso = lastUpdatedIso ?? p.LastUpdatedIso,
             LinkedTaskIds = linkedTaskIds ?? p.LinkedTaskIds,
             LinkedRiskIds = linkedRiskIds ?? p.LinkedRiskIds,

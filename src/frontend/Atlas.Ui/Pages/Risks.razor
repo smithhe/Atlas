@@ -21,31 +21,68 @@
     <div class="risksStack @(IsFocusMode ? "risksStackFocus" : null) @(!ShowDetail ? "risksStackNoDetail" : null)">
         @if (!IsFocusMode)
         {
-            <section class="list listCard risksListRow" aria-label="Risk list">
-                @foreach (Risk r in Cache.Risks)
+            <section class="card tight risksFiltersRow" aria-label="Risk filters">
+                <label class="field">
+                    <div class="fieldLabel">Status</div>
+                    <select class="select selectCompact" value="@_statusFilter" @onchange="OnStatusFilterChange">
+                        <option value="All">All</option>
+                        <option value="Open">Open</option>
+                        <option value="Watching">Watching</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Project</div>
+                    <input class="input"
+                           value="@_projectFilter"
+                           @oninput="OnProjectFilterInput"
+                           list="riskProjectFilterOptions"
+                           placeholder="Type to filter…" />
+                    <datalist id="riskProjectFilterOptions">
+                        @foreach (string p in ProjectOptions)
+                        {
+                            <option value="@p"></option>
+                        }
+                    </datalist>
+                </label>
+
+                <label class="field">
+                    <div class="fieldLabel">Severity</div>
+                    <select class="select selectCompact" value="@_severityFilter" @onchange="OnSeverityFilterChange">
+                        <option value="All">All</option>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                    </select>
+                </label>
+            </section>
+        }
+
+        @if (!IsFocusMode)
+        {
+            <section class="list listCard risksListRow @(ShowDetail && Filtered.Count > 5 ? "risksListCapped" : null)"
+                     aria-label="Risk list">
+                @foreach (Risk r in Filtered)
                 {
                     Guid riskId = r.Id;
-                    string riskTitle = r.Title;
-                    RiskStatus riskStatus = r.Status;
-                    string riskSeverity = r.Severity;
-                    string? riskProject = r.Project;
+                    int days = DisplayLabels.DaysSince(r.LastUpdatedIso) ?? 0;
                     <button type="button"
-                            class="listRow listRowBtn @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
+                            class="listRow listRowBtn risksRiskRow @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(riskId)"
                             @ondblclick="() => GoFocus(riskId)">
+                        <span class="dot dot-@r.Severity.ToLowerInvariant()" aria-hidden="true"></span>
                         <div class="listMain">
-                            <div class="listTitle">@riskTitle</div>
-                            <div class="listMeta">@riskStatus • @riskSeverity@(string.IsNullOrEmpty(riskProject) ? "" : $" • {riskProject}")</div>
-                        </div>
-                        <div class="pillRow">
-                            <span class="pill @Tones.RiskStatusTone(riskStatus)">@riskStatus</span>
-                            <span class="pill @Tones.SeverityTone(riskSeverity)">@riskSeverity</span>
+                            <div class="listTitle listTitleWrap">@r.Title</div>
+                            <div class="listMeta">
+                                @r.Status • last updated @days d@(string.IsNullOrEmpty(r.Project) ? "" : $" • {r.Project}")
+                            </div>
                         </div>
                     </button>
                 }
-                @if (Cache.Risks.Count == 0)
+                @if (Filtered.Count == 0)
                 {
-                    <div class="muted pad">No risks yet.</div>
+                    <div class="muted pad">No risks match your filters.</div>
                 }
             </section>
         }
@@ -59,16 +96,27 @@
                 }
                 else
                 {
+                    Risk risk = Selected;
+                    IReadOnlyList<AtlasTask> linkedTasks = GetLinkedTasks(risk);
+                    IReadOnlyList<TeamMember> linkedMembers = GetLinkedMembers(risk);
+                    IReadOnlyList<TeamMember> teamMemberOptions = Cache.Team.OrderBy(m => m.Name).ToList();
+                    IReadOnlyList<RiskHistoryEntry> historyNewestFirst = risk.History
+                        .OrderByDescending(h => h.CreatedIso)
+                        .ToList();
+                    RiskHistoryEntry? selectedHistory = _selectedHistoryId is null
+                        ? null
+                        : risk.History.FirstOrDefault(h => h.Id == _selectedHistoryId);
+
                     <div class="card pad riskDetailCard">
                         <div class="riskDetailHeader">
                             <div class="riskDetailHeaderTop">
-                                <div class="riskDetailTitle">@(string.IsNullOrEmpty(Selected.Title) ? "Risk Detail" : Selected.Title)</div>
+                                <div class="riskDetailTitle">@(string.IsNullOrEmpty(risk.Title) ? "Risk Detail" : risk.Title)</div>
                                 <div class="riskDetailHeaderRight">
                                     @if (!_editing)
                                     {
                                         <div class="pillRow">
-                                            <span class="pill @Tones.RiskStatusTone(Selected.Status)">@Selected.Status</span>
-                                            <span class="pill @Tones.SeverityTone(Selected.Severity)">@Selected.Severity</span>
+                                            <span class="pill @Tones.RiskStatusTone(risk.Status)">@risk.Status</span>
+                                            <span class="pill @Tones.SeverityTone(risk.Severity)">@risk.Severity</span>
                                         </div>
                                     }
                                     <div class="rowTiny">
@@ -82,13 +130,13 @@
                                         }
                                         else
                                         {
-                                            <button class="btn btnGhost" type="button" @onclick="() => Selection.SelectRisk(null)">Close</button>
+                                            <button class="btn btnGhost" type="button" @onclick="CloseDetail">Close</button>
                                             <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
                                         }
                                     </div>
                                 </div>
                             </div>
-                            <div class="mutedSmall">Last updated: @DisplayLabels.FormatDateTime(Selected.LastUpdatedIso)</div>
+                            <div class="mutedSmall">Last updated: @DisplayLabels.FormatDateTime(risk.LastUpdatedIso)</div>
                         </div>
 
                         <div class="fieldGrid2">
@@ -96,107 +144,286 @@
                             {
                                 <label class="field span2">
                                     <div class="fieldLabel">Title</div>
-                                    <input class="input" value="@Selected.Title" @oninput="OnTitleInput" />
+                                    <input class="input" value="@risk.Title" @oninput="OnTitleInput" />
                                 </label>
-                            }
 
-                            <div class="field">
-                                <div class="fieldLabel">Status</div>
-                                @if (_editing)
-                                {
-                                    <select class="select" value="@Selected.Status.ToString()" @onchange="OnStatusChange">
+                                <label class="field">
+                                    <div class="fieldLabel">Status</div>
+                                    <select class="select" value="@risk.Status.ToString()" @onchange="OnStatusChange">
                                         <option value="Open">Open</option>
                                         <option value="Watching">Watching</option>
                                         <option value="Resolved">Resolved</option>
                                     </select>
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">
-                                        <span class="pill @Tones.RiskStatusTone(Selected.Status)">@Selected.Status</span>
-                                    </div>
-                                }
-                            </div>
+                                </label>
 
-                            <div class="field">
-                                <div class="fieldLabel">Severity</div>
-                                @if (_editing)
-                                {
-                                    <select class="select" value="@Selected.Severity" @onchange="OnSeverityChange">
+                                <label class="field">
+                                    <div class="fieldLabel">Severity</div>
+                                    <select class="select" value="@risk.Severity" @onchange="OnSeverityChange">
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
                                         <option value="High">High</option>
                                     </select>
-                                }
-                                else
-                                {
-                                    <div class="noteDetailReadonly">
-                                        <span class="pill @Tones.SeverityTone(Selected.Severity)">@Selected.Severity</span>
-                                    </div>
-                                }
-                            </div>
+                                </label>
+                            }
 
                             <div class="field">
                                 <div class="fieldLabel">Project</div>
                                 @if (_editing)
                                 {
-                                    <select class="select" value="@(Selected.Project ?? "")" @onchange="OnProjectChange">
+                                    <select class="select" value="@(risk.Project ?? "")" @onchange="OnProjectChange">
                                         <option value="">(None)</option>
-                                        @foreach (Project p in Cache.Projects.OrderBy(x => x.Name))
+                                        @foreach (string p in ProjectOptions)
                                         {
-                                            <option value="@p.Name">@p.Name</option>
+                                            <option value="@p">@p</option>
+                                        }
+                                        @if (!string.IsNullOrEmpty(risk.Project) && !ProjectOptions.Contains(risk.Project))
+                                        {
+                                            <option value="@risk.Project">@risk.Project (custom)</option>
                                         }
                                     </select>
                                 }
                                 else
                                 {
-                                    <div class="noteDetailReadonly">@(Selected.Project ?? "—")</div>
+                                    <div class="noteDetailReadonly">@(risk.Project ?? "—")</div>
                                 }
                             </div>
 
-                            <label class="field span2">
+                            <div class="field span2">
                                 <div class="fieldLabel">Description</div>
                                 @if (_editing)
                                 {
-                                    <textarea class="textarea" value="@Selected.Description" @oninput="OnDescriptionInput"></textarea>
+                                    <textarea class="textarea" value="@risk.Description" @oninput="OnDescriptionInput"></textarea>
                                 }
                                 else
                                 {
-                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Description) ? "—" : Selected.Description)</div>
+                                    <div class="riskDetailMarkdown riskDetailMarkdownBlock riskDetailDescriptionBlock">
+                                        @if (string.IsNullOrWhiteSpace(risk.Description))
+                                        {
+                                            <div class="muted">—</div>
+                                        }
+                                        else
+                                        {
+                                            <MarkdownBlock Text="@risk.Description" />
+                                        }
+                                    </div>
                                 }
-                            </label>
+                            </div>
 
-                            <label class="field span2">
-                                <div class="fieldLabel">Evidence</div>
+                            <div class="field span2">
+                                <div class="fieldLabel">Evidence / Examples</div>
                                 @if (_editing)
                                 {
-                                    <textarea class="textarea" value="@Selected.Evidence" @oninput="OnEvidenceInput"></textarea>
+                                    <textarea class="textarea" value="@risk.Evidence" @oninput="OnEvidenceInput"></textarea>
                                 }
                                 else
                                 {
-                                    <div class="noteDetailReadonly">@(string.IsNullOrEmpty(Selected.Evidence) ? "—" : Selected.Evidence)</div>
+                                    <div class="riskDetailMarkdown riskDetailMarkdownBlock riskDetailEvidenceBlock">
+                                        @if (string.IsNullOrWhiteSpace(risk.Evidence))
+                                        {
+                                            <div class="muted">—</div>
+                                        }
+                                        else
+                                        {
+                                            <MarkdownBlock Text="@risk.Evidence" />
+                                        }
+                                    </div>
                                 }
-                            </label>
-                        </div>
+                            </div>
 
-                        @if (Selected.History.Count > 0)
-                        {
-                            <div class="mt-lg">
-                                <div class="cardTitle" style="margin-bottom: 8px">History</div>
-                                <div class="list">
-                                    @foreach (RiskHistoryEntry h in Selected.History.OrderByDescending(x => x.CreatedIso))
-                                    {
-                                        <div class="listRow">
-                                            <div class="listMain">
-                                                <div class="listTitle">@h.Text</div>
-                                                <div class="listMeta">@DisplayLabels.FormatDateTime(h.CreatedIso)</div>
+                            <div class="field span2">
+                                <div class="risksLinkedGrid">
+                                    <div class="field">
+                                        <div class="fieldLabel">Linked Tasks</div>
+                                        <div class="list listCard risksLinkedListCard">
+                                            @if (linkedTasks.Count == 0)
+                                            {
+                                                <div class="muted pad">No linked tasks yet.</div>
+                                            }
+                                            else
+                                            {
+                                                @foreach (AtlasTask t in linkedTasks)
+                                                {
+                                                    <button type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
+                                                        <span class="dot dot-@t.Priority.ToString().ToLowerInvariant()" aria-hidden="true"></span>
+                                                        <div class="listMain">
+                                                            <div class="listTitle">@t.Title</div>
+                                                            <div class="listMeta">
+                                                                @t.Priority
+                                                                @if (!string.IsNullOrEmpty(t.Project)) { <text> • @t.Project</text> }
+                                                                @if (!string.IsNullOrEmpty(t.DueDate)) { <text> • Due @t.DueDate</text> }
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="field">
+                                        <div class="fieldLabel">Linked Team Members</div>
+                                        @if (_editing)
+                                        {
+                                            <div class="list listCard risksLinkedListCard">
+                                                @if (teamMemberOptions.Count == 0)
+                                                {
+                                                    <div class="muted pad">
+                                                        Import team members from Azure DevOps first (
+                                                        <a class="crumbLink" href="/settings/azure-import">Settings → Azure Import</a>
+                                                        ).
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    @foreach (TeamMember m in teamMemberOptions)
+                                                    {
+                                                        bool linked = risk.LinkedTeamMemberIds.Contains(m.Id);
+                                                        <label class="listRow" style="cursor: pointer">
+                                                            <input type="checkbox"
+                                                                   checked="@linked"
+                                                                   @onchange="e => OnTeamMemberToggle(m.Id, e)" />
+                                                            <span class="dot dot-@m.StatusDot.ToLowerInvariant()" aria-hidden="true"></span>
+                                                            <div class="listMain">
+                                                                <div class="listTitle">@m.Name</div>
+                                                                <div class="listMeta">
+                                                                    @(m.Role ?? "Team member")@(string.IsNullOrEmpty(m.CurrentFocus) ? "" : $" • {m.CurrentFocus}")
+                                                                </div>
+                                                            </div>
+                                                        </label>
+                                                    }
+                                                }
                                             </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="list listCard risksLinkedListCard">
+                                                @if (linkedMembers.Count == 0)
+                                                {
+                                                    <div class="muted pad">No linked team members yet.</div>
+                                                }
+                                                else
+                                                {
+                                                    @foreach (TeamMember m in linkedMembers)
+                                                    {
+                                                        <button type="button" class="listRow listRowBtn" @onclick="() => GoTeamMember(m.Id)">
+                                                            <span class="dot dot-@m.StatusDot.ToLowerInvariant()" aria-hidden="true"></span>
+                                                            <div class="listMain">
+                                                                <div class="listTitle">@m.Name</div>
+                                                                <div class="listMeta">
+                                                                    @(m.Role ?? "Team member")@(string.IsNullOrEmpty(m.CurrentFocus) ? "" : $" • {m.CurrentFocus}")
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    }
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field span2">
+                                <div class="fieldLabel">Notes / History</div>
+                                <div class="row mt-sm">
+                                    <button class="btn btnSecondary" type="button" @onclick="ToggleAddingNote">
+                                        @(_isAddingNote ? "Cancel" : "Add note")
+                                    </button>
+                                </div>
+
+                                @if (_isAddingNote)
+                                {
+                                    <div class="mt-sm">
+                                        <label class="field">
+                                            <div class="fieldLabel">New note</div>
+                                            <textarea class="textarea"
+                                                      placeholder="Write a note (Markdown supported)…"
+                                                      value="@_newNoteText"
+                                                      @oninput="OnNewNoteInput"></textarea>
+                                        </label>
+                                        <div class="row mt-sm">
+                                            <button class="btn btnSecondary" type="button" @onclick="AddNote">Add</button>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="mt-md">
+                                    @if (historyNewestFirst.Count == 0)
+                                    {
+                                        <div class="muted">No history yet.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="list listCard">
+                                            @foreach (RiskHistoryEntry h in historyNewestFirst)
+                                            {
+                                                Guid historyId = h.Id;
+                                                <button type="button"
+                                                        class="listRow listRowBtn"
+                                                        @onclick="() => OpenHistoryNote(historyId, h.Text)">
+                                                    <div class="listMain">
+                                                        <div class="listMeta">@DisplayLabels.FormatDateTime(h.CreatedIso)</div>
+                                                        <div class="noteBody mt-sm">
+                                                            <MarkdownBlock Text="@h.Text" />
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            }
                                         </div>
                                     }
                                 </div>
                             </div>
-                        }
+                        </div>
                     </div>
+
+                    <AtlasModal Title="Note"
+                                IsOpen="@(selectedHistory is not null)"
+                                OnClose="CloseHistoryNote">
+                        <ChildContent>
+                            @if (selectedHistory is not null)
+                            {
+                                <div class="noteMeta">
+                                    <span class="mutedSmall">@DisplayLabels.FormatDateTime(selectedHistory.CreatedIso)</span>
+                                    <span class="chip chipGhost">Risk history</span>
+                                </div>
+
+                                <div class="noteEdit">
+                                    <div class="noteEditTabs">
+                                        <button type="button"
+                                                class="btn btnGhost @(_historyEditTab == "Write" ? "noteEditTabActive" : null)"
+                                                @onclick='() => _historyEditTab = "Write"'>
+                                            Write
+                                        </button>
+                                        <button type="button"
+                                                class="btn btnGhost @(_historyEditTab == "Preview" ? "noteEditTabActive" : null)"
+                                                @onclick='() => _historyEditTab = "Preview"'>
+                                            Preview
+                                        </button>
+                                    </div>
+
+                                    @if (_historyEditTab == "Write")
+                                    {
+                                        <textarea class="textarea textareaAutoGrow noteEditTextarea"
+                                                  value="@_historyDraftText"
+                                                  @oninput="OnHistoryDraftInput"></textarea>
+                                    }
+                                    else
+                                    {
+                                        <div class="noteText noteBody">
+                                            <MarkdownBlock Text="@_historyDraftText" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </ChildContent>
+                        <Footer>
+                            @if (selectedHistory is not null)
+                            {
+                                <div class="row mt-0">
+                                    <button class="btn btnSecondary" type="button" @onclick="SaveHistoryNote">Save</button>
+                                    <button class="btn btnGhost" type="button" @onclick="CloseHistoryNote">Cancel</button>
+                                </div>
+                            }
+                        </Footer>
+                    </AtlasModal>
                 }
             </section>
         }
@@ -210,9 +437,25 @@
     bool _creating;
     bool _deleting;
     Guid? _autoEditId;
+    Guid? _trackedRiskId;
+
+    string _statusFilter = "All";
+    string _projectFilter = "";
+    string _severityFilter = "All";
+
+    bool _isAddingNote;
+    string _newNoteText = "";
+    Guid? _selectedHistoryId;
+    string _historyDraftText = "";
+    string _historyEditTab = "Write";
 
     bool IsFocusMode => !string.IsNullOrEmpty(RiskId);
     bool ShowDetail => IsFocusMode || Selection.SelectedRiskId is not null;
+
+    IReadOnlyList<string> ProjectOptions =>
+        Cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+
+    IReadOnlyList<Risk> Filtered => Cache.Risks.Where(MatchesFilters).ToList();
 
     Risk? Selected
     {
@@ -244,17 +487,13 @@
         if (IsFocusMode && Guid.TryParse(RiskId, out Guid id))
         {
             Selection.SelectRisk(id);
-            _editing = _autoEditId == id;
             if (Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
             {
                 Nav.NavigateTo("/risks", replace: true);
             }
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id)
-        {
-            _editing = true;
-        }
+        SyncDetailUiForRisk(Selected?.Id);
     }
 
     void OnChanged() => InvokeAsync(() =>
@@ -265,18 +504,83 @@
             return;
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id)
-        {
-            _editing = true;
-        }
-
+        SyncDetailUiForRisk(Selected?.Id);
         StateHasChanged();
     });
 
+    void SyncDetailUiForRisk(Guid? riskId)
+    {
+        if (_trackedRiskId == riskId)
+        {
+            if (riskId is not null && _autoEditId == riskId)
+            {
+                _editing = true;
+            }
+
+            return;
+        }
+
+        _trackedRiskId = riskId;
+        ResetDetailUiState();
+        _editing = riskId is not null && _autoEditId == riskId;
+    }
+
+    void ResetDetailUiState()
+    {
+        _isAddingNote = false;
+        _newNoteText = "";
+        _selectedHistoryId = null;
+        _historyDraftText = "";
+        _historyEditTab = "Write";
+    }
+
+    bool MatchesFilters(Risk r)
+    {
+        if (_statusFilter != "All" && r.Status.ToString() != _statusFilter) return false;
+        if (_severityFilter != "All" && r.Severity != _severityFilter) return false;
+        if (!string.IsNullOrWhiteSpace(_projectFilter)
+            && !(r.Project ?? "").Contains(_projectFilter.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void OnStatusFilterChange(ChangeEventArgs e) => _statusFilter = e.Value?.ToString() ?? "All";
+    void OnSeverityFilterChange(ChangeEventArgs e) => _severityFilter = e.Value?.ToString() ?? "All";
+    void OnProjectFilterInput(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "";
+
+    IReadOnlyList<AtlasTask> GetLinkedTasks(Risk risk) =>
+        Cache.Tasks.Where(t => t.Risk == risk.Title).ToList();
+
+    IReadOnlyList<TeamMember> GetLinkedMembers(Risk risk)
+    {
+        var byId = Cache.Team.ToDictionary(m => m.Id);
+        return risk.LinkedTeamMemberIds
+            .Select(id => byId.GetValueOrDefault(id))
+            .Where(m => m is not null)
+            .Cast<TeamMember>()
+            .ToList();
+    }
+
     void SelectFromList(Guid id)
     {
+        if (Selection.SelectedRiskId != id)
+        {
+            ResetDetailUiState();
+            _editing = _autoEditId == id;
+        }
+
         Selection.SelectRisk(id);
-        _editing = _autoEditId == id;
+        _trackedRiskId = id;
+    }
+
+    void CloseDetail()
+    {
+        Selection.SelectRisk(null);
+        _trackedRiskId = null;
+        ResetDetailUiState();
     }
 
     void ToggleEdit()
@@ -286,6 +590,8 @@
     }
 
     void GoFocus(Guid id) => Nav.NavigateTo($"/risks/{id}");
+    void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+    void GoTeamMember(Guid id) => Nav.NavigateTo($"/team/{id}");
 
     void EnterFocus()
     {
@@ -315,10 +621,11 @@
             };
             AtlasApiDTOsRisksCreateRiskResponse res = await Api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(Cache.ToCreateRiskRequest(draft));
             Guid id = res.Id ?? Guid.Empty;
-            // Refetch before selecting so list re-render cannot race Playwright list clicks.
-            await Cache.RefetchRisksAsync();
+            draft.Id = id;
+            Cache.AddRisk(draft);
             _autoEditId = id;
-            SelectFromList(id);
+            _editing = true;
+            _trackedRiskId = id;
         }
         catch (Exception)
         {
@@ -343,7 +650,8 @@
             Cache.RemoveRisk(risk.Id);
             if (IsFocusMode) Nav.NavigateTo("/risks", replace: true);
             if (_autoEditId == risk.Id) _autoEditId = null;
-            await Cache.RefetchRisksAsync();
+            _trackedRiskId = null;
+            ResetDetailUiState();
         }
         catch (Exception)
         {
@@ -373,10 +681,77 @@
         Persist(EntityClone.Risk(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
     }
 
-    void Persist(Risk next)
+    void OnTeamMemberToggle(Guid memberId, ChangeEventArgs e)
     {
+        if (Selected is null) return;
+        bool linked = e.Value is bool b && b;
+        var current = new HashSet<Guid>(Selected.LinkedTeamMemberIds);
+        if (linked) current.Add(memberId);
+        else current.Remove(memberId);
+        var memberIds = current.ToList();
+        var next = EntityClone.Risk(Selected, linkedTeamMemberIds: memberIds, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
         Cache.UpdateRisk(next);
-        _ = PersistAsync(next);
+        _ = PersistTeamMembersAsync(next.Id, memberIds);
+    }
+
+    void ToggleAddingNote() => _isAddingNote = !_isAddingNote;
+    void OnNewNoteInput(ChangeEventArgs e) => _newNoteText = e.Value?.ToString() ?? "";
+
+    void AddNote()
+    {
+        if (Selected is null) return;
+        string text = _newNoteText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        var entry = new RiskHistoryEntry
+        {
+            Id = Guid.NewGuid(),
+            CreatedIso = DateTimeOffset.UtcNow.ToString("o"),
+            Text = text
+        };
+        var nextHistory = new[] { entry }.Concat(Selected.History).ToList();
+        Persist(EntityClone.Risk(Selected, history: nextHistory));
+        _newNoteText = "";
+        _isAddingNote = false;
+    }
+
+    void OpenHistoryNote(Guid historyId, string text)
+    {
+        _selectedHistoryId = historyId;
+        _historyDraftText = text;
+        _historyEditTab = "Write";
+    }
+
+    void CloseHistoryNote()
+    {
+        _selectedHistoryId = null;
+        _historyDraftText = "";
+        _historyEditTab = "Write";
+    }
+
+    void OnHistoryDraftInput(ChangeEventArgs e) => _historyDraftText = e.Value?.ToString() ?? "";
+
+    void SaveHistoryNote()
+    {
+        if (Selected is null || _selectedHistoryId is null) return;
+        string text = _historyDraftText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        var nextHistory = Selected.History
+            .Select(h => h.Id == _selectedHistoryId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
+            .ToList();
+        Persist(EntityClone.Risk(Selected, history: nextHistory));
+        CloseHistoryNote();
+    }
+
+    void Persist(Risk next, bool persistRisk = true)
+    {
+        next = EntityClone.Risk(next, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
+        Cache.UpdateRisk(next);
+        if (persistRisk)
+        {
+            _ = PersistAsync(next);
+        }
     }
 
     async Task PersistAsync(Risk next)
@@ -388,6 +763,20 @@
         catch (Exception)
         {
             await Dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
+        }
+    }
+
+    async Task PersistTeamMembersAsync(Guid riskId, IReadOnlyList<Guid> memberIds)
+    {
+        try
+        {
+            await Api.AtlasApiEndpointsRisksSetRiskTeamMembersEndpointAsync(
+                riskId,
+                new AtlasApiDTOsRisksSetRiskTeamMembersRequest { TeamMemberIds = memberIds.ToList() });
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
         }
     }
 
