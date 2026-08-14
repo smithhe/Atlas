@@ -10,7 +10,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT/src/atlas.ui"
+cd "$ROOT/tests/e2e"
 
 export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:5173}"
 export API_BASE_URL="${API_BASE_URL:-http://localhost:5012}"
@@ -23,6 +23,6 @@ fi
 npx playwright install chromium
 
 echo "==> Capturing Blazor Phase 4 screenshots"
-npx playwright test e2e/flows/capture-blazor-phase4.spec.ts --reporter=list
+npx playwright test flows/capture-blazor-phase4.spec.ts --reporter=list
 
 echo "==> Done → docs/migration-screenshots/blazor-phase4/"

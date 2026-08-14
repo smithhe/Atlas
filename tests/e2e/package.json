@@ -1,0 +1,14 @@
+{
+  "name": "atlas-e2e",
+  "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

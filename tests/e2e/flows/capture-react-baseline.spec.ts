@@ -13,7 +13,7 @@ import { getApiBaseUrl, waitForApiHealthy } from '../fixtures/api'
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const OUT_ROOT = path.resolve(__dirname, '../../../../docs/migration-screenshots/react-baseline')
+const OUT_ROOT = path.resolve(__dirname, '../../../docs/migration-screenshots/react-baseline')
 
 const VIEWPORTS = [
   { name: 'desktop-1440x900', width: 1440, height: 900 },
@@ -88,6 +88,10 @@ async function fetchIds() {
 }
 
 test.describe('React visual baseline capture', () => {
+  test.skip(
+    process.env.ATLAS_REACT_BASELINE !== '1',
+    'Set ATLAS_REACT_BASELINE=1 to recapture the frozen React baseline (React host only).',
+  )
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(300_000)
 
