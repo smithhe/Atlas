@@ -26,7 +26,7 @@ Remote agents must keep UI look and behavior as close to identical as practical.
 | **Umbrella CI** | **Mandatory in Phase 2.** Every later phase PR runs Blazor build + available Playwright flows. Phase 8 **extends/finalizes** CI — does not introduce it. |
 | **Dev/test host port** | Blazor dev and Playwright host pinned to **5173** (match existing CORS and Compose `UI_PORT`). |
 | **.NET SDK** | Blazor project and CI use **.NET SDK 10.0.x** (match `backend-tests.yml` / repo today). |
-| **Playwright home** | Phases 2–7: config + deps in **`src/atlas.ui`**; cumulative manifest in **`tests/e2e/`**. Phase 8: relocate all e2e assets to **`tests/e2e/`** before React delete. |
+| **Playwright home** | Phases 2–7: config + deps in **`src/atlas.ui`**; cumulative manifest in **`tests/e2e/`**. Phase 8: relocated all e2e assets to **`tests/e2e/`** (`npm run test:e2e`); manifest + runner deleted. |
 
 ### Defaults preserved
 
@@ -65,10 +65,10 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 - Backend: FastEndpoints **8.1.0** + `FastEndpoints.Swagger`. `SwaggerDocument()` + `UseSwaggerGen()` in Development only. Compose Production → no live `/swagger`.
 - **OpenAPI export wired (Phase 3):** `ExportSwaggerDocsAndExitAsync("v1")` after `UseFastEndpoints()`. Committed artifact `openapi/atlas.v1.json`; regenerate via `bash scripts/regenerate-openapi.sh` (**no Postgres required** — export uses in-memory EF and skips startup migrations).
 - **Export skip-DB path:** when `export-swagger-docs` configuration is exactly `"true"` (FastEndpoints CLI `--export-swagger-docs true`), `Program.cs` registers in-memory `AtlasDbContext` and skips `EnsureCreated()` / `Migrate()` before export.
-- Compose: `Dockerfile.ui` (React/Vite → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
-- nginx: SPA fallback; **no `Cache-Control` headers** today.
-- CI today: `frontend-ci.yml` on **`main` only** — React lint/build + Playwright. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + OpenAPI drift + Playwright).
-- React visual baseline: `docs/migration-screenshots/react-baseline/` (Phase 3).
+- Compose: `Dockerfile.ui` (Blazor WASM `dotnet publish` → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
+- nginx: SPA fallback; long cache for `/_framework/*`; `no-cache` for `index.html` and `blazor.boot.json`; gzip + `gzip_static`.
+- CI: `frontend-ci.yml` on **`main`** — Blazor publish + Playwright from `tests/e2e/`. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + publish + OpenAPI drift + Playwright).
+- React visual baseline: `docs/migration-screenshots/react-baseline/` (Phase 3; 72 PNGs + `PERFORMANCE.json`). Rollback: [docs/blazor-cutover-rollback.md](blazor-cutover-rollback.md).
 
 ---
 
@@ -121,18 +121,19 @@ Files changed; tests/commands run; screenshot artifact links; known parity devia
 
 ```bash
 dotnet run --project src/backend/Api/Atlas.Api/Atlas.Api.csproj --launch-profile http
-cd src/atlas.ui && npm ci && npm run test:e2e   # main-branch React baseline only
+dotnet run --project src/frontend/Atlas.Ui/Atlas.Ui.csproj --launch-profile http
+cd tests/e2e && npm ci && npm run test:e2e
 dotnet restore src/Atlas.sln && dotnet test src/Atlas.sln --no-restore --verbosity normal
-docker compose up --build   # Phase 8 cutover validation
+docker compose up --build
 ```
 
 ### Introduced by migration (do not assume until landed)
 
 - FastEndpoints export after `Program.cs` wiring + regenerate script
 - OpenAPI drift CI step
-- Blazor `webServer.command` on port **5173** in `src/atlas.ui/playwright.config.ts` (Phases 2–7)
-- **`tests/e2e/run-ported-playwright.sh`** — manifest runner (Phases 2–7); fails if manifest empty; **never** bare `playwright test`
-- `src/atlas.ui/e2e/flows/blazor-host.spec.ts` — Phase 2 smoke spec; first manifest entry
+- Blazor `webServer.command` on port **5173** in `tests/e2e/playwright.config.ts` (relocated in Phase 8)
+- Full Playwright suite: `cd tests/e2e && npm run test:e2e` (manifest runner deleted in Phase 8)
+- `tests/e2e/flows/blazor-host.spec.ts` — Phase 2 smoke spec
 - `dotnet publish` Blazor → nginx `Dockerfile.ui`
 
 ---
@@ -385,8 +386,8 @@ Add or extend workflow(s) triggered on **pull requests targeting `cursor/blazor-
 | Blazor build | Phase 2 | `dotnet build` WASM project / solution; **SDK 10.0.x** (`setup-dotnet@v4`) |
 | Playwright | Phase 2 | API + Postgres + demo seed; **`npm ci`** in `src/atlas.ui`; **`bash tests/e2e/run-ported-playwright.sh`** from repo root (manifest paths relative to `src/atlas.ui`); Blazor `webServer` on 5173 — must pass |
 | OpenAPI drift | Phase 3 | Diff export vs `openapi/atlas.v1.json` |
-| Blazor publish | Phase 8 | Add `dotnet publish` Release |
-| React npm | Phase 8 | Remove React lint/build from frontend CI on `main` |
+| Blazor publish | Phase 8 | Add `dotnet publish` Release — **done** (`umbrella-blazor-ci.yml` + `frontend-ci.yml`) |
+| React npm | Phase 8 | Remove React lint/build from frontend CI on `main` — **done** |
 
 **No "document only" escape hatch** — workflow files merged in Phase 2; later phases extend job steps.
 
@@ -408,7 +409,7 @@ Add or extend workflow(s) triggered on **pull requests targeting `cursor/blazor-
 
 | Topic | Detail |
 | --- | --- |
-| API base URL | Dev: `wwwroot/appsettings.Development.json` → `http://localhost:5012`; Compose: replace `VITE_API_BASE_URL` |
+| API base URL | Dev: `wwwroot/appsettings.Development.json` → `http://localhost:5012`; Compose: `API_BASE_URL` build arg baked into `wwwroot/appsettings.json` |
 | CORS | Keep **5173** origins |
 | nginx cache (add Phase 8) | Long cache fingerprinted `/_framework/*`; short/no cache `index.html`, `blazor.boot.json`; gzip; brotli only if publish emits `.br` |
 | Deep-link smoke | Refresh `/tasks/{id}`, `/team/{id}/notes`, `/projects/{id}?tab=tasks` |
@@ -568,18 +569,18 @@ Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTM
 
 **Order is strict — do not delete `src/atlas.ui` until step 5 passes:**
 
-1. [ ] Verify React baseline artifact complete (do not create anew)
-2. [ ] **Relocate Playwright** from `src/atlas.ui` to **`tests/e2e/`**:
+1. [x] Verify React baseline artifact complete (do not create anew) — 72 PNGs (24×3 viewports) + `PERFORMANCE.json`; documented seed-absent nested team gaps accepted
+2. [x] **Relocate Playwright** from `src/atlas.ui` to **`tests/e2e/`**:
    - Move `e2e/` (flows, fixtures, **`blazor-host.spec.ts`**, and all ported specs), `playwright.config.ts`, and a **minimal** `package.json` / lockfile with only Playwright scripts/deps — **`package.json` must include `"test:e2e": "playwright test"`** (or equivalent full-suite script)
    - Fix `testDir`, import paths, and `webServer.command` (Blazor on 5173) in relocated config
    - Delete `tests/e2e/playwright-ported.txt` and **`tests/e2e/run-ported-playwright.sh`** — Phase 8 runs full suite via **`npm run test:e2e`** from `tests/e2e/` (allowed only after relocation)
-3. [ ] **Update CI:** `npm ci` with **`working-directory: tests/e2e`**; `cache-dependency-path: tests/e2e/package-lock.json`; SDK **10.0.x**; add Blazor publish job; remove `src/atlas.ui` Playwright steps
-4. [ ] Blazor `Dockerfile.ui`; compose env; nginx cache headers; docs path URL updates; performance comparison doc; rollback SHA recorded
+3. [x] **Update CI:** `npm ci` with **`working-directory: tests/e2e`**; `cache-dependency-path: tests/e2e/package-lock.json`; SDK **10.0.x**; add Blazor publish job; remove `src/atlas.ui` Playwright steps
+4. [x] Blazor `Dockerfile.ui`; compose env; nginx cache headers; docs path URL updates; performance comparison doc; rollback SHA recorded
 5. [ ] **Full validation** (all must pass before React delete):
    - **`npm run test:e2e`** from `tests/e2e/` with **`working-directory: tests/e2e`** — requires relocated `package.json` **`test:e2e`** script; full suite green (including relocated `blazor-host.spec.ts`)
    - `docker compose up --build` smoke
    - Deep-link refresh cases
-6. [ ] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
+6. [x] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
 7. [ ] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
 8. [ ] Merge umbrella → `main`; schedule hash shim removal
 
@@ -612,4 +613,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 7 AI assistant (EventSource interop + sanitized Markdig + `ai-panel` Playwright) is complete on `cursor/blazor-wasm-phase7-a409`. After merge to the umbrella: cut a Phase 8 branch and execute **cutover** (relocate Playwright → `tests/e2e/`, CI, full validation, then delete React) — do not start Phase 8 steps until Phase 7 is merged.
+Phase 8 cutover is in progress on `cursor/blazor-wasm-phase8-cutover-5ed7`. After full Playwright + Compose validation: standalone delete of `src/atlas.ui`, then merge umbrella → `main`. Hash shim removal is a **follow-up PR** (not part of these cutover commits).

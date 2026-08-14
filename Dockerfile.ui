@@ -1,19 +1,18 @@
 # Classic builder works if BuildKit overlay fails: DOCKER_BUILDKIT=0 COMPOSE_BAKE=false
-FROM node:22-alpine AS build
-WORKDIR /app
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
 
-COPY src/atlas.ui/package.json src/atlas.ui/package-lock.json ./
-RUN npm ci
+COPY src/frontend/Atlas.Ui/ Atlas.Ui/
+WORKDIR /src/Atlas.Ui
 
-COPY src/atlas.ui/ ./
+RUN dotnet restore Atlas.Ui.csproj
+RUN dotnet publish Atlas.Ui.csproj -c Release -o /app/publish --no-restore
 
-ARG VITE_API_BASE_URL=http://localhost:5012
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-
-RUN npm run build
+ARG API_BASE_URL=http://localhost:5012
+RUN sed -i "s|\"ApiBaseUrl\": \"[^\"]*\"|\"ApiBaseUrl\": \"${API_BASE_URL}\"|" /app/publish/wwwroot/appsettings.json
 
 FROM nginx:1.27-alpine AS final
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
 
 EXPOSE 80
