@@ -1,8 +1,8 @@
 # Atlas
 
-Local engineering-manager cockpit (React UI + ASP.NET Core API + Postgres).
+Local engineering-manager cockpit (Blazor WebAssembly UI + ASP.NET Core API + Postgres).
 
-Blazor WASM migration is in progress on umbrella branch `cursor/blazor-wasm-frontend-82c4` — see [docs/blazor-wasm-migration.md](docs/blazor-wasm-migration.md). Phase 3 React visual baseline: [docs/migration-screenshots/react-baseline/](docs/migration-screenshots/react-baseline/).
+React → Blazor WASM cutover: [docs/blazor-wasm-migration.md](docs/blazor-wasm-migration.md). Frozen React visual baseline: [docs/migration-screenshots/react-baseline/](docs/migration-screenshots/react-baseline/).
 
 ## Quick start (Docker)
 
@@ -25,8 +25,8 @@ Full details and troubleshooting: [docs/docker.md](docs/docker.md).
 ## Local development (without Docker)
 
 - API: `src/backend/Api/Atlas.Api` (default http://localhost:5012) — see `AGENTS.md`
-- UI (React): `src/atlas.ui` — see [src/atlas.ui/README.md](src/atlas.ui/README.md)
-- UI (Blazor WASM, migration): `src/frontend/Atlas.Ui` — see [src/frontend/Atlas.Ui/README.md](src/frontend/Atlas.Ui/README.md)
+- UI (Blazor WASM): `src/frontend/Atlas.Ui` — see [src/frontend/Atlas.Ui/README.md](src/frontend/Atlas.Ui/README.md)
+- Playwright: `tests/e2e/` — `cd tests/e2e && npm ci && npm run test:e2e`
 
 ## OpenAPI
 
