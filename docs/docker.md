@@ -101,7 +101,7 @@ Legacy hash URLs (`/#/dashboard`) are rewritten client-side to paths until the h
 - `Dockerfile.api` — multi-stage .NET 10 publish, listens on `8080`
 - `Dockerfile.ui` — Blazor WASM `dotnet publish` + nginx static serve on port `80`
 
-nginx caches fingerprinted `/_framework/*` for a year and sends `Cache-Control: no-cache` for `index.html` and `blazor.boot.json`. gzip (including `gzip_static` for precompressed `.gz` from publish) is enabled. Publish did not emit `.br` files in the cutover environment, so brotli is not configured.
+nginx caches fingerprinted `/_framework/*` for a year and sends `Cache-Control: no-cache` for `index.html` (and `blazor.boot.json` if present). gzip (including `gzip_static` for precompressed `.gz` from publish) is enabled. Blazor publish also emits `.br` files; `nginx:1.27-alpine` does not include the brotli module, so those files are not negotiated. Do not add `brotli_static` on this image.
 
 Secrets (`OpenAI__ApiKey`, `AzureDevopsToken`, DB password) are injected at runtime via Compose/`.env` only — they are not baked into either image.
 
