@@ -1,10 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173'
-const reactBaseline = process.env.ATLAS_REACT_BASELINE === '1'
 
 export default defineConfig({
-  testDir: './e2e/flows',
+  testDir: './flows',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -27,10 +26,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    // Phase 2–7 default: Blazor host. React baseline capture sets ATLAS_REACT_BASELINE=1.
-    command: reactBaseline
-      ? 'npm run preview -- --host 127.0.0.1 --port 5173'
-      : 'dotnet run --project ../frontend/Atlas.Ui/Atlas.Ui.csproj --launch-profile http',
+    command: 'dotnet run --project ../../src/frontend/Atlas.Ui/Atlas.Ui.csproj --launch-profile http',
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
