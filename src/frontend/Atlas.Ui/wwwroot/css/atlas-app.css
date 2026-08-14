@@ -919,14 +919,12 @@
 }
 
 .tasksTaskRowPills {
-  /* Keep Duration / Status / Priority aligned as columns across rows.
-     Column widths are set dynamically via CSS vars on the list container so they stay
-     as narrow as needed for current content. */
+  /* Duration / Status / Priority pill columns; each row sizes independently. */
   display: grid;
   grid-template-columns:
-    var(--tasksPillColDuration, max-content)
-    var(--tasksPillColStatus, max-content)
-    var(--tasksPillColPriority, max-content)
+    max-content
+    max-content
+    max-content
     12px;
   gap: 8px;
   align-items: center;
@@ -1094,6 +1092,11 @@
   min-height: 0;
 }
 
+.tasksListRow.tasksListCapped {
+  max-height: calc(5 * 4.75rem);
+  overflow-y: auto;
+}
+
 .tasksDetailRow {
   overflow: auto;
   min-height: 0;
@@ -1131,6 +1134,11 @@
   padding: 8px;
   overflow: auto;
   min-height: 0;
+}
+
+.risksListRow.risksListCapped {
+  max-height: calc(5 * 4.75rem);
+  overflow-y: auto;
 }
 
 .risksRiskRow {
@@ -1341,7 +1349,10 @@ select option:disabled {
 }
 
 .textareaAutoGrow {
-  /* JS controls height; keep the UX tidy. */
+  field-sizing: content;
+  min-height: 4.5rem;
+  max-height: 280px;
+  overflow-y: auto;
   resize: none;
 }
 
@@ -3403,4 +3414,9 @@ select option:disabled {
   .growthGoalsGrid {
     grid-template-columns: 1fr;
   }
+}
+
+a.btn,
+a.btn:hover {
+  text-decoration: none;
 }

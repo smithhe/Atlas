@@ -1,3 +1,4 @@
+using System.Globalization;
 using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Mapping;
@@ -87,12 +88,30 @@ public static class DisplayLabels
             return "—";
         }
 
-        if (!DateTimeOffset.TryParse(iso, out DateTimeOffset d))
+        string trimmed = iso.Trim();
+        System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(trimmed, @"^(\d{4})-(\d{2})-(\d{2})$");
+        if (m.Success)
+        {
+            string year = m.Groups[1].Value;
+            int monthIdx = int.Parse(m.Groups[2].Value) - 1;
+            string day = m.Groups[3].Value;
+            ReadOnlySpan<string> months =
+            [
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+            ];
+            if (monthIdx >= 0 && monthIdx < months.Length)
+            {
+                return $"{months[monthIdx]} {day}, {year}";
+            }
+        }
+
+        if (!DateTimeOffset.TryParse(trimmed, out DateTimeOffset d))
         {
             return iso;
         }
 
-        return d.ToString("MMM d, yyyy");
+        return d.ToString("MMM dd, yyyy");
     }
 
     public static string FormatReadableDateTime(string? iso)
@@ -107,7 +126,7 @@ public static class DisplayLabels
             return iso;
         }
 
-        return d.ToLocalTime().ToString("f");
+        return d.ToLocalTime().ToString("MMM dd, yyyy, h:mm tt", CultureInfo.GetCultureInfo("en-US"));
     }
 
     public static string FormatIsoDateLong(string? iso)
