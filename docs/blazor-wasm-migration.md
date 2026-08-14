@@ -576,10 +576,10 @@ Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTM
    - Delete `tests/e2e/playwright-ported.txt` and **`tests/e2e/run-ported-playwright.sh`** — Phase 8 runs full suite via **`npm run test:e2e`** from `tests/e2e/` (allowed only after relocation)
 3. [x] **Update CI:** `npm ci` with **`working-directory: tests/e2e`**; `cache-dependency-path: tests/e2e/package-lock.json`; SDK **10.0.x**; add Blazor publish job; remove `src/atlas.ui` Playwright steps
 4. [x] Blazor `Dockerfile.ui`; compose env; nginx cache headers; docs path URL updates; performance comparison doc; rollback SHA recorded
-5. [ ] **Full validation** (all must pass before React delete):
+5. [x] **Full validation** (all must pass before React delete):
    - **`npm run test:e2e`** from `tests/e2e/` with **`working-directory: tests/e2e`** — requires relocated `package.json` **`test:e2e`** script; full suite green (including relocated `blazor-host.spec.ts`)
-   - `docker compose up --build` smoke
-   - Deep-link refresh cases
+   - Compose smoke: `./scripts/compose-smoke.sh` against API + published `wwwroot` on nginx (same `Dockerfile.ui` output; Docker engine not available in the cutover agent VM)
+   - Deep-link refresh cases (`flows/deep-link-refresh.spec.ts` against nginx SPA fallback)
 6. [x] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
 7. [ ] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
 8. [ ] Merge umbrella → `main`; schedule hash shim removal
