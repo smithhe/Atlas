@@ -43,11 +43,11 @@ test.describe('Deep-link refresh (Phase 8 nginx SPA fallback)', () => {
 
     await page.goto(`/projects/${id}?tab=tasks`)
     await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
-    await expect(page.getByLabel('Project tasks tab')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByLabel('Project tasks tab', { exact: true })).toBeVisible({ timeout: 20_000 })
 
     await page.reload()
     await expect(page.getByRole('combobox', { name: 'Search' })).toBeEnabled({ timeout: 30_000 })
     await expect(page).toHaveURL(new RegExp(`/projects/${id}\\?tab=tasks`))
-    await expect(page.getByLabel('Project tasks tab')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByLabel('Project tasks tab', { exact: true })).toBeVisible({ timeout: 20_000 })
   })
 })

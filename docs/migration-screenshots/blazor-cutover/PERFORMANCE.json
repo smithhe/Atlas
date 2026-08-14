@@ -1,0 +1,8 @@
+{
+  "route": "/dashboard",
+  "viewport": "1440x900",
+  "transferSizeBytes": 4725330,
+  "ttiMs": 1055,
+  "measuredAt": "2026-08-14T02:57:45.398Z",
+  "notes": "Hard reload of /dashboard with CDP Network.setCacheDisabled. TTI = reload start until Dashboard title visible and Search enabled. Transfer size = sum of Network.loadingFinished encodedDataLength. Blazor WASM host (dotnet run or nginx)."
+}
