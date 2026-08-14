@@ -7,12 +7,12 @@ import { ensureTeamMember } from '../fixtures/api'
 
 /**
  * Phase 6 Blazor Team hub screenshot evidence vs docs/migration-screenshots/react-baseline/.
- * Run: ATLAS_BLAZOR_PHASE6_SHOTS=1 npx playwright test e2e/flows/capture-blazor-phase6.spec.ts
- * (Not in playwright-ported.txt — evidence only.)
+ * Run: ATLAS_BLAZOR_PHASE6_SHOTS=1 npx playwright test flows/capture-blazor-phase6.spec.ts
+ * (Evidence only — skipped unless ATLAS_BLAZOR_PHASE6_SHOTS=1.)
  */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const OUT = path.resolve(__dirname, '../../../../docs/migration-screenshots/blazor-phase6')
+const OUT = path.resolve(__dirname, '../../../docs/migration-screenshots/blazor-phase6')
 
 const VIEWPORTS = [
   { name: 'desktop-1440x900', width: 1440, height: 900 },
