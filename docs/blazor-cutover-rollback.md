@@ -8,7 +8,7 @@ React is removed in a **standalone commit** so `git revert <delete-sha>` restore
 | --- | --- | --- |
 | Last React-only `main` | `7f189ed60a37350b4de162f116296f47804822e3` | `Bump the npm_and_yarn group across 1 directory with 2 updates` |
 | Last umbrella commit that still contains React (pre–Phase 8) | `cd1b4aea751a16460579f8be671808348299e309` | `Updated Blazor UI to have the same look and feel as the react ui` |
-| Standalone `src/atlas.ui` delete | *filled after the delete commit* | `git revert` this SHA to restore the React tree |
+| Standalone `src/atlas.ui` delete | `57e85657a551c364d3cc7ded33778bc38940aea1` | `git revert 57e85657a551c364d3cc7ded33778bc38940aea1` restores the React tree |
 
 There is no published container registry for Atlas UI images. The last React `Dockerfile.ui` was Node 22 Vite → `nginx:1.27-alpine`. To rebuild that image, check out the last React-only `main` SHA (or revert the delete + Dockerfile.ui) and run `docker compose build ui`.
 

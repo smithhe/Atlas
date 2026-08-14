@@ -300,13 +300,13 @@ Phase 7  Broader frontend UI tests + CI — **done**
 | Azure sync flow + team member provenance | `docs/azure-devops-sync-flow.md` |
 | API entry | `src/backend/Api/Atlas.Api/Program.cs` |
 | AI scopes | `src/backend/Core/Atlas.Application/Abstractions/Ai/AiViewScope.cs` |
-| Derived activity snapshot | `src/atlas.ui/src/app/team.ts` (`deriveActivitySnapshot`) |
+| Derived activity snapshot | `src/frontend/Atlas.Ui/Mapping/TeamLogic.cs` (`DeriveActivitySnapshot`) |
 | Team note entity (ADO/PR fields) | `src/backend/Core/Atlas.Domain/Entities/TeamNote.cs` |
 | Azure WI entity (core fields only) | `src/backend/Core/Atlas.Domain/Entities/AzureWorkItem.cs` |
-| Browser-local AI panel pref | `src/atlas.ui/src/app/localSettings.ts` |
-| Query invalidation scopes | `src/atlas.ui/src/app/queries/invalidateAppQueries.ts` |
+| Browser-local AI panel pref | `src/frontend/Atlas.Ui/Services/LocalSettings.cs` |
+| Cache hydration / invalidation | `src/frontend/Atlas.Ui/Services/AppCacheService.cs` |
 | Backend CI | `.github/workflows/backend-tests.yml` |
-| Frontend CI (lint/build + Playwright) | `.github/workflows/frontend-ci.yml` |
+| Frontend CI (Blazor publish + Playwright) | `.github/workflows/frontend-ci.yml` |
 | Compose smoke | `scripts/compose-smoke.sh` |
 | Bruno collections | `bruno/Atlas/` |
 | Seeder stub | `src/backend/Infrastructure/Atlas.Persistence/Seeding/DevDatabaseSeeder.cs` |

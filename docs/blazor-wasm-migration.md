@@ -80,9 +80,9 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 
 ## Success criteria
 
-- [ ] Same user journeys as frozen React baseline: login/setup stub, dashboard, tasks, projects, risks, team, settings, Azure import, AI panel.
-- [ ] Path-based URLs; Docker/nginx serves Blazor; umbrella CI green from Phase 2 onward.
-- [ ] React visual baseline captured by **end of Phase 3**; Phase 4–7 PRs compare Blazor against it.
+- [x] Same user journeys as frozen React baseline: login/setup stub, dashboard, tasks, projects, risks, team, settings, Azure import, AI panel.
+- [x] Path-based URLs; Docker/nginx serves Blazor; umbrella CI green from Phase 2 onward.
+- [x] React visual baseline captured by **end of Phase 3**; Phase 4–7 PRs compare Blazor against it.
 - [ ] Manual parity sign-off per phase; Playwright in `tests/e2e/`; `src/atlas.ui` deleted in standalone commit; umbrella merges to `main`.
 
 ---
@@ -581,7 +581,7 @@ Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTM
    - Compose smoke: `./scripts/compose-smoke.sh` against API + published `wwwroot` on nginx (same `Dockerfile.ui` output; Docker engine not available in the cutover agent VM)
    - Deep-link refresh cases (`flows/deep-link-refresh.spec.ts` against nginx SPA fallback)
 6. [x] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
-7. [ ] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
+7. [x] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
 8. [ ] Merge umbrella → `main`; schedule hash shim removal
 
 **Exit:** `main` Blazor-only via Docker/nginx; Playwright in `tests/e2e/`; full suite green; CI green; manual full checklist sign-off.
@@ -613,4 +613,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 8 cutover is in progress on `cursor/blazor-wasm-phase8-cutover-5ed7`. After full Playwright + Compose validation: standalone delete of `src/atlas.ui`, then merge umbrella → `main`. Hash shim removal is a **follow-up PR** (not part of these cutover commits).
+Phase 8 cutover is complete on `cursor/blazor-wasm-phase8-cutover-5ed7` except merge to `main` and hash-shim removal. After this PR merges to the umbrella: merge umbrella → `main`. Hash shim removal is a **follow-up PR**.
