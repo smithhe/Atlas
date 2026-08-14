@@ -2,12 +2,13 @@
 @layout EmptyLayout
 @inject NavigationManager Nav
 @inject IAtlasApiClient Api
-@inject BrowserDialogs Dialogs
+@inject AppCacheService Cache
+@inject IJSRuntime Js
 
 <PageTitle>Azure Setup — Atlas</PageTitle>
 
 <div class="entryShell">
-    <header class="entryHeader">
+    <header class="entryHeader" @ref="_headerRef">
         <div class="entryHeaderInner">
             <div class="pageHeader">
                 <div class="pageHeaderLeft">
@@ -18,7 +19,15 @@
                 </div>
                 <div class="pageHeaderRight" style="display: flex; gap: 8px; align-items: center;">
                     <button class="btn btnSecondary" type="button" @onclick="Skip">Skip for now</button>
-                    <span class="pill toneInfo">Step 1/3 • Project</span>
+                    <span class="pill toneInfo">
+                        <span class="btnContent">
+                            @StepLabel
+                            @if (_step == SetupStep.Saving)
+                            {
+                                <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving Azure connection"></span>
+                            }
+                        </span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -26,92 +35,626 @@
 
     <div class="page entryPage">
         <div class="card pad" style="margin-bottom: 16px">
-            <p class="muted">Enter connection IDs to wire Azure DevOps. Live Azure is not required for local/CI smoke.</p>
-            <div class="fieldGrid2" style="margin-top: 16px">
-                <label class="field">
-                    <div class="fieldLabel">Organization</div>
-                    <input class="input" @bind="_org" @bind:event="oninput" />
-                </label>
-                <label class="field">
-                    <div class="fieldLabel">Project name</div>
-                    <input class="input" @bind="_project" @bind:event="oninput" />
-                </label>
-                <label class="field">
-                    <div class="fieldLabel">Project ID</div>
-                    <input class="input" @bind="_projectId" @bind:event="oninput" />
-                </label>
-                <label class="field">
-                    <div class="fieldLabel">Team name</div>
-                    <input class="input" @bind="_teamName" @bind:event="oninput" />
-                </label>
-                <label class="field">
-                    <div class="fieldLabel">Team ID</div>
-                    <input class="input" @bind="_teamId" @bind:event="oninput" />
-                </label>
-                <label class="field">
-                    <div class="fieldLabel">Area path</div>
-                    <input class="input" @bind="_areaPath" @bind:event="oninput" />
+            <div class="fieldGrid2">
+                <label class="field span2">
+                    <div class="fieldLabel setupOrgLabel">Organization (required)</div>
+                    <input class="input"
+                           value="@_organization"
+                           @oninput="OnOrganizationInput"
+                           placeholder="e.g. contoso"
+                           autocapitalize="none"
+                           autocorrect="off"
+                           spellcheck="false" />
+                    <div class="mutedSmall">This is the Azure DevOps organization name in your URL.</div>
                 </label>
             </div>
-            <div class="row mt-lg">
-                <button class="btn" type="button" @onclick="SaveConnection" disabled="@_saving">
-                    @(_saving ? "Saving…" : "Save connection")
+
+            <div class="rowTiny" style="margin-top: 12px; align-items: center">
+                <button class="btn btnWide"
+                        type="button"
+                        disabled="@(_loading || string.IsNullOrWhiteSpace(_organization))"
+                        @onclick="OnLoadProjects">
+                    <span class="btnContent">
+                        @if (_loading && _step == SetupStep.Project)
+                        {
+                            <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Loading projects"></span>
+                        }
+                        Load projects
+                    </span>
                 </button>
-                <button class="btn btnGhost" type="button" @onclick="Skip">Continue to app</button>
+                <div class="mutedSmall">
+                    @if (string.IsNullOrWhiteSpace(_organization))
+                    {
+                        <text>Enter an organization to continue.</text>
+                    }
+                    else
+                    {
+                        <text>Next: choose a project and team.</text>
+                    }
+                </div>
             </div>
-            @if (!string.IsNullOrEmpty(_message))
-            {
-                <div class="muted" style="margin-top: 12px">@_message</div>
-            }
         </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="card pad" style="margin-bottom: 12px">Error: @_error</div>
+        }
+
+        @if (_projects.Count > 0)
+        {
+            <div class="card pad scrollCard" @ref="_projectsCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(_loading && _step == SetupStep.Project ? "loadingOverlayWrapActive" : null)">
+                    <div class="loadingOverlayBody">
+                        <h3>Select project</h3>
+                        <label class="field" style="margin-top: 8px">
+                            <div class="fieldLabel">Search</div>
+                            <input class="input"
+                                   value="@_projectQuery"
+                                   @oninput="OnProjectQueryInput"
+                                   placeholder="Filter projects…" />
+                        </label>
+                        <div class="mutedSmall" style="margin-top: 8px">
+                            @(string.IsNullOrEmpty(_selectedProjectId) ? "Choose one project." : "Project selected.") • @FilteredProjects.Count shown
+                        </div>
+                        <div class="list listCard" style="margin-top: 10px; max-height: 260px; overflow: auto">
+                            @foreach (AtlasApiDTOsAzureDevOpsAzureProjectDto p in FilteredProjects)
+                            {
+                                string projectId = p.Id ?? "";
+                                bool selected = projectId == _selectedProjectId;
+                                <button type="button"
+                                        class="listRow listRowBtn @(selected ? "listRowActive" : null)"
+                                        disabled="@_loading"
+                                        @onclick="() => OnSelectProject(projectId)">
+                                    <div class="listMain">
+                                        <div class="listTitle">@p.Name</div>
+                                    </div>
+                                    @if (selected)
+                                    {
+                                        <span class="pill toneInfo">Selected</span>
+                                    }
+                                </button>
+                            }
+                            @if (FilteredProjects.Count == 0)
+                            {
+                                <div class="muted pad">No projects match your search.</div>
+                            }
+                        </div>
+                    </div>
+                    @if (_loading && _step == SetupStep.Project)
+                    {
+                        <div class="loadingOverlay" role="presentation">
+                            <span class="spinner spinner-md" role="status" aria-label="Loading projects"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (_teams.Count > 0)
+        {
+            <div class="card pad scrollCard" @ref="_teamsCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(_loading && _step == SetupStep.Team ? "loadingOverlayWrapActive" : null)">
+                    <div class="loadingOverlayBody">
+                        <h3>Select team</h3>
+                        <label class="field" style="margin-top: 8px">
+                            <div class="fieldLabel">Search</div>
+                            <input class="input"
+                                   value="@_teamQuery"
+                                   @oninput="OnTeamQueryInput"
+                                   placeholder="Filter teams…" />
+                        </label>
+                        <div class="mutedSmall" style="margin-top: 8px">
+                            @(string.IsNullOrEmpty(_selectedTeamId) ? "Choose one team." : "Team selected.") • @FilteredTeams.Count shown
+                        </div>
+                        <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
+                            @foreach (AtlasApiDTOsAzureDevOpsAzureTeamDto t in FilteredTeams)
+                            {
+                                string teamId = t.Id ?? "";
+                                string teamName = t.Name ?? "";
+                                bool selected = teamId == _selectedTeamId;
+                                <button type="button"
+                                        class="listRow listRowBtn @(selected ? "listRowActive" : null)"
+                                        disabled="@_loading"
+                                        @onclick="() => OnSelectTeam(teamId, teamName)">
+                                    <div class="listMain">
+                                        <div class="listTitle">@t.Name</div>
+                                    </div>
+                                    @if (selected)
+                                    {
+                                        <span class="pill toneInfo">Selected</span>
+                                    }
+                                </button>
+                            }
+                            @if (FilteredTeams.Count == 0)
+                            {
+                                <div class="muted pad">No teams match your search.</div>
+                            }
+                        </div>
+                    </div>
+                    @if (_loading && _step == SetupStep.Team)
+                    {
+                        <div class="loadingOverlay" role="presentation">
+                            <span class="spinner spinner-md" role="status" aria-label="Loading teams"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_selectedTeamId))
+        {
+            <div class="card pad scrollCard" @ref="_areaPathCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(_areaPathLoading ? "loadingOverlayWrapActive" : null)">
+                    <div class="loadingOverlayBody">
+                        <h3>Default area path</h3>
+                        <label class="field" style="margin-top: 8px">
+                            <div class="fieldLabel">Resolved from team settings</div>
+                            <input class="input inputReadonly"
+                                   value="@_areaPath"
+                                   readonly
+                                   placeholder="(not available)"
+                                   title="Read-only (resolved from team settings)" />
+                            <div class="mutedSmall">
+                                This is the team’s default Area Path and will be saved with the connection.
+                                @if (!string.IsNullOrEmpty(_areaPathError))
+                                {
+                                    <text> (Could not load default: @_areaPathError)</text>
+                                }
+                                You can override it later in Settings.
+                            </div>
+                        </label>
+                    </div>
+                    @if (_areaPathLoading)
+                    {
+                        <div class="loadingOverlay" role="presentation">
+                            <span class="spinner spinner-sm" role="status" aria-label="Loading area path"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (_users.Count > 0)
+        {
+            <div class="card pad scrollCard" @ref="_membersCardRef">
+                <div class="loadingOverlayWrap @(_step == SetupStep.Saving ? "loadingOverlayWrapActive" : null)">
+                    <div class="loadingOverlayBody">
+                        <h3>Select members to import</h3>
+                        <label class="field" style="margin-top: 8px">
+                            <div class="fieldLabel">Search</div>
+                            <input class="input"
+                                   value="@_memberQuery"
+                                   @oninput="OnMemberQueryInput"
+                                   placeholder="Filter members…" />
+                        </label>
+                        <div class="rowTiny" style="margin-top: 10px">
+                            <button type="button"
+                                    class="btn btnGhost"
+                                    disabled="@(FilteredUsers.Count == 0)"
+                                    @onclick="SelectAllShown">
+                                Select all shown
+                            </button>
+                            <button type="button"
+                                    class="btn btnGhost"
+                                    disabled="@(_selectedUsers.Count == 0)"
+                                    @onclick="ClearSelectedUsers">
+                                Clear
+                            </button>
+                            <span class="mutedSmall" style="margin-left: auto">
+                                @_selectedUsers.Count selected • @FilteredUsers.Count shown
+                            </span>
+                        </div>
+                        <div class="list listCard" style="margin-top: 10px; max-height: 360px; overflow: auto">
+                            @foreach (AtlasApiDTOsAzureDevOpsAzureUserDto u in FilteredUsers)
+                            {
+                                string unique = u.UniqueName ?? "";
+                                bool selected = _selectedUsers.Contains(unique);
+                                <label class="listRow listRowBtn @(selected ? "listRowActive" : null)" style="cursor: pointer">
+                                    <input type="checkbox"
+                                           checked="@selected"
+                                           @onchange="e => ToggleUser(unique, e)" />
+                                    <div class="listMain">
+                                        <div class="listTitle">@(string.IsNullOrEmpty(u.DisplayName) ? unique : u.DisplayName)</div>
+                                        @if (!string.IsNullOrEmpty(u.DisplayName))
+                                        {
+                                            <div class="listMeta">@unique</div>
+                                        }
+                                    </div>
+                                </label>
+                            }
+                            @if (FilteredUsers.Count == 0)
+                            {
+                                <div class="muted pad">No members match your search.</div>
+                            }
+                        </div>
+
+                        <div class="row" style="margin-top: 12px">
+                            <button class="btn"
+                                    type="button"
+                                    disabled="@_loading"
+                                    @onclick="OnSave">
+                                <span class="btnContent">
+                                    @if (_step == SetupStep.Saving)
+                                    {
+                                        <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving connection"></span>
+                                    }
+                                    Save connection
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    @if (_step == SetupStep.Saving)
+                    {
+                        <div class="loadingOverlay" role="presentation">
+                            <span class="spinner spinner-md" role="status" aria-label="Saving connection"></span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    string _org = "";
-    string _project = "";
-    string _projectId = "";
-    string _teamName = "";
-    string _teamId = "";
+    enum SetupStep { Project, Team, Members, Saving }
+
+    ElementReference _headerRef;
+    ElementReference _projectsCardRef;
+    ElementReference _teamsCardRef;
+    ElementReference _areaPathCardRef;
+    ElementReference _membersCardRef;
+
+    int _projectsScrollGen;
+    int _teamsScrollGen;
+    int _membersScrollGen;
+    int _scrolledProjectsGen = -1;
+    int _scrolledTeamsGen = -1;
+    int _scrolledMembersGen = -1;
+
+    string _organization = "";
     string _areaPath = "";
-    bool _saving;
-    string? _message;
+    bool _areaPathLoading;
+    string? _areaPathError;
+
+    List<AtlasApiDTOsAzureDevOpsAzureProjectDto> _projects = [];
+    string _selectedProjectId = "";
+    List<AtlasApiDTOsAzureDevOpsAzureTeamDto> _teams = [];
+    string _selectedTeamId = "";
+    List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
+
+    string _projectQuery = "";
+    string _teamQuery = "";
+    string _memberQuery = "";
+
+    SetupStep _step = SetupStep.Project;
+    bool _loading;
+    string? _error;
+
+    string StepLabel => _step switch
+    {
+        SetupStep.Saving => "Saving",
+        SetupStep.Project => "Step 1/3 • Project",
+        SetupStep.Team => "Step 2/3 • Team",
+        _ => "Step 3/3 • Members"
+    };
+
+    AtlasApiDTOsAzureDevOpsAzureProjectDto? SelectedProject =>
+        _projects.FirstOrDefault(p => p.Id == _selectedProjectId);
+
+    AtlasApiDTOsAzureDevOpsAzureTeamDto? SelectedTeam =>
+        _teams.FirstOrDefault(t => t.Id == _selectedTeamId);
+
+    List<AtlasApiDTOsAzureDevOpsAzureProjectDto> FilteredProjects
+    {
+        get
+        {
+            IEnumerable<AtlasApiDTOsAzureDevOpsAzureProjectDto> sorted = _projects
+                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase);
+            string q = _projectQuery.Trim();
+            if (q.Length == 0) return sorted.ToList();
+            return sorted
+                .Where(p => (p.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    List<AtlasApiDTOsAzureDevOpsAzureTeamDto> FilteredTeams
+    {
+        get
+        {
+            IEnumerable<AtlasApiDTOsAzureDevOpsAzureTeamDto> sorted = _teams
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase);
+            string q = _teamQuery.Trim();
+            if (q.Length == 0) return sorted.ToList();
+            return sorted
+                .Where(t => (t.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    List<AtlasApiDTOsAzureDevOpsAzureUserDto> FilteredUsers
+    {
+        get
+        {
+            IEnumerable<AtlasApiDTOsAzureDevOpsAzureUserDto> sorted = _users
+                .OrderBy(u => (u.DisplayName ?? u.UniqueName ?? ""), StringComparer.OrdinalIgnoreCase);
+            string q = _memberQuery.Trim();
+            if (q.Length == 0) return sorted.ToList();
+            return sorted
+                .Where(u =>
+                {
+                    string hay = $"{u.DisplayName ?? ""} {u.UniqueName ?? ""}";
+                    return hay.Contains(q, StringComparison.OrdinalIgnoreCase);
+                })
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            AtlasApiDTOsAzureDevOpsAzureConnectionDto conn =
+                await Api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync();
+            if (!string.IsNullOrWhiteSpace(conn.Organization))
+                _organization = conn.Organization;
+        }
+        catch
+        {
+            // Setup handles missing connection.
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (_projects.Count > 0 && _projectsScrollGen != _scrolledProjectsGen)
+            {
+                _scrolledProjectsGen = _projectsScrollGen;
+                await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _projectsCardRef);
+            }
+
+            if (_step == SetupStep.Team && _teams.Count > 0 && _teamsScrollGen != _scrolledTeamsGen)
+            {
+                _scrolledTeamsGen = _teamsScrollGen;
+                await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _teamsCardRef);
+            }
+
+            if (_step == SetupStep.Members && _membersScrollGen != _scrolledMembersGen)
+            {
+                _scrolledMembersGen = _membersScrollGen;
+                if (_users.Count > 0)
+                    await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _membersCardRef);
+                else if (!string.IsNullOrEmpty(_selectedTeamId))
+                    await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _areaPathCardRef);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
 
     void Skip() => Nav.NavigateTo("/dashboard");
 
-    async Task SaveConnection()
-    {
-        if (_saving) return;
-        if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
-        {
-            await Dialogs.AlertAsync("Project ID and Team ID are required to save a connection.");
-            return;
-        }
+    void OnOrganizationInput(ChangeEventArgs e) => _organization = e.Value?.ToString() ?? "";
+    void OnProjectQueryInput(ChangeEventArgs e) => _projectQuery = e.Value?.ToString() ?? "";
+    void OnTeamQueryInput(ChangeEventArgs e) => _teamQuery = e.Value?.ToString() ?? "";
+    void OnMemberQueryInput(ChangeEventArgs e) => _memberQuery = e.Value?.ToString() ?? "";
 
-        _saving = true;
+    async Task OnLoadProjects()
+    {
+        if (string.IsNullOrWhiteSpace(_organization) || _loading) return;
+        _loading = true;
+        _error = null;
+        try
+        {
+            ICollection<AtlasApiDTOsAzureDevOpsAzureProjectDto> list =
+                await Api.AtlasApiEndpointsAzureDevOpsListAzureProjectsEndpointAsync(_organization);
+            _projects = list.ToList();
+            _selectedProjectId = "";
+            _selectedTeamId = "";
+            _teams = [];
+            _users = [];
+            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+            _projectQuery = "";
+            _teamQuery = "";
+            _memberQuery = "";
+            _areaPath = "";
+            _areaPathError = null;
+            _areaPathLoading = false;
+            _step = SetupStep.Project;
+            _projectsScrollGen++;
+        }
+        catch (Exception ex)
+        {
+            _error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load projects" : ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    async Task OnSelectProject(string projectId)
+    {
+        if (_loading) return;
+        _selectedProjectId = projectId;
+        _selectedTeamId = "";
+        _teams = [];
+        _users = [];
+        _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+        _teamQuery = "";
+        _memberQuery = "";
+        _areaPath = "";
+        _areaPathError = null;
+        _areaPathLoading = false;
+        _error = null;
+        _loading = true;
+        try
+        {
+            ICollection<AtlasApiDTOsAzureDevOpsAzureTeamDto> list =
+                await Api.AtlasApiEndpointsAzureDevOpsListAzureTeamsEndpointAsync(_organization, projectId);
+            _teams = list.ToList();
+            _step = SetupStep.Team;
+            _teamsScrollGen++;
+        }
+        catch (Exception ex)
+        {
+            _error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load teams" : ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    async Task OnSelectTeam(string teamId, string teamName)
+    {
+        if (_loading) return;
+        _selectedTeamId = teamId;
+        _users = [];
+        _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+        _memberQuery = "";
+        _error = null;
+        _loading = true;
+        _areaPathLoading = true;
+        _areaPathError = null;
+        try
+        {
+            Task<ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>> usersTask =
+                Api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(
+                    _organization, _selectedProjectId, teamId);
+            Task<AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto> areasTask =
+                Api.AtlasApiEndpointsAzureDevOpsListAzureTeamAreaPathsEndpointAsync(
+                    _organization, _selectedProjectId, teamName);
+
+            ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> users;
+            try
+            {
+                users = await usersTask;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(ex.Message, ex);
+            }
+
+            _users = users.ToList();
+
+            try
+            {
+                AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto areas = await areasTask;
+                string defaultValue = (areas.DefaultValue ?? "").Trim();
+                if (defaultValue.Length > 0)
+                {
+                    _areaPath = defaultValue;
+                }
+                else if (areas.Values?.Count > 0)
+                {
+                    _areaPath = areas.Values.First().Value ?? "";
+                }
+                else
+                {
+                    _areaPath = "";
+                }
+            }
+            catch (Exception ex)
+            {
+                _areaPathError = ex.Message;
+            }
+
+            _step = SetupStep.Members;
+            _membersScrollGen++;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+            _areaPathLoading = false;
+        }
+    }
+
+    void ToggleUser(string uniqueName, ChangeEventArgs e)
+    {
+        HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
+        if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+            next.Add(uniqueName);
+        else
+            next.Remove(uniqueName);
+        _selectedUsers = next;
+    }
+
+    void SelectAllShown()
+    {
+        _selectedUsers = FilteredUsers
+            .Select(u => u.UniqueName)
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Select(s => s!)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+
+    async Task OnSave()
+    {
+        AtlasApiDTOsAzureDevOpsAzureProjectDto? project = SelectedProject;
+        AtlasApiDTOsAzureDevOpsAzureTeamDto? team = SelectedTeam;
+        if (project is null || team is null || _loading) return;
+
+        _loading = true;
+        _error = null;
+        _step = SetupStep.Saving;
         try
         {
             await Api.AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpointAsync(
                 new AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest
                 {
-                    Organization = _org,
-                    Project = _project,
+                    Organization = _organization,
+                    Project = project.Name,
                     AreaPath = _areaPath,
-                    TeamName = string.IsNullOrWhiteSpace(_teamName) ? null : _teamName,
-                    ProjectId = _projectId,
-                    TeamId = _teamId,
-                    IsEnabled = true
+                    TeamName = team.Name,
+                    IsEnabled = true,
+                    ProjectId = project.Id,
+                    TeamId = team.Id
                 });
-            _message = "Connection saved.";
+
+            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = _users
+                .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
+                .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
+                {
+                    DisplayName = u.DisplayName,
+                    UniqueName = u.UniqueName,
+                    Descriptor = u.Descriptor
+                })
+                .ToList();
+
+            if (selected.Count > 0)
+            {
+                await Api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
+                    new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest { Users = selected });
+                await Cache.RefetchTeamAsync();
+            }
+
+            Nav.NavigateTo("/dashboard");
         }
         catch (Exception ex)
         {
-            _message = ex.Message;
-            await Dialogs.AlertAsync("Unable to save Azure connection right now.");
+            _error = ex.Message;
+            _step = SetupStep.Members;
         }
         finally
         {
-            _saving = false;
+            _loading = false;
         }
     }
 }

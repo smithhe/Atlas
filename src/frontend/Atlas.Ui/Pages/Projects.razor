@@ -38,10 +38,6 @@
                             </div>
                         </button>
                     }
-                    @if (Cache.Projects.Count == 0)
-                    {
-                        <div class="muted pad">No projects yet.</div>
-                    }
                 </div>
             </section>
         }
@@ -53,10 +49,10 @@
             }
             else
             {
-                <div class="card pad projectDetailCard">
+                <div class="card pad projectDetailCard" aria-label="Project detail">
                     <div class="projectHeader">
                         <div class="projectHeaderLeft">
-                            <div class="projectTitle">@(_editing ? _draftName : Selected.Name)</div>
+                            <div class="projectTitle">@Selected.Name</div>
                         </div>
                         <div class="projectHeaderRight">
                             @if (!_editing)
@@ -70,17 +66,28 @@
                                     {
                                         <span class="pill @Tones.HealthTone(Selected.Health)">Health: @Selected.Health</span>
                                     }
+                                    @if (!string.IsNullOrEmpty(Selected.TargetDateIso))
+                                    {
+                                        <span class="pill toneNeutral">Target: @DisplayLabels.FormatDateLabel(Selected.TargetDateIso)</span>
+                                    }
+                                    @if (Selected.Priority is not null)
+                                    {
+                                        <span class="pill @Tones.PriorityTone(Selected.Priority)">Priority: @Selected.Priority</span>
+                                    }
                                 </div>
                             }
                             <div class="rowTiny projectHeaderActions" aria-label="Project focus actions">
-                                @if (_editing)
+                                @if (EffectiveTab == "overview")
                                 {
-                                    <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@_saving">Save</button>
-                                    <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
-                                }
-                                else
-                                {
-                                    <button class="btn btnGhost" type="button" @onclick="StartEdit">Edit</button>
+                                    @if (_editing)
+                                    {
+                                        <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@_saving">Save</button>
+                                        <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btnGhost" type="button" @onclick="StartEdit">Edit</button>
+                                    }
                                 }
                                 @if (IsFocusMode)
                                 {
@@ -107,7 +114,7 @@
                     }
 
                     <div class="projectDetailScroll" aria-label="Project detail scroll region">
-                        @if (_editing || _tab == "overview")
+                        @if (EffectiveTab == "overview")
                         {
                             <div class="projectOverviewGrid @(_editing ? "projectOverviewGridEditing" : null)" aria-label="Project overview">
                                 @if (_editing)
@@ -136,14 +143,65 @@
                                                         <option value="Red">Red</option>
                                                     </select>
                                                 </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Target</div>
+                                                    <input class="input" type="date" value="@_draftTargetDateIso" @onchange="OnDraftTargetDateChange" />
+                                                </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Priority</div>
+                                                    <select class="select" value="@(_draftPriority ?? "Medium")" @onchange="OnDraftPriorityChange">
+                                                        <option value="Low">Low</option>
+                                                        <option value="Medium">Medium</option>
+                                                        <option value="High">High</option>
+                                                        <option value="Critical">Critical</option>
+                                                    </select>
+                                                </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Product Owner</div>
+                                                    <select class="select" @bind="_draftProductOwnerId">
+                                                        <option value="">(None)</option>
+                                                        @foreach (ProductOwner po in SortedProductOwners)
+                                                        {
+                                                            <option value="@po.Id">@po.Name</option>
+                                                        }
+                                                    </select>
+                                                </label>
                                                 <label class="field span2">
-                                                    <div class="fieldLabel">Summary</div>
-                                                    <input class="input" @bind="_draftSummary" @bind:event="oninput" />
+                                                    <div class="fieldLabel">Tags (comma separated)</div>
+                                                    <input class="input" placeholder="platform, reliability" @bind="_tagsText" @bind:event="oninput" />
                                                 </label>
                                                 <label class="field span2">
                                                     <div class="fieldLabel">Description</div>
                                                     <textarea class="textarea" @bind="_draftDescription" @bind:event="oninput"></textarea>
                                                 </label>
+                                                <label class="field span2">
+                                                    <div class="fieldLabel">Summary</div>
+                                                    <textarea class="textarea" @bind="_draftSummary" @bind:event="oninput"></textarea>
+                                                </label>
+                                                <label class="field">
+                                                    <div class="fieldLabel">Latest check-in date</div>
+                                                    <input class="input" type="date" value="@_draftCheckInDate" @onchange="OnDraftCheckInDateChange" />
+                                                </label>
+                                                <label class="field span2">
+                                                    <div class="fieldLabel">Latest check-in note</div>
+                                                    <textarea class="textarea" @bind="_draftCheckInNote" @bind:event="oninput"></textarea>
+                                                </label>
+                                                <div class="field span2">
+                                                    <div class="fieldLabel">Links</div>
+                                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                        @for (int i = 0; i < _draftLinks.Count; i++)
+                                                        {
+                                                            int idx = i;
+                                                            ProjectLink link = _draftLinks[idx];
+                                                            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;">
+                                                                <input class="input inputInline" placeholder="Label" value="@link.Label" @oninput="e => UpdateLinkLabel(idx, e.Value?.ToString())" />
+                                                                <input class="input inputInline" placeholder="URL" value="@link.Url" @oninput="e => UpdateLinkUrl(idx, e.Value?.ToString())" />
+                                                                <button type="button" class="btn btnGhost btnIcon" title="Remove link" @onclick="() => RemoveLink(idx)">×</button>
+                                                            </div>
+                                                        }
+                                                        <button type="button" class="btn btnGhost" @onclick="AddLink">+ Add link</button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
@@ -152,64 +210,262 @@
                                 {
                                     <section class="card subtle projectOverviewSection" aria-label="Summary">
                                         <div class="cardHeader"><div class="cardTitle">Summary</div></div>
-                                        <div class="pad">@(string.IsNullOrEmpty(Selected.Summary) ? "—" : Selected.Summary)</div>
+                                        <div class="pad projectOverviewBody">@Selected.Summary</div>
                                     </section>
                                     <section class="card subtle projectOverviewSection" aria-label="Details">
                                         <div class="cardHeader"><div class="cardTitle">Details</div></div>
+                                        <div class="pad projectDetailsKv">
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Product Owner</div>
+                                                <div class="projectDetailsVal">@(ProductOwner?.Name ?? "—")</div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Team members</div>
+                                                <div class="projectDetailsVal">@(TeamMembers.Count > 0 ? string.Join(", ", TeamMembers.Select(m => m.Name)) : "—")</div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Tags</div>
+                                                <div class="projectDetailsVal">
+                                                    <div class="pillRow">
+                                                        @if (Selected.Tags.Count > 0)
+                                                        {
+                                                            @foreach (string tag in Selected.Tags)
+                                                            {
+                                                                <span class="pill toneNeutral">@tag</span>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="muted">—</span>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Last updated</div>
+                                                <div class="projectDetailsVal">
+                                                    @(string.IsNullOrEmpty(Selected.LastUpdatedIso) ? "—" : DisplayLabels.FormatDateLabel(Selected.LastUpdatedIso.Length >= 10 ? Selected.LastUpdatedIso[..10] : Selected.LastUpdatedIso))
+                                                </div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Links</div>
+                                                <div class="projectDetailsVal">
+                                                    @if (Selected.Links.Count > 0)
+                                                    {
+                                                        <span class="mutedSmall">@string.Join(" • ", Selected.Links.Select(l => l.Label))</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        @:—
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                    <section class="card subtle projectOverviewSection" aria-label="Latest check-in">
+                                        <div class="cardHeader"><div class="cardTitle">Latest Check-in</div></div>
                                         <div class="pad">
-                                            <div class="mutedSmall">Status: @(Selected.Status?.ToString() ?? "—")</div>
-                                            <div class="mutedSmall">Health: @(Selected.Health?.ToString() ?? "—")</div>
-                                            <div class="mutedSmall" style="margin-top: 8px">@(string.IsNullOrEmpty(Selected.Description) ? "—" : Selected.Description)</div>
+                                            <div class="mutedSmall">
+                                                @(string.IsNullOrEmpty(Selected.LatestCheckIn?.DateIso) ? "—" : DisplayLabels.FormatDateLabel(Selected.LatestCheckIn.DateIso))
+                                            </div>
+                                            <div class="projectOverviewBody">@(Selected.LatestCheckIn?.Note ?? "—")</div>
                                         </div>
                                     </section>
                                     <section class="card subtle projectOverviewSection" aria-label="Rollup">
                                         <div class="cardHeader"><div class="cardTitle">Rollup</div></div>
-                                        <div class="pad">
-                                            <div class="mutedSmall">@Selected.LinkedTaskIds.Count linked tasks · @Selected.LinkedRiskIds.Count linked risks</div>
+                                        <div class="pad projectDetailsKv">
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Tasks complete</div>
+                                                <div class="projectDetailsVal">
+                                                    <span class="pill toneNeutral">@Rollup.DoneTasks / @Rollup.TotalTasks</span>
+                                                </div>
+                                            </div>
+                                            <div class="mutedSmall">
+                                                Local: @Rollup.LocalDoneTasks / @Rollup.LocalTotalTasks | Imported: @Rollup.ImportedDoneTasks / @Rollup.ImportedTotalTasks
+                                            </div>
+                                            <div class="ggProgressBar" aria-label="Task completion progress">
+                                                <div class="ggProgressFill" style="width: @(Rollup.TaskCompletionPct)%"></div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Open tasks</div>
+                                                <div class="projectDetailsVal">
+                                                    <span class="pill toneNeutral">@Rollup.OpenTasks</span>
+                                                </div>
+                                            </div>
+                                            <div class="mutedSmall">
+                                                Local: @Rollup.LocalOpenTasks | Imported: @Rollup.ImportedOpenTasks
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">High priority</div>
+                                                <div class="projectDetailsVal">
+                                                    <span class="pill @(Rollup.HighPriorityOpenTasks > 0 ? "toneWarn" : "toneNeutral")">@Rollup.HighPriorityOpenTasks</span>
+                                                </div>
+                                            </div>
+                                            <div class="mutedSmall">Local tasks only (Azure imports do not include priority today).</div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">Open risks</div>
+                                                <div class="projectDetailsVal">
+                                                    <span class="pill @(Rollup.OpenRisks > 0 ? "toneBad" : "toneGood")">@Rollup.OpenRisks</span>
+                                                </div>
+                                            </div>
+                                            <div class="projectDetailsRow">
+                                                <div class="projectDetailsKey">At risk</div>
+                                                <div class="projectDetailsVal">
+                                                    <span class="pill @(Rollup.AtRiskCount > 0 ? "toneWarn" : "toneGood")">@Rollup.AtRiskCount</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </section>
                                 }
                             </div>
                         }
-                        else if (_tab == "tasks")
+
+                        @if (!_editing && _tab == "tasks")
                         {
                             <div class="projectTabBody" aria-label="Project tasks tab">
+                                <section class="card subtle projectTabSection" aria-label="Task filters">
+                                    <div class="pad projectFiltersRow">
+                                        <label class="field">
+                                            <div class="fieldLabel">Search</div>
+                                            <input class="input" placeholder="Filter tasks…" @bind="_taskQuery" @bind:event="oninput" />
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Status</div>
+                                            <select class="select selectCompact" @bind="_taskStatusFilter">
+                                                <option value="All">All</option>
+                                                <option value="Not Started">Not Started</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="Blocked">Blocked</option>
+                                                <option value="Done">Done</option>
+                                            </select>
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Priority</div>
+                                            <select class="select selectCompact" @bind="_taskPriorityFilter">
+                                                <option value="All">All</option>
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                                <option value="Critical">Critical</option>
+                                            </select>
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Assignee</div>
+                                            <select class="select selectCompact" @bind="_taskAssigneeFilter">
+                                                <option value="All">All</option>
+                                                @foreach (AssigneeOption o in TaskAssigneeOptions)
+                                                {
+                                                    <option value="@o.Id">@o.Name</option>
+                                                }
+                                            </select>
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Due</div>
+                                            <select class="select selectCompact" @bind="_taskDueFilter">
+                                                <option value="All">All</option>
+                                                <option value="Overdue">Overdue</option>
+                                                <option value="Next 7 days">Next 7 days</option>
+                                                <option value="Next 30 days">Next 30 days</option>
+                                                <option value="No due date">No due date</option>
+                                            </select>
+                                        </label>
+                                    </div>
+                                </section>
                                 <section class="card subtle projectTabSection" aria-label="Linked tasks">
-                                    <div class="list">
-                                        @foreach (AtlasTask t in Cache.Tasks.Where(t => t.Project == Selected.Name))
+                                    <div class="cardHeader"><div class="cardTitle">Linked Tasks</div></div>
+                                    <div class="projectTable" role="table" aria-label="Project tasks table">
+                                        <div class="projectTableHeader" role="row">
+                                            <div class="projectTh" role="columnheader">Status</div>
+                                            <div class="projectTh" role="columnheader">Task</div>
+                                            <div class="projectTh" role="columnheader">Priority</div>
+                                            <div class="projectTh" role="columnheader">Assignee</div>
+                                            <div class="projectTh" role="columnheader">Due</div>
+                                        </div>
+                                        @if (FilteredTasks.Count > 0)
                                         {
-                                            <button type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
-                                                <div class="listMain">
-                                                    <div class="listTitle">@t.Title</div>
-                                                    <div class="listMeta">@DisplayLabels.FormatTaskStatus(t.Status) • @t.Priority</div>
-                                                </div>
-                                            </button>
+                                            @foreach (AtlasTask t in FilteredTasks)
+                                            {
+                                                Guid taskId = t.Id;
+                                                <button type="button" class="projectTableRow projectTableRowBtn" role="row" title="Open task in focus mode" @onclick="() => GoTask(taskId)">
+                                                    <div class="projectTd" role="cell">
+                                                        <span class="pill @Tones.TaskStatusTone(t.Status)">@DisplayLabels.FormatTaskStatus(t.Status)</span>
+                                                    </div>
+                                                    <div class="projectTd" role="cell">
+                                                        <div class="projectCellTitle">@t.Title</div>
+                                                    </div>
+                                                    <div class="projectTd" role="cell">@t.Priority</div>
+                                                    <div class="projectTd" role="cell">@FormatAssignee(t.AssigneeId)</div>
+                                                    <div class="projectTd" role="cell">@(string.IsNullOrEmpty(t.DueDate) ? "—" : DisplayLabels.FormatDateLabel(t.DueDate))</div>
+                                                </button>
+                                            }
                                         }
-                                        @if (!Cache.Tasks.Any(t => t.Project == Selected.Name))
+                                        else
                                         {
-                                            <div class="muted pad">No linked tasks.</div>
+                                            <div class="muted pad">No tasks match your filters.</div>
                                         }
                                     </div>
                                 </section>
                             </div>
                         }
-                        else
+
+                        @if (!_editing && _tab == "risks")
                         {
                             <div class="projectTabBody" aria-label="Project risks tab">
+                                <section class="card subtle projectTabSection" aria-label="Risk filters">
+                                    <div class="pad projectFiltersRow projectFiltersRowRisks">
+                                        <label class="field">
+                                            <div class="fieldLabel">Search</div>
+                                            <input class="input" placeholder="Filter risks…" @bind="_riskQuery" @bind:event="oninput" />
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Severity</div>
+                                            <select class="select selectCompact" @bind="_riskSeverityFilter">
+                                                <option value="All">All</option>
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">Medium</option>
+                                                <option value="High">High</option>
+                                            </select>
+                                        </label>
+                                        <label class="field">
+                                            <div class="fieldLabel">Owner</div>
+                                            <select class="select selectCompact" @bind="_riskOwnerFilter">
+                                                <option value="All">All</option>
+                                                @foreach (OwnerOption o in RiskOwnerOptions)
+                                                {
+                                                    <option value="@o.Id">@o.Name</option>
+                                                }
+                                            </select>
+                                        </label>
+                                    </div>
+                                </section>
                                 <section class="card subtle projectTabSection" aria-label="Linked risks">
-                                    <div class="list">
-                                        @foreach (Risk r in Cache.Risks.Where(r => r.Project == Selected.Name))
+                                    <div class="cardHeader"><div class="cardTitle">Linked Risks</div></div>
+                                    <div class="projectTable projectRisksTable" role="table" aria-label="Project risks table">
+                                        <div class="projectTableHeader projectRisksHeader" role="row">
+                                            <div class="projectTh" role="columnheader">Severity</div>
+                                            <div class="projectTh" role="columnheader">Risk</div>
+                                            <div class="projectTh" role="columnheader">Owner</div>
+                                        </div>
+                                        @if (FilteredRisks.Count > 0)
                                         {
-                                            <button type="button" class="listRow listRowBtn" @onclick="() => GoRisk(r.Id)">
-                                                <div class="listMain">
-                                                    <div class="listTitle">@r.Title</div>
-                                                    <div class="listMeta">@r.Status • @r.Severity</div>
-                                                </div>
-                                            </button>
+                                            @foreach (Risk r in FilteredRisks)
+                                            {
+                                                Guid riskId = r.Id;
+                                                <button type="button" class="projectTableRow projectRisksRow projectTableRowBtn" role="row" title="Open risk in focus mode" @onclick="() => GoRisk(riskId)">
+                                                    <div class="projectTd" role="cell">
+                                                        <span class="pill @Tones.SeverityTone(r.Severity)">@r.Severity</span>
+                                                    </div>
+                                                    <div class="projectTd" role="cell">
+                                                        <div class="projectCellTitle">@r.Title</div>
+                                                        <div class="mutedSmall">@r.Description</div>
+                                                    </div>
+                                                    <div class="projectTd" role="cell">@FormatAssignee(r.OwnerId)</div>
+                                                </button>
+                                            }
                                         }
-                                        @if (!Cache.Risks.Any(r => r.Project == Selected.Name))
+                                        else
                                         {
-                                            <div class="muted pad">No linked risks.</div>
+                                            <div class="muted pad">No risks match your filters.</div>
                                         }
                                     </div>
                                 </section>
@@ -225,11 +481,17 @@
 @code {
     [Parameter] public string? ProjectId { get; set; }
 
+    static readonly HashSet<string> DoneAzureStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "done", "closed", "completed", "resolved", "removed"
+    };
+
     bool _creating;
     bool _deleting;
     bool _editing;
     bool _saving;
     Guid? _autoEditId;
+    Guid? _lastSelectedId;
     string _tab = "overview";
 
     string _draftName = "";
@@ -237,8 +499,27 @@
     string _draftDescription = "";
     string _draftStatus = "Active";
     string _draftHealth = "Green";
+    string _draftTargetDateIso = "";
+    string? _draftPriority;
+    bool _draftPriorityTouched;
+    string _draftProductOwnerId = "";
+    string _tagsText = "";
+    string _draftCheckInDate = "";
+    string _draftCheckInNote = "";
+    List<ProjectLink> _draftLinks = [];
+
+    string _taskQuery = "";
+    string _taskStatusFilter = "All";
+    string _taskPriorityFilter = "All";
+    string _taskAssigneeFilter = "All";
+    string _taskDueFilter = "All";
+
+    string _riskQuery = "";
+    string _riskSeverityFilter = "All";
+    string _riskOwnerFilter = "All";
 
     bool IsFocusMode => !string.IsNullOrEmpty(ProjectId);
+    string EffectiveTab => _editing ? "overview" : _tab;
 
     Project? Selected
     {
@@ -249,6 +530,158 @@
                 : Selection.SelectedProjectId;
             if (id is null) return null;
             return Cache.Projects.FirstOrDefault(p => p.Id == id);
+        }
+    }
+
+    IReadOnlyList<ProductOwner> SortedProductOwners =>
+        Cache.ProductOwners.OrderBy(po => po.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    Dictionary<Guid, TeamMember> MemberById =>
+        Cache.Team.ToDictionary(m => m.Id);
+
+    ProductOwner? ProductOwner =>
+        Selected?.ProductOwnerId is { } poId
+            ? Cache.ProductOwners.FirstOrDefault(po => po.Id == poId)
+            : null;
+
+    IReadOnlyList<TeamMember> TeamMembers =>
+        Selected is null
+            ? Array.Empty<TeamMember>()
+            : Cache.Team.Where(m => Selected.TeamMemberIds.Contains(m.Id)).ToList();
+
+    IReadOnlyList<AtlasTask> LinkedTasks =>
+        Selected is null
+            ? Array.Empty<AtlasTask>()
+            : Cache.Tasks.Where(t =>
+                Selected.LinkedTaskIds.Contains(t.Id) ||
+                (!string.IsNullOrEmpty(t.Project) && t.Project == Selected.Name)).ToList();
+
+    IReadOnlyList<Risk> LinkedRisks =>
+        Selected is null
+            ? Array.Empty<Risk>()
+            : Cache.Risks.Where(r =>
+                Selected.LinkedRiskIds.Contains(r.Id) ||
+                (!string.IsNullOrEmpty(r.Project) && r.Project == Selected.Name)).ToList();
+
+    IReadOnlyList<AzureItem> LinkedAzureItems
+    {
+        get
+        {
+            if (Selected is null) return Array.Empty<AzureItem>();
+            string projectId = Selected.Id.ToString();
+            var byId = new Dictionary<string, AzureItem>(StringComparer.Ordinal);
+            foreach (TeamMember member in Cache.Team)
+            {
+                foreach (AzureItem item in member.AzureItems)
+                {
+                    if (item.ProjectId != projectId || byId.ContainsKey(item.Id)) continue;
+                    byId[item.Id] = item;
+                }
+            }
+
+            return byId.Values.ToList();
+        }
+    }
+
+    IReadOnlyList<AtlasTask> FilteredTasks
+    {
+        get
+        {
+            string q = _taskQuery.Trim();
+            string todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+            return LinkedTasks.Where(t =>
+            {
+                string statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
+                if (_taskStatusFilter != "All" && statusLabel != _taskStatusFilter) return false;
+                if (_taskPriorityFilter != "All" && t.Priority.ToString() != _taskPriorityFilter) return false;
+                if (_taskAssigneeFilter != "All" && (t.AssigneeId?.ToString() ?? "") != _taskAssigneeFilter) return false;
+                if (_taskDueFilter != "All" && GetDueBucket(t.DueDate, todayIso) != _taskDueFilter) return false;
+                if (q.Length > 0 && !t.Title.Contains(q, StringComparison.OrdinalIgnoreCase)) return false;
+                return true;
+            }).ToList();
+        }
+    }
+
+    IReadOnlyList<Risk> FilteredRisks
+    {
+        get
+        {
+            string q = _riskQuery.Trim();
+            return LinkedRisks.Where(r =>
+            {
+                if (_riskSeverityFilter != "All" && r.Severity != _riskSeverityFilter) return false;
+                if (_riskOwnerFilter != "All" && (r.OwnerId?.ToString() ?? "") != _riskOwnerFilter) return false;
+                if (q.Length > 0)
+                {
+                    string hay = $"{r.Title} {r.Description}";
+                    if (!hay.Contains(q, StringComparison.OrdinalIgnoreCase)) return false;
+                }
+
+                return true;
+            }).ToList();
+        }
+    }
+
+    IReadOnlyList<AssigneeOption> TaskAssigneeOptions
+    {
+        get
+        {
+            var ids = LinkedTasks
+                .Select(t => t.AssigneeId)
+                .Where(id => id is not null)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+            return ids
+                .Select(id => new AssigneeOption(id, MemberById.TryGetValue(id, out TeamMember? m) ? m.Name : id.ToString()))
+                .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+    }
+
+    IReadOnlyList<OwnerOption> RiskOwnerOptions
+    {
+        get
+        {
+            var ids = LinkedRisks
+                .Select(r => r.OwnerId)
+                .Where(id => id is not null)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+            return ids
+                .Select(id => new OwnerOption(id, MemberById.TryGetValue(id, out TeamMember? m) ? m.Name : id.ToString()))
+                .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+    }
+
+    ProjectRollup Rollup
+    {
+        get
+        {
+            int localTotalTasks = LinkedTasks.Count;
+            int localDoneTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) == Models.TaskStatus.Done);
+            int importedTotalTasks = LinkedAzureItems.Count;
+            int importedDoneTasks = LinkedAzureItems.Count(x => IsAzureWorkItemDone(x.Status));
+            int totalTasks = localTotalTasks + importedTotalTasks;
+            int doneTasks = localDoneTasks + importedDoneTasks;
+            int taskCompletionPct = totalTasks > 0 ? (int)Math.Round(doneTasks / (double)totalTasks * 100) : 0;
+            int localOpenTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) != Models.TaskStatus.Done);
+            int importedOpenTasks = LinkedAzureItems.Count(x => !IsAzureWorkItemDone(x.Status));
+            int highPriorityOpenTasks = LinkedTasks.Count(t =>
+                (t.Status ?? Models.TaskStatus.NotStarted) != Models.TaskStatus.Done &&
+                (t.Priority == Priority.High || t.Priority == Priority.Critical));
+            int openRisks = LinkedRisks.Count(r => r.Status != RiskStatus.Resolved);
+            int atRiskCount = LinkedRisks.Count(r =>
+                r.Status != RiskStatus.Resolved && (r.Severity == "High" || r.Severity == "Medium"));
+
+            return new ProjectRollup(
+                totalTasks, doneTasks, taskCompletionPct,
+                localTotalTasks, localDoneTasks, importedTotalTasks, importedDoneTasks,
+                localOpenTasks + importedOpenTasks, localOpenTasks, importedOpenTasks,
+                highPriorityOpenTasks, openRisks, atRiskCount);
         }
     }
 
@@ -279,9 +712,19 @@
             }
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id && !_editing)
+        if (Selected is not null)
         {
-            StartEdit();
+            bool projectChanged = _lastSelectedId != Selected.Id;
+            if (projectChanged)
+            {
+                _lastSelectedId = Selected.Id;
+                bool autoEdit = _autoEditId == Selected.Id;
+                ResetDraftFromProject(Selected, autoEdit);
+            }
+            else if (_autoEditId == Selected.Id && !_editing)
+            {
+                StartEdit();
+            }
         }
     }
 
@@ -300,7 +743,13 @@
             return;
         }
 
-        _tab = ReadTabFromUri();
+        string tab = ReadTabFromUri();
+        if (tab != "overview")
+        {
+            _editing = false;
+        }
+
+        _tab = tab;
     }
 
     string ReadTabFromUri()
@@ -332,7 +781,7 @@
     {
         string next = tab is "tasks" or "risks" ? tab : "overview";
         _tab = next;
-        if (_editing && next != "overview")
+        if (next != "overview")
         {
             _editing = false;
         }
@@ -368,28 +817,145 @@
         {
             _editing = false;
         }
+
         StateHasChanged();
+    }
+
+    void ResetDraftFromProject(Project project, bool autoEdit)
+    {
+        _editing = autoEdit;
+        LoadDraftFrom(project);
+    }
+
+    void LoadDraftFrom(Project project)
+    {
+        _draftName = project.Name;
+        _draftSummary = project.Summary;
+        _draftDescription = project.Description ?? "";
+        _draftStatus = project.Status?.ToString() ?? "Active";
+        _draftHealth = project.Health?.ToString() ?? "Green";
+        _draftTargetDateIso = project.TargetDateIso ?? "";
+        _draftPriority = project.Priority?.ToString();
+        _draftPriorityTouched = false;
+        _draftProductOwnerId = project.ProductOwnerId?.ToString() ?? "";
+        _tagsText = string.Join(", ", project.Tags);
+        _draftCheckInDate = project.LatestCheckIn?.DateIso ?? "";
+        _draftCheckInNote = project.LatestCheckIn?.Note ?? "";
+        _draftLinks = project.Links.Select(l => new ProjectLink { Label = l.Label, Url = l.Url }).ToList();
     }
 
     void StartEdit()
     {
         if (Selected is null) return;
-        _draftName = Selected.Name;
-        _draftSummary = Selected.Summary;
-        _draftDescription = Selected.Description ?? "";
-        _draftStatus = Selected.Status?.ToString() ?? "Active";
-        _draftHealth = Selected.Health?.ToString() ?? "Green";
+        if (_tab != "overview")
+        {
+            SetTab("overview");
+        }
+
+        LoadDraftFrom(Selected);
         _tab = "overview";
         _editing = true;
-        // React pins URL to overview while editing.
         string uri = Nav.GetUriWithQueryParameter("tab", "overview");
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     void CancelEdit()
     {
+        if (Selected is not null)
+        {
+            LoadDraftFrom(Selected);
+        }
+
         _editing = false;
         if (Selected is not null && _autoEditId == Selected.Id) _autoEditId = null;
+    }
+
+    void OnDraftTargetDateChange(ChangeEventArgs e) =>
+        _draftTargetDateIso = e.Value?.ToString() ?? "";
+
+    void OnDraftCheckInDateChange(ChangeEventArgs e) =>
+        _draftCheckInDate = e.Value?.ToString() ?? "";
+
+    void OnDraftPriorityChange(ChangeEventArgs e)
+    {
+        _draftPriority = e.Value?.ToString();
+        _draftPriorityTouched = true;
+    }
+
+    void UpdateLinkLabel(int idx, string? value)
+    {
+        if (idx < 0 || idx >= _draftLinks.Count) return;
+        _draftLinks[idx].Label = value ?? "";
+    }
+
+    void UpdateLinkUrl(int idx, string? value)
+    {
+        if (idx < 0 || idx >= _draftLinks.Count) return;
+        _draftLinks[idx].Url = value ?? "";
+    }
+
+    void RemoveLink(int idx)
+    {
+        if (idx < 0 || idx >= _draftLinks.Count) return;
+        _draftLinks.RemoveAt(idx);
+    }
+
+    void AddLink() => _draftLinks.Add(new ProjectLink());
+
+    Project NormalizeDraftForSave()
+    {
+        List<string> tags = _tagsText
+            .Split(',')
+            .Select(t => t.Trim())
+            .Where(t => t.Length > 0)
+            .ToList();
+        List<ProjectLink> links = _draftLinks
+            .Select(l => new ProjectLink { Label = l.Label.Trim(), Url = l.Url.Trim() })
+            .Where(l => l.Label.Length > 0 && l.Url.Length > 0)
+            .ToList();
+
+        string checkInDate = _draftCheckInDate.Trim();
+        string checkInNote = _draftCheckInNote.Trim();
+        ProjectCheckIn? latestCheckIn = null;
+        if (checkInDate.Length > 0 || checkInNote.Length > 0)
+        {
+            latestCheckIn = new ProjectCheckIn
+            {
+                DateIso = checkInDate.Length > 0 ? checkInDate : DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                Note = checkInNote
+            };
+        }
+
+        Enum.TryParse(_draftStatus, out ProjectStatus status);
+        Enum.TryParse(_draftHealth, out HealthSignal health);
+        bool persistPriority = Selected!.Priority is not null || _draftPriorityTouched;
+        Priority? priority = null;
+        if (persistPriority && Enum.TryParse(_draftPriority ?? "Medium", out Priority parsedPriority))
+        {
+            priority = parsedPriority;
+        }
+
+        Guid? productOwnerId = string.IsNullOrEmpty(_draftProductOwnerId) ? null : Guid.Parse(_draftProductOwnerId);
+
+        return EntityClone.Project(
+            Selected!,
+            name: string.IsNullOrWhiteSpace(_draftName) ? Selected!.Name : _draftName.Trim(),
+            summary: _draftSummary,
+            description: _draftDescription,
+            setDescription: true,
+            status: status,
+            health: health,
+            targetDateIso: string.IsNullOrWhiteSpace(_draftTargetDateIso) ? null : _draftTargetDateIso,
+            setTarget: true,
+            priority: priority,
+            setPriority: persistPriority,
+            productOwnerId: productOwnerId,
+            setOwner: true,
+            tags: tags,
+            links: links,
+            latestCheckIn: latestCheckIn,
+            setLatestCheckIn: true,
+            lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
     }
 
     async Task SaveOverview()
@@ -398,21 +964,9 @@
         _saving = true;
         try
         {
-            Enum.TryParse(_draftStatus, out ProjectStatus status);
-            Enum.TryParse(_draftHealth, out HealthSignal health);
-            Project next = EntityClone.Project(
-                Selected,
-                name: string.IsNullOrWhiteSpace(_draftName) ? Selected.Name : _draftName.Trim(),
-                summary: _draftSummary,
-                description: _draftDescription,
-                setDescription: true,
-                status: status,
-                health: health,
-                lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
-
+            Project next = NormalizeDraftForSave();
             await Api.AtlasApiEndpointsProjectsUpdateProjectEndpointAsync(next.Id, Cache.ToUpdateProjectRequest(next));
             Cache.UpdateProject(next);
-            await Cache.RefetchProjectsAsync();
             _editing = false;
             if (_autoEditId == next.Id) _autoEditId = null;
         }
@@ -426,11 +980,31 @@
         }
     }
 
+    string FormatAssignee(Guid? assigneeId)
+    {
+        if (assigneeId is null) return "—";
+        return MemberById.TryGetValue(assigneeId.Value, out TeamMember? member) ? member.Name : assigneeId.Value.ToString();
+    }
+
+    static bool IsAzureWorkItemDone(string? status) =>
+        !string.IsNullOrWhiteSpace(status) && DoneAzureStatuses.Contains(status.Trim());
+
+    static string GetDueBucket(string? dueDate, string todayIso)
+    {
+        if (string.IsNullOrWhiteSpace(dueDate)) return "No due date";
+        if (!DateOnly.TryParse(dueDate.Trim(), out DateOnly due) || !DateOnly.TryParse(todayIso, out DateOnly today))
+            return "All";
+        if (due < today) return "Overdue";
+        int days = due.DayNumber - today.DayNumber;
+        if (days <= 7) return "Next 7 days";
+        if (days <= 30) return "Next 30 days";
+        return "All";
+    }
+
     void GoFocus(Guid id) => Nav.NavigateTo($"/projects/{id}");
     void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
     void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
 
-    /// <summary>Current query string (including leading '?'), matching React ProjectsView currentSearch.</summary>
     string CurrentSearch
     {
         get
@@ -477,8 +1051,8 @@
             };
             AtlasApiDTOsProjectsCreateProjectResponse res = await Api.AtlasApiEndpointsProjectsCreateProjectEndpointAsync(Cache.ToCreateProjectRequest(draft));
             Guid id = res.Id ?? Guid.Empty;
-            // Refetch before selecting so list re-render cannot race Playwright list clicks.
-            await Cache.RefetchProjectsAsync();
+            draft.Id = id;
+            Cache.AddProject(draft);
             _autoEditId = id;
             SelectFromList(id);
         }
@@ -505,7 +1079,6 @@
             Cache.RemoveProject(project.Id);
             if (IsFocusMode) Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             if (_autoEditId == project.Id) _autoEditId = null;
-            await Cache.RefetchProjectsAsync();
         }
         catch (Exception)
         {
@@ -523,4 +1096,21 @@
         Selection.Changed -= OnChanged;
         Nav.LocationChanged -= OnLocationChanged;
     }
+
+    sealed record AssigneeOption(Guid Id, string Name);
+    sealed record OwnerOption(Guid Id, string Name);
+    sealed record ProjectRollup(
+        int TotalTasks,
+        int DoneTasks,
+        int TaskCompletionPct,
+        int LocalTotalTasks,
+        int LocalDoneTasks,
+        int ImportedTotalTasks,
+        int ImportedDoneTasks,
+        int OpenTasks,
+        int LocalOpenTasks,
+        int ImportedOpenTasks,
+        int HighPriorityOpenTasks,
+        int OpenRisks,
+        int AtRiskCount);
 }

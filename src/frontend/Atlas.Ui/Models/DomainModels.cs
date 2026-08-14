@@ -130,6 +130,12 @@ public sealed class AtlasTask
     public string LastTouchedIso { get; set; } = "";
 }
 
+public sealed class ProjectCheckIn
+{
+    public string DateIso { get; set; } = "";
+    public string Note { get; set; } = "";
+}
+
 public sealed class Project
 {
     public Guid Id { get; set; }
@@ -144,6 +150,7 @@ public sealed class Project
     public IReadOnlyList<string> Tags { get; set; } = Array.Empty<string>();
     public IReadOnlyList<ProjectLink> Links { get; set; } = Array.Empty<ProjectLink>();
     public string? LastUpdatedIso { get; set; }
+    public ProjectCheckIn? LatestCheckIn { get; set; }
     public IReadOnlyList<Guid> LinkedTaskIds { get; set; } = Array.Empty<Guid>();
     public IReadOnlyList<Guid> LinkedRiskIds { get; set; } = Array.Empty<Guid>();
     public IReadOnlyList<Guid> TeamMemberIds { get; set; } = Array.Empty<Guid>();

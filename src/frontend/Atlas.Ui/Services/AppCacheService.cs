@@ -913,6 +913,9 @@ public sealed class AppCacheService
             ProductOwnerId = p.ProductOwnerId,
             Tags = p.Tags,
             Links = p.Links,
+            LatestCheckIn = p.LatestCheckIn is null
+                ? null
+                : new ProjectCheckIn { DateIso = p.LatestCheckIn.DateIso, Note = p.LatestCheckIn.Note },
             LastUpdatedIso = p.LastUpdatedIso,
             LinkedTaskIds = linkedTaskIds ?? p.LinkedTaskIds,
             LinkedRiskIds = linkedRiskIds ?? p.LinkedRiskIds,
