@@ -12,11 +12,7 @@ Captured from the **React** UI (`src/atlas.ui`) with hash routes, against API + 
 
 ## Regenerate
 
-```bash
-bash scripts/capture-react-baseline.sh
-```
-
-Requires Atlas API on `:5012` with demo seed and Postgres.
+The React UI was deleted in Phase 8 (`57e85657a551c364d3cc7ded33778bc38940aea1`). Do not recapture. Restore `src/atlas.ui` with `git revert` of that commit if a recapture is ever required.
 
 ## Performance (`/#/dashboard`)
 
