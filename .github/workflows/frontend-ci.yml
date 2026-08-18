@@ -23,6 +23,24 @@ jobs:
       - name: Publish Blazor WASM
         run: dotnet publish src/frontend/Atlas.Ui/Atlas.Ui.csproj -c Release -o /tmp/atlas-ui-publish
 
+  openapi-drift:
+    runs-on: ubuntu-latest
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore API
+        run: dotnet restore src/backend/Api/Atlas.Api/Atlas.Api.csproj
+
+      - name: OpenAPI drift check
+        run: bash scripts/check-openapi-drift.sh
+
   playwright-e2e:
     runs-on: ubuntu-latest
     needs: [blazor-publish]
