@@ -156,14 +156,14 @@ public static class DevDatabaseSeeder
             new()
             {
                 Id = Guid.NewGuid(),
-                Title = "Verify hash routes behind nginx",
+                Title = "Verify path routes behind nginx",
                 Priority = Priority.Medium,
                 Status = TaskStatus.NotStarted,
                 AssigneeId = alex.Id,
                 ProjectId = platform.Id,
                 EstimatedDurationText = "1h",
                 EstimateConfidence = Confidence.High,
-                Notes = "UI uses createHashRouter; deep links like /#/tasks should work.",
+                Notes = "UI uses Blazor path routing; deep links like /tasks should work.",
                 LastTouchedAt = now.AddHours(-4)
             },
             new()

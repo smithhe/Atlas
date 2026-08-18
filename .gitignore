@@ -309,7 +309,7 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
-## Frontend (Vite/React) + Electron
+## Frontend caches (Playwright e2e + leftover Vite/Electron)
 dist/
 dist-ssr/
 dist-electron/

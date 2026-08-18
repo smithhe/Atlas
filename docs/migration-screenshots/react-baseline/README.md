@@ -12,7 +12,7 @@ Captured from the **React** UI (`src/atlas.ui`) with hash routes, against API + 
 
 ## Regenerate
 
-The React UI was deleted in Phase 8 (`57e85657a551c364d3cc7ded33778bc38940aea1`). Do not recapture. Restore `src/atlas.ui` with `git revert` of that commit if a recapture is ever required.
+The React UI was deleted in Phase 8 (`ef3285e447ff7683bfea9234bbb369c989ba299c`; leftover npm manifests in `de80286629fc66c9454a59fb9d07b4c82b98ca78`). Do not recapture. Restore `src/atlas.ui` with `git revert` of those commits if a recapture is ever required.
 
 ## Performance (`/#/dashboard`)
 
