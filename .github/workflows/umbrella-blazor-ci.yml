@@ -1,5 +1,8 @@
 name: Umbrella Blazor CI
 
+# Umbrella-branch CI only. After the Blazor cutover merges to main, frontend-ci.yml
+# is the gate. Remove this workflow when cursor/blazor-wasm-frontend-82c4 is retired.
+
 on:
   push:
     branches: [cursor/blazor-wasm-frontend-82c4]
