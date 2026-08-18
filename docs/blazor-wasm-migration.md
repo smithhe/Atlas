@@ -49,11 +49,11 @@ Blazor defaults to path routing. nginx already has SPA `try_files` (`docker/ngin
 
 | Branch | Role |
 | --- | --- |
-| `cursor/blazor-wasm-frontend-82c4` | **Umbrella.** All Blazor work merges here until Phase 8 cutover to `main`. |
-| `cursor/blazor-wasm-<phase>-82c4` | Phase branches; **PRs target umbrella**. |
-| `main` | React-only until Phase 8 merge. |
+| `cursor/blazor-wasm-frontend-82c4` | **Umbrella.** All Blazor work merged here through Phase 8. |
+| `cursor/blazor-wasm-<phase>-82c4` | Phase branches; **PRs targeted umbrella**. |
+| `main` | Blazor-only after Phase 8 merge. |
 
-Optional Blazor compose profile on umbrella only — must not ship to `main` early.
+Compose UI is Blazor WASM (`Dockerfile.ui`) on both the umbrella and `main` after this merge.
 
 ---
 
@@ -67,7 +67,7 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 - **Export skip-DB path:** when `export-swagger-docs` configuration is exactly `"true"` (FastEndpoints CLI `--export-swagger-docs true`), `Program.cs` registers in-memory `AtlasDbContext` and skips `EnsureCreated()` / `Migrate()` before export.
 - Compose: `Dockerfile.ui` (Blazor WASM `dotnet publish` → nginx:80); host `UI_PORT` default **5173**. API **5012**. CORS defaults `http://localhost:5173`, `http://127.0.0.1:5173`.
 - nginx: SPA fallback; long cache for `/_framework/*`; `no-cache` for `index.html` and `blazor.boot.json`; gzip + `gzip_static`.
-- CI: `frontend-ci.yml` on **`main`** — Blazor publish + Playwright from `tests/e2e/`. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + publish + OpenAPI drift + Playwright).
+- CI: `frontend-ci.yml` on **`main`** — Blazor publish + OpenAPI drift + Playwright from `tests/e2e/`. Umbrella: `.github/workflows/umbrella-blazor-ci.yml` (Blazor build + publish + OpenAPI drift + Playwright; retire with the umbrella branch).
 - React visual baseline: `docs/migration-screenshots/react-baseline/` (Phase 3; 72 PNGs + `PERFORMANCE.json`). Rollback: [docs/blazor-cutover-rollback.md](blazor-cutover-rollback.md).
 
 ---
@@ -83,7 +83,7 @@ Optional Blazor compose profile on umbrella only — must not ship to `main` ear
 - [x] Same user journeys as frozen React baseline: login/setup stub, dashboard, tasks, projects, risks, team, settings, Azure import, AI panel.
 - [x] Path-based URLs; Docker/nginx serves Blazor; umbrella CI green from Phase 2 onward.
 - [x] React visual baseline captured by **end of Phase 3**; Phase 4–7 PRs compare Blazor against it.
-- [ ] Manual parity sign-off per phase; Playwright in `tests/e2e/`; `src/atlas.ui` deleted in standalone commit; umbrella merges to `main`.
+- [x] Manual parity sign-off per phase; Playwright in `tests/e2e/`; `src/atlas.ui` deleted in standalone commit; umbrella merges to `main`.
 
 ---
 
@@ -482,7 +482,7 @@ Record React baseline (transfer size, time-to-interactive at `/dashboard`) durin
 | Mapping stubs | `src/frontend/Atlas.Ui/Mapping/` (`ApiMappers`, `Duration`, `Tones`, `TeamLogic`) |
 | Cache skeleton | `src/frontend/Atlas.Ui/Services/AppCacheService.cs` — `IsHydrating` + projects→risks→tasks gates |
 | Sample call | `Home.razor` lists tasks via `AppCacheService` |
-| React baseline | `docs/migration-screenshots/react-baseline/` — frozen in Phase 8; React tree deleted (`57e85657a551c364d3cc7ded33778bc38940aea1`). Includes team note detail + tasks split/focus; work-item/member-risk/growth detail are seed gaps (see baseline README). |
+| React baseline | `docs/migration-screenshots/react-baseline/` — frozen in Phase 8; React tree deleted (`ef3285e447ff7683bfea9234bbb369c989ba299c`, leftover npm manifests `de80286629fc66c9454a59fb9d07b4c82b98ca78`). Includes team note detail + tasks split/focus; work-item/member-risk/growth detail are seed gaps (see baseline README). |
 ### Phase 4 — Shell, path routes, CSS, hash shim
 
 - [x] Routes from `src/atlas.ui/src/app/router.tsx` → `@page` (roughly two dozen patterns)
@@ -582,7 +582,7 @@ Manual acceptance: Team note bodies + AI transcript markdown; confirm no raw HTM
    - Deep-link refresh cases (`flows/deep-link-refresh.spec.ts` against nginx SPA fallback)
 6. [x] **`frontend-ci.yml` on `main`:** Blazor publish + full Playwright from `tests/e2e/`; drop React npm
 7. [x] **Standalone commit: delete `src/atlas.ui`** — Playwright/config must already live under `tests/e2e/`; nothing required for e2e may remain only in React tree
-8. [ ] Merge umbrella → `main`; schedule hash shim removal
+8. [x] Merge umbrella → `main`; schedule hash shim removal
 
 **Exit:** `main` Blazor-only via Docker/nginx; Playwright in `tests/e2e/`; full suite green; CI green; manual full checklist sign-off.
 
@@ -613,4 +613,4 @@ Phase 8  relocate Playwright → tests/e2e/ → CI → full validation → delet
 
 ## Immediate next step
 
-Phase 8 cutover is complete on `cursor/blazor-wasm-phase8-cutover-5ed7` except merge to `main` and hash-shim removal. After this PR merges to the umbrella: merge umbrella → `main`. Hash shim removal is a **follow-up PR**.
+Phase 8 cutover is on `main` once this merge lands. Hash shim removal (`wwwroot/index.html` rewrite of `/#/…` → path) remains a **follow-up PR**.

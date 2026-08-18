@@ -47,7 +47,8 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 | Azure DevOps setup, sync, import, linking | Built; config/naming and a few UX gaps remain |
 | AI panel (all main surfaces) | Built for Dashboard, Tasks, Team, Risks, Projects, Settings; Insert Draft + missing-key setup UX |
 | Backend tests (unit / functional / integration) + CI | In place |
-| Frontend tests | Playwright e2e suite + lint/build CI (Phase 7) |
+| Frontend tests | Playwright e2e in `tests/e2e/` against Blazor WASM; `frontend-ci.yml` publishes Blazor |
+| UI | Blazor WebAssembly (`src/frontend/Atlas.Ui`); React `src/atlas.ui` removed |
 | Docker / Compose | Done — `docker compose up --build`; demo via `--profile demo`; `scripts/compose-smoke.sh` |
 | Auth | Explicitly deferred (and excluded here) |
 
@@ -188,12 +189,12 @@ Do **not** add persisted curated snapshot fields in v1; revisit only if derived 
 ### Work items
 
 - [x] `Dockerfile` for `Atlas.Api` (multi-stage publish).
-- [x] `Dockerfile` for `atlas.ui` (build + static serve via nginx/caddy).
+- [x] `Dockerfile` for `Atlas.Ui` (Blazor WASM publish + nginx static serve).
 - [x] `docker-compose.yml`: `db`, `api`, `ui` with healthchecks and env wiring.
 - [x] `.env.example` for DB, CORS, Azure PAT, **required** `OpenAI__ApiKey`, model/base URL, `Ai__*`.
 - [x] Schema strategy: apply EF migrations on API startup (or init container) for Compose; document vs `EnsureCreated()` in bare Development.
 - [x] Health endpoint(s) for Compose.
-- [x] Docs: `docker compose up --build`, Azure optional, OpenAI required for AI, hash routes.
+- [x] Docs: `docker compose up --build`, Azure optional, OpenAI required for AI, path routes.
 - [x] **`--profile demo`:** wire `DevDatabaseSeeder` (currently empty) to seed demo tasks/risks/projects/members/notes when profile enabled.
 
 ### Acceptance
