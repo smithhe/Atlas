@@ -1,40 +1,6 @@
-@inject MarkdownRenderer Renderer
-@inject IJSRuntime Js
-@implements IAsyncDisposable
-
 <div class="markdown" @ref="_root">
     @if (!string.IsNullOrEmpty(_html))
     {
         @((MarkupString)_html)
     }
 </div>
-
-@code {
-    [Parameter] public string Text { get; set; } = "";
-
-    ElementReference _root;
-    string _html = "";
-    string? _lastText;
-
-    protected override void OnParametersSet()
-    {
-        if (Text == _lastText) return;
-        _lastText = Text;
-        _html = Renderer.ToSafeHtml(Text);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (string.IsNullOrEmpty(_html)) return;
-        try
-        {
-            await Js.InvokeVoidAsync("atlasMarkdown.highlight", _root);
-        }
-        catch
-        {
-            // highlight.js may not be ready during first paint.
-        }
-    }
-
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
-}

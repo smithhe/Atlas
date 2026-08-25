@@ -1,6 +1,12 @@
 # Atlas.Ui (Blazor WebAssembly)
 
-Shell layout, path routes, shared CSS, hash shim (temporary), CRUD, team hub, and AI panel.
+## UI layering
+
+- **Razor pages/components** (`Pages/`, `Layout/`, `Shared/`, `Components/`) hold markup only.
+- **Code-behind** (`*.razor.cs`) holds UI state, event handlers, and navigation.
+- **Services** (`Services/`) own HTTP: domain services wrap the generated `IAtlasApiClient`; `AppCacheService` hydrates reads. Pages do not inject `IAtlasApiClient` or `HttpClient`.
+- **Shared components** (`Shared/`, `Components/`) are reused across pages (modals, search, team tabs, `PageTitleRow`).
+
 
 ## Prerequisites
 
