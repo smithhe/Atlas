@@ -1,8 +1,6 @@
 @page "/"
 @page "/login"
 @layout EmptyLayout
-@inject NavigationManager Nav
-
 <PageTitle>Login — Atlas</PageTitle>
 
 <div class="page">
@@ -17,7 +15,3 @@
         </div>
     </div>
 </div>
-
-@code {
-    void Continue() => Nav.NavigateTo("/dashboard");
-}

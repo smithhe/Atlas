@@ -1,5 +1,3 @@
-@inject NavigationManager Nav
-
 <section class="card subtle" aria-label="Work items tab">
     <div class="cardHeader">
         <div class="cardTitle">Work Items</div>
@@ -57,43 +55,3 @@
         </div>
     </div>
 </section>
-
-@code {
-    [Parameter, EditorRequired] public TeamMember Member { get; set; } = default!;
-
-    string _query = "";
-    string _quickFilter = "All";
-    string _statusFilter = "All";
-
-    List<string> StatusOptions =>
-        new[] { "All" }.Concat(Member.AzureItems.Select(a => a.Status).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s)).ToList();
-
-    List<AzureItem> Filtered
-    {
-        get
-        {
-            string q = _query.Trim().ToLowerInvariant();
-            IEnumerable<AzureItem> items = Member.AzureItems;
-            if (_quickFilter == "Current")
-                items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
-            else if (_quickFilter == "Blocked")
-                items = items.Where(a => a.Status.Contains("blocked", StringComparison.OrdinalIgnoreCase));
-            else if (_quickFilter == "InReview")
-                items = items.Where(a =>
-                {
-                    string s = a.Status.ToLowerInvariant();
-                    return s.Contains("code review") || s.Contains("in review") || s.Contains("review");
-                });
-
-            if (_statusFilter != "All")
-                items = items.Where(a => a.Status == _statusFilter);
-
-            if (!string.IsNullOrEmpty(q))
-                items = items.Where(a => $"{a.Id} {a.Title} {a.Status}".ToLowerInvariant().Contains(q));
-
-            return items.ToList();
-        }
-    }
-
-    void OpenItem(string id) => Nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
-}
