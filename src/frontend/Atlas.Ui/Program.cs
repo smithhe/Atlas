@@ -28,6 +28,16 @@ builder.Services.AddScoped<AppCacheService>();
 builder.Services.AddScoped<MarkdownRenderer>();
 builder.Services.AddScoped<AiSessionEventsClient>();
 builder.Services.AddScoped<AiStateService>();
+builder.Services.AddScoped<TaskService>();
+builder.Services.AddScoped<ProjectService>();
+builder.Services.AddScoped<RiskService>();
+builder.Services.AddScoped<TeamMemberService>();
+builder.Services.AddScoped<TeamNoteService>();
+builder.Services.AddScoped<TeamMemberRiskService>();
+builder.Services.AddScoped<GrowthService>();
+builder.Services.AddScoped<SettingsService>();
+builder.Services.AddScoped<AzureDevOpsService>();
+builder.Services.AddScoped<AzureWorkItemService>();
 
 WebAssemblyHost host = builder.Build();
 
