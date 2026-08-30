@@ -186,7 +186,6 @@ public partial class Team : IDisposable
     private async Task HandleMemberUpdate(TeamMember next)
     {
         TeamMember? previous = Cache.Team.FirstOrDefault(m => m.Id == next.Id);
-        Cache.UpdateTeamMember(next);
         if (previous is null)
         {
             return;

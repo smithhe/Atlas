@@ -1,4 +1,5 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
@@ -18,14 +19,36 @@ public sealed class TaskService
     public async Task<AtlasTask> CreateAsync(AtlasTask draft, CancellationToken cancellationToken = default)
     {
         AtlasApiDTOsTasksCreateTaskResponse res =
-            await _api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(_cache.ToCreateTaskRequest(draft), cancellationToken);
+            await _api.AtlasApiEndpointsTasksCreateTaskEndpointAsync(
+                EntityRequestMappers.ToCreateTaskRequest(draft, _cache.Projects, _cache.Risks),
+                cancellationToken);
         draft.Id = res.Id ?? Guid.Empty;
         _cache.AddTask(draft);
         return draft;
     }
 
-    public Task UpdateAsync(AtlasTask task, CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsTasksUpdateTaskEndpointAsync(task.Id, _cache.ToUpdateTaskRequest(task), cancellationToken);
+    public async Task UpdateAsync(AtlasTask task, CancellationToken cancellationToken = default)
+    {
+        AtlasTask? previous = _cache.Tasks.FirstOrDefault(t => t.Id == task.Id);
+        AtlasTask? previousClone = previous is not null ? EntityClone.Task(previous) : null;
+        _cache.UpdateTask(task);
+        try
+        {
+            await _api.AtlasApiEndpointsTasksUpdateTaskEndpointAsync(
+                task.Id,
+                EntityRequestMappers.ToUpdateTaskRequest(task, _cache.Projects, _cache.Risks),
+                cancellationToken);
+        }
+        catch
+        {
+            if (previousClone is not null)
+            {
+                _cache.UpdateTask(previousClone);
+            }
+
+            throw;
+        }
+    }
 
     public async Task DeleteAsync(Guid taskId, CancellationToken cancellationToken = default)
     {

@@ -106,6 +106,14 @@ public sealed class Settings
     public string? AzureDevOpsBaseUrl { get; set; }
 }
 
+public sealed class AiConversationListItem
+{
+    public Guid ConversationId { get; set; }
+    public string Title { get; set; } = "";
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public int? TurnCount { get; set; }
+}
+
 public sealed class ProductOwner
 {
     public Guid Id { get; set; }

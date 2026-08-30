@@ -1,4 +1,6 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
+using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
 
@@ -12,65 +14,115 @@ public sealed class AzureDevOpsService
         _api = api;
     }
 
-    public Task<AtlasApiDTOsAzureDevOpsAzureConnectionDto> GetConnectionAsync(CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync(cancellationToken);
+    public async Task<AzureConnection> GetConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsAzureDevOpsAzureConnectionDto dto =
+            await _api.AtlasApiEndpointsAzureDevOpsGetAzureConnectionEndpointAsync(cancellationToken);
+        return ApiMappers.MapAzureConnection(dto);
+    }
 
-    public Task UpdateConnectionAsync(
-        AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest request,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpointAsync(request, cancellationToken);
+    public async Task<AzureConnection?> TryGetConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await GetConnectionAsync(cancellationToken);
+        }
+        catch (AtlasApiException ex) when (ex.StatusCode == 404)
+        {
+            return null;
+        }
+    }
 
-    public Task<ICollection<AtlasApiDTOsAzureDevOpsAzureProjectDto>> ListProjectsAsync(
-        string organization,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListAzureProjectsEndpointAsync(organization, cancellationToken);
+    public Task UpdateConnectionAsync(AzureUpdateConnection connection, CancellationToken cancellationToken = default) =>
+        _api.AtlasApiEndpointsAzureDevOpsUpdateAzureConnectionEndpointAsync(
+            ApiMappers.ToUpdateAzureConnectionRequest(connection),
+            cancellationToken);
 
-    public Task<ICollection<AtlasApiDTOsAzureDevOpsAzureTeamDto>> ListTeamsAsync(
+    public async Task<IReadOnlyList<AzureProject>> ListProjectsAsync(string organization, CancellationToken cancellationToken = default)
+    {
+        ICollection<AtlasApiDTOsAzureDevOpsAzureProjectDto> list =
+            await _api.AtlasApiEndpointsAzureDevOpsListAzureProjectsEndpointAsync(organization, cancellationToken);
+        return list.Select(ApiMappers.MapAzureProject).ToList();
+    }
+
+    public async Task<IReadOnlyList<AzureTeam>> ListTeamsAsync(
         string organization,
         string projectId,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListAzureTeamsEndpointAsync(organization, projectId, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        ICollection<AtlasApiDTOsAzureDevOpsAzureTeamDto> list =
+            await _api.AtlasApiEndpointsAzureDevOpsListAzureTeamsEndpointAsync(organization, projectId, cancellationToken);
+        return list.Select(ApiMappers.MapAzureTeam).ToList();
+    }
 
-    public Task<ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>> ListUsersAsync(
+    public async Task<IReadOnlyList<AzureUser>> ListUsersAsync(
         string organization,
         string projectId,
         string teamId,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(organization, projectId, teamId, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> list =
+            await _api.AtlasApiEndpointsAzureDevOpsListAzureUsersEndpointAsync(organization, projectId, teamId, cancellationToken);
+        return list.Select(ApiMappers.MapAzureUser).ToList();
+    }
 
-    public Task<AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto> ListTeamAreaPathsAsync(
+    public async Task<AzureTeamAreaPaths> ListTeamAreaPathsAsync(
         string organization,
         string projectId,
         string teamName,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListAzureTeamAreaPathsEndpointAsync(organization, projectId, teamName, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto dto =
+            await _api.AtlasApiEndpointsAzureDevOpsListAzureTeamAreaPathsEndpointAsync(organization, projectId, teamName, cancellationToken);
+        return ApiMappers.MapAzureTeamAreaPaths(dto);
+    }
 
-    public Task ImportTeamAsync(
-        AtlasApiDTOsAzureDevOpsImportAzureTeamRequest request,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(request, cancellationToken);
+    public Task ImportTeamAsync(IReadOnlyList<AzureUser> users, CancellationToken cancellationToken = default) =>
+        _api.AtlasApiEndpointsAzureDevOpsImportAzureTeamEndpointAsync(
+            ApiMappers.ToImportAzureTeamRequest(users),
+            cancellationToken);
 
-    public Task<AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto> ImportProductOwnersAsync(
-        AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest request,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpointAsync(request, cancellationToken);
+    public async Task<ImportProductOwnersResult> ImportProductOwnersAsync(
+        IReadOnlyList<AzureUser> users,
+        CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto dto =
+            await _api.AtlasApiEndpointsAzureDevOpsImportAzureProductOwnersEndpointAsync(
+                ApiMappers.ToImportAzureProductOwnersRequest(users),
+                cancellationToken);
+        return ApiMappers.MapImportProductOwnersResult(dto);
+    }
 
-    public Task<ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>> ListImportedUsersAsync(
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpointAsync(cancellationToken);
+    public async Task<IReadOnlyList<AzureUser>> ListImportedUsersAsync(CancellationToken cancellationToken = default)
+    {
+        ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> list =
+            await _api.AtlasApiEndpointsAzureDevOpsListImportedAzureUsersEndpointAsync(cancellationToken);
+        return list.Select(ApiMappers.MapAzureUser).ToList();
+    }
 
-    public Task<ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>> ListImportWorkItemsAsync(
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsListAzureImportWorkItemsEndpointAsync(cancellationToken);
+    public async Task<IReadOnlyList<AzureImportWorkItem>> ListImportWorkItemsAsync(CancellationToken cancellationToken = default)
+    {
+        ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto> list =
+            await _api.AtlasApiEndpointsAzureDevOpsListAzureImportWorkItemsEndpointAsync(cancellationToken);
+        return list.Select(ApiMappers.MapAzureImportWorkItem).ToList();
+    }
 
-    public Task LinkWorkItemsAsync(
-        AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest request,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsLinkAzureWorkItemsEndpointAsync(request, cancellationToken);
+    public Task LinkWorkItemsAsync(LinkAzureWorkItemsRequest request, CancellationToken cancellationToken = default) =>
+        _api.AtlasApiEndpointsAzureDevOpsLinkAzureWorkItemsEndpointAsync(
+            ApiMappers.ToLinkAzureWorkItemsRequest(request),
+            cancellationToken);
 
-    public Task<AtlasApiDTOsAzureDevOpsAzureSyncStateDto> GetSyncStateAsync(CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsGetAzureSyncStateEndpointAsync(cancellationToken);
+    public async Task<AzureSyncState> GetSyncStateAsync(CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsAzureDevOpsAzureSyncStateDto dto =
+            await _api.AtlasApiEndpointsAzureDevOpsGetAzureSyncStateEndpointAsync(cancellationToken);
+        return ApiMappers.MapAzureSyncState(dto);
+    }
 
-    public Task<AtlasApiDTOsAzureDevOpsAzureSyncResultDto> RunSyncAsync(CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsAzureDevOpsRunAzureSyncEndpointAsync(cancellationToken);
+    public async Task<AzureSyncResult> RunSyncAsync(CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsAzureDevOpsAzureSyncResultDto dto =
+            await _api.AtlasApiEndpointsAzureDevOpsRunAzureSyncEndpointAsync(cancellationToken);
+        return ApiMappers.MapAzureSyncResult(dto);
+    }
 }

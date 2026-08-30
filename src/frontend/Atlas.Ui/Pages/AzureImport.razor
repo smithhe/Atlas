@@ -44,7 +44,7 @@
                     <span class="mutedSmall" style="margin-left: auto">@_selectedUsers.Count selected</span>
                 </div>
                 <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
-                    @foreach (AtlasApiDTOsAzureDevOpsAzureUserDto u in _users)
+                    @foreach (AzureUser u in _users)
                     {
                         string unique = u.UniqueName ?? "";
                         bool selected = _selectedUsers.Contains(unique);
@@ -153,10 +153,10 @@
                     <div class="tableCell tableHeader">Assigned</div>
                     <div class="tableCell tableHeader">Type</div>
 
-                    @foreach (AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto item in _importWorkItems)
+                    @foreach (AzureImportWorkItem item in _importWorkItems)
                     {
-                        if (item.Id is null) continue;
-                        Guid itemId = item.Id.Value;
+                        if (item.Id == Guid.Empty) continue;
+                        Guid itemId = item.Id;
                         bool isSelected = _selectedWorkItems.Contains(itemId);
                         string? assigned = item.SuggestedTeamMemberId is { } mid
                             ? Cache.Team.FirstOrDefault(m => m.Id == mid)?.Name

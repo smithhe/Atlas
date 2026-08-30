@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
@@ -32,11 +32,11 @@ public partial class Setup
     private bool _areaPathLoading;
     private string? _areaPathError;
 
-    private List<AtlasApiDTOsAzureDevOpsAzureProjectDto> _projects = [];
+    private List<AzureProject> _projects = [];
     private string _selectedProjectId = "";
-    private List<AtlasApiDTOsAzureDevOpsAzureTeamDto> _teams = [];
+    private List<AzureTeam> _teams = [];
     private string _selectedTeamId = "";
-    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    private List<AzureUser> _users = [];
     private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
 
     private string _projectQuery = "";
@@ -55,17 +55,17 @@ public partial class Setup
         _ => "Step 3/3 • Members"
     };
 
-    private AtlasApiDTOsAzureDevOpsAzureProjectDto? SelectedProject =>
+    private AzureProject? SelectedProject =>
         _projects.FirstOrDefault(p => p.Id == _selectedProjectId);
 
-    private AtlasApiDTOsAzureDevOpsAzureTeamDto? SelectedTeam =>
+    private AzureTeam? SelectedTeam =>
         _teams.FirstOrDefault(t => t.Id == _selectedTeamId);
 
-    private List<AtlasApiDTOsAzureDevOpsAzureProjectDto> FilteredProjects
+    private List<AzureProject> FilteredProjects
     {
         get
         {
-            IEnumerable<AtlasApiDTOsAzureDevOpsAzureProjectDto> sorted = _projects
+            IEnumerable<AzureProject> sorted = _projects
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase);
             var q = _projectQuery.Trim();
             if (q.Length == 0)
@@ -74,16 +74,16 @@ public partial class Setup
             }
 
             return sorted
-                .Where(p => (p.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                .Where(p => p.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
     }
 
-    private List<AtlasApiDTOsAzureDevOpsAzureTeamDto> FilteredTeams
+    private List<AzureTeam> FilteredTeams
     {
         get
         {
-            IEnumerable<AtlasApiDTOsAzureDevOpsAzureTeamDto> sorted = _teams
+            IEnumerable<AzureTeam> sorted = _teams
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase);
             var q = _teamQuery.Trim();
             if (q.Length == 0)
@@ -92,16 +92,16 @@ public partial class Setup
             }
 
             return sorted
-                .Where(t => (t.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                .Where(t => t.Name.Contains(q, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
     }
 
-    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> FilteredUsers
+    private List<AzureUser> FilteredUsers
     {
         get
         {
-            IEnumerable<AtlasApiDTOsAzureDevOpsAzureUserDto> sorted = _users
+            IEnumerable<AzureUser> sorted = _users
                 .OrderBy(u => (u.DisplayName ?? u.UniqueName ?? ""), StringComparer.OrdinalIgnoreCase);
             var q = _memberQuery.Trim();
             if (q.Length == 0)
@@ -123,9 +123,8 @@ public partial class Setup
     {
         try
         {
-            AtlasApiDTOsAzureDevOpsAzureConnectionDto conn =
-                await AzureDevOpsService.GetConnectionAsync();
-            if (!string.IsNullOrWhiteSpace(conn.Organization))
+            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            if (!string.IsNullOrWhiteSpace(conn?.Organization))
             {
                 _organization = conn.Organization;
             }
@@ -194,8 +193,7 @@ public partial class Setup
         _error = null;
         try
         {
-            ICollection<AtlasApiDTOsAzureDevOpsAzureProjectDto> list =
-                await AzureDevOpsService.ListProjectsAsync(_organization);
+            IReadOnlyList<AzureProject> list = await AzureDevOpsService.ListProjectsAsync(_organization);
             _projects = list.ToList();
             _selectedProjectId = "";
             _selectedTeamId = "";
@@ -242,8 +240,7 @@ public partial class Setup
         _loading = true;
         try
         {
-            ICollection<AtlasApiDTOsAzureDevOpsAzureTeamDto> list =
-                await AzureDevOpsService.ListTeamsAsync(_organization, projectId);
+            IReadOnlyList<AzureTeam> list = await AzureDevOpsService.ListTeamsAsync(_organization, projectId);
             _teams = list.ToList();
             _step = SetupStep.Team;
             _teamsScrollGen++;
@@ -275,14 +272,12 @@ public partial class Setup
         _areaPathError = null;
         try
         {
-            Task<ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto>> usersTask =
-                AzureDevOpsService.ListUsersAsync(
-                _organization, _selectedProjectId, teamId);
-            Task<AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto> areasTask =
-                AzureDevOpsService.ListTeamAreaPathsAsync(
-                _organization, _selectedProjectId, teamName);
+            Task<IReadOnlyList<AzureUser>> usersTask =
+                AzureDevOpsService.ListUsersAsync(_organization, _selectedProjectId, teamId);
+            Task<AzureTeamAreaPaths> areasTask =
+                AzureDevOpsService.ListTeamAreaPathsAsync(_organization, _selectedProjectId, teamName);
 
-            ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> users;
+            IReadOnlyList<AzureUser> users;
             try
             {
                 users = await usersTask;
@@ -296,13 +291,13 @@ public partial class Setup
 
             try
             {
-                AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto areas = await areasTask;
+                AzureTeamAreaPaths areas = await areasTask;
                 var defaultValue = (areas.DefaultValue ?? "").Trim();
                 if (defaultValue.Length > 0)
                 {
                     _areaPath = defaultValue;
                 }
-                else if (areas.Values?.Count > 0)
+                else if (areas.Values.Count > 0)
                 {
                     _areaPath = areas.Values.First().Value ?? "";
                 }
@@ -358,8 +353,8 @@ public partial class Setup
 
     private async Task OnSave()
     {
-        AtlasApiDTOsAzureDevOpsAzureProjectDto? project = SelectedProject;
-        AtlasApiDTOsAzureDevOpsAzureTeamDto? team = SelectedTeam;
+        AzureProject? project = SelectedProject;
+        AzureTeam? team = SelectedTeam;
         if (project is null || team is null || _loading)
         {
             return;
@@ -370,32 +365,24 @@ public partial class Setup
         _step = SetupStep.Saving;
         try
         {
-            await AzureDevOpsService.UpdateConnectionAsync(
-                new AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest
-                {
-                    Organization = _organization,
-                    Project = project.Name,
-                    AreaPath = _areaPath,
-                    TeamName = team.Name,
-                    IsEnabled = true,
-                    ProjectId = project.Id,
-                    TeamId = team.Id
-                });
+            await AzureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
+            {
+                Organization = _organization,
+                Project = project.Name,
+                AreaPath = _areaPath,
+                TeamName = team.Name,
+                IsEnabled = true,
+                ProjectId = project.Id,
+                TeamId = team.Id
+            });
 
-            var selected = _users
+            List<AzureUser> selected = _users
                 .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
-                .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
-                {
-                    DisplayName = u.DisplayName,
-                    UniqueName = u.UniqueName,
-                    Descriptor = u.Descriptor
-                })
                 .ToList();
 
             if (selected.Count > 0)
             {
-                await AzureDevOpsService.ImportTeamAsync(
-                    new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest { Users = selected });
+                await AzureDevOpsService.ImportTeamAsync(selected);
                 await Cache.RefetchTeamAsync();
             }
 

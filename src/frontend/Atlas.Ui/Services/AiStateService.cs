@@ -1,4 +1,6 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
+using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
 
@@ -25,7 +27,7 @@ public sealed class AiStateService : IAsyncDisposable
 
     private readonly List<AiTranscriptTurn> _turns = [];
     private readonly List<AiSessionEventPayload> _eventsBuffer = [];
-    private readonly List<AtlasApiDTOsAiAiConversationListItemDto> _conversations = [];
+    private readonly List<AiConversationListItem> _conversations = [];
     private readonly List<AiAction> _actions = [];
 
     private AiDraftTarget? _draftTarget;
@@ -53,7 +55,7 @@ public sealed class AiStateService : IAsyncDisposable
     public bool IsOpen { get; private set; }
     public string ContextTitle { get; private set; } = "Context: Dashboard";
     public IReadOnlyList<AiAction> Actions => _actions;
-    public IReadOnlyList<AtlasApiDTOsAiAiConversationListItemDto> Conversations => _conversations;
+    public IReadOnlyList<AiConversationListItem> Conversations => _conversations;
     public IReadOnlyList<AiTranscriptTurn> Turns => _turns;
     public string? Notice { get; private set; }
     public string Status { get; private set; } = "Idle";
@@ -400,7 +402,7 @@ public sealed class AiStateService : IAsyncDisposable
         {
             ICollection<AtlasApiDTOsAiAiConversationListItemDto> recent = await _api.AtlasApiEndpointsAiListAiConversationsEndpointAsync(25);
             _conversations.Clear();
-            _conversations.AddRange(recent);
+            _conversations.AddRange(recent.Select(ApiMappers.MapAiConversationListItem));
             Notify();
         }
         catch

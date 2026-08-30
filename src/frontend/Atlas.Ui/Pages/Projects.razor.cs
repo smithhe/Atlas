@@ -579,7 +579,6 @@ public partial class Projects : IDisposable
         {
             Project next = NormalizeDraftForSave();
             await ProjectService.UpdateAsync(next);
-            Cache.UpdateProject(next);
             _editing = false;
             if (_autoEditId == next.Id)
             {
@@ -705,7 +704,7 @@ public partial class Projects : IDisposable
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
             Project created = await ProjectService.CreateAsync(draft);
-        Guid id = created.Id;
+            Guid id = created.Id;
             _autoEditId = id;
             SelectFromList(id);
         }

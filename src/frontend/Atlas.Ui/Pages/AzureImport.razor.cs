@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
@@ -9,10 +9,10 @@ public partial class AzureImport : IDisposable
     [Inject] private AppCacheService Cache { get; set; } = null!;
     [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
 
-    private AtlasApiDTOsAzureDevOpsAzureConnectionDto? _connection;
-    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    private AzureConnection? _connection;
+    private List<AzureUser> _users = [];
     private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
-    private List<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto> _importWorkItems = [];
+    private List<AzureImportWorkItem> _importWorkItems = [];
     private HashSet<Guid> _selectedWorkItems = [];
     private string _projectId = "";
     private string _teamMemberId = "";
@@ -43,12 +43,8 @@ public partial class AzureImport : IDisposable
         _error = null;
         try
         {
-            AtlasApiDTOsAzureDevOpsAzureConnectionDto? conn;
-            try
-            {
-                conn = await AzureDevOpsService.GetConnectionAsync();
-            }
-            catch (AtlasApiException ex) when (ex.StatusCode == 404)
+            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            if (conn is null)
             {
                 _connection = null;
                 _error = "Set Project ID and Team ID in Settings before importing users.";
@@ -67,9 +63,9 @@ public partial class AzureImport : IDisposable
             }
             else
             {
-                ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> list = await AzureDevOpsService.ListUsersAsync(
+                IReadOnlyList<AzureUser> list = await AzureDevOpsService.ListUsersAsync(
                     conn.Organization!, conn.ProjectId!, conn.TeamId!);
-                ICollection<AtlasApiDTOsAzureDevOpsAzureUserDto> imported = await AzureDevOpsService.ListImportedUsersAsync();
+                IReadOnlyList<AzureUser> imported = await AzureDevOpsService.ListImportedUsersAsync();
                 HashSet<string> importedSet = new(
                     imported
                         .Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant())
@@ -93,7 +89,7 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    private async Task<ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>> SafeListWorkItemsAsync()
+    private async Task<IReadOnlyList<AzureImportWorkItem>> SafeListWorkItemsAsync()
     {
         try
         {
@@ -101,7 +97,7 @@ public partial class AzureImport : IDisposable
         }
         catch
         {
-            return Array.Empty<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>();
+            return Array.Empty<AzureImportWorkItem>();
         }
     }
 
@@ -146,15 +142,9 @@ public partial class AzureImport : IDisposable
     private void OnProjectChange(ChangeEventArgs e) => _projectId = e.Value?.ToString() ?? "";
     private void OnTeamMemberChange(ChangeEventArgs e) => _teamMemberId = e.Value?.ToString() ?? "";
 
-    private List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> SelectedUserDtos() =>
+    private List<AzureUser> SelectedUsers() =>
         _users
             .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
-            .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
-            {
-                DisplayName = u.DisplayName,
-                UniqueName = u.UniqueName,
-                Descriptor = u.Descriptor
-            })
             .ToList();
 
     private async Task OnImportUsers()
@@ -169,9 +159,8 @@ public partial class AzureImport : IDisposable
         _importingUsers = true;
         try
         {
-            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = SelectedUserDtos();
-            await AzureDevOpsService.ImportTeamAsync(
-                new AtlasApiDTOsAzureDevOpsImportAzureTeamRequest { Users = selected });
+            List<AzureUser> selected = SelectedUsers();
+            await AzureDevOpsService.ImportTeamAsync(selected);
             await Cache.RefetchTeamAsync();
             HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
@@ -203,9 +192,8 @@ public partial class AzureImport : IDisposable
         _importingProductOwners = true;
         try
         {
-            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = SelectedUserDtos();
-            AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto result = await AzureDevOpsService.ImportProductOwnersAsync(
-                new AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest { Users = selected });
+            List<AzureUser> selected = SelectedUsers();
+            ImportProductOwnersResult result = await AzureDevOpsService.ImportProductOwnersAsync(selected);
             await Cache.RefetchProductOwnersAsync();
             HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
@@ -214,7 +202,7 @@ public partial class AzureImport : IDisposable
                 .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                 .ToList();
             _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
-            List<AtlasApiDTOsAzureDevOpsReusedProductOwnerNameDto> reused = result.ReusedProductOwnerNames?.ToList() ?? [];
+            IReadOnlyList<ReusedProductOwnerName> reused = result.ReusedProductOwnerNames;
             if (reused.Count > 0)
             {
                 var details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
@@ -250,14 +238,12 @@ public partial class AzureImport : IDisposable
         try
         {
             Guid? teamMemberId = Guid.TryParse(_teamMemberId, out Guid mid) ? mid : null;
-            await AzureDevOpsService.LinkWorkItemsAsync(
-                new AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest
-                {
-                    AzureWorkItemIds = _selectedWorkItems.ToList(),
-                    ProjectId = projectId,
-                    TeamMemberId = teamMemberId
-                });
-            // Broad invalidate matching React invalidateAppQueries(['teamMembers', 'projects']).
+            await AzureDevOpsService.LinkWorkItemsAsync(new LinkAzureWorkItemsRequest
+            {
+                AzureWorkItemIds = _selectedWorkItems.ToList(),
+                ProjectId = projectId,
+                TeamMemberId = teamMemberId
+            });
             await Cache.RefetchTeamAsync();
             await Cache.RefetchProjectsAsync();
             _selectedWorkItems = [];
@@ -281,7 +267,7 @@ public partial class AzureImport : IDisposable
         }
 
         _importWorkItems = _importWorkItems
-            .Where(item => item.Id is null || !_selectedWorkItems.Contains(item.Id.Value))
+            .Where(item => !_selectedWorkItems.Contains(item.Id))
             .ToList();
         _selectedWorkItems = [];
     }

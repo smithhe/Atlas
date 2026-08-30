@@ -22,19 +22,10 @@ public sealed class TeamMemberRiskService
         CancellationToken cancellationToken = default)
     {
         AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskResponse res =
-            await _api.AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(memberId, new AtlasApiDTOsTeamMembersRisksAddTeamMemberRiskRequest
-            {
-                Title = draft.Title,
-                Severity = ApiMappers.ToApiTeamMemberRiskSeverity(draft.Severity),
-                RiskType = draft.RiskType,
-                Status = ApiMappers.ToApiTeamMemberRiskStatus(draft.Status),
-                Trend = ApiMappers.ToApiTeamMemberRiskTrend(draft.Trend),
-                FirstNoticedDate = DateTimeOffset.TryParse(draft.FirstNoticedDateIso, out DateTimeOffset d) ? d : null,
-                ImpactArea = draft.ImpactArea,
-                Description = draft.Description,
-                CurrentAction = draft.CurrentAction,
-                LinkedGlobalRiskId = draft.LinkedRiskId
-            }, cancellationToken);
+            await _api.AtlasApiEndpointsTeamMembersRisksAddTeamMemberRiskEndpointAsync(
+                memberId,
+                EntityRequestMappers.ToAddTeamMemberRiskRequest(draft),
+                cancellationToken);
 
         draft.Id = res.Id ?? Guid.NewGuid();
         draft.MemberId = memberId;
@@ -42,19 +33,27 @@ public sealed class TeamMemberRiskService
         return draft;
     }
 
-    public Task UpdateAsync(Guid memberId, TeamMemberRisk next, CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpointAsync(memberId, next.Id, new AtlasApiDTOsTeamMembersRisksUpdateTeamMemberRiskRequest
+    public async Task UpdateAsync(Guid memberId, TeamMemberRisk next, CancellationToken cancellationToken = default)
+    {
+        TeamMemberRisk? previous = _cache.TeamMemberRisks.FirstOrDefault(r => r.Id == next.Id && r.MemberId == memberId);
+        TeamMemberRisk? rollback = previous is not null ? EntityClone.TeamMemberRisk(previous) : null;
+        _cache.UpdateTeamMemberRisk(next);
+        try
         {
-            Title = next.Title,
-            Severity = ApiMappers.ToApiTeamMemberRiskSeverity(next.Severity),
-            RiskType = next.RiskType,
-            Status = ApiMappers.ToApiTeamMemberRiskStatus(next.Status),
-            Trend = ApiMappers.ToApiTeamMemberRiskTrend(next.Trend),
-            FirstNoticedDate = DateTimeOffset.TryParse(next.FirstNoticedDateIso, out DateTimeOffset d) ? d : null,
-            ImpactArea = next.ImpactArea,
-            Description = next.Description,
-            CurrentAction = next.CurrentAction,
-            LinkedGlobalRiskId = next.LinkedRiskId,
-            LastReviewedAt = DateTimeOffset.TryParse(next.LastReviewedIso, out DateTimeOffset lr) ? lr : null
-        }, cancellationToken);
+            await _api.AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpointAsync(
+                memberId,
+                next.Id,
+                EntityRequestMappers.ToUpdateTeamMemberRiskRequest(next),
+                cancellationToken);
+        }
+        catch
+        {
+            if (rollback is not null)
+            {
+                _cache.UpdateTeamMemberRisk(rollback);
+            }
+
+            throw;
+        }
+    }
 }

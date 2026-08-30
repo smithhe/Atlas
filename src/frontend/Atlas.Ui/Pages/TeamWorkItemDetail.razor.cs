@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
@@ -97,20 +97,9 @@ public partial class TeamWorkItemDetail : IDisposable
             return;
         }
 
-        Cache.UpdateTeamMember(new TeamMember
-        {
-            Id = Member.Id,
-            Name = Member.Name,
-            Role = Member.Role,
-            StatusDot = Member.StatusDot,
-            CurrentFocus = Member.CurrentFocus,
-            Profile = Member.Profile,
-            Signals = Member.Signals,
-            Notes = Member.Notes,
-            PinnedNoteIds = Member.PinnedNoteIds,
-            ActivitySnapshot = Member.ActivitySnapshot,
-            AzureItems = Member.AzureItems.Select(a => a.Id == next.Id ? next : a).ToList()
-        });
+        Cache.UpdateTeamMember(EntityClone.TeamMember(
+            Member,
+            azureItems: Member.AzureItems.Select(a => a.Id == next.Id ? next : a).ToList()));
     }
 
     private async Task AddLocalNote()
@@ -134,30 +123,7 @@ public partial class TeamWorkItemDetail : IDisposable
 
         try
         {
-            AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse saved = await AzureWorkItemService.AddLocalNoteAsync(
-                Member.Id, workItemIdInt, text);
-            var note = new WorkItemNote
-            {
-                Id = saved.Id ?? Guid.NewGuid(),
-                CreatedIso = saved.CreatedAt?.ToString("o") ?? DateTimeOffset.UtcNow.ToString("o"),
-                Text = text
-            };
-            var nextNotes = new[] { note }.Concat(Item.LocalNotes).ToList();
-            UpdateWorkItem(new AzureItem
-            {
-                Id = Item.Id,
-                Title = Item.Title,
-                Status = Item.Status,
-                AssignedTo = Item.AssignedTo,
-                TicketUrl = Item.TicketUrl,
-                ProjectId = Item.ProjectId,
-                ChangedDateUtc = Item.ChangedDateUtc,
-                TimeTaken = Item.TimeTaken,
-                StartDateIso = Item.StartDateIso,
-                CommitsUrl = Item.CommitsUrl,
-                PrUrls = Item.PrUrls,
-                LocalNotes = nextNotes
-            });
+            WorkItemNote note = await AzureWorkItemService.AddLocalNoteAsync(Member.Id, workItemIdInt, text);
             _newNoteText = "";
         }
         catch (Exception ex)

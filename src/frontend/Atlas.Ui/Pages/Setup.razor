@@ -92,9 +92,9 @@
                             @(string.IsNullOrEmpty(_selectedProjectId) ? "Choose one project." : "Project selected.") • @FilteredProjects.Count shown
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 260px; overflow: auto">
-                            @foreach (AtlasApiDTOsAzureDevOpsAzureProjectDto p in FilteredProjects)
+                            @foreach (AzureProject p in FilteredProjects)
                             {
-                                string projectId = p.Id ?? "";
+                                string projectId = p.Id;
                                 bool selected = projectId == _selectedProjectId;
                                 <button type="button"
                                         class="listRow listRowBtn @(selected ? "listRowActive" : null)"
@@ -142,7 +142,7 @@
                             @(string.IsNullOrEmpty(_selectedTeamId) ? "Choose one team." : "Team selected.") • @FilteredTeams.Count shown
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
-                            @foreach (AtlasApiDTOsAzureDevOpsAzureTeamDto t in FilteredTeams)
+                            @foreach (AzureTeam t in FilteredTeams)
                             {
                                 string teamId = t.Id ?? "";
                                 string teamName = t.Name ?? "";
@@ -240,7 +240,7 @@
                             </span>
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 360px; overflow: auto">
-                            @foreach (AtlasApiDTOsAzureDevOpsAzureUserDto u in FilteredUsers)
+                            @foreach (AzureUser u in FilteredUsers)
                             {
                                 string unique = u.UniqueName ?? "";
                                 bool selected = _selectedUsers.Contains(unique);
