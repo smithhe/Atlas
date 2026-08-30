@@ -121,7 +121,7 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        _draft = Clone(View);
+        _draft = EntityClone.TeamMemberRisk(View);
         _editing = true;
     }
 
@@ -157,8 +157,7 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        TeamMemberRisk updated = Clone(View);
-        updated.LinkedRiskId = next;
+        TeamMemberRisk updated = EntityClone.TeamMemberRisk(View, linkedRiskId: next, setLinkedRiskId: true);
         PersistRisk(updated);
     }
 
@@ -176,8 +175,7 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        TeamMemberRisk updated = Clone(View);
-        updated.LastReviewedIso = iso;
+        TeamMemberRisk updated = EntityClone.TeamMemberRisk(View, lastReviewedIso: iso, setLastReviewedIso: true);
         PersistRisk(updated);
     }
 
@@ -199,7 +197,6 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        Cache.UpdateTeamMemberRisk(next);
         _ = PersistAsync(memberId, next);
     }
 
@@ -214,23 +211,6 @@ public partial class TeamMemberRiskDetail : IDisposable
             await Dialogs.AlertAsync($"Unable to save team member risk right now. Please try again.\n\n{ex.Message}");
         }
     }
-
-    private static TeamMemberRisk Clone(TeamMemberRisk r) => new()
-    {
-        Id = r.Id,
-        MemberId = r.MemberId,
-        Title = r.Title,
-        Severity = r.Severity,
-        RiskType = r.RiskType,
-        Status = r.Status,
-        Trend = r.Trend,
-        FirstNoticedDateIso = r.FirstNoticedDateIso,
-        ImpactArea = r.ImpactArea,
-        Description = r.Description,
-        CurrentAction = r.CurrentAction,
-        LastReviewedIso = r.LastReviewedIso,
-        LinkedRiskId = r.LinkedRiskId
-    };
 
     private void OnChanged() => InvokeAsync(() =>
     {

@@ -1,4 +1,6 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
+using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
 
@@ -6,20 +8,51 @@ namespace Atlas.Ui.Services;
 public sealed class AzureWorkItemService
 {
     private readonly IAtlasApiClient _api;
+    private readonly AppCacheService _cache;
 
-    public AzureWorkItemService(IAtlasApiClient api)
+    public AzureWorkItemService(IAtlasApiClient api, AppCacheService cache)
     {
         _api = api;
+        _cache = cache;
     }
 
-    public Task<AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse> AddLocalNoteAsync(
+    public async Task<WorkItemNote> AddLocalNoteAsync(
         Guid teamMemberId,
         int workItemId,
         string text,
-        CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpointAsync(
-            teamMemberId,
-            workItemId,
-            new AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest { Text = text },
-            cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteResponse saved =
+            await _api.AtlasApiEndpointsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteEndpointAsync(
+                teamMemberId,
+                workItemId,
+                EntityRequestMappers.ToAddAzureWorkItemLocalNoteRequest(text),
+                cancellationToken);
+
+        var note = new WorkItemNote
+        {
+            Id = saved.Id ?? Guid.NewGuid(),
+            CreatedIso = saved.CreatedAt?.ToString("o") ?? DateTimeOffset.UtcNow.ToString("o"),
+            Text = text
+        };
+
+        TeamMember? member = _cache.Team.FirstOrDefault(m => m.Id == teamMemberId);
+        if (member is not null)
+        {
+            var workItemKey = workItemId.ToString();
+            _cache.UpdateTeamMember(EntityClone.TeamMember(
+                member,
+                azureItems: member.AzureItems.Select(item =>
+                {
+                    if (item.Id != workItemKey)
+                    {
+                        return item;
+                    }
+
+                    return EntityClone.AzureItem(item, localNotes: new[] { note }.Concat(item.LocalNotes).ToList());
+                }).ToList()));
+        }
+
+        return note;
+    }
 }

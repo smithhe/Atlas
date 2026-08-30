@@ -150,17 +150,6 @@ public sealed class AppCacheService
         }
     }
 
-    public async Task RefetchTasksAsync(CancellationToken cancellationToken = default)
-    {
-        await LoadTasksAsync(cancellationToken);
-    }
-
-    public async Task RefetchRisksAsync(CancellationToken cancellationToken = default)
-    {
-        await LoadRisksAsync(cancellationToken);
-        await LoadTasksAsync(cancellationToken);
-    }
-
     public async Task RefetchProjectsAsync(CancellationToken cancellationToken = default)
     {
         await LoadProjectsAsync(cancellationToken);
@@ -211,11 +200,11 @@ public sealed class AppCacheService
         Tasks = Tasks.Where(t => t.Id != taskId).ToList();
         Projects = Projects.Select(p =>
             p.LinkedTaskIds.Contains(taskId)
-                ? CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != taskId).ToList())
+                ? EntityClone.Project(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != taskId).ToList())
                 : p).ToList();
         Risks = Risks.Select(r =>
             r.LinkedTaskIds.Contains(taskId)
-                ? CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != taskId).ToList())
+                ? EntityClone.Risk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != taskId).ToList())
                 : r).ToList();
         if (_selection.SelectedTaskId == taskId)
         {
@@ -240,7 +229,7 @@ public sealed class AppCacheService
         SyncProjectLinkedRiskIds(risk);
         if (previous is not null && previous.Title != risk.Title)
         {
-            Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: risk.Title) : t).ToList();
+            Tasks = Tasks.Select(t => t.Risk == previous.Title ? EntityClone.Task(t, risk: risk.Title) : t).ToList();
             foreach (AtlasTask task in Tasks.Where(t => t.Risk == risk.Title))
             {
                 SyncRiskLinkedTaskIds(task);
@@ -256,11 +245,11 @@ public sealed class AppCacheService
         Risks = Risks.Where(r => r.Id != riskId).ToList();
         Projects = Projects.Select(p =>
             p.LinkedRiskIds.Contains(riskId)
-                ? CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != riskId).ToList())
+                ? EntityClone.Project(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != riskId).ToList())
                 : p).ToList();
         if (previous is not null)
         {
-            Tasks = Tasks.Select(t => t.Risk == previous.Title ? CloneTask(t, risk: null, clearRisk: true) : t).ToList();
+            Tasks = Tasks.Select(t => t.Risk == previous.Title ? EntityClone.Task(t, risk: null, setRisk: true) : t).ToList();
         }
 
         if (_selection.SelectedRiskId == riskId)
@@ -284,8 +273,8 @@ public sealed class AppCacheService
         Projects = Projects.Select(p => p.Id == project.Id ? project : p).ToList();
         if (previous is not null && previous.Name != project.Name)
         {
-            Tasks = Tasks.Select(t => t.Project == previous.Name ? CloneTask(t, project: project.Name) : t).ToList();
-            Risks = Risks.Select(r => r.Project == previous.Name ? CloneRisk(r, project: project.Name) : r).ToList();
+            Tasks = Tasks.Select(t => t.Project == previous.Name ? EntityClone.Task(t, project: project.Name) : t).ToList();
+            Risks = Risks.Select(r => r.Project == previous.Name ? EntityClone.Risk(r, project: project.Name) : r).ToList();
         }
 
         Notify();
@@ -297,8 +286,8 @@ public sealed class AppCacheService
         Projects = Projects.Where(p => p.Id != projectId).ToList();
         if (previous is not null)
         {
-            Tasks = Tasks.Select(t => t.Project == previous.Name ? CloneTask(t, project: null, clearProject: true) : t).ToList();
-            Risks = Risks.Select(r => r.Project == previous.Name ? CloneRisk(r, project: null, clearProject: true) : r).ToList();
+            Tasks = Tasks.Select(t => t.Project == previous.Name ? EntityClone.Task(t, project: null, setProject: true) : t).ToList();
+            Risks = Risks.Select(r => r.Project == previous.Name ? EntityClone.Risk(r, project: null, setProject: true) : r).ToList();
         }
 
         if (_selection.SelectedProjectId == projectId)
@@ -718,108 +707,6 @@ public sealed class AppCacheService
         Notify();
     }
 
-    private Guid? FindProjectIdByName(string? name) =>
-        string.IsNullOrWhiteSpace(name) ? null : Projects.FirstOrDefault(p => p.Name == name)?.Id;
-
-    private Guid? FindRiskIdByTitle(string? title) =>
-        string.IsNullOrWhiteSpace(title) ? null : Risks.FirstOrDefault(r => r.Title == title)?.Id;
-
-    public AtlasApiDTOsTasksCreateTaskRequest ToCreateTaskRequest(AtlasTask task) =>
-        new()
-        {
-            Title = task.Title,
-            Priority = ApiMappers.ToApiPriority(task.Priority),
-            Status = ApiMappers.ToApiTaskStatus(task.Status),
-            AssigneeId = task.AssigneeId,
-            ProjectId = FindProjectIdByName(task.Project),
-            RiskId = FindRiskIdByTitle(task.Risk),
-            DueDate = ParseDate(task.DueDate),
-            DependencyTaskIds = task.DependencyTaskIds.ToList(),
-            EstimatedDurationText = task.EstimatedDurationText,
-            EstimateConfidence = ApiMappers.ToApiConfidence(task.EstimateConfidence),
-            ActualDurationText = task.ActualDurationText,
-            Notes = task.Notes
-        };
-
-    public AtlasApiDTOsTasksUpdateTaskRequest ToUpdateTaskRequest(AtlasTask task) =>
-        new()
-        {
-            Title = task.Title,
-            Priority = ApiMappers.ToApiPriority(task.Priority),
-            Status = ApiMappers.ToApiTaskStatus(task.Status),
-            AssigneeId = task.AssigneeId,
-            ProjectId = FindProjectIdByName(task.Project),
-            RiskId = FindRiskIdByTitle(task.Risk),
-            DueDate = ParseDate(task.DueDate),
-            DependencyTaskIds = task.DependencyTaskIds.ToList(),
-            EstimatedDurationText = task.EstimatedDurationText,
-            EstimateConfidence = ApiMappers.ToApiConfidence(task.EstimateConfidence),
-            ActualDurationText = task.ActualDurationText,
-            Notes = task.Notes
-        };
-
-    public AtlasApiDTOsRisksCreateRiskRequest ToCreateRiskRequest(Risk risk) =>
-        new()
-        {
-            Title = risk.Title,
-            Status = ApiMappers.ToApiRiskStatus(risk.Status),
-            Severity = ApiMappers.ToApiSeverity(risk.Severity),
-            ProjectId = FindProjectIdByName(risk.Project),
-            Description = risk.Description,
-            Evidence = risk.Evidence
-        };
-
-    public AtlasApiDTOsRisksUpdateRiskRequest ToUpdateRiskRequest(Risk risk) =>
-        new()
-        {
-            Title = risk.Title,
-            Status = ApiMappers.ToApiRiskStatus(risk.Status),
-            Severity = ApiMappers.ToApiSeverity(risk.Severity),
-            ProjectId = FindProjectIdByName(risk.Project),
-            Description = risk.Description,
-            Evidence = risk.Evidence
-        };
-
-    public AtlasApiDTOsProjectsCreateProjectRequest ToCreateProjectRequest(Project project) =>
-        new()
-        {
-            Name = project.Name,
-            Summary = project.Summary,
-            Description = project.Description,
-            Status = ApiMappers.ToApiProjectStatus(project.Status),
-            Health = ApiMappers.ToApiHealth(project.Health),
-            TargetDate = ParseDate(project.TargetDateIso),
-            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
-            ProductOwnerId = project.ProductOwnerId,
-            Tags = project.Tags.ToList(),
-            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
-        };
-
-    public AtlasApiDTOsProjectsUpdateProjectRequest ToUpdateProjectRequest(Project project) =>
-        new()
-        {
-            Name = project.Name,
-            Summary = project.Summary,
-            Description = project.Description,
-            Status = ApiMappers.ToApiProjectStatus(project.Status),
-            Health = ApiMappers.ToApiHealth(project.Health),
-            TargetDate = ParseDate(project.TargetDateIso),
-            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
-            ProductOwnerId = project.ProductOwnerId,
-            Tags = project.Tags.ToList(),
-            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
-        };
-
-    private static DateTimeOffset? ParseDate(string? iso)
-    {
-        if (string.IsNullOrWhiteSpace(iso))
-        {
-            return null;
-        }
-
-        return DateTimeOffset.TryParse(iso, out DateTimeOffset d) ? d : null;
-    }
-
     private void SyncProjectLinkedTaskIds(AtlasTask task)
     {
         Projects = Projects.Select(p =>
@@ -828,12 +715,12 @@ public sealed class AppCacheService
             var has = p.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
             {
-                return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Append(task.Id).ToList());
+                return EntityClone.Project(p, linkedTaskIds: p.LinkedTaskIds.Append(task.Id).ToList());
             }
 
             if (!shouldInclude && has)
             {
-                return CloneProject(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != task.Id).ToList());
+                return EntityClone.Project(p, linkedTaskIds: p.LinkedTaskIds.Where(id => id != task.Id).ToList());
             }
 
             return p;
@@ -848,12 +735,12 @@ public sealed class AppCacheService
             var has = r.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
             {
-                return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Append(task.Id).ToList());
+                return EntityClone.Risk(r, linkedTaskIds: r.LinkedTaskIds.Append(task.Id).ToList());
             }
 
             if (!shouldInclude && has)
             {
-                return CloneRisk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != task.Id).ToList());
+                return EntityClone.Risk(r, linkedTaskIds: r.LinkedTaskIds.Where(id => id != task.Id).ToList());
             }
 
             return r;
@@ -868,76 +755,17 @@ public sealed class AppCacheService
             var has = p.LinkedRiskIds.Contains(risk.Id);
             if (shouldInclude && !has)
             {
-                return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Append(risk.Id).ToList());
+                return EntityClone.Project(p, linkedRiskIds: p.LinkedRiskIds.Append(risk.Id).ToList());
             }
 
             if (!shouldInclude && has)
             {
-                return CloneProject(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != risk.Id).ToList());
+                return EntityClone.Project(p, linkedRiskIds: p.LinkedRiskIds.Where(id => id != risk.Id).ToList());
             }
 
             return p;
         }).ToList();
     }
-
-    private static AtlasTask CloneTask(AtlasTask t, string? project = null, string? risk = null, bool clearProject = false, bool clearRisk = false) =>
-        new()
-        {
-            Id = t.Id,
-            Title = t.Title,
-            Priority = t.Priority,
-            Status = t.Status,
-            AssigneeId = t.AssigneeId,
-            Project = clearProject ? null : project ?? t.Project,
-            Risk = clearRisk ? null : risk ?? t.Risk,
-            DueDate = t.DueDate,
-            DependencyTaskIds = t.DependencyTaskIds,
-            EstimatedDurationText = t.EstimatedDurationText,
-            EstimateConfidence = t.EstimateConfidence,
-            ActualDurationText = t.ActualDurationText,
-            Notes = t.Notes,
-            LastTouchedIso = t.LastTouchedIso
-        };
-
-    private static Project CloneProject(Project p, IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedRiskIds = null) =>
-        new()
-        {
-            Id = p.Id,
-            Name = p.Name,
-            Summary = p.Summary,
-            Description = p.Description,
-            Status = p.Status,
-            Health = p.Health,
-            TargetDateIso = p.TargetDateIso,
-            Priority = p.Priority,
-            ProductOwnerId = p.ProductOwnerId,
-            Tags = p.Tags,
-            Links = p.Links,
-            LatestCheckIn = p.LatestCheckIn is null
-                ? null
-                : new ProjectCheckIn { DateIso = p.LatestCheckIn.DateIso, Note = p.LatestCheckIn.Note },
-            LastUpdatedIso = p.LastUpdatedIso,
-            LinkedTaskIds = linkedTaskIds ?? p.LinkedTaskIds,
-            LinkedRiskIds = linkedRiskIds ?? p.LinkedRiskIds,
-            TeamMemberIds = p.TeamMemberIds
-        };
-
-    private static Risk CloneRisk(Risk r, string? project = null, bool clearProject = false, IReadOnlyList<Guid>? linkedTaskIds = null) =>
-        new()
-        {
-            Id = r.Id,
-            Title = r.Title,
-            Status = r.Status,
-            Severity = r.Severity,
-            Project = clearProject ? null : project ?? r.Project,
-            OwnerId = r.OwnerId,
-            Description = r.Description,
-            Evidence = r.Evidence,
-            LinkedTaskIds = linkedTaskIds ?? r.LinkedTaskIds,
-            LinkedTeamMemberIds = r.LinkedTeamMemberIds,
-            History = r.History,
-            LastUpdatedIso = r.LastUpdatedIso
-        };
 
     private async Task LoadSettingsAsync(CancellationToken cancellationToken)
     {

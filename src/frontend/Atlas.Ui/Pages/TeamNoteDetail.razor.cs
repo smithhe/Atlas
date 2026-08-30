@@ -169,21 +169,6 @@ public partial class TeamNoteDetail : IDisposable
         try
         {
             await TeamNoteService.UpdateAsync(Member.Id, updated);
-            var nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
-            Cache.UpdateTeamMember(new TeamMember
-            {
-                Id = Member.Id,
-                Name = Member.Name,
-                Role = Member.Role,
-                StatusDot = Member.StatusDot,
-                CurrentFocus = Member.CurrentFocus,
-                Profile = Member.Profile,
-                Signals = Member.Signals,
-                Notes = nextNotes,
-                PinnedNoteIds = Member.PinnedNoteIds,
-                ActivitySnapshot = Member.ActivitySnapshot,
-                AzureItems = Member.AzureItems
-            });
             _editing = false;
             SyncDraftTarget();
         }

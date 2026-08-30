@@ -133,9 +133,9 @@
                                 disabled="@(Ai.IsLoadingHistory || Ai.IsRunning)"
                                 @onchange="OnConversationChange">
                             <option value="">Recent conversations…</option>
-                            @foreach (AtlasApiDTOsAiAiConversationListItemDto conversation in Ai.Conversations)
+                            @foreach (AiConversationListItem conversation in Ai.Conversations)
                             {
-                                string id = conversation.ConversationId?.ToString() ?? "";
+                                string id = conversation.ConversationId.ToString();
                                 string updated = conversation.UpdatedAtUtc?.LocalDateTime.ToString() ?? "";
                                 string turns = conversation.TurnCount is > 1 ? $" ({conversation.TurnCount} turns)" : "";
                                 <option value="@id">@updated — @conversation.Title@turns</option>

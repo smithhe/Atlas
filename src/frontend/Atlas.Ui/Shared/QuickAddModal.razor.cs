@@ -106,8 +106,7 @@ public partial class QuickAddModal
                     LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
                 AtlasTask created = await TaskService.CreateAsync(draft);
-            Guid id = created.Id;
-                await Cache.RefetchTasksAsync();
+                Guid id = created.Id;
                 ResetForm();
                 await OnClose.InvokeAsync();
                 Nav.NavigateTo($"/tasks/{id}");
@@ -130,8 +129,7 @@ public partial class QuickAddModal
                     LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
                 Risk created = await RiskService.CreateAsync(draft);
-            Guid id = created.Id;
-                await Cache.RefetchRisksAsync();
+                Guid id = created.Id;
                 ResetForm();
                 await OnClose.InvokeAsync();
                 Nav.NavigateTo($"/risks/{id}");
@@ -162,15 +160,14 @@ public partial class QuickAddModal
             var titleOpt = _noteTitle.Trim();
             var ado = _noteAdo.Trim();
             var pr = _notePr.Trim();
-            await TeamNoteService.AddAsync(
-            memberId,
-            tag,
-            text,
-            string.IsNullOrEmpty(titleOpt) ? null : titleOpt,
-            string.IsNullOrEmpty(ado) ? null : ado,
-            string.IsNullOrEmpty(pr) ? null : pr);
+            TeamNote saved = await TeamNoteService.AddAsync(
+                memberId,
+                tag,
+                text,
+                string.IsNullOrEmpty(titleOpt) ? null : titleOpt,
+                string.IsNullOrEmpty(ado) ? null : ado,
+                string.IsNullOrEmpty(pr) ? null : pr);
 
-            await Cache.RefetchTeamAsync();
             Selection.SelectTeamMember(memberId);
             ResetForm();
             await OnClose.InvokeAsync();

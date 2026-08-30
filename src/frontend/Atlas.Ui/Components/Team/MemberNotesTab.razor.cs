@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -220,8 +219,6 @@ public partial class MemberNotesTab : IDisposable
         try
         {
             await TeamNoteService.UpdateAsync(Member.Id, updated);
-            var nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
-            Cache.UpdateTeamMember(CloneMemberWithNotes(Member, nextNotes));
             _isEditOpen = false;
             SyncDraftTarget();
         }
@@ -262,27 +259,13 @@ public partial class MemberNotesTab : IDisposable
         var pr = _newPr.Trim();
         try
         {
-            AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse res = await TeamNoteService.AddAsync(
-            Member.Id,
-            _newTag,
-            _newText.Trim(),
-            string.IsNullOrEmpty(title) ? null : title,
-            string.IsNullOrEmpty(ado) ? null : ado,
-            string.IsNullOrEmpty(pr) ? null : pr);
-            Guid id = res.Id ?? Guid.NewGuid();
-            var now = DateTimeOffset.UtcNow.ToString("o");
-            var saved = new TeamNote
-            {
-                Id = id,
-                CreatedIso = now,
-                LastModifiedIso = now,
-                Tag = _newTag,
-                Title = string.IsNullOrEmpty(title) ? null : title,
-                Text = _newText.Trim(),
-                AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
-                PrUrl = string.IsNullOrEmpty(pr) ? null : pr
-            };
-            Cache.UpdateTeamMember(CloneMemberWithNotes(Member, new[] { saved }.Concat(Member.Notes).ToList()));
+            TeamNote saved = await TeamNoteService.AddAsync(
+                Member.Id,
+                _newTag,
+                _newText.Trim(),
+                string.IsNullOrEmpty(title) ? null : title,
+                string.IsNullOrEmpty(ado) ? null : ado,
+                string.IsNullOrEmpty(pr) ? null : pr);
             CloseNew();
         }
         catch (Exception ex)
@@ -303,20 +286,8 @@ public partial class MemberNotesTab : IDisposable
         PrUrl = n.PrUrl
     };
 
-    private static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) => new()
-    {
-        Id = m.Id,
-        Name = m.Name,
-        Role = m.Role,
-        StatusDot = m.StatusDot,
-        CurrentFocus = m.CurrentFocus,
-        Profile = m.Profile,
-        Signals = m.Signals,
-        Notes = notes,
-        PinnedNoteIds = m.PinnedNoteIds,
-        ActivitySnapshot = m.ActivitySnapshot,
-        AzureItems = m.AzureItems
-    };
+    private static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) =>
+        EntityClone.TeamMember(m, notes: notes);
 
     public void Dispose() => Ai.RegisterDraftTarget(null);
 }

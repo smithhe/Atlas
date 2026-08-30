@@ -1,4 +1,6 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
+using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
 
@@ -6,12 +8,19 @@ namespace Atlas.Ui.Services;
 public sealed class SettingsService
 {
     private readonly IAtlasApiClient _api;
+    private readonly AppCacheService _cache;
 
-    public SettingsService(IAtlasApiClient api)
+    public SettingsService(IAtlasApiClient api, AppCacheService cache)
     {
         _api = api;
+        _cache = cache;
     }
 
-    public Task UpdateAsync(AtlasApiDTOsSettingsUpdateSettingsRequest request, CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsSettingsUpdateSettingsEndpointAsync(request, cancellationToken);
+    public async Task UpdateAsync(Settings settings, CancellationToken cancellationToken = default)
+    {
+        await _api.AtlasApiEndpointsSettingsUpdateSettingsEndpointAsync(
+            EntityRequestMappers.ToUpdateSettingsRequest(settings),
+            cancellationToken);
+        await _cache.RefetchSettingsAsync(cancellationToken);
+    }
 }

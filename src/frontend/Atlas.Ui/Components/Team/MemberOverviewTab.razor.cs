@@ -177,18 +177,5 @@ public partial class MemberOverviewTab
         return options[(idx + 1) % options.Length];
     }
 
-    private static TeamMember CloneMember(TeamMember m) => new()
-    {
-        Id = m.Id,
-        Name = m.Name,
-        Role = m.Role,
-        StatusDot = m.StatusDot,
-        CurrentFocus = m.CurrentFocus,
-        Profile = new TeamMemberProfile { TimeZone = m.Profile.TimeZone, TypicalHours = m.Profile.TypicalHours },
-        Signals = new TeamMemberSignals { Load = m.Signals.Load, Delivery = m.Signals.Delivery, SupportNeeded = m.Signals.SupportNeeded },
-        Notes = m.Notes,
-        PinnedNoteIds = m.PinnedNoteIds,
-        ActivitySnapshot = m.ActivitySnapshot,
-        AzureItems = m.AzureItems
-    };
+    private static TeamMember CloneMember(TeamMember m) => EntityClone.TeamMember(m);
 }

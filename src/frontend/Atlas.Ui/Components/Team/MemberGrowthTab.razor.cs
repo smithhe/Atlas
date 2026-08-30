@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -192,29 +191,15 @@ public partial class MemberGrowthTab : IDisposable
             : g?.Id ?? Guid.Empty;
         if (g is null)
         {
-            return new Growth
+            return EntityClone.Growth(new Growth
             {
                 Id = id,
-                MemberId = Member.Id,
-                Goals = Array.Empty<GrowthGoal>(),
-                SkillsInProgress = Array.Empty<string>(),
-                FeedbackThemes = Array.Empty<GrowthFeedbackTheme>(),
-                FocusAreasMarkdown = ""
-            };
+                MemberId = Member.Id
+            });
         }
 
-        return new Growth
-        {
-            Id = id != Guid.Empty ? id : g.Id,
-            MemberId = Member.Id,
-            Goals = g.Goals ?? Array.Empty<GrowthGoal>(),
-            SkillsInProgress = g.SkillsInProgress ?? Array.Empty<string>(),
-            FeedbackThemes = g.FeedbackThemes ?? Array.Empty<GrowthFeedbackTheme>(),
-            FocusAreasMarkdown = g.FocusAreasMarkdown ?? ""
-        };
+        return EntityClone.Growth(g, id: id != Guid.Empty ? id : g.Id, memberId: Member.Id);
     }
-
-    private void CommitGrowth(Growth next) => Cache.UpdateGrowth(next);
 
     private void OpenAddGoal()
     {
@@ -249,27 +234,8 @@ public partial class MemberGrowthTab : IDisposable
             }
 
             Priority? priority = Enum.TryParse(_goalPriority, out Priority p) ? p : null;
-            AtlasApiDTOsGrowthGoalsAddGrowthGoalResponse res = await GrowthService.AddGoalAsync(gid, new AtlasApiDTOsGrowthGoalsAddGrowthGoalRequest
+            GrowthGoal created = await GrowthService.AddGoalAsync(Member.Id, gid, new GrowthGoal
             {
-                Title = title,
-                Description = _goalDesc.Trim(),
-                Status = ApiMappers.ToApiGrowthGoalStatus(_goalStatus),
-                Category = string.IsNullOrWhiteSpace(_goalCategory) ? null : _goalCategory.Trim(),
-                Priority = priority is null ? null : ApiMappers.ToApiPriority(priority.Value),
-                StartDate = DateTimeOffset.TryParse(_goalStart, out DateTimeOffset sd) ? sd : null,
-                TargetDate = DateTimeOffset.TryParse(_goalTarget, out DateTimeOffset td) ? td : null
-            });
-            if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
-            {
-                await Cache.RetryGrowthLoadAsync(Member.Id);
-                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("goal"));
-                return;
-            }
-
-            Guid goalId = res.Id!.Value;
-            var nextGoal = new GrowthGoal
-            {
-                Id = goalId,
                 Title = title,
                 Description = _goalDesc.Trim(),
                 Status = _goalStatus,
@@ -281,19 +247,16 @@ public partial class MemberGrowthTab : IDisposable
                 Actions = Array.Empty<GrowthGoalAction>(),
                 CheckIns = Array.Empty<GrowthGoalCheckIn>(),
                 SuccessCriteria = Array.Empty<string>()
-            };
-            Growth g = BaseGrowth(gid);
-            CommitGrowth(new Growth
-            {
-                Id = gid,
-                MemberId = Member.Id,
-                Goals = new[] { nextGoal }.Concat(g.Goals).ToList(),
-                SkillsInProgress = g.SkillsInProgress,
-                FeedbackThemes = g.FeedbackThemes,
-                FocusAreasMarkdown = g.FocusAreasMarkdown
             });
+            if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
+            {
+                await Cache.RetryGrowthLoadAsync(Member.Id);
+                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("goal"));
+                return;
+            }
+
             CloseGoalModal();
-            Nav.NavigateTo($"/team/{Member.Id}/growth/goals/{nextGoal.Id}");
+            Nav.NavigateTo($"/team/{Member.Id}/growth/goals/{created.Id}");
         }
         catch (Exception ex)
         {
@@ -354,16 +317,7 @@ public partial class MemberGrowthTab : IDisposable
                 return;
             }
 
-            await GrowthService.SetSkillsInProgressAsync(gid, normalized);
-            CommitGrowth(new Growth
-            {
-                Id = gid,
-                MemberId = Member.Id,
-                Goals = g.Goals,
-                SkillsInProgress = normalized,
-                FeedbackThemes = g.FeedbackThemes,
-                FocusAreasMarkdown = g.FocusAreasMarkdown
-            });
+            await GrowthService.SetSkillsInProgressAsync(Member.Id, gid, normalized);
             CloseSkillModal();
         }
         catch (Exception ex)
@@ -389,16 +343,7 @@ public partial class MemberGrowthTab : IDisposable
                 return;
             }
 
-            await GrowthService.SetSkillsInProgressAsync(gid, skills);
-            CommitGrowth(new Growth
-            {
-                Id = gid,
-                MemberId = Member.Id,
-                Goals = g.Goals,
-                SkillsInProgress = skills,
-                FeedbackThemes = g.FeedbackThemes,
-                FocusAreasMarkdown = g.FocusAreasMarkdown
-            });
+            await GrowthService.SetSkillsInProgressAsync(Member.Id, gid, skills);
             CloseSkillModal();
         }
         catch (Exception ex)
@@ -457,57 +402,29 @@ public partial class MemberGrowthTab : IDisposable
                 return;
             }
 
-            Growth g = BaseGrowth(gid);
             if (_themeIsNew)
             {
-                AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeResponse res = await GrowthService.AddFeedbackThemeAsync(gid, new AtlasApiDTOsGrowthFeedbackThemesAddFeedbackThemeRequest
+                GrowthFeedbackTheme created = await GrowthService.AddFeedbackThemeAsync(Member.Id, gid, new GrowthFeedbackTheme
                 {
                     Title = title,
                     Description = description,
                     ObservedSinceLabel = observed
                 });
-                if (!GrowthUiHelpers.IsValidCreatedId(res.Id))
+                if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
                 {
                     await Cache.RetryGrowthLoadAsync(Member.Id);
                     await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("feedback theme"));
                     return;
                 }
-
-                Guid id = res.Id!.Value;
-                CommitGrowth(new Growth
-                {
-                    Id = gid,
-                    MemberId = Member.Id,
-                    Goals = g.Goals,
-                    SkillsInProgress = g.SkillsInProgress,
-                    FeedbackThemes = g.FeedbackThemes.Append(new GrowthFeedbackTheme
-                    {
-                        Id = id,
-                        Title = title,
-                        Description = description,
-                        ObservedSinceLabel = observed
-                    }).ToList(),
-                    FocusAreasMarkdown = g.FocusAreasMarkdown
-                });
             }
             else if (_themeId is { } tid)
             {
-                await GrowthService.UpdateFeedbackThemeAsync(gid, tid, new AtlasApiDTOsGrowthFeedbackThemesUpdateFeedbackThemeRequest
+                await GrowthService.UpdateFeedbackThemeAsync(Member.Id, gid, new GrowthFeedbackTheme
                 {
+                    Id = tid,
                     Title = title,
                     Description = description,
                     ObservedSinceLabel = observed
-                });
-                CommitGrowth(new Growth
-                {
-                    Id = gid,
-                    MemberId = Member.Id,
-                    Goals = g.Goals,
-                    SkillsInProgress = g.SkillsInProgress,
-                    FeedbackThemes = g.FeedbackThemes.Select(t => t.Id == tid
-                        ? new GrowthFeedbackTheme { Id = tid, Title = title, Description = description, ObservedSinceLabel = observed }
-                        : t).ToList(),
-                    FocusAreasMarkdown = g.FocusAreasMarkdown
                 });
             }
             else
@@ -540,17 +457,7 @@ public partial class MemberGrowthTab : IDisposable
                 return;
             }
 
-            Growth g = BaseGrowth(gid);
-            await GrowthService.DeleteFeedbackThemeAsync(gid, themeId);
-            CommitGrowth(new Growth
-            {
-                Id = gid,
-                MemberId = Member.Id,
-                Goals = g.Goals,
-                SkillsInProgress = g.SkillsInProgress,
-                FeedbackThemes = g.FeedbackThemes.Where(t => t.Id != themeId).ToList(),
-                FocusAreasMarkdown = g.FocusAreasMarkdown
-            });
+            await GrowthService.DeleteFeedbackThemeAsync(Member.Id, gid, themeId);
             CloseThemeModal();
         }
         catch (Exception ex)
@@ -580,17 +487,7 @@ public partial class MemberGrowthTab : IDisposable
                 return;
             }
 
-            Growth g = BaseGrowth(gid);
-            await GrowthService.UpdateFocusAreasAsync(gid, _focusDraft);
-            CommitGrowth(new Growth
-            {
-                Id = gid,
-                MemberId = Member.Id,
-                Goals = g.Goals,
-                SkillsInProgress = g.SkillsInProgress,
-                FeedbackThemes = g.FeedbackThemes,
-                FocusAreasMarkdown = _focusDraft
-            });
+            await GrowthService.UpdateFocusAreasAsync(Member.Id, gid, _focusDraft);
             _focusOpen = false;
         }
         catch (Exception ex)

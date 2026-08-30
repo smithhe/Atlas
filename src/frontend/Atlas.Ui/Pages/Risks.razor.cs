@@ -226,7 +226,7 @@ public partial class Risks : IDisposable
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
             Risk created = await RiskService.CreateAsync(draft);
-        Guid id = created.Id;
+            Guid id = created.Id;
             _autoEditId = id;
             _editing = true;
             _trackedRiskId = id;
@@ -281,24 +281,28 @@ public partial class Risks : IDisposable
         }
     }
 
-    private void OnTitleInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, title: e.Value?.ToString() ?? ""));
-    private void OnDescriptionInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, description: e.Value?.ToString() ?? ""));
-    private void OnEvidenceInput(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, evidence: e.Value?.ToString() ?? ""));
+    private void OnTitleInput(ChangeEventArgs e) =>
+        _ = SaveRiskAsync(EntityClone.Risk(Selected!, title: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+    private void OnDescriptionInput(ChangeEventArgs e) =>
+        _ = SaveRiskAsync(EntityClone.Risk(Selected!, description: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+    private void OnEvidenceInput(ChangeEventArgs e) =>
+        _ = SaveRiskAsync(EntityClone.Risk(Selected!, evidence: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
 
     private void OnStatusChange(ChangeEventArgs e)
     {
         if (Enum.TryParse(e.Value?.ToString(), out RiskStatus s))
         {
-            Persist(EntityClone.Risk(Selected!, status: s));
+            _ = SaveRiskAsync(EntityClone.Risk(Selected!, status: s, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
         }
     }
 
-    private void OnSeverityChange(ChangeEventArgs e) => Persist(EntityClone.Risk(Selected!, severity: e.Value?.ToString() ?? "Low"));
+    private void OnSeverityChange(ChangeEventArgs e) =>
+        _ = SaveRiskAsync(EntityClone.Risk(Selected!, severity: e.Value?.ToString() ?? "Low", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
 
     private void OnProjectChange(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        Persist(EntityClone.Risk(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
+        _ = SaveRiskAsync(EntityClone.Risk(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
     }
 
     private void OnTeamMemberToggle(Guid memberId, ChangeEventArgs e)
@@ -321,8 +325,7 @@ public partial class Risks : IDisposable
 
         var memberIds = current.ToList();
         var next = EntityClone.Risk(Selected, linkedTeamMemberIds: memberIds, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
-        Cache.UpdateRisk(next);
-        _ = PersistTeamMembersAsync(next.Id, memberIds);
+        _ = SaveTeamMembersAsync(next);
     }
 
     private void ToggleAddingNote() => _isAddingNote = !_isAddingNote;
@@ -348,7 +351,7 @@ public partial class Risks : IDisposable
             Text = text
         };
         var nextHistory = new[] { entry }.Concat(Selected.History).ToList();
-        Persist(EntityClone.Risk(Selected, history: nextHistory));
+        _ = SaveRiskAsync(EntityClone.Risk(Selected, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
         _newNoteText = "";
         _isAddingNote = false;
     }
@@ -385,21 +388,11 @@ public partial class Risks : IDisposable
         var nextHistory = Selected.History
             .Select(h => h.Id == _selectedHistoryId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
             .ToList();
-        Persist(EntityClone.Risk(Selected, history: nextHistory));
+        _ = SaveRiskAsync(EntityClone.Risk(Selected, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
         CloseHistoryNote();
     }
 
-    private void Persist(Risk next, bool persistRisk = true)
-    {
-        next = EntityClone.Risk(next, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
-        Cache.UpdateRisk(next);
-        if (persistRisk)
-        {
-            _ = PersistAsync(next);
-        }
-    }
-
-    private async Task PersistAsync(Risk next)
+    private async Task SaveRiskAsync(Risk next)
     {
         try
         {
@@ -411,11 +404,11 @@ public partial class Risks : IDisposable
         }
     }
 
-    private async Task PersistTeamMembersAsync(Guid riskId, IReadOnlyList<Guid> memberIds)
+    private async Task SaveTeamMembersAsync(Risk risk)
     {
         try
         {
-            await RiskService.SetTeamMembersAsync(riskId, memberIds);
+            await RiskService.SetTeamMembersAsync(risk);
         }
         catch (Exception)
         {

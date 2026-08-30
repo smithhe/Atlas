@@ -1,4 +1,5 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
 namespace Atlas.Ui.Services;
@@ -18,14 +19,36 @@ public sealed class RiskService
     public async Task<Risk> CreateAsync(Risk draft, CancellationToken cancellationToken = default)
     {
         AtlasApiDTOsRisksCreateRiskResponse res =
-            await _api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(_cache.ToCreateRiskRequest(draft), cancellationToken);
+            await _api.AtlasApiEndpointsRisksCreateRiskEndpointAsync(
+                EntityRequestMappers.ToCreateRiskRequest(draft, _cache.Projects),
+                cancellationToken);
         draft.Id = res.Id ?? Guid.Empty;
         _cache.AddRisk(draft);
         return draft;
     }
 
-    public Task UpdateAsync(Risk risk, CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsRisksUpdateRiskEndpointAsync(risk.Id, _cache.ToUpdateRiskRequest(risk), cancellationToken);
+    public async Task UpdateAsync(Risk risk, CancellationToken cancellationToken = default)
+    {
+        Risk? previous = _cache.Risks.FirstOrDefault(r => r.Id == risk.Id);
+        Risk? previousClone = previous is not null ? EntityClone.Risk(previous) : null;
+        _cache.UpdateRisk(risk);
+        try
+        {
+            await _api.AtlasApiEndpointsRisksUpdateRiskEndpointAsync(
+                risk.Id,
+                EntityRequestMappers.ToUpdateRiskRequest(risk, _cache.Projects),
+                cancellationToken);
+        }
+        catch
+        {
+            if (previousClone is not null)
+            {
+                _cache.UpdateRisk(previousClone);
+            }
+
+            throw;
+        }
+    }
 
     public async Task DeleteAsync(Guid riskId, CancellationToken cancellationToken = default)
     {
@@ -33,9 +56,26 @@ public sealed class RiskService
         _cache.RemoveRisk(riskId);
     }
 
-    public Task SetTeamMembersAsync(Guid riskId, IReadOnlyList<Guid> memberIds, CancellationToken cancellationToken = default) =>
-        _api.AtlasApiEndpointsRisksSetRiskTeamMembersEndpointAsync(
-            riskId,
-            new AtlasApiDTOsRisksSetRiskTeamMembersRequest { TeamMemberIds = memberIds.ToList() },
-            cancellationToken);
+    public async Task SetTeamMembersAsync(Risk risk, CancellationToken cancellationToken = default)
+    {
+        Risk? previous = _cache.Risks.FirstOrDefault(r => r.Id == risk.Id);
+        Risk? previousClone = previous is not null ? EntityClone.Risk(previous) : null;
+        _cache.UpdateRisk(risk);
+        try
+        {
+            await _api.AtlasApiEndpointsRisksSetRiskTeamMembersEndpointAsync(
+                risk.Id,
+                new AtlasApiDTOsRisksSetRiskTeamMembersRequest { TeamMemberIds = risk.LinkedTeamMemberIds.ToList() },
+                cancellationToken);
+        }
+        catch
+        {
+            if (previousClone is not null)
+            {
+                _cache.UpdateRisk(previousClone);
+            }
+
+            throw;
+        }
+    }
 }

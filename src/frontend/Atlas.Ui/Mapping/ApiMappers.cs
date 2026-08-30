@@ -515,4 +515,137 @@ public static class ApiMappers
             AtlasDomainEnumsGrowthGoalCheckInSignal.Concern => GrowthGoalCheckInSignal.Concern,
             _ => GrowthGoalCheckInSignal.Positive
         };
+
+    public static AiConversationListItem MapAiConversationListItem(AtlasApiDTOsAiAiConversationListItemDto dto) =>
+        new()
+        {
+            ConversationId = dto.ConversationId ?? Guid.Empty,
+            Title = dto.Title ?? "",
+            UpdatedAtUtc = dto.UpdatedAtUtc,
+            TurnCount = dto.TurnCount
+        };
+
+    public static AzureConnection MapAzureConnection(AtlasApiDTOsAzureDevOpsAzureConnectionDto dto) =>
+        new()
+        {
+            Organization = dto.Organization,
+            Project = dto.Project,
+            AreaPath = dto.AreaPath,
+            TeamName = dto.TeamName,
+            ProjectId = dto.ProjectId,
+            TeamId = dto.TeamId,
+            IsEnabled = dto.IsEnabled == true
+        };
+
+    public static AzureProject MapAzureProject(AtlasApiDTOsAzureDevOpsAzureProjectDto dto) =>
+        new()
+        {
+            Id = dto.Id ?? "",
+            Name = dto.Name ?? ""
+        };
+
+    public static AzureTeam MapAzureTeam(AtlasApiDTOsAzureDevOpsAzureTeamDto dto) =>
+        new()
+        {
+            Id = dto.Id ?? "",
+            Name = dto.Name ?? ""
+        };
+
+    public static AzureUser MapAzureUser(AtlasApiDTOsAzureDevOpsAzureUserDto dto) =>
+        new()
+        {
+            DisplayName = dto.DisplayName,
+            UniqueName = dto.UniqueName,
+            Descriptor = dto.Descriptor
+        };
+
+    public static AtlasApiDTOsAzureDevOpsAzureUserSelectionDto ToApiAzureUserSelection(AzureUser user) =>
+        new()
+        {
+            DisplayName = user.DisplayName,
+            UniqueName = user.UniqueName,
+            Descriptor = user.Descriptor
+        };
+
+    public static AtlasApiDTOsAzureDevOpsImportAzureTeamRequest ToImportAzureTeamRequest(IReadOnlyList<AzureUser> users) =>
+        new()
+        {
+            Users = users.Select(ToApiAzureUserSelection).ToList()
+        };
+
+    public static AtlasApiDTOsAzureDevOpsImportAzureProductOwnersRequest ToImportAzureProductOwnersRequest(IReadOnlyList<AzureUser> users) =>
+        new()
+        {
+            Users = users.Select(ToApiAzureUserSelection).ToList()
+        };
+
+    public static AzureTeamAreaPaths MapAzureTeamAreaPaths(AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto dto) =>
+        new()
+        {
+            DefaultValue = dto.DefaultValue,
+            Values = (dto.Values ?? [])
+                .Select(v => new AzureAreaPathValue { Value = v.Value })
+                .ToList()
+        };
+
+    public static AzureImportWorkItem MapAzureImportWorkItem(AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto dto) =>
+        new()
+        {
+            Id = dto.Id ?? Guid.Empty,
+            WorkItemId = dto.WorkItemId,
+            Title = dto.Title,
+            Url = dto.Url,
+            State = dto.State,
+            WorkItemType = dto.WorkItemType,
+            SuggestedTeamMemberId = dto.SuggestedTeamMemberId
+        };
+
+    public static AzureSyncState MapAzureSyncState(AtlasApiDTOsAzureDevOpsAzureSyncStateDto dto) =>
+        new()
+        {
+            LastRunStatus = dto.LastRunStatus,
+            LastError = dto.LastError,
+            LastCompletedAtUtc = dto.LastCompletedAtUtc,
+            LastAttemptedAtUtc = dto.LastAttemptedAtUtc
+        };
+
+    public static AzureSyncResult MapAzureSyncResult(AtlasApiDTOsAzureDevOpsAzureSyncResultDto dto) =>
+        new()
+        {
+            Succeeded = dto.Succeeded == true,
+            Error = dto.Error,
+            ItemsUpserted = dto.ItemsUpserted
+        };
+
+    public static ImportProductOwnersResult MapImportProductOwnersResult(AtlasApiDTOsAzureDevOpsImportAzureProductOwnersResultDto dto) =>
+        new()
+        {
+            ReusedProductOwnerNames = (dto.ReusedProductOwnerNames ?? [])
+                .Select(r => new ReusedProductOwnerName
+                {
+                    DisplayName = r.DisplayName ?? "",
+                    AzureUniqueName = r.AzureUniqueName ?? ""
+                })
+                .ToList()
+        };
+
+    public static AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest ToUpdateAzureConnectionRequest(AzureUpdateConnection connection) =>
+        new()
+        {
+            Organization = connection.Organization,
+            Project = connection.Project,
+            AreaPath = connection.AreaPath,
+            TeamName = connection.TeamName,
+            ProjectId = connection.ProjectId,
+            TeamId = connection.TeamId,
+            IsEnabled = connection.IsEnabled
+        };
+
+    public static AtlasApiDTOsAzureDevOpsLinkAzureWorkItemsRequest ToLinkAzureWorkItemsRequest(LinkAzureWorkItemsRequest request) =>
+        new()
+        {
+            AzureWorkItemIds = request.AzureWorkItemIds.ToList(),
+            ProjectId = request.ProjectId,
+            TeamMemberId = request.TeamMemberId
+        };
 }

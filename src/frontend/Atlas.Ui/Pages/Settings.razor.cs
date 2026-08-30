@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
+using Atlas.Ui.Models;
+using AtlasSettings = Atlas.Ui.Models.Settings;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
@@ -33,7 +34,7 @@ public partial class Settings : IDisposable
     private string _teamId = "";
     private string _enabledYesNo = "yes";
 
-    private AtlasApiDTOsAzureDevOpsAzureSyncStateDto? _syncState;
+    private AzureSyncState? _syncState;
     private bool _syncRunning;
     private bool _syncStateLoading;
 
@@ -81,7 +82,7 @@ public partial class Settings : IDisposable
         _staleDays = Math.Clamp(v, 1, 365);
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new Models.Settings
+            Cache.PatchSettings(new AtlasSettings
             {
                 StaleDays = _staleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
@@ -97,7 +98,7 @@ public partial class Settings : IDisposable
         _azureBaseUrl = e.Value?.ToString() ?? "";
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new Models.Settings
+            Cache.PatchSettings(new AtlasSettings
             {
                 StaleDays = Cache.Settings.StaleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
@@ -114,7 +115,7 @@ public partial class Settings : IDisposable
         await Local.SaveDefaultAiPanelOpenAsync(_aiPanelOpen);
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new Models.Settings
+            Cache.PatchSettings(new AtlasSettings
             {
                 StaleDays = Cache.Settings.StaleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
@@ -136,14 +137,14 @@ public partial class Settings : IDisposable
         _settingsError = null;
         try
         {
-            await SettingsService.UpdateAsync(new AtlasApiDTOsSettingsUpdateSettingsRequest
+            await SettingsService.UpdateAsync(new AtlasSettings
             {
                 StaleDays = _staleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
-                Theme = ApiMappers.ToApiTheme(Cache.Settings.Theme),
+                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
+                Theme = Cache.Settings.Theme,
                 AzureDevOpsBaseUrl = string.IsNullOrWhiteSpace(_azureBaseUrl) ? null : _azureBaseUrl
             });
-            await Cache.RefetchSettingsAsync();
             SyncFromCache();
         }
         catch (Exception ex)
@@ -161,12 +162,14 @@ public partial class Settings : IDisposable
         _azureLoading = true;
         try
         {
-            AtlasApiDTOsAzureDevOpsAzureConnectionDto conn = await AzureDevOpsService.GetConnectionAsync();
+            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            if (conn is null)
+            {
+                // Unconfigured Azure — empty form is expected in CI smoke.
+                return;
+            }
+
             ApplyConn(conn);
-        }
-        catch (AtlasApiException ex) when (ex.StatusCode == 404)
-        {
-            // Unconfigured Azure — empty form is expected in CI smoke.
         }
         catch (Exception ex)
         {
@@ -198,7 +201,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    private void ApplyConn(AtlasApiDTOsAzureDevOpsAzureConnectionDto conn)
+    private void ApplyConn(AzureConnection conn)
     {
         _org = conn.Organization ?? "";
         _project = conn.Project ?? "";
@@ -206,7 +209,7 @@ public partial class Settings : IDisposable
         _teamName = conn.TeamName ?? "";
         _projectId = conn.ProjectId ?? "";
         _teamId = conn.TeamId ?? "";
-        _enabledYesNo = conn.IsEnabled == true ? "yes" : "no";
+        _enabledYesNo = conn.IsEnabled ? "yes" : "no";
     }
 
     private void OpenAzureImport() => Nav.NavigateTo("/settings/azure-import");
@@ -229,7 +232,7 @@ public partial class Settings : IDisposable
         _azureSaving = true;
         try
         {
-            await AzureDevOpsService.UpdateConnectionAsync(new AtlasApiDTOsAzureDevOpsUpdateAzureConnectionRequest
+            await AzureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
             {
                 Organization = _org,
                 Project = _project,
@@ -270,8 +273,8 @@ public partial class Settings : IDisposable
         _syncRunning = true;
         try
         {
-            AtlasApiDTOsAzureDevOpsAzureSyncResultDto result = await AzureDevOpsService.RunSyncAsync();
-            if (result.Succeeded != true)
+            AzureSyncResult result = await AzureDevOpsService.RunSyncAsync();
+            if (!result.Succeeded)
             {
                 _azureError = !string.IsNullOrWhiteSpace(result.Error)
                     ? result.Error

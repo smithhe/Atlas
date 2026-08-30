@@ -160,7 +160,7 @@ public partial class Tasks : IDisposable
 
                 var current = task.Notes;
                 var next = string.IsNullOrWhiteSpace(current) ? text : $"{current.TrimEnd()}\n\n{text}";
-                Persist(EntityClone.Task(task, notes: next));
+                _ = SaveTaskAsync(EntityClone.Task(task, notes: next));
             },
         });
     }
@@ -254,25 +254,25 @@ public partial class Tasks : IDisposable
     }
 
     private void TouchTask() =>
-        Persist(EntityClone.Task(Selected!, lastTouchedIso: DateTimeOffset.UtcNow.ToString("o")));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, lastTouchedIso: DateTimeOffset.UtcNow.ToString("o")));
 
-    private void OnTitleInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, title: e.Value?.ToString() ?? ""));
-    private void OnEstimateInput(ChangeEventArgs e) => Persist(EntityClone.Task(Selected!, estimatedDurationText: e.Value?.ToString() ?? ""));
+    private void OnTitleInput(ChangeEventArgs e) => _ = SaveTaskAsync(EntityClone.Task(Selected!, title: e.Value?.ToString() ?? ""));
+    private void OnEstimateInput(ChangeEventArgs e) => _ = SaveTaskAsync(EntityClone.Task(Selected!, estimatedDurationText: e.Value?.ToString() ?? ""));
 
     private void OnNotesInput(ChangeEventArgs e) =>
-        Persist(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
 
     private void OnActualInput(ChangeEventArgs e) =>
-        Persist(EntityClone.Task(Selected!, actualDurationText: e.Value?.ToString(), setActual: true));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, actualDurationText: e.Value?.ToString(), setActual: true));
 
     private void OnStatusChange(ChangeEventArgs e) =>
-        Persist(EntityClone.Task(Selected!, status: DisplayLabels.ParseTaskStatus(e.Value?.ToString()), setStatus: true));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, status: DisplayLabels.ParseTaskStatus(e.Value?.ToString()), setStatus: true));
 
     private void OnPriorityChange(ChangeEventArgs e)
     {
         if (Enum.TryParse(e.Value?.ToString(), out Priority p))
         {
-            Persist(EntityClone.Task(Selected!, priority: p));
+            _ = SaveTaskAsync(EntityClone.Task(Selected!, priority: p));
         }
     }
 
@@ -280,7 +280,7 @@ public partial class Tasks : IDisposable
     {
         if (Enum.TryParse(e.Value?.ToString(), out Confidence c))
         {
-            Persist(EntityClone.Task(Selected!, estimateConfidence: c));
+            _ = SaveTaskAsync(EntityClone.Task(Selected!, estimateConfidence: c));
         }
     }
 
@@ -289,32 +289,32 @@ public partial class Tasks : IDisposable
         var v = e.Value?.ToString();
         if (string.IsNullOrEmpty(v))
         {
-            Persist(EntityClone.Task(Selected!, assigneeId: null, setAssignee: true));
+            _ = SaveTaskAsync(EntityClone.Task(Selected!, assigneeId: null, setAssignee: true));
             return;
         }
 
         if (Guid.TryParse(v, out Guid id))
         {
-            Persist(EntityClone.Task(Selected!, assigneeId: id, setAssignee: true));
+            _ = SaveTaskAsync(EntityClone.Task(Selected!, assigneeId: id, setAssignee: true));
         }
     }
 
     private void OnProjectChange(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        Persist(EntityClone.Task(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
     }
 
     private void OnRiskChange(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        Persist(EntityClone.Task(Selected!, risk: string.IsNullOrEmpty(v) ? null : v, setRisk: true));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, risk: string.IsNullOrEmpty(v) ? null : v, setRisk: true));
     }
 
     private void OnDueDateChange(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        Persist(EntityClone.Task(Selected!, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
+        _ = SaveTaskAsync(EntityClone.Task(Selected!, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
     }
 
     private void OnAddBlockerInput(ChangeEventArgs e) => _addBlockerText = e.Value?.ToString() ?? "";
@@ -339,7 +339,7 @@ public partial class Tasks : IDisposable
         }
 
         IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Append(id.Value).Distinct().ToList();
-        Persist(EntityClone.Task(Selected, dependencyTaskIds: next));
+        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: next));
         _addBlockerText = "";
     }
 
@@ -351,7 +351,7 @@ public partial class Tasks : IDisposable
         }
 
         IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Where(id => id != blockerId).ToList();
-        Persist(EntityClone.Task(Selected, dependencyTaskIds: next));
+        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: next));
     }
 
     private void ClearDependencies()
@@ -361,7 +361,7 @@ public partial class Tasks : IDisposable
             return;
         }
 
-        Persist(EntityClone.Task(Selected, dependencyTaskIds: Array.Empty<Guid>()));
+        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: Array.Empty<Guid>()));
     }
 
     private void OnProjectFilterChange(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "All";
@@ -388,13 +388,7 @@ public partial class Tasks : IDisposable
 
     }
 
-    private void Persist(AtlasTask next)
-    {
-        Cache.UpdateTask(next);
-        _ = PersistAsync(next);
-    }
-
-    private async Task PersistAsync(AtlasTask next)
+    private async Task SaveTaskAsync(AtlasTask next)
     {
         try
         {
