@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -11,109 +8,121 @@ namespace Atlas.Ui.Pages;
 
 public partial class Projects : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] ProjectService ProjectService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private ProjectService ProjectService { get; set; } = null!;
 
     [Parameter] public string? ProjectId { get; set; }
 
-    static readonly HashSet<string> DoneAzureStatuses = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> DoneAzureStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
         "done", "closed", "completed", "resolved", "removed"
     };
 
-    bool _creating;
-    bool _deleting;
-    bool _editing;
-    bool _saving;
-    Guid? _autoEditId;
-    Guid? _lastSelectedId;
-    string _tab = "overview";
+    private bool _creating;
+    private bool _deleting;
+    private bool _editing;
+    private bool _saving;
+    private Guid? _autoEditId;
+    private Guid? _lastSelectedId;
+    private string _tab = "overview";
 
-    string _draftName = "";
-    string _draftSummary = "";
-    string _draftDescription = "";
-    string _draftStatus = "Active";
-    string _draftHealth = "Green";
-    string _draftTargetDateIso = "";
-    string? _draftPriority;
-    bool _draftPriorityTouched;
-    string _draftProductOwnerId = "";
-    string _tagsText = "";
-    string _draftCheckInDate = "";
-    string _draftCheckInNote = "";
-    List<ProjectLink> _draftLinks = [];
+    private string _draftName = "";
+    private string _draftSummary = "";
+    private string _draftDescription = "";
+    private string _draftStatus = "Active";
+    private string _draftHealth = "Green";
+    private string _draftTargetDateIso = "";
+    private string? _draftPriority;
+    private bool _draftPriorityTouched;
+    private string _draftProductOwnerId = "";
+    private string _tagsText = "";
+    private string _draftCheckInDate = "";
+    private string _draftCheckInNote = "";
+    private List<ProjectLink> _draftLinks = [];
 
-    string _taskQuery = "";
-    string _taskStatusFilter = "All";
-    string _taskPriorityFilter = "All";
-    string _taskAssigneeFilter = "All";
-    string _taskDueFilter = "All";
+    private string _taskQuery = "";
+    private string _taskStatusFilter = "All";
+    private string _taskPriorityFilter = "All";
+    private string _taskAssigneeFilter = "All";
+    private string _taskDueFilter = "All";
 
-    string _riskQuery = "";
-    string _riskSeverityFilter = "All";
-    string _riskOwnerFilter = "All";
+    private string _riskQuery = "";
+    private string _riskSeverityFilter = "All";
+    private string _riskOwnerFilter = "All";
 
-    bool IsFocusMode => !string.IsNullOrEmpty(ProjectId);
-    string EffectiveTab => _editing ? "overview" : _tab;
+    private bool IsFocusMode => !string.IsNullOrEmpty(ProjectId);
+    private string EffectiveTab => _editing ? "overview" : _tab;
 
-    Project? Selected
+    private Project? Selected
     {
         get
         {
             Guid? id = IsFocusMode && Guid.TryParse(ProjectId, out Guid focusId)
                 ? focusId
                 : Selection.SelectedProjectId;
-            if (id is null) return null;
+            if (id is null)
+            {
+                return null;
+            }
+
             return Cache.Projects.FirstOrDefault(p => p.Id == id);
         }
     }
 
-    IReadOnlyList<ProductOwner> SortedProductOwners =>
+    private IReadOnlyList<ProductOwner> SortedProductOwners =>
         Cache.ProductOwners.OrderBy(po => po.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
-    Dictionary<Guid, TeamMember> MemberById =>
+    private Dictionary<Guid, TeamMember> MemberById =>
         Cache.Team.ToDictionary(m => m.Id);
 
-    ProductOwner? ProductOwner =>
+    private ProductOwner? ProductOwner =>
         Selected?.ProductOwnerId is { } poId
             ? Cache.ProductOwners.FirstOrDefault(po => po.Id == poId)
             : null;
 
-    IReadOnlyList<TeamMember> TeamMembers =>
+    private IReadOnlyList<TeamMember> TeamMembers =>
         Selected is null
             ? Array.Empty<TeamMember>()
             : Cache.Team.Where(m => Selected.TeamMemberIds.Contains(m.Id)).ToList();
 
-    IReadOnlyList<AtlasTask> LinkedTasks =>
+    private IReadOnlyList<AtlasTask> LinkedTasks =>
         Selected is null
             ? Array.Empty<AtlasTask>()
             : Cache.Tasks.Where(t =>
                 Selected.LinkedTaskIds.Contains(t.Id) ||
                 (!string.IsNullOrEmpty(t.Project) && t.Project == Selected.Name)).ToList();
 
-    IReadOnlyList<Risk> LinkedRisks =>
+    private IReadOnlyList<Risk> LinkedRisks =>
         Selected is null
             ? Array.Empty<Risk>()
             : Cache.Risks.Where(r =>
                 Selected.LinkedRiskIds.Contains(r.Id) ||
                 (!string.IsNullOrEmpty(r.Project) && r.Project == Selected.Name)).ToList();
 
-    IReadOnlyList<AzureItem> LinkedAzureItems
+    private IReadOnlyList<AzureItem> LinkedAzureItems
     {
         get
         {
-            if (Selected is null) return Array.Empty<AzureItem>();
-            string projectId = Selected.Id.ToString();
+            if (Selected is null)
+            {
+                return Array.Empty<AzureItem>();
+            }
+
+            var projectId = Selected.Id.ToString();
             var byId = new Dictionary<string, AzureItem>(StringComparer.Ordinal);
             foreach (TeamMember member in Cache.Team)
             {
                 foreach (AzureItem item in member.AzureItems)
                 {
-                    if (item.ProjectId != projectId || byId.ContainsKey(item.Id)) continue;
+                    if (item.ProjectId != projectId || byId.ContainsKey(item.Id))
+                    {
+                        continue;
+                    }
+
                     byId[item.Id] = item;
                 }
             }
@@ -122,39 +131,39 @@ public partial class Projects : IDisposable
         }
     }
 
-    IReadOnlyList<AtlasTask> FilteredTasks
+    private IReadOnlyList<AtlasTask> FilteredTasks
     {
         get
         {
-            string q = _taskQuery.Trim();
-            string todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
+            var q = _taskQuery.Trim();
+            var todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
             return LinkedTasks.Where(t =>
             {
-                string statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
-                if (_taskStatusFilter != "All" && statusLabel != _taskStatusFilter) return false;
-                if (_taskPriorityFilter != "All" && t.Priority.ToString() != _taskPriorityFilter) return false;
-                if (_taskAssigneeFilter != "All" && (t.AssigneeId?.ToString() ?? "") != _taskAssigneeFilter) return false;
-                if (_taskDueFilter != "All" && GetDueBucket(t.DueDate, todayIso) != _taskDueFilter) return false;
-                if (q.Length > 0 && !t.Title.Contains(q, StringComparison.OrdinalIgnoreCase)) return false;
-                return true;
-            }).ToList();
-        }
-    }
-
-    IReadOnlyList<Risk> FilteredRisks
-    {
-        get
-        {
-            string q = _riskQuery.Trim();
-            return LinkedRisks.Where(r =>
-            {
-                if (_riskSeverityFilter != "All" && r.Severity != _riskSeverityFilter) return false;
-                if (_riskOwnerFilter != "All" && (r.OwnerId?.ToString() ?? "") != _riskOwnerFilter) return false;
-                if (q.Length > 0)
+                var statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
+                if (_taskStatusFilter != "All" && statusLabel != _taskStatusFilter)
                 {
-                    string hay = $"{r.Title} {r.Description}";
-                    if (!hay.Contains(q, StringComparison.OrdinalIgnoreCase)) return false;
+                    return false;
+                }
+
+                if (_taskPriorityFilter != "All" && t.Priority.ToString() != _taskPriorityFilter)
+                {
+                    return false;
+                }
+
+                if (_taskAssigneeFilter != "All" && (t.AssigneeId?.ToString() ?? "") != _taskAssigneeFilter)
+                {
+                    return false;
+                }
+
+                if (_taskDueFilter != "All" && GetDueBucket(t.DueDate, todayIso) != _taskDueFilter)
+                {
+                    return false;
+                }
+
+                if (q.Length > 0 && !t.Title.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
                 }
 
                 return true;
@@ -162,7 +171,38 @@ public partial class Projects : IDisposable
         }
     }
 
-    IReadOnlyList<AssigneeOption> TaskAssigneeOptions
+    private IReadOnlyList<Risk> FilteredRisks
+    {
+        get
+        {
+            var q = _riskQuery.Trim();
+            return LinkedRisks.Where(r =>
+            {
+                if (_riskSeverityFilter != "All" && r.Severity != _riskSeverityFilter)
+                {
+                    return false;
+                }
+
+                if (_riskOwnerFilter != "All" && (r.OwnerId?.ToString() ?? "") != _riskOwnerFilter)
+                {
+                    return false;
+                }
+
+                if (q.Length > 0)
+                {
+                    var hay = $"{r.Title} {r.Description}";
+                    if (!hay.Contains(q, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }).ToList();
+        }
+    }
+
+    private IReadOnlyList<AssigneeOption> TaskAssigneeOptions
     {
         get
         {
@@ -179,7 +219,7 @@ public partial class Projects : IDisposable
         }
     }
 
-    IReadOnlyList<OwnerOption> RiskOwnerOptions
+    private IReadOnlyList<OwnerOption> RiskOwnerOptions
     {
         get
         {
@@ -196,24 +236,24 @@ public partial class Projects : IDisposable
         }
     }
 
-    ProjectRollup Rollup
+    private ProjectRollup Rollup
     {
         get
         {
-            int localTotalTasks = LinkedTasks.Count;
-            int localDoneTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) == Models.TaskStatus.Done);
-            int importedTotalTasks = LinkedAzureItems.Count;
-            int importedDoneTasks = LinkedAzureItems.Count(x => IsAzureWorkItemDone(x.Status));
-            int totalTasks = localTotalTasks + importedTotalTasks;
-            int doneTasks = localDoneTasks + importedDoneTasks;
-            int taskCompletionPct = totalTasks > 0 ? (int)Math.Round(doneTasks / (double)totalTasks * 100) : 0;
-            int localOpenTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) != Models.TaskStatus.Done);
-            int importedOpenTasks = LinkedAzureItems.Count(x => !IsAzureWorkItemDone(x.Status));
-            int highPriorityOpenTasks = LinkedTasks.Count(t =>
+            var localTotalTasks = LinkedTasks.Count;
+            var localDoneTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) == Models.TaskStatus.Done);
+            var importedTotalTasks = LinkedAzureItems.Count;
+            var importedDoneTasks = LinkedAzureItems.Count(x => IsAzureWorkItemDone(x.Status));
+            var totalTasks = localTotalTasks + importedTotalTasks;
+            var doneTasks = localDoneTasks + importedDoneTasks;
+            var taskCompletionPct = totalTasks > 0 ? (int)Math.Round(doneTasks / (double)totalTasks * 100) : 0;
+            var localOpenTasks = LinkedTasks.Count(t => (t.Status ?? Models.TaskStatus.NotStarted) != Models.TaskStatus.Done);
+            var importedOpenTasks = LinkedAzureItems.Count(x => !IsAzureWorkItemDone(x.Status));
+            var highPriorityOpenTasks = LinkedTasks.Count(t =>
                 (t.Status ?? Models.TaskStatus.NotStarted) != Models.TaskStatus.Done &&
                 (t.Priority == Priority.High || t.Priority == Priority.Critical));
-            int openRisks = LinkedRisks.Count(r => r.Status != RiskStatus.Resolved);
-            int atRiskCount = LinkedRisks.Count(r =>
+            var openRisks = LinkedRisks.Count(r => r.Status != RiskStatus.Resolved);
+            var atRiskCount = LinkedRisks.Count(r =>
                 r.Status != RiskStatus.Resolved && (r.Severity == "High" || r.Severity == "Medium"));
 
             return new ProjectRollup(
@@ -253,11 +293,11 @@ public partial class Projects : IDisposable
 
         if (Selected is not null)
         {
-            bool projectChanged = _lastSelectedId != Selected.Id;
+            var projectChanged = _lastSelectedId != Selected.Id;
             if (projectChanged)
             {
                 _lastSelectedId = Selected.Id;
-                bool autoEdit = _autoEditId == Selected.Id;
+                var autoEdit = _autoEditId == Selected.Id;
                 ResetDraftFromProject(Selected, autoEdit);
             }
             else if (_autoEditId == Selected.Id && !_editing)
@@ -267,14 +307,14 @@ public partial class Projects : IDisposable
         }
     }
 
-    void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
         InvokeAsync(() =>
         {
             SyncTabFromUri();
             StateHasChanged();
         });
 
-    void SyncTabFromUri()
+    private void SyncTabFromUri()
     {
         if (_editing)
         {
@@ -282,7 +322,7 @@ public partial class Projects : IDisposable
             return;
         }
 
-        string tab = ReadTabFromUri();
+        var tab = ReadTabFromUri();
         if (tab != "overview")
         {
             _editing = false;
@@ -291,45 +331,56 @@ public partial class Projects : IDisposable
         _tab = tab;
     }
 
-    string ReadTabFromUri()
+    private string ReadTabFromUri()
     {
-        string? raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
+        var raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
         return raw is "tasks" or "risks" ? raw : "overview";
     }
 
-    static string? GetQueryParam(string uri, string key)
+    private static string? GetQueryParam(string uri, string key)
     {
-        int qIndex = uri.IndexOf('?', StringComparison.Ordinal);
-        if (qIndex < 0) return null;
-        string query = uri[(qIndex + 1)..];
-        int hashIndex = query.IndexOf('#', StringComparison.Ordinal);
-        if (hashIndex >= 0) query = query[..hashIndex];
-        foreach (string part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+        if (qIndex < 0)
         {
-            int eq = part.IndexOf('=', StringComparison.Ordinal);
-            string name = eq < 0 ? part : part[..eq];
+            return null;
+        }
+
+        var query = uri[(qIndex + 1)..];
+        var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+        if (hashIndex >= 0)
+        {
+            query = query[..hashIndex];
+        }
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = part.IndexOf('=', StringComparison.Ordinal);
+            var name = eq < 0 ? part : part[..eq];
             if (!string.Equals(Uri.UnescapeDataString(name), key, StringComparison.OrdinalIgnoreCase))
+            {
                 continue;
+            }
+
             return eq < 0 ? "" : Uri.UnescapeDataString(part[(eq + 1)..]);
         }
 
         return null;
     }
 
-    void SetTab(string tab)
+    private void SetTab(string tab)
     {
-        string next = tab is "tasks" or "risks" ? tab : "overview";
+        var next = tab is "tasks" or "risks" ? tab : "overview";
         _tab = next;
         if (next != "overview")
         {
             _editing = false;
         }
 
-        string uri = Nav.GetUriWithQueryParameter("tab", next);
+        var uri = Nav.GetUriWithQueryParameter("tab", next);
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
-    void OnChanged() => InvokeAsync(() =>
+    private void OnChanged() => InvokeAsync(() =>
     {
         if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
         {
@@ -345,7 +396,7 @@ public partial class Projects : IDisposable
         StateHasChanged();
     });
 
-    void SelectFromList(Guid id)
+    private void SelectFromList(Guid id)
     {
         Selection.SelectProject(id);
         if (_autoEditId == id)
@@ -360,13 +411,13 @@ public partial class Projects : IDisposable
         StateHasChanged();
     }
 
-    void ResetDraftFromProject(Project project, bool autoEdit)
+    private void ResetDraftFromProject(Project project, bool autoEdit)
     {
         _editing = autoEdit;
         LoadDraftFrom(project);
     }
 
-    void LoadDraftFrom(Project project)
+    private void LoadDraftFrom(Project project)
     {
         _draftName = project.Name;
         _draftSummary = project.Summary;
@@ -383,9 +434,13 @@ public partial class Projects : IDisposable
         _draftLinks = project.Links.Select(l => new ProjectLink { Label = l.Label, Url = l.Url }).ToList();
     }
 
-    void StartEdit()
+    private void StartEdit()
     {
-        if (Selected is null) return;
+        if (Selected is null)
+        {
+            return;
+        }
+
         if (_tab != "overview")
         {
             SetTab("overview");
@@ -394,11 +449,11 @@ public partial class Projects : IDisposable
         LoadDraftFrom(Selected);
         _tab = "overview";
         _editing = true;
-        string uri = Nav.GetUriWithQueryParameter("tab", "overview");
+        var uri = Nav.GetUriWithQueryParameter("tab", "overview");
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
-    void CancelEdit()
+    private void CancelEdit()
     {
         if (Selected is not null)
         {
@@ -406,55 +461,70 @@ public partial class Projects : IDisposable
         }
 
         _editing = false;
-        if (Selected is not null && _autoEditId == Selected.Id) _autoEditId = null;
+        if (Selected is not null && _autoEditId == Selected.Id)
+        {
+            _autoEditId = null;
+        }
     }
 
-    void OnDraftTargetDateChange(ChangeEventArgs e) =>
+    private void OnDraftTargetDateChange(ChangeEventArgs e) =>
         _draftTargetDateIso = e.Value?.ToString() ?? "";
 
-    void OnDraftCheckInDateChange(ChangeEventArgs e) =>
+    private void OnDraftCheckInDateChange(ChangeEventArgs e) =>
         _draftCheckInDate = e.Value?.ToString() ?? "";
 
-    void OnDraftPriorityChange(ChangeEventArgs e)
+    private void OnDraftPriorityChange(ChangeEventArgs e)
     {
         _draftPriority = e.Value?.ToString();
         _draftPriorityTouched = true;
     }
 
-    void UpdateLinkLabel(int idx, string? value)
+    private void UpdateLinkLabel(int idx, string? value)
     {
-        if (idx < 0 || idx >= _draftLinks.Count) return;
+        if (idx < 0 || idx >= _draftLinks.Count)
+        {
+            return;
+        }
+
         _draftLinks[idx].Label = value ?? "";
     }
 
-    void UpdateLinkUrl(int idx, string? value)
+    private void UpdateLinkUrl(int idx, string? value)
     {
-        if (idx < 0 || idx >= _draftLinks.Count) return;
+        if (idx < 0 || idx >= _draftLinks.Count)
+        {
+            return;
+        }
+
         _draftLinks[idx].Url = value ?? "";
     }
 
-    void RemoveLink(int idx)
+    private void RemoveLink(int idx)
     {
-        if (idx < 0 || idx >= _draftLinks.Count) return;
+        if (idx < 0 || idx >= _draftLinks.Count)
+        {
+            return;
+        }
+
         _draftLinks.RemoveAt(idx);
     }
 
-    void AddLink() => _draftLinks.Add(new ProjectLink());
+    private void AddLink() => _draftLinks.Add(new ProjectLink());
 
-    Project NormalizeDraftForSave()
+    private Project NormalizeDraftForSave()
     {
-        List<string> tags = _tagsText
+        var tags = _tagsText
             .Split(',')
             .Select(t => t.Trim())
             .Where(t => t.Length > 0)
             .ToList();
-        List<ProjectLink> links = _draftLinks
+        var links = _draftLinks
             .Select(l => new ProjectLink { Label = l.Label.Trim(), Url = l.Url.Trim() })
             .Where(l => l.Label.Length > 0 && l.Url.Length > 0)
             .ToList();
 
-        string checkInDate = _draftCheckInDate.Trim();
-        string checkInNote = _draftCheckInNote.Trim();
+        var checkInDate = _draftCheckInDate.Trim();
+        var checkInNote = _draftCheckInNote.Trim();
         ProjectCheckIn? latestCheckIn = null;
         if (checkInDate.Length > 0 || checkInNote.Length > 0)
         {
@@ -467,7 +537,7 @@ public partial class Projects : IDisposable
 
         Enum.TryParse(_draftStatus, out ProjectStatus status);
         Enum.TryParse(_draftHealth, out HealthSignal health);
-        bool persistPriority = Selected!.Priority is not null || _draftPriorityTouched;
+        var persistPriority = Selected!.Priority is not null || _draftPriorityTouched;
         Priority? priority = null;
         if (persistPriority && Enum.TryParse(_draftPriority ?? "Medium", out Priority parsedPriority))
         {
@@ -497,9 +567,13 @@ public partial class Projects : IDisposable
             lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
     }
 
-    async Task SaveOverview()
+    private async Task SaveOverview()
     {
-        if (Selected is null || _saving) return;
+        if (Selected is null || _saving)
+        {
+            return;
+        }
+
         _saving = true;
         try
         {
@@ -507,7 +581,10 @@ public partial class Projects : IDisposable
             await ProjectService.UpdateAsync(next);
             Cache.UpdateProject(next);
             _editing = false;
-            if (_autoEditId == next.Id) _autoEditId = null;
+            if (_autoEditId == next.Id)
+            {
+                _autoEditId = null;
+            }
         }
         catch (Exception)
         {
@@ -519,58 +596,97 @@ public partial class Projects : IDisposable
         }
     }
 
-    string FormatAssignee(Guid? assigneeId)
+    private string FormatAssignee(Guid? assigneeId)
     {
-        if (assigneeId is null) return "—";
+        if (assigneeId is null)
+        {
+            return "—";
+        }
+
         return MemberById.TryGetValue(assigneeId.Value, out TeamMember? member) ? member.Name : assigneeId.Value.ToString();
     }
 
-    static bool IsAzureWorkItemDone(string? status) =>
+    private static bool IsAzureWorkItemDone(string? status) =>
         !string.IsNullOrWhiteSpace(status) && DoneAzureStatuses.Contains(status.Trim());
 
-    static string GetDueBucket(string? dueDate, string todayIso)
+    private static string GetDueBucket(string? dueDate, string todayIso)
     {
-        if (string.IsNullOrWhiteSpace(dueDate)) return "No due date";
+        if (string.IsNullOrWhiteSpace(dueDate))
+        {
+            return "No due date";
+        }
+
         if (!DateOnly.TryParse(dueDate.Trim(), out DateOnly due) || !DateOnly.TryParse(todayIso, out DateOnly today))
+        {
             return "All";
-        if (due < today) return "Overdue";
-        int days = due.DayNumber - today.DayNumber;
-        if (days <= 7) return "Next 7 days";
-        if (days <= 30) return "Next 30 days";
+        }
+
+        if (due < today)
+        {
+            return "Overdue";
+        }
+
+        var days = due.DayNumber - today.DayNumber;
+        if (days <= 7)
+        {
+            return "Next 7 days";
+        }
+
+        if (days <= 30)
+        {
+            return "Next 30 days";
+        }
+
         return "All";
     }
 
-    void GoFocus(Guid id) => Nav.NavigateTo($"/projects/{id}");
-    void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
-    void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
+    private void GoFocus(Guid id) => Nav.NavigateTo($"/projects/{id}");
+    private void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+    private void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
 
-    string CurrentSearch
+    private string CurrentSearch
     {
         get
         {
-            string uri = Nav.Uri;
-            int qIndex = uri.IndexOf('?', StringComparison.Ordinal);
-            if (qIndex < 0) return "";
-            string query = uri[qIndex..];
-            int hashIndex = query.IndexOf('#', StringComparison.Ordinal);
+            var uri = Nav.Uri;
+            var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
+            if (qIndex < 0)
+            {
+                return "";
+            }
+
+            var query = uri[qIndex..];
+            var hashIndex = query.IndexOf('#', StringComparison.Ordinal);
             return hashIndex >= 0 ? query[..hashIndex] : query;
         }
     }
 
-    void EnterFocus()
+    private void EnterFocus()
     {
-        if (Selected is null) return;
+        if (Selected is null)
+        {
+            return;
+        }
+
         Nav.NavigateTo($"/projects/{Selected.Id}{CurrentSearch}");
     }
 
-    void ExitFocus() => Nav.NavigateTo($"/projects{CurrentSearch}");
+    private void ExitFocus() => Nav.NavigateTo($"/projects{CurrentSearch}");
 
-    async Task HandleAddProject()
+    private async Task HandleAddProject()
     {
-        if (_creating) return;
-        string? requested = await Dialogs.PromptAsync("Project name", "New project");
-        if (requested is null) return;
-        string name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
+        if (_creating)
+        {
+            return;
+        }
+
+        var requested = await Dialogs.PromptAsync("Project name", "New project");
+        if (requested is null)
+        {
+            return;
+        }
+
+        var name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
         _creating = true;
         try
         {
@@ -603,18 +719,32 @@ public partial class Projects : IDisposable
         }
     }
 
-    async Task HandleDelete()
+    private async Task HandleDelete()
     {
-        if (Selected is null || _deleting) return;
+        if (Selected is null || _deleting)
+        {
+            return;
+        }
+
         Project project = Selected;
-        if (!await Dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone.")) return;
+        if (!await Dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone."))
+        {
+            return;
+        }
 
         _deleting = true;
         try
         {
             await ProjectService.DeleteAsync(project.Id);
-            if (IsFocusMode) Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
-            if (_autoEditId == project.Id) _autoEditId = null;
+            if (IsFocusMode)
+            {
+                Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
+            }
+
+            if (_autoEditId == project.Id)
+            {
+                _autoEditId = null;
+            }
         }
         catch (Exception)
         {
@@ -633,9 +763,11 @@ public partial class Projects : IDisposable
         Nav.LocationChanged -= OnLocationChanged;
     }
 
-    sealed record AssigneeOption(Guid Id, string Name);
-    sealed record OwnerOption(Guid Id, string Name);
-    sealed record ProjectRollup(
+    private sealed record AssigneeOption(Guid Id, string Name);
+
+    private sealed record OwnerOption(Guid Id, string Name);
+
+    private sealed record ProjectRollup(
         int TotalTasks,
         int DoneTasks,
         int TaskCompletionPct,

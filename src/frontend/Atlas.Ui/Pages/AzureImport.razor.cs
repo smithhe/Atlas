@@ -1,34 +1,29 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
-using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
 
 public partial class AzureImport : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] AzureDevOpsService AzureDevOpsService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
 
-    AtlasApiDTOsAzureDevOpsAzureConnectionDto? _connection;
-    List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
-    HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
-    List<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto> _importWorkItems = [];
-    HashSet<Guid> _selectedWorkItems = [];
-    string _projectId = "";
-    string _teamMemberId = "";
-    bool _loading;
-    bool _importingUsers;
-    bool _importingProductOwners;
-    bool _linkingWorkItems;
-    string? _error;
-    string? _productOwnerWarning;
+    private AtlasApiDTOsAzureDevOpsAzureConnectionDto? _connection;
+    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
+    private List<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto> _importWorkItems = [];
+    private HashSet<Guid> _selectedWorkItems = [];
+    private string _projectId = "";
+    private string _teamMemberId = "";
+    private bool _loading;
+    private bool _importingUsers;
+    private bool _importingProductOwners;
+    private bool _linkingWorkItems;
+    private string? _error;
+    private string? _productOwnerWarning;
 
-    string? _selectedProjectName =>
+    private string? _selectedProjectName =>
         Guid.TryParse(_projectId, out Guid id)
             ? Cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
             : null;
@@ -40,9 +35,9 @@ public partial class AzureImport : IDisposable
         _ = LoadAsync();
     }
 
-    void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    private void OnCacheChanged() => InvokeAsync(StateHasChanged);
 
-    async Task LoadAsync()
+    private async Task LoadAsync()
     {
         _loading = true;
         _error = null;
@@ -98,7 +93,7 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    async Task<ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>> SafeListWorkItemsAsync()
+    private async Task<ICollection<AtlasApiDTOsAzureDevOpsAzureImportWorkItemDto>> SafeListWorkItemsAsync()
     {
         try
         {
@@ -110,38 +105,48 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    void SelectAllUsers() =>
+    private void SelectAllUsers() =>
         _selectedUsers = _users
             .Select(u => u.UniqueName ?? "")
             .Where(s => s.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-    void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+    private void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
 
-    void ToggleUser(string uniqueName, ChangeEventArgs e)
+    private void ToggleUser(string uniqueName, ChangeEventArgs e)
     {
         HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+        {
             next.Add(uniqueName);
+        }
         else
+        {
             next.Remove(uniqueName);
+        }
+
         _selectedUsers = next;
     }
 
-    void ToggleWorkItem(Guid id, ChangeEventArgs e)
+    private void ToggleWorkItem(Guid id, ChangeEventArgs e)
     {
         HashSet<Guid> next = new(_selectedWorkItems);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+        {
             next.Add(id);
+        }
         else
+        {
             next.Remove(id);
+        }
+
         _selectedWorkItems = next;
     }
 
-    void OnProjectChange(ChangeEventArgs e) => _projectId = e.Value?.ToString() ?? "";
-    void OnTeamMemberChange(ChangeEventArgs e) => _teamMemberId = e.Value?.ToString() ?? "";
+    private void OnProjectChange(ChangeEventArgs e) => _projectId = e.Value?.ToString() ?? "";
+    private void OnTeamMemberChange(ChangeEventArgs e) => _teamMemberId = e.Value?.ToString() ?? "";
 
-    List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> SelectedUserDtos() =>
+    private List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> SelectedUserDtos() =>
         _users
             .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
             .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
@@ -152,9 +157,13 @@ public partial class AzureImport : IDisposable
             })
             .ToList();
 
-    async Task OnImportUsers()
+    private async Task OnImportUsers()
     {
-        if (_importingUsers || _selectedUsers.Count == 0) return;
+        if (_importingUsers || _selectedUsers.Count == 0)
+        {
+            return;
+        }
+
         _error = null;
         _productOwnerWarning = null;
         _importingUsers = true;
@@ -182,9 +191,13 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    async Task OnImportProductOwners()
+    private async Task OnImportProductOwners()
     {
-        if (_importingProductOwners || _selectedUsers.Count == 0) return;
+        if (_importingProductOwners || _selectedUsers.Count == 0)
+        {
+            return;
+        }
+
         _error = null;
         _productOwnerWarning = null;
         _importingProductOwners = true;
@@ -204,7 +217,7 @@ public partial class AzureImport : IDisposable
             List<AtlasApiDTOsAzureDevOpsReusedProductOwnerNameDto> reused = result.ReusedProductOwnerNames?.ToList() ?? [];
             if (reused.Count > 0)
             {
-                string details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
+                var details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
                 _productOwnerWarning =
                     $"{reused.Count} product owner{(reused.Count == 1 ? "" : "s")} reused existing names: {details}";
             }
@@ -219,10 +232,18 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    async Task OnLinkWorkItems()
+    private async Task OnLinkWorkItems()
     {
-        if (_linkingWorkItems || string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0) return;
-        if (!Guid.TryParse(_projectId, out Guid projectId)) return;
+        if (_linkingWorkItems || string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0)
+        {
+            return;
+        }
+
+        if (!Guid.TryParse(_projectId, out Guid projectId))
+        {
+            return;
+        }
+
         _error = null;
         _productOwnerWarning = null;
         _linkingWorkItems = true;
@@ -252,9 +273,13 @@ public partial class AzureImport : IDisposable
         }
     }
 
-    void OnIgnoreSelectedWorkItems()
+    private void OnIgnoreSelectedWorkItems()
     {
-        if (_selectedWorkItems.Count == 0) return;
+        if (_selectedWorkItems.Count == 0)
+        {
+            return;
+        }
+
         _importWorkItems = _importWorkItems
             .Where(item => item.Id is null || !_selectedWorkItems.Contains(item.Id.Value))
             .ToList();

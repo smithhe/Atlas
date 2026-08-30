@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -11,47 +7,67 @@ namespace Atlas.Ui.Pages;
 
 public partial class TeamMemberRiskDetail : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] TeamMemberRiskService TeamMemberRiskService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private TeamMemberRiskService TeamMemberRiskService { get; set; } = null!;
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? TeamMemberRiskId { get; set; }
 
-    bool _editing;
-    TeamMemberRisk? _draft;
+    private bool _editing;
+    private TeamMemberRisk? _draft;
 
-    TeamMember? Member =>
+    private TeamMember? Member =>
         Guid.TryParse(MemberId, out Guid id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
 
-    TeamMemberRisk? View
+    private TeamMemberRisk? View
     {
         get
         {
-            if (!Guid.TryParse(TeamMemberRiskId, out Guid rid)) return null;
+            if (!Guid.TryParse(TeamMemberRiskId, out Guid rid))
+            {
+                return null;
+            }
+
             TeamMemberRisk? r = Cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
-            if (r is null) return null;
-            if (Guid.TryParse(MemberId, out Guid mid) && r.MemberId != mid) return null;
+            if (r is null)
+            {
+                return null;
+            }
+
+            if (Guid.TryParse(MemberId, out Guid mid) && r.MemberId != mid)
+            {
+                return null;
+            }
+
             return r;
         }
     }
 
-    Risk? LinkedGlobal =>
+    private Risk? LinkedGlobal =>
         View?.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
 
-    string LinkedRiskValue =>
+    private string LinkedRiskValue =>
         (_editing && _draft is not null ? _draft.LinkedRiskId : View?.LinkedRiskId)?.ToString() ?? "";
 
-    string ReviewedLabel
+    private string ReviewedLabel
     {
         get
         {
-            int? days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
-            if (days is null) return "—";
-            if (days == 0) return "today";
+            var days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
+            if (days is null)
+            {
+                return "—";
+            }
+
+            if (days == 0)
+            {
+                return "today";
+            }
+
             return days == 1 ? "1 day ago" : $"{days} days ago";
         }
     }
@@ -79,41 +95,55 @@ public partial class TeamMemberRiskDetail : IDisposable
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
+            {
                 Nav.NavigateTo("/team", replace: true);
+            }
         }
     }
 
-    void BackToRisks() => Nav.NavigateTo($"/team/{MemberId}/risks");
-    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+    private void BackToRisks() => Nav.NavigateTo($"/team/{MemberId}/risks");
+    private void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
 
-    void OnDraftFirstNoticed(ChangeEventArgs e)
+    private void OnDraftFirstNoticed(ChangeEventArgs e)
     {
-        if (_draft is null) return;
+        if (_draft is null)
+        {
+            return;
+        }
+
         _draft.FirstNoticedDateIso = e.Value?.ToString() ?? "";
     }
 
-    void BeginEdit()
+    private void BeginEdit()
     {
-        if (View is null) return;
+        if (View is null)
+        {
+            return;
+        }
+
         _draft = Clone(View);
         _editing = true;
     }
 
-    void CancelEdit()
+    private void CancelEdit()
     {
         _editing = false;
         _draft = null;
     }
 
-    void SaveEdit()
+    private void SaveEdit()
     {
-        if (_draft is null) return;
+        if (_draft is null)
+        {
+            return;
+        }
+
         PersistRisk(_draft);
         _editing = false;
         _draft = null;
     }
 
-    void OnLinkedRiskChange(ChangeEventArgs e)
+    private void OnLinkedRiskChange(ChangeEventArgs e)
     {
         Guid? next = Guid.TryParse(e.Value?.ToString(), out Guid id) ? id : null;
         if (_editing && _draft is not null)
@@ -122,13 +152,17 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        if (View is null) return;
+        if (View is null)
+        {
+            return;
+        }
+
         TeamMemberRisk updated = Clone(View);
         updated.LinkedRiskId = next;
         PersistRisk(updated);
     }
 
-    void MarkReviewed()
+    private void MarkReviewed()
     {
         var iso = DateTimeOffset.UtcNow.ToString("o");
         if (_editing && _draft is not null)
@@ -137,27 +171,39 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        if (View is null) return;
+        if (View is null)
+        {
+            return;
+        }
+
         TeamMemberRisk updated = Clone(View);
         updated.LastReviewedIso = iso;
         PersistRisk(updated);
     }
 
-    void OpenLinkedGlobal()
+    private void OpenLinkedGlobal()
     {
-        if (LinkedGlobal is null) return;
+        if (LinkedGlobal is null)
+        {
+            return;
+        }
+
         Selection.SelectRisk(LinkedGlobal.Id);
         Nav.NavigateTo("/risks");
     }
 
-    void PersistRisk(TeamMemberRisk next)
+    private void PersistRisk(TeamMemberRisk next)
     {
-        if (!Guid.TryParse(MemberId, out Guid memberId)) return;
+        if (!Guid.TryParse(MemberId, out Guid memberId))
+        {
+            return;
+        }
+
         Cache.UpdateTeamMemberRisk(next);
         _ = PersistAsync(memberId, next);
     }
 
-    async Task PersistAsync(Guid memberId, TeamMemberRisk next)
+    private async Task PersistAsync(Guid memberId, TeamMemberRisk next)
     {
         try
         {
@@ -169,7 +215,7 @@ public partial class TeamMemberRiskDetail : IDisposable
         }
     }
 
-    static TeamMemberRisk Clone(TeamMemberRisk r) => new()
+    private static TeamMemberRisk Clone(TeamMemberRisk r) => new()
     {
         Id = r.Id,
         MemberId = r.MemberId,
@@ -186,7 +232,7 @@ public partial class TeamMemberRiskDetail : IDisposable
         LinkedRiskId = r.LinkedRiskId
     };
 
-    void OnChanged() => InvokeAsync(() =>
+    private void OnChanged() => InvokeAsync(() =>
     {
         if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {

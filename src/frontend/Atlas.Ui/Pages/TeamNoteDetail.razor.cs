@@ -1,9 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
@@ -11,36 +6,44 @@ namespace Atlas.Ui.Pages;
 
 public partial class TeamNoteDetail : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] TeamNoteService TeamNoteService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? NoteId { get; set; }
 
-    static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
+    private static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
 
-    bool _editing;
-    string _draftTitle = "", _draftText = "", _draftAdo = "", _draftPr = "";
-    NoteTag _draftTag = NoteTag.Quick;
+    private bool _editing;
+    private string _draftTitle = "", _draftText = "", _draftAdo = "", _draftPr = "";
+    private NoteTag _draftTag = NoteTag.Quick;
 
-    TeamMember? Member
+    private TeamMember? Member
     {
         get
         {
-            if (!Guid.TryParse(MemberId, out Guid id)) return null;
+            if (!Guid.TryParse(MemberId, out Guid id))
+            {
+                return null;
+            }
+
             return Cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
 
-    TeamNote? Note
+    private TeamNote? Note
     {
         get
         {
-            if (Member is null || !Guid.TryParse(NoteId, out Guid nid)) return null;
+            if (Member is null || !Guid.TryParse(NoteId, out Guid nid))
+            {
+                return null;
+            }
+
             return Member.Notes.FirstOrDefault(n => n.Id == nid);
         }
     }
@@ -64,15 +67,21 @@ public partial class TeamNoteDetail : IDisposable
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
+            {
                 Nav.NavigateTo("/team", replace: true);
+            }
         }
 
         SyncDraftsFromNote();
     }
 
-    void SyncDraftsFromNote()
+    private void SyncDraftsFromNote()
     {
-        if (Note is null || _editing) return;
+        if (Note is null || _editing)
+        {
+            return;
+        }
+
         _draftTitle = Note.Title ?? "";
         _draftTag = Note.Tag;
         _draftText = Note.Text;
@@ -80,12 +89,16 @@ public partial class TeamNoteDetail : IDisposable
         _draftPr = Note.PrUrl ?? "";
     }
 
-    void BackToNotes() => Nav.NavigateTo($"/team/{MemberId}/notes");
-    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+    private void BackToNotes() => Nav.NavigateTo($"/team/{MemberId}/notes");
+    private void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
 
-    void BeginEdit()
+    private void BeginEdit()
     {
-        if (Note is null) return;
+        if (Note is null)
+        {
+            return;
+        }
+
         _draftTitle = Note.Title ?? "";
         _draftTag = Note.Tag;
         _draftText = Note.Text;
@@ -95,7 +108,7 @@ public partial class TeamNoteDetail : IDisposable
         SyncDraftTarget();
     }
 
-    void CancelEdit()
+    private void CancelEdit()
     {
         SyncDraftsFromNote();
         _editing = false;
@@ -110,7 +123,7 @@ public partial class TeamNoteDetail : IDisposable
         SyncDraftTarget();
     }
 
-    void SyncDraftTarget()
+    private void SyncDraftTarget()
     {
         if (!_editing)
         {
@@ -131,12 +144,16 @@ public partial class TeamNoteDetail : IDisposable
         });
     }
 
-    async Task SaveEdit()
+    private async Task SaveEdit()
     {
-        if (Member is null || Note is null) return;
-        string nextTitle = _draftTitle.Trim();
-        string ado = _draftAdo.Trim();
-        string pr = _draftPr.Trim();
+        if (Member is null || Note is null)
+        {
+            return;
+        }
+
+        var nextTitle = _draftTitle.Trim();
+        var ado = _draftAdo.Trim();
+        var pr = _draftPr.Trim();
         var updated = new TeamNote
         {
             Id = Note.Id,
@@ -152,7 +169,7 @@ public partial class TeamNoteDetail : IDisposable
         try
         {
             await TeamNoteService.UpdateAsync(Member.Id, updated);
-            List<TeamNote> nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
+            var nextNotes = Member.Notes.Select(n => n.Id == Note.Id ? updated : n).ToList();
             Cache.UpdateTeamMember(new TeamMember
             {
                 Id = Member.Id,
@@ -176,7 +193,7 @@ public partial class TeamNoteDetail : IDisposable
         }
     }
 
-    void OnChanged() => InvokeAsync(() =>
+    private void OnChanged() => InvokeAsync(() =>
     {
         if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {

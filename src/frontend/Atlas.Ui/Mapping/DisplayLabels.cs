@@ -88,13 +88,13 @@ public static class DisplayLabels
             return "—";
         }
 
-        string trimmed = iso.Trim();
+        var trimmed = iso.Trim();
         System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(trimmed, @"^(\d{4})-(\d{2})-(\d{2})$");
         if (m.Success)
         {
-            string year = m.Groups[1].Value;
-            int monthIdx = int.Parse(m.Groups[2].Value) - 1;
-            string day = m.Groups[3].Value;
+            var year = m.Groups[1].Value;
+            var monthIdx = int.Parse(m.Groups[2].Value) - 1;
+            var day = m.Groups[3].Value;
             ReadOnlySpan<string> months =
             [
                 "Jan", "Feb", "Mar", "Apr", "May", "Jun",

@@ -1,25 +1,21 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
-using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Layout;
 
 public partial class ShellLayout : IAsyncDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] IJSRuntime Js { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
 
-    const int MinAiWidth = 320;
-    const string DefaultAiWidthCss = "clamp(320px, 26vw, 560px)";
+    private const int MinAiWidth = 320;
+    private const string DefaultAiWidthCss = "clamp(320px, 26vw, 560px)";
 
-    static readonly NavItem[] NavItems =
+    private static readonly NavItem[] NavItems =
     [
         new("/dashboard", "Dashboard"),
         new("/tasks", "Tasks"),
@@ -29,37 +25,61 @@ public partial class ShellLayout : IAsyncDisposable
         new("/settings", "Settings"),
     ];
 
-    bool _quickAddOpen;
-    bool _resizing;
-    double _resizeStartX;
-    int _resizeStartWidth;
-    ElementReference _resizerRef;
-    DotNetObjectReference<ShellLayout>? _selfRef;
+    private bool _quickAddOpen;
+    private bool _resizing;
+    private double _resizeStartX;
+    private int _resizeStartWidth;
+    private ElementReference _resizerRef;
+    private DotNetObjectReference<ShellLayout>? _selfRef;
 
-    string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
+    private string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
 
-    string AiWidthStyle
+    private string AiWidthStyle
     {
         get
         {
-            string width = Ai.PanelWidthPx is { } px
+            var width = Ai.PanelWidthPx is { } px
                 ? $"{Math.Max(MinAiWidth, px)}px"
                 : DefaultAiWidthCss;
             return $"--aiWidth: {width}";
         }
     }
 
-    string ContextTitle
+    private string ContextTitle
     {
         get
         {
-            string path = new Uri(Nav.Uri).AbsolutePath;
-            if (path.StartsWith("/dashboard", StringComparison.OrdinalIgnoreCase)) return "Context: Dashboard";
-            if (path.StartsWith("/tasks", StringComparison.OrdinalIgnoreCase)) return "Context: Tasks";
-            if (path.StartsWith("/team", StringComparison.OrdinalIgnoreCase)) return "Context: Team";
-            if (path.StartsWith("/risks", StringComparison.OrdinalIgnoreCase)) return "Context: Risks";
-            if (path.StartsWith("/projects", StringComparison.OrdinalIgnoreCase)) return "Context: Projects";
-            if (path.StartsWith("/settings", StringComparison.OrdinalIgnoreCase)) return "Context: Settings";
+            var path = new Uri(Nav.Uri).AbsolutePath;
+            if (path.StartsWith("/dashboard", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Dashboard";
+            }
+
+            if (path.StartsWith("/tasks", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Tasks";
+            }
+
+            if (path.StartsWith("/team", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Team";
+            }
+
+            if (path.StartsWith("/risks", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Risks";
+            }
+
+            if (path.StartsWith("/projects", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Projects";
+            }
+
+            if (path.StartsWith("/settings", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Context: Settings";
+            }
+
             return "Context: Dashboard";
         }
     }
@@ -73,7 +93,7 @@ public partial class ShellLayout : IAsyncDisposable
         _ = EnsureResizeListenersAsync();
     }
 
-    async Task EnsureResizeListenersAsync()
+    private async Task EnsureResizeListenersAsync()
     {
         try
         {
@@ -86,16 +106,16 @@ public partial class ShellLayout : IAsyncDisposable
         }
     }
 
-    void OnCacheChanged() => InvokeAsync(StateHasChanged);
-    void OnAiChanged() => InvokeAsync(StateHasChanged);
+    private void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    private void OnAiChanged() => InvokeAsync(StateHasChanged);
 
-    void OpenQuickAdd() => _quickAddOpen = true;
-    void CloseQuickAdd() => _quickAddOpen = false;
-    void ToggleAi() => Ai.SetIsOpen(!Ai.IsOpen);
+    private void OpenQuickAdd() => _quickAddOpen = true;
+    private void CloseQuickAdd() => _quickAddOpen = false;
+    private void ToggleAi() => Ai.SetIsOpen(!Ai.IsOpen);
 
-    void ResetAiWidth() => Ai.SetPanelWidthPx(null);
+    private void ResetAiWidth() => Ai.SetPanelWidthPx(null);
 
-    void OnResizePointerDown(PointerEventArgs e)
+    private void OnResizePointerDown(PointerEventArgs e)
     {
         _resizing = true;
         _resizeStartX = e.ClientX;
@@ -103,7 +123,7 @@ public partial class ShellLayout : IAsyncDisposable
         _ = Js.InvokeVoidAsync("atlasAiEvents.beginResizeCapture", _resizerRef, e.PointerId);
     }
 
-    void OnResizeKeyDown(KeyboardEventArgs e)
+    private void OnResizeKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Home")
         {
@@ -111,18 +131,29 @@ public partial class ShellLayout : IAsyncDisposable
             return;
         }
 
-        int current = Ai.PanelWidthPx ?? MinAiWidth;
-        if (e.Key == "ArrowLeft") Ai.SetPanelWidthPx(current + 20);
-        if (e.Key == "ArrowRight") Ai.SetPanelWidthPx(Math.Max(MinAiWidth, current - 20));
+        var current = Ai.PanelWidthPx ?? MinAiWidth;
+        if (e.Key == "ArrowLeft")
+        {
+            Ai.SetPanelWidthPx(current + 20);
+        }
+
+        if (e.Key == "ArrowRight")
+        {
+            Ai.SetPanelWidthPx(Math.Max(MinAiWidth, current - 20));
+        }
     }
 
     [JSInvokable]
     public void OnAiResizeMove(double clientX, double innerWidth)
     {
-        if (!_resizing) return;
-        double dx = _resizeStartX - clientX;
-        double next = _resizeStartWidth + dx;
-        int max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
+        if (!_resizing)
+        {
+            return;
+        }
+
+        var dx = _resizeStartX - clientX;
+        var next = _resizeStartWidth + dx;
+        var max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
         Ai.SetPanelWidthPx(Math.Max(MinAiWidth, Math.Min(max, (int)Math.Floor(next))));
     }
 
@@ -148,5 +179,5 @@ public partial class ShellLayout : IAsyncDisposable
         _selfRef = null;
     }
 
-    sealed record NavItem(string Href, string Label);
+    private sealed record NavItem(string Href, string Label);
 }

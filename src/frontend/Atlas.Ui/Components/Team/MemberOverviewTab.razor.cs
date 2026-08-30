@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -11,14 +7,14 @@ namespace Atlas.Ui.Components.Team;
 
 public partial class MemberOverviewTab
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
 
-    [Parameter, EditorRequired] public TeamMember Member { get; set; } = default!;
+    [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
     [Parameter] public EventCallback<TeamMember> OnUpdate { get; set; }
     [Parameter] public EventCallback OnGoToNotes { get; set; }
     [Parameter] public EventCallback<string> OnGoToWorkItem { get; set; }
 
-    static readonly (string Value, string Label)[] TimeZones =
+    private static readonly (string Value, string Label)[] TimeZones =
     [
         ("PT", "Pacific (PT)"),
         ("MT", "Mountain (MT)"),
@@ -29,26 +25,26 @@ public partial class MemberOverviewTab
         ("AZ", "Arizona (MT-noDST)")
     ];
 
-    static readonly LoadSignal[] LoadOptions = [LoadSignal.Light, LoadSignal.Normal, LoadSignal.Heavy];
-    static readonly DeliverySignal[] DeliveryOptions = [DeliverySignal.AtRisk, DeliverySignal.OnTrack, DeliverySignal.Blocked];
-    static readonly SupportNeededSignal[] SupportOptions = [SupportNeededSignal.Low, SupportNeededSignal.Medium, SupportNeededSignal.High];
+    private static readonly LoadSignal[] LoadOptions = [LoadSignal.Light, LoadSignal.Normal, LoadSignal.Heavy];
+    private static readonly DeliverySignal[] DeliveryOptions = [DeliverySignal.AtRisk, DeliverySignal.OnTrack, DeliverySignal.Blocked];
+    private static readonly SupportNeededSignal[] SupportOptions = [SupportNeededSignal.Low, SupportNeededSignal.Medium, SupportNeededSignal.High];
 
-    bool _profileOpen, _signalsOpen, _focusOpen;
-    string _profileName = "", _profileRole = "", _profileTz = "", _profileHours = "", _focusDraft = "";
-    LoadSignal _draftLoad;
-    DeliverySignal _draftDelivery;
-    SupportNeededSignal _draftSupport;
+    private bool _profileOpen, _signalsOpen, _focusOpen;
+    private string _profileName = "", _profileRole = "", _profileTz = "", _profileHours = "", _focusDraft = "";
+    private LoadSignal _draftLoad;
+    private DeliverySignal _draftDelivery;
+    private SupportNeededSignal _draftSupport;
 
-    List<AzureItem> CurrentTickets =>
+    private List<AzureItem> CurrentTickets =>
         Member.AzureItems.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status)).ToList();
 
-    List<AzureItem> TopCurrentTickets => CurrentTickets.Take(3).ToList();
+    private List<AzureItem> TopCurrentTickets => CurrentTickets.Take(3).ToList();
 
-    List<TeamNote> PinnedNotes
+    private List<TeamNote> PinnedNotes
     {
         get
         {
-            Dictionary<Guid, TeamNote> byId = Member.Notes.ToDictionary(n => n.Id);
+            var byId = Member.Notes.ToDictionary(n => n.Id);
             return Member.PinnedNoteIds
                 .Select(id => byId.TryGetValue(id, out TeamNote? n) ? n : null)
                 .Where(n => n is not null)
@@ -58,13 +54,13 @@ public partial class MemberOverviewTab
         }
     }
 
-    static string GetPreview(TeamNote note)
+    private static string GetPreview(TeamNote note)
     {
-        string text = System.Text.RegularExpressions.Regex.Replace(note.Text, @"\s+", " ").Trim();
+        var text = System.Text.RegularExpressions.Regex.Replace(note.Text, @"\s+", " ").Trim();
         return text.Length <= 120 ? text : text[..120].Trim() + "…";
     }
 
-    void OpenProfileModal()
+    private void OpenProfileModal()
     {
         _profileName = Member.Name ?? "";
         _profileRole = Member.Role ?? "";
@@ -73,13 +69,13 @@ public partial class MemberOverviewTab
         _profileOpen = true;
     }
 
-    void CloseProfileModal()
+    private void CloseProfileModal()
     {
         _profileOpen = false;
         _profileName = _profileRole = _profileTz = _profileHours = "";
     }
 
-    async Task SaveProfile()
+    private async Task SaveProfile()
     {
         TeamMember next = CloneMember(Member);
         next.Name = string.IsNullOrWhiteSpace(_profileName) ? Member.Name : _profileName.Trim();
@@ -93,7 +89,7 @@ public partial class MemberOverviewTab
         CloseProfileModal();
     }
 
-    void OpenSignalsModal()
+    private void OpenSignalsModal()
     {
         _draftLoad = Member.Signals.Load;
         _draftDelivery = Member.Signals.Delivery;
@@ -101,7 +97,7 @@ public partial class MemberOverviewTab
         _signalsOpen = true;
     }
 
-    async Task SaveSignals()
+    private async Task SaveSignals()
     {
         TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
@@ -114,19 +110,19 @@ public partial class MemberOverviewTab
         _signalsOpen = false;
     }
 
-    void OpenFocusModal()
+    private void OpenFocusModal()
     {
         _focusDraft = Member.CurrentFocus ?? "";
         _focusOpen = true;
     }
 
-    void CloseFocusModal()
+    private void CloseFocusModal()
     {
         _focusOpen = false;
         _focusDraft = "";
     }
 
-    async Task SaveFocus()
+    private async Task SaveFocus()
     {
         TeamMember next = CloneMember(Member);
         next.CurrentFocus = _focusDraft.Trim();
@@ -134,7 +130,7 @@ public partial class MemberOverviewTab
         CloseFocusModal();
     }
 
-    async Task CycleLoad()
+    private async Task CycleLoad()
     {
         TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
@@ -146,7 +142,7 @@ public partial class MemberOverviewTab
         await OnUpdate.InvokeAsync(next);
     }
 
-    async Task CycleDelivery()
+    private async Task CycleDelivery()
     {
         TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
@@ -158,7 +154,7 @@ public partial class MemberOverviewTab
         await OnUpdate.InvokeAsync(next);
     }
 
-    async Task CycleSupport()
+    private async Task CycleSupport()
     {
         TeamMember next = CloneMember(Member);
         next.Signals = new TeamMemberSignals
@@ -170,14 +166,18 @@ public partial class MemberOverviewTab
         await OnUpdate.InvokeAsync(next);
     }
 
-    static T Cycle<T>(T value, T[] options) where T : struct
+    private static T Cycle<T>(T value, T[] options) where T : struct
     {
-        int idx = Array.IndexOf(options, value);
-        if (idx < 0) return options[0];
+        var idx = Array.IndexOf(options, value);
+        if (idx < 0)
+        {
+            return options[0];
+        }
+
         return options[(idx + 1) % options.Length];
     }
 
-    static TeamMember CloneMember(TeamMember m) => new()
+    private static TeamMember CloneMember(TeamMember m) => new()
     {
         Id = m.Id,
         Name = m.Name,

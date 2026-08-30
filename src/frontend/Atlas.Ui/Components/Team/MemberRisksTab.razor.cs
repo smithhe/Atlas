@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -11,39 +7,43 @@ namespace Atlas.Ui.Components.Team;
 
 public partial class MemberRisksTab
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] TeamMemberRiskService TeamMemberRiskService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private TeamMemberRiskService TeamMemberRiskService { get; set; } = null!;
 
     [Parameter] public Guid MemberId { get; set; }
 
-    string _query = "";
-    string _statusFilter = "All";
-    bool _createOpen;
-    string _title = "", _severity = "Medium", _status = "Open", _trend = "Stable";
-    string _firstNoticed = DisplayLabels.TodayIsoDateLocal();
-    string _riskType = "", _impactArea = "", _description = "", _currentAction = "", _linkedRiskId = "";
+    private string _query = "";
+    private string _statusFilter = "All";
+    private bool _createOpen;
+    private string _title = "", _severity = "Medium", _status = "Open", _trend = "Stable";
+    private string _firstNoticed = DisplayLabels.TodayIsoDateLocal();
+    private string _riskType = "", _impactArea = "", _description = "", _currentAction = "", _linkedRiskId = "";
 
-    List<TeamMemberRisk> MemberRisks
+    private List<TeamMemberRisk> MemberRisks
     {
         get
         {
-            string q = _query.Trim().ToLowerInvariant();
+            var q = _query.Trim().ToLowerInvariant();
             return Cache.TeamMemberRisks
                 .Where(r => r.MemberId == MemberId)
                 .Where(r => _statusFilter == "All" || r.Status == _statusFilter)
                 .Where(r =>
                 {
-                    if (string.IsNullOrEmpty(q)) return true;
-                    string hay = string.Join(' ', r.Title, r.RiskType, r.ImpactArea, r.Description, r.CurrentAction).ToLowerInvariant();
+                    if (string.IsNullOrEmpty(q))
+                    {
+                        return true;
+                    }
+
+                    var hay = string.Join(' ', r.Title, r.RiskType, r.ImpactArea, r.Description, r.CurrentAction).ToLowerInvariant();
                     return hay.Contains(q);
                 })
                 .ToList();
         }
     }
 
-    void OpenCreate()
+    private void OpenCreate()
     {
         _title = "";
         _severity = "Medium";
@@ -54,16 +54,20 @@ public partial class MemberRisksTab
         _createOpen = true;
     }
 
-    void OnFirstNoticedChange(ChangeEventArgs e) => _firstNoticed = e.Value?.ToString() ?? "";
+    private void OnFirstNoticedChange(ChangeEventArgs e) => _firstNoticed = e.Value?.ToString() ?? "";
 
-    void OpenRisk(Guid riskId) => Nav.NavigateTo($"/team/{MemberId}/risks/{riskId}");
+    private void OpenRisk(Guid riskId) => Nav.NavigateTo($"/team/{MemberId}/risks/{riskId}");
 
-    void CloseCreate() => _createOpen = false;
+    private void CloseCreate() => _createOpen = false;
 
-    async Task SaveCreate()
+    private async Task SaveCreate()
     {
-        string title = _title.Trim();
-        if (string.IsNullOrEmpty(title)) return;
+        var title = _title.Trim();
+        if (string.IsNullOrEmpty(title))
+        {
+            return;
+        }
+
         try
         {
             Guid? linked = Guid.TryParse(_linkedRiskId, out Guid lid) ? lid : null;
