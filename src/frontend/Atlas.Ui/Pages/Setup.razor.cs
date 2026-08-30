@@ -1,57 +1,53 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
-using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
 
 public partial class Setup
 {
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] IJSRuntime Js { get; set; } = default!;
-    [Inject] AzureDevOpsService AzureDevOpsService { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private IJSRuntime Js { get; set; } = null!;
+    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
 
-    enum SetupStep { Project, Team, Members, Saving }
+    private enum SetupStep { Project, Team, Members, Saving }
 
-    ElementReference _headerRef;
-    ElementReference _projectsCardRef;
-    ElementReference _teamsCardRef;
-    ElementReference _areaPathCardRef;
-    ElementReference _membersCardRef;
+    private ElementReference _headerRef;
+    private ElementReference _projectsCardRef;
+    private ElementReference _teamsCardRef;
+    private ElementReference _areaPathCardRef;
+    private ElementReference _membersCardRef;
 
-    int _projectsScrollGen;
-    int _teamsScrollGen;
-    int _membersScrollGen;
-    int _scrolledProjectsGen = -1;
-    int _scrolledTeamsGen = -1;
-    int _scrolledMembersGen = -1;
+    private int _projectsScrollGen;
+    private int _teamsScrollGen;
+    private int _membersScrollGen;
+    private int _scrolledProjectsGen = -1;
+    private int _scrolledTeamsGen = -1;
+    private int _scrolledMembersGen = -1;
 
-    string _organization = "";
-    string _areaPath = "";
-    bool _areaPathLoading;
-    string? _areaPathError;
+    private string _organization = "";
+    private string _areaPath = "";
+    private bool _areaPathLoading;
+    private string? _areaPathError;
 
-    List<AtlasApiDTOsAzureDevOpsAzureProjectDto> _projects = [];
-    string _selectedProjectId = "";
-    List<AtlasApiDTOsAzureDevOpsAzureTeamDto> _teams = [];
-    string _selectedTeamId = "";
-    List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
-    HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
+    private List<AtlasApiDTOsAzureDevOpsAzureProjectDto> _projects = [];
+    private string _selectedProjectId = "";
+    private List<AtlasApiDTOsAzureDevOpsAzureTeamDto> _teams = [];
+    private string _selectedTeamId = "";
+    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> _users = [];
+    private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
 
-    string _projectQuery = "";
-    string _teamQuery = "";
-    string _memberQuery = "";
+    private string _projectQuery = "";
+    private string _teamQuery = "";
+    private string _memberQuery = "";
 
-    SetupStep _step = SetupStep.Project;
-    bool _loading;
-    string? _error;
+    private SetupStep _step = SetupStep.Project;
+    private bool _loading;
+    private string? _error;
 
-    string StepLabel => _step switch
+    private string StepLabel => _step switch
     {
         SetupStep.Saving => "Saving",
         SetupStep.Project => "Step 1/3 • Project",
@@ -59,52 +55,64 @@ public partial class Setup
         _ => "Step 3/3 • Members"
     };
 
-    AtlasApiDTOsAzureDevOpsAzureProjectDto? SelectedProject =>
+    private AtlasApiDTOsAzureDevOpsAzureProjectDto? SelectedProject =>
         _projects.FirstOrDefault(p => p.Id == _selectedProjectId);
 
-    AtlasApiDTOsAzureDevOpsAzureTeamDto? SelectedTeam =>
+    private AtlasApiDTOsAzureDevOpsAzureTeamDto? SelectedTeam =>
         _teams.FirstOrDefault(t => t.Id == _selectedTeamId);
 
-    List<AtlasApiDTOsAzureDevOpsAzureProjectDto> FilteredProjects
+    private List<AtlasApiDTOsAzureDevOpsAzureProjectDto> FilteredProjects
     {
         get
         {
             IEnumerable<AtlasApiDTOsAzureDevOpsAzureProjectDto> sorted = _projects
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase);
-            string q = _projectQuery.Trim();
-            if (q.Length == 0) return sorted.ToList();
+            var q = _projectQuery.Trim();
+            if (q.Length == 0)
+            {
+                return sorted.ToList();
+            }
+
             return sorted
                 .Where(p => (p.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
     }
 
-    List<AtlasApiDTOsAzureDevOpsAzureTeamDto> FilteredTeams
+    private List<AtlasApiDTOsAzureDevOpsAzureTeamDto> FilteredTeams
     {
         get
         {
             IEnumerable<AtlasApiDTOsAzureDevOpsAzureTeamDto> sorted = _teams
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase);
-            string q = _teamQuery.Trim();
-            if (q.Length == 0) return sorted.ToList();
+            var q = _teamQuery.Trim();
+            if (q.Length == 0)
+            {
+                return sorted.ToList();
+            }
+
             return sorted
                 .Where(t => (t.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
     }
 
-    List<AtlasApiDTOsAzureDevOpsAzureUserDto> FilteredUsers
+    private List<AtlasApiDTOsAzureDevOpsAzureUserDto> FilteredUsers
     {
         get
         {
             IEnumerable<AtlasApiDTOsAzureDevOpsAzureUserDto> sorted = _users
                 .OrderBy(u => (u.DisplayName ?? u.UniqueName ?? ""), StringComparer.OrdinalIgnoreCase);
-            string q = _memberQuery.Trim();
-            if (q.Length == 0) return sorted.ToList();
+            var q = _memberQuery.Trim();
+            if (q.Length == 0)
+            {
+                return sorted.ToList();
+            }
+
             return sorted
                 .Where(u =>
                 {
-                    string hay = $"{u.DisplayName ?? ""} {u.UniqueName ?? ""}";
+                    var hay = $"{u.DisplayName ?? ""} {u.UniqueName ?? ""}";
                     return hay.Contains(q, StringComparison.OrdinalIgnoreCase);
                 })
                 .ToList();
@@ -118,7 +126,9 @@ public partial class Setup
             AtlasApiDTOsAzureDevOpsAzureConnectionDto conn =
                 await AzureDevOpsService.GetConnectionAsync();
             if (!string.IsNullOrWhiteSpace(conn.Organization))
+            {
                 _organization = conn.Organization;
+            }
         }
         catch
         {
@@ -146,9 +156,13 @@ public partial class Setup
             {
                 _scrolledMembersGen = _membersScrollGen;
                 if (_users.Count > 0)
+                {
                     await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _membersCardRef);
+                }
                 else if (!string.IsNullOrEmpty(_selectedTeamId))
+                {
                     await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _areaPathCardRef);
+                }
             }
         }
         catch (JSDisconnectedException)
@@ -162,16 +176,20 @@ public partial class Setup
         }
     }
 
-    void Skip() => Nav.NavigateTo("/dashboard");
+    private void Skip() => Nav.NavigateTo("/dashboard");
 
-    void OnOrganizationInput(ChangeEventArgs e) => _organization = e.Value?.ToString() ?? "";
-    void OnProjectQueryInput(ChangeEventArgs e) => _projectQuery = e.Value?.ToString() ?? "";
-    void OnTeamQueryInput(ChangeEventArgs e) => _teamQuery = e.Value?.ToString() ?? "";
-    void OnMemberQueryInput(ChangeEventArgs e) => _memberQuery = e.Value?.ToString() ?? "";
+    private void OnOrganizationInput(ChangeEventArgs e) => _organization = e.Value?.ToString() ?? "";
+    private void OnProjectQueryInput(ChangeEventArgs e) => _projectQuery = e.Value?.ToString() ?? "";
+    private void OnTeamQueryInput(ChangeEventArgs e) => _teamQuery = e.Value?.ToString() ?? "";
+    private void OnMemberQueryInput(ChangeEventArgs e) => _memberQuery = e.Value?.ToString() ?? "";
 
-    async Task OnLoadProjects()
+    private async Task OnLoadProjects()
     {
-        if (string.IsNullOrWhiteSpace(_organization) || _loading) return;
+        if (string.IsNullOrWhiteSpace(_organization) || _loading)
+        {
+            return;
+        }
+
         _loading = true;
         _error = null;
         try
@@ -203,9 +221,13 @@ public partial class Setup
         }
     }
 
-    async Task OnSelectProject(string projectId)
+    private async Task OnSelectProject(string projectId)
     {
-        if (_loading) return;
+        if (_loading)
+        {
+            return;
+        }
+
         _selectedProjectId = projectId;
         _selectedTeamId = "";
         _teams = [];
@@ -236,9 +258,13 @@ public partial class Setup
         }
     }
 
-    async Task OnSelectTeam(string teamId, string teamName)
+    private async Task OnSelectTeam(string teamId, string teamName)
     {
-        if (_loading) return;
+        if (_loading)
+        {
+            return;
+        }
+
         _selectedTeamId = teamId;
         _users = [];
         _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
@@ -271,7 +297,7 @@ public partial class Setup
             try
             {
                 AtlasApiDTOsAzureDevOpsAzureTeamAreaPathsDto areas = await areasTask;
-                string defaultValue = (areas.DefaultValue ?? "").Trim();
+                var defaultValue = (areas.DefaultValue ?? "").Trim();
                 if (defaultValue.Length > 0)
                 {
                     _areaPath = defaultValue;
@@ -304,17 +330,22 @@ public partial class Setup
         }
     }
 
-    void ToggleUser(string uniqueName, ChangeEventArgs e)
+    private void ToggleUser(string uniqueName, ChangeEventArgs e)
     {
         HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+        {
             next.Add(uniqueName);
+        }
         else
+        {
             next.Remove(uniqueName);
+        }
+
         _selectedUsers = next;
     }
 
-    void SelectAllShown()
+    private void SelectAllShown()
     {
         _selectedUsers = FilteredUsers
             .Select(u => u.UniqueName)
@@ -323,13 +354,16 @@ public partial class Setup
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+    private void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
 
-    async Task OnSave()
+    private async Task OnSave()
     {
         AtlasApiDTOsAzureDevOpsAzureProjectDto? project = SelectedProject;
         AtlasApiDTOsAzureDevOpsAzureTeamDto? team = SelectedTeam;
-        if (project is null || team is null || _loading) return;
+        if (project is null || team is null || _loading)
+        {
+            return;
+        }
 
         _loading = true;
         _error = null;
@@ -348,7 +382,7 @@ public partial class Setup
                     TeamId = team.Id
                 });
 
-            List<AtlasApiDTOsAzureDevOpsAzureUserSelectionDto> selected = _users
+            var selected = _users
                 .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
                 .Select(u => new AtlasApiDTOsAzureDevOpsAzureUserSelectionDto
                 {

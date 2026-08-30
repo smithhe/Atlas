@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
@@ -11,36 +7,36 @@ namespace Atlas.Ui.Shared;
 
 public partial class QuickAddModal
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] TaskService TaskService { get; set; } = default!;
-    [Inject] RiskService RiskService { get; set; } = default!;
-    [Inject] TeamNoteService TeamNoteService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private TaskService TaskService { get; set; } = null!;
+    [Inject] private RiskService RiskService { get; set; } = null!;
+    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
 
-    static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
+    private static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
 
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    ElementReference _panel;
-    string _kind = "task";
-    bool _saving;
-    string _taskTitle = "";
-    string _riskTitle = "";
-    string _memberId = "";
-    string _noteTag = "Quick";
-    string _noteTitle = "";
-    string _noteText = "";
-    string _noteAdo = "";
-    string _notePr = "";
+    private ElementReference _panel;
+    private string _kind = "task";
+    private bool _saving;
+    private string _taskTitle = "";
+    private string _riskTitle = "";
+    private string _memberId = "";
+    private string _noteTag = "Quick";
+    private string _noteTitle = "";
+    private string _noteText = "";
+    private string _noteAdo = "";
+    private string _notePr = "";
 
-    bool CanCreate =>
+    private bool CanCreate =>
         _kind is "task" or "risk"
         || (_kind == "note" && !string.IsNullOrWhiteSpace(_memberId) && !string.IsNullOrWhiteSpace(_noteText));
 
-    void ResetForm()
+    private void ResetForm()
     {
         _kind = "task";
         _taskTitle = "";
@@ -54,23 +50,30 @@ public partial class QuickAddModal
         _saving = false;
     }
 
-    async Task HandleClose()
+    private async Task HandleClose()
     {
-        if (_saving) return;
+        if (_saving)
+        {
+            return;
+        }
+
         ResetForm();
         await OnClose.InvokeAsync();
     }
 
-    Task CloseFromOverlay() => HandleClose();
+    private Task CloseFromOverlay() => HandleClose();
 
-    async Task OnOverlayKey(KeyboardEventArgs e)
+    private async Task OnOverlayKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Escape") await HandleClose();
+        if (e.Key == "Escape")
+        {
+            await HandleClose();
+        }
     }
 
-    void OnNoteTagChange(ChangeEventArgs e) => _noteTag = e.Value?.ToString() ?? "Quick";
+    private void OnNoteTagChange(ChangeEventArgs e) => _noteTag = e.Value?.ToString() ?? "Quick";
 
-    async Task OnTitleKey(KeyboardEventArgs e)
+    private async Task OnTitleKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && CanCreate && !_saving)
         {
@@ -78,15 +81,19 @@ public partial class QuickAddModal
         }
     }
 
-    async Task HandleCreate()
+    private async Task HandleCreate()
     {
-        if (_saving || !CanCreate) return;
+        if (_saving || !CanCreate)
+        {
+            return;
+        }
+
         _saving = true;
         try
         {
             if (_kind == "task")
             {
-                string title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
+                var title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
                 var draft = new AtlasTask
                 {
                     Title = title,
@@ -109,7 +116,7 @@ public partial class QuickAddModal
 
             if (_kind == "risk")
             {
-                string title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
+                var title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
                 var draft = new Risk
                 {
                     Title = title,
@@ -137,7 +144,7 @@ public partial class QuickAddModal
                 return;
             }
 
-            string text = _noteText.Trim();
+            var text = _noteText.Trim();
             if (string.IsNullOrEmpty(text))
             {
                 await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
@@ -152,9 +159,9 @@ public partial class QuickAddModal
             }
 
             Enum.TryParse(_noteTag, out NoteTag tag);
-            string titleOpt = _noteTitle.Trim();
-            string ado = _noteAdo.Trim();
-            string pr = _notePr.Trim();
+            var titleOpt = _noteTitle.Trim();
+            var ado = _noteAdo.Trim();
+            var pr = _notePr.Trim();
             await TeamNoteService.AddAsync(
             memberId,
             tag,

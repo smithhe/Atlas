@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
@@ -11,34 +8,34 @@ namespace Atlas.Ui.Shared;
 
 public partial class GlobalSearch : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
 
-    sealed record SearchResult(string Id, string Kind, string Title, string Meta, string To, Guid EntityId);
+    private sealed record SearchResult(string Id, string Kind, string Title, string Meta, string To, Guid EntityId);
 
-    static readonly string[] KindOrder = ["Task", "Risk", "Person", "Project"];
-    const int MaxResults = 12;
+    private static readonly string[] KindOrder = ["Task", "Risk", "Person", "Project"];
+    private const int MaxResults = 12;
 
-    string _query = "";
-    bool _open;
-    int _active;
-    List<SearchResult> _results = [];
+    private string _query = "";
+    private bool _open;
+    private int _active;
+    private List<SearchResult> _results = [];
 
-    bool HasQuery => !string.IsNullOrWhiteSpace(_query);
+    private bool HasQuery => !string.IsNullOrWhiteSpace(_query);
 
     protected override void OnInitialized()
     {
         Cache.Changed += OnCacheChanged;
     }
 
-    void OnCacheChanged() => InvokeAsync(() =>
+    private void OnCacheChanged() => InvokeAsync(() =>
     {
         Rebuild();
         StateHasChanged();
     });
 
-    void OnQueryInput(ChangeEventArgs e)
+    private void OnQueryInput(ChangeEventArgs e)
     {
         _query = e.Value?.ToString() ?? "";
         _open = true;
@@ -46,9 +43,9 @@ public partial class GlobalSearch : IDisposable
         Rebuild();
     }
 
-    void Rebuild()
+    private void Rebuild()
     {
-        string q = _query.Trim().ToLowerInvariant();
+        var q = _query.Trim().ToLowerInvariant();
         if (q.Length == 0)
         {
             _results = [];
@@ -59,12 +56,16 @@ public partial class GlobalSearch : IDisposable
 
         foreach (AtlasTask task in Cache.Tasks)
         {
-            string haystack = string.Join(' ', new[]
+            var haystack = string.Join(' ', new[]
             {
                 task.Title, task.Project, task.Risk, DisplayLabels.FormatTaskStatus(task.Status),
                 task.Priority.ToString(), task.Notes
             }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             results.Add(new SearchResult(
                 $"task:{task.Id}",
                 "Task",
@@ -76,11 +77,15 @@ public partial class GlobalSearch : IDisposable
 
         foreach (Risk risk in Cache.Risks)
         {
-            string haystack = string.Join(' ', new[]
+            var haystack = string.Join(' ', new[]
             {
                 risk.Title, risk.Project, risk.Description, risk.Evidence, risk.Status.ToString(), risk.Severity
             }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             results.Add(new SearchResult(
                 $"risk:{risk.Id}",
                 "Risk",
@@ -92,8 +97,12 @@ public partial class GlobalSearch : IDisposable
 
         foreach (TeamMember member in Cache.Team)
         {
-            string haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
+            var haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
+            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             results.Add(new SearchResult(
                 $"person:{member.Id}",
                 "Person",
@@ -105,11 +114,15 @@ public partial class GlobalSearch : IDisposable
 
         foreach (Project project in Cache.Projects)
         {
-            string haystack = string.Join(' ', new[]
+            var haystack = string.Join(' ', new[]
             {
                 project.Name, project.Summary, project.Description, project.Status?.ToString()
             }.Concat(project.Tags).Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             results.Add(new SearchResult(
                 $"project:{project.Id}",
                 "Project",
@@ -121,20 +134,39 @@ public partial class GlobalSearch : IDisposable
 
         results.Sort((a, b) =>
         {
-            int kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
+            var kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
             return kindDiff != 0 ? kindDiff : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
         });
 
         _results = results.Take(MaxResults).ToList();
-        if (_active >= _results.Count) _active = 0;
+        if (_active >= _results.Count)
+        {
+            _active = 0;
+        }
     }
 
-    void SelectResult(SearchResult result)
+    private void SelectResult(SearchResult result)
     {
-        if (result.Kind == "Task") Selection.SelectTask(result.EntityId);
-        if (result.Kind == "Risk") Selection.SelectRisk(result.EntityId);
-        if (result.Kind == "Person") Selection.SelectTeamMember(result.EntityId);
-        if (result.Kind == "Project") Selection.SelectProject(result.EntityId);
+        if (result.Kind == "Task")
+        {
+            Selection.SelectTask(result.EntityId);
+        }
+
+        if (result.Kind == "Risk")
+        {
+            Selection.SelectRisk(result.EntityId);
+        }
+
+        if (result.Kind == "Person")
+        {
+            Selection.SelectTeamMember(result.EntityId);
+        }
+
+        if (result.Kind == "Project")
+        {
+            Selection.SelectProject(result.EntityId);
+        }
+
         Nav.NavigateTo(result.To);
         _query = "";
         _open = false;
@@ -142,7 +174,7 @@ public partial class GlobalSearch : IDisposable
         _results = [];
     }
 
-    void OnKeyDown(KeyboardEventArgs e)
+    private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Escape")
         {
@@ -159,7 +191,10 @@ public partial class GlobalSearch : IDisposable
             return;
         }
 
-        if (!_open || !HasQuery || _results.Count == 0) return;
+        if (!_open || !HasQuery || _results.Count == 0)
+        {
+            return;
+        }
 
         if (e.Key == "ArrowDown")
         {
@@ -175,7 +210,7 @@ public partial class GlobalSearch : IDisposable
         }
     }
 
-    void OnRootKeyDown(KeyboardEventArgs e) { }
+    private void OnRootKeyDown(KeyboardEventArgs e) { }
 
     public void Dispose() => Cache.Changed -= OnCacheChanged;
 }

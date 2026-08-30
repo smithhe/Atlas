@@ -1,53 +1,49 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
-using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Pages;
 
 public partial class Settings : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] LocalSettings Local { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] SettingsService SettingsService { get; set; } = default!;
-    [Inject] AzureDevOpsService AzureDevOpsService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private LocalSettings Local { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private SettingsService SettingsService { get; set; } = null!;
+    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
 
-    int _staleDays = 10;
-    string _azureBaseUrl = "";
-    bool _aiPanelOpen;
-    bool _saving;
-    string? _settingsError;
+    private int _staleDays = 10;
+    private string _azureBaseUrl = "";
+    private bool _aiPanelOpen;
+    private bool _saving;
+    private string? _settingsError;
 
-    bool _azureLoading = true;
-    bool _azureLoaded;
-    bool _azureSaving;
-    string? _azureError;
-    string? _azureSyncMessage;
-    string _org = "";
-    string _project = "";
-    string _areaPath = "";
-    string _teamName = "";
-    string _projectId = "";
-    string _teamId = "";
-    string _enabledYesNo = "yes";
+    private bool _azureLoading = true;
+    private bool _azureLoaded;
+    private bool _azureSaving;
+    private string? _azureError;
+    private string? _azureSyncMessage;
+    private string _org = "";
+    private string _project = "";
+    private string _areaPath = "";
+    private string _teamName = "";
+    private string _projectId = "";
+    private string _teamId = "";
+    private string _enabledYesNo = "yes";
 
-    AtlasApiDTOsAzureDevOpsAzureSyncStateDto? _syncState;
-    bool _syncRunning;
-    bool _syncStateLoading;
+    private AtlasApiDTOsAzureDevOpsAzureSyncStateDto? _syncState;
+    private bool _syncRunning;
+    private bool _syncStateLoading;
 
-    bool SyncInProgress => _syncRunning || string.Equals(_syncState?.LastRunStatus, "Running", StringComparison.Ordinal);
+    private bool SyncInProgress => _syncRunning || string.Equals(_syncState?.LastRunStatus, "Running", StringComparison.Ordinal);
 
-    string LastCompletedLabel => _syncState?.LastCompletedAtUtc is not null
+    private string LastCompletedLabel => _syncState?.LastCompletedAtUtc is not null
         ? DisplayLabels.FormatReadableDateTime(_syncState.LastCompletedAtUtc.Value.ToString("o"))
         : "Never";
 
-    string? LastAttemptedLabel => _syncState?.LastAttemptedAtUtc is not null
+    private string? LastAttemptedLabel => _syncState?.LastAttemptedAtUtc is not null
         ? DisplayLabels.FormatReadableDateTime(_syncState.LastAttemptedAtUtc.Value.ToString("o"))
         : null;
 
@@ -61,19 +57,27 @@ public partial class Settings : IDisposable
         _ = LoadSyncStateAsync();
     }
 
-    void OnChanged() => InvokeAsync(() => { SyncFromCache(); StateHasChanged(); });
+    private void OnChanged() => InvokeAsync(() => { SyncFromCache(); StateHasChanged(); });
 
-    void SyncFromCache()
+    private void SyncFromCache()
     {
-        if (Cache.Settings is null) return;
+        if (Cache.Settings is null)
+        {
+            return;
+        }
+
         _staleDays = Cache.Settings.StaleDays;
         _azureBaseUrl = Cache.Settings.AzureDevOpsBaseUrl ?? "";
         _aiPanelOpen = Cache.Settings.DefaultAiPanelOpen;
     }
 
-    void OnStaleDaysInput(ChangeEventArgs e)
+    private void OnStaleDaysInput(ChangeEventArgs e)
     {
-        if (!int.TryParse(e.Value?.ToString(), out int v)) return;
+        if (!int.TryParse(e.Value?.ToString(), out var v))
+        {
+            return;
+        }
+
         _staleDays = Math.Clamp(v, 1, 365);
         if (Cache.Settings is not null)
         {
@@ -88,7 +92,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    void OnAzureBaseUrlInput(ChangeEventArgs e)
+    private void OnAzureBaseUrlInput(ChangeEventArgs e)
     {
         _azureBaseUrl = e.Value?.ToString() ?? "";
         if (Cache.Settings is not null)
@@ -104,7 +108,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    async Task OnAiPanelChange(ChangeEventArgs e)
+    private async Task OnAiPanelChange(ChangeEventArgs e)
     {
         _aiPanelOpen = e.Value?.ToString() == "on";
         await Local.SaveDefaultAiPanelOpenAsync(_aiPanelOpen);
@@ -121,9 +125,13 @@ public partial class Settings : IDisposable
         }
     }
 
-    async Task SaveSettings()
+    private async Task SaveSettings()
     {
-        if (Cache.Settings is null || _saving) return;
+        if (Cache.Settings is null || _saving)
+        {
+            return;
+        }
+
         _saving = true;
         _settingsError = null;
         try
@@ -148,7 +156,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    async Task LoadAzureAsync()
+    private async Task LoadAzureAsync()
     {
         _azureLoading = true;
         try
@@ -172,7 +180,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    async Task LoadSyncStateAsync()
+    private async Task LoadSyncStateAsync()
     {
         _syncStateLoading = true;
         try
@@ -190,7 +198,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    void ApplyConn(AtlasApiDTOsAzureDevOpsAzureConnectionDto conn)
+    private void ApplyConn(AtlasApiDTOsAzureDevOpsAzureConnectionDto conn)
     {
         _org = conn.Organization ?? "";
         _project = conn.Project ?? "";
@@ -201,11 +209,15 @@ public partial class Settings : IDisposable
         _enabledYesNo = conn.IsEnabled == true ? "yes" : "no";
     }
 
-    void OpenAzureImport() => Nav.NavigateTo("/settings/azure-import");
+    private void OpenAzureImport() => Nav.NavigateTo("/settings/azure-import");
 
-    async Task SaveAzureConnection()
+    private async Task SaveAzureConnection()
     {
-        if (_azureSaving) return;
+        if (_azureSaving)
+        {
+            return;
+        }
+
         _azureError = null;
         _azureSyncMessage = null;
         if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
@@ -239,9 +251,13 @@ public partial class Settings : IDisposable
         }
     }
 
-    async Task SyncNow()
+    private async Task SyncNow()
     {
-        if (SyncInProgress) return;
+        if (SyncInProgress)
+        {
+            return;
+        }
+
         _azureError = null;
         _azureSyncMessage = null;
 
@@ -267,7 +283,7 @@ public partial class Settings : IDisposable
             }
             else
             {
-                int count = result.ItemsUpserted ?? 0;
+                var count = result.ItemsUpserted ?? 0;
                 _azureSyncMessage = count == 1
                     ? "Sync succeeded · 1 work item upserted"
                     : $"Sync succeeded · {count} work items upserted";
@@ -297,7 +313,7 @@ public partial class Settings : IDisposable
         }
     }
 
-    static string SyncStatusClass(string? status) => status switch
+    private static string SyncStatusClass(string? status) => status switch
     {
         "Failed" => "textBad",
         "Running" => "textWarn",

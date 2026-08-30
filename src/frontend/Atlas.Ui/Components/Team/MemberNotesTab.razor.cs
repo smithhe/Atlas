@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 using Atlas.Ui.Api.Generated;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
@@ -11,98 +9,123 @@ namespace Atlas.Ui.Components.Team;
 
 public partial class MemberNotesTab : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] TeamNoteService TeamNoteService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
 
-    [Parameter, EditorRequired] public TeamMember Member { get; set; } = default!;
+    [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
 
-    static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
+    private static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
 
-    string _query = "";
-    string _tagFilter = "All";
-    string _sortBy = "Newest";
-    string _quickFilter = "All";
-    Guid? _expandedNoteId;
-    Guid? _selectedNoteId;
-    bool _isNewOpen;
-    bool _isEditOpen;
-    string _editTab = "Write";
-    NoteTag _newTag = NoteTag.Quick;
-    string _newTitle = "", _newText = "", _newAdo = "", _newPr = "";
-    string _draftText = "", _draftAdo = "", _draftPr = "";
+    private string _query = "";
+    private string _tagFilter = "All";
+    private string _sortBy = "Newest";
+    private string _quickFilter = "All";
+    private Guid? _expandedNoteId;
+    private Guid? _selectedNoteId;
+    private bool _isNewOpen;
+    private bool _isEditOpen;
+    private string _editTab = "Write";
+    private NoteTag _newTag = NoteTag.Quick;
+    private string _newTitle = "", _newText = "", _newAdo = "", _newPr = "";
+    private string _draftText = "", _draftAdo = "", _draftPr = "";
 
-    TeamNote? SelectedNote =>
+    private TeamNote? SelectedNote =>
         _selectedNoteId is { } id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
 
-    List<TeamNote> FilteredSorted
+    private List<TeamNote> FilteredSorted
     {
         get
         {
-            string q = _query.Trim().ToLowerInvariant();
+            var q = _query.Trim().ToLowerInvariant();
             DateTimeOffset now = DateTimeOffset.UtcNow;
-            TimeSpan weekMs = TimeSpan.FromDays(7);
+            var weekMs = TimeSpan.FromDays(7);
 
             bool Matches(TeamNote n)
             {
                 if (_tagFilter != "All" && !string.Equals(n.Tag.ToString(), _tagFilter, StringComparison.OrdinalIgnoreCase))
+                {
                     return false;
+                }
+
                 if (_quickFilter == "ThisWeek")
                 {
                     if (!DateTimeOffset.TryParse(n.CreatedIso, out DateTimeOffset created) || now - created.ToUniversalTime() > weekMs)
+                    {
                         return false;
+                    }
                 }
-                else if (_quickFilter == "ActionItems" && !IsActionItemNote(n)) return false;
-                else if (_quickFilter == "OneOnOne" && !IsOneOnOneNote(n)) return false;
-                else if (_quickFilter == "Risks" && !IsRiskNote(n)) return false;
+                else if (_quickFilter == "ActionItems" && !IsActionItemNote(n))
+                {
+                    return false;
+                }
+                else if (_quickFilter == "OneOnOne" && !IsOneOnOneNote(n))
+                {
+                    return false;
+                }
+                else if (_quickFilter == "Risks" && !IsRiskNote(n))
+                {
+                    return false;
+                }
 
-                if (string.IsNullOrEmpty(q)) return true;
-                string hay = string.Join(' ', n.Tag, n.Title ?? "", DisplayLabels.GetDerivedTitle(n), n.Text, n.AdoWorkItemId ?? "", n.PrUrl ?? "").ToLowerInvariant();
+                if (string.IsNullOrEmpty(q))
+                {
+                    return true;
+                }
+
+                var hay = string.Join(' ', n.Tag, n.Title ?? "", DisplayLabels.GetDerivedTitle(n), n.Text, n.AdoWorkItemId ?? "", n.PrUrl ?? "").ToLowerInvariant();
                 return hay.Contains(q);
             }
 
-            List<TeamNote> list = Member.Notes.Where(Matches).ToList();
+            var list = Member.Notes.Where(Matches).ToList();
             list.Sort((a, b) =>
             {
-                long at = DateTimeOffset.TryParse(a.CreatedIso, out DateTimeOffset ad) ? ad.ToUnixTimeMilliseconds() : 0;
-                long bt = DateTimeOffset.TryParse(b.CreatedIso, out DateTimeOffset bd) ? bd.ToUnixTimeMilliseconds() : 0;
+                var at = DateTimeOffset.TryParse(a.CreatedIso, out DateTimeOffset ad) ? ad.ToUnixTimeMilliseconds() : 0;
+                var bt = DateTimeOffset.TryParse(b.CreatedIso, out DateTimeOffset bd) ? bd.ToUnixTimeMilliseconds() : 0;
                 return _sortBy == "Newest" ? bt.CompareTo(at) : at.CompareTo(bt);
             });
             return list;
         }
     }
 
-    static bool IsActionItemNote(TeamNote note)
+    private static bool IsActionItemNote(TeamNote note)
     {
-        string t = note.Text.ToLowerInvariant();
+        var t = note.Text.ToLowerInvariant();
         return t.Contains("- [ ]") || t.Contains("action item") || t.Contains("next:") || t.Contains("todo");
     }
 
-    static bool IsOneOnOneNote(TeamNote note)
+    private static bool IsOneOnOneNote(TeamNote note)
     {
-        string t = note.Text.ToLowerInvariant();
+        var t = note.Text.ToLowerInvariant();
         return t.Contains("1:1") || t.Contains("one-on-one") || t.Contains("one on one");
     }
 
-    static bool IsRiskNote(TeamNote note)
+    private static bool IsRiskNote(TeamNote note)
     {
-        if (note.Tag is NoteTag.Concern or NoteTag.Blocker) return true;
-        string t = note.Text.ToLowerInvariant();
+        if (note.Tag is NoteTag.Concern or NoteTag.Blocker)
+        {
+            return true;
+        }
+
+        var t = note.Text.ToLowerInvariant();
         return t.Contains("risk") || t.Contains("mitigation") || t.Contains("watchout") || t.Contains("watch-outs");
     }
 
-    void ToggleExpand(Guid id) => _expandedNoteId = _expandedNoteId == id ? null : id;
+    private void ToggleExpand(Guid id) => _expandedNoteId = _expandedNoteId == id ? null : id;
 
-    void ToggleExpandClick(MouseEventArgs _, Guid id) => ToggleExpand(id);
+    private void ToggleExpandClick(MouseEventArgs _, Guid id) => ToggleExpand(id);
 
-    void OnRowKey(KeyboardEventArgs e, Guid id)
+    private void OnRowKey(KeyboardEventArgs e, Guid id)
     {
-        if (e.Key is "Enter" or " ") ToggleExpand(id);
+        if (e.Key is "Enter" or " ")
+        {
+            ToggleExpand(id);
+        }
     }
 
-    void OpenNoteModal(MouseEventArgs _, Guid id)
+    private void OpenNoteModal(MouseEventArgs _, Guid id)
     {
         _selectedNoteId = id;
         _isEditOpen = false;
@@ -111,7 +134,7 @@ public partial class MemberNotesTab : IDisposable
         SyncDraftTarget();
     }
 
-    void CloseNoteModal()
+    private void CloseNoteModal()
     {
         _selectedNoteId = null;
         _isEditOpen = false;
@@ -120,9 +143,13 @@ public partial class MemberNotesTab : IDisposable
         SyncDraftTarget();
     }
 
-    void BeginNoteEdit()
+    private void BeginNoteEdit()
     {
-        if (SelectedNote is null) return;
+        if (SelectedNote is null)
+        {
+            return;
+        }
+
         _isEditOpen = true;
         _draftText = SelectedNote.Text;
         _draftAdo = SelectedNote.AdoWorkItemId ?? "";
@@ -131,7 +158,7 @@ public partial class MemberNotesTab : IDisposable
         SyncDraftTarget();
     }
 
-    void CancelNoteEdit()
+    private void CancelNoteEdit()
     {
         _isEditOpen = false;
         _draftText = _draftAdo = _draftPr = "";
@@ -139,7 +166,7 @@ public partial class MemberNotesTab : IDisposable
         SyncDraftTarget();
     }
 
-    void SyncDraftTarget()
+    private void SyncDraftTarget()
     {
         if (_isEditOpen)
         {
@@ -176,9 +203,13 @@ public partial class MemberNotesTab : IDisposable
         Ai.RegisterDraftTarget(null);
     }
 
-    async Task SaveNoteEdit()
+    private async Task SaveNoteEdit()
     {
-        if (SelectedNote is null) return;
+        if (SelectedNote is null)
+        {
+            return;
+        }
+
         TeamNote note = SelectedNote;
         TeamNote updated = CloneNote(note);
         updated.Text = _draftText;
@@ -189,7 +220,7 @@ public partial class MemberNotesTab : IDisposable
         try
         {
             await TeamNoteService.UpdateAsync(Member.Id, updated);
-            List<TeamNote> nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
+            var nextNotes = Member.Notes.Select(x => x.Id == note.Id ? updated : x).ToList();
             Cache.UpdateTeamMember(CloneMemberWithNotes(Member, nextNotes));
             _isEditOpen = false;
             SyncDraftTarget();
@@ -200,11 +231,11 @@ public partial class MemberNotesTab : IDisposable
         }
     }
 
-    void OpenFull(Guid noteId) => Nav.NavigateTo($"/team/{Member.Id}/notes/{noteId}");
+    private void OpenFull(Guid noteId) => Nav.NavigateTo($"/team/{Member.Id}/notes/{noteId}");
 
-    void OpenFullClick(MouseEventArgs _, Guid noteId) => OpenFull(noteId);
+    private void OpenFullClick(MouseEventArgs _, Guid noteId) => OpenFull(noteId);
 
-    void OpenNew()
+    private void OpenNew()
     {
         _isNewOpen = true;
         _newTag = NoteTag.Quick;
@@ -212,19 +243,23 @@ public partial class MemberNotesTab : IDisposable
         SyncDraftTarget();
     }
 
-    void CloseNew()
+    private void CloseNew()
     {
         _isNewOpen = false;
         _newTitle = _newText = _newAdo = _newPr = "";
         SyncDraftTarget();
     }
 
-    async Task CreateNote()
+    private async Task CreateNote()
     {
-        if (string.IsNullOrWhiteSpace(_newText)) return;
-        string title = _newTitle.Trim();
-        string ado = _newAdo.Trim();
-        string pr = _newPr.Trim();
+        if (string.IsNullOrWhiteSpace(_newText))
+        {
+            return;
+        }
+
+        var title = _newTitle.Trim();
+        var ado = _newAdo.Trim();
+        var pr = _newPr.Trim();
         try
         {
             AtlasApiDTOsTeamMembersNotesAddTeamNoteResponse res = await TeamNoteService.AddAsync(
@@ -256,7 +291,7 @@ public partial class MemberNotesTab : IDisposable
         }
     }
 
-    static TeamNote CloneNote(TeamNote n) => new()
+    private static TeamNote CloneNote(TeamNote n) => new()
     {
         Id = n.Id,
         CreatedIso = n.CreatedIso,
@@ -268,7 +303,7 @@ public partial class MemberNotesTab : IDisposable
         PrUrl = n.PrUrl
     };
 
-    static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) => new()
+    private static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) => new()
     {
         Id = m.Id,
         Name = m.Name,

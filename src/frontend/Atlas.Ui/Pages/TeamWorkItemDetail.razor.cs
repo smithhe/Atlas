@@ -1,9 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
 using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
@@ -11,31 +7,35 @@ namespace Atlas.Ui.Pages;
 
 public partial class TeamWorkItemDetail : IDisposable
 {
-    [Inject] AppCacheService Cache { get; set; } = default!;
-    [Inject] SelectionState Selection { get; set; } = default!;
-    [Inject] NavigationManager Nav { get; set; } = default!;
-    [Inject] BrowserDialogs Dialogs { get; set; } = default!;
-    [Inject] AiStateService Ai { get; set; } = default!;
-    [Inject] AzureWorkItemService AzureWorkItemService { get; set; } = default!;
+    [Inject] private AppCacheService Cache { get; set; } = null!;
+    [Inject] private SelectionState Selection { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
+    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private AzureWorkItemService AzureWorkItemService { get; set; } = null!;
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? WorkItemId { get; set; }
 
-    string _newNoteText = "";
+    private string _newNoteText = "";
 
-    void BackToWorkItems() => Nav.NavigateTo($"/team/{MemberId}/work-items");
-    void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+    private void BackToWorkItems() => Nav.NavigateTo($"/team/{MemberId}/work-items");
+    private void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
 
-    TeamMember? Member
+    private TeamMember? Member
     {
         get
         {
-            if (!Guid.TryParse(MemberId, out Guid id)) return null;
+            if (!Guid.TryParse(MemberId, out Guid id))
+            {
+                return null;
+            }
+
             return Cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
 
-    AzureItem? Item =>
+    private AzureItem? Item =>
         Member is null || string.IsNullOrEmpty(WorkItemId)
             ? null
             : Member.AzureItems.FirstOrDefault(a => a.Id == WorkItemId);
@@ -59,14 +59,20 @@ public partial class TeamWorkItemDetail : IDisposable
         {
             Selection.SelectTeamMember(id);
             if (Cache.TeamReady && Member is null)
+            {
                 Nav.NavigateTo("/team", replace: true);
+            }
         }
     }
 
-    void OnProjectChange(ChangeEventArgs e)
+    private void OnProjectChange(ChangeEventArgs e)
     {
-        if (Member is null || Item is null) return;
-        string? nextProject = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+        if (Member is null || Item is null)
+        {
+            return;
+        }
+
+        var nextProject = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
         UpdateWorkItem(new AzureItem
         {
             Id = Item.Id,
@@ -84,9 +90,13 @@ public partial class TeamWorkItemDetail : IDisposable
         });
     }
 
-    void UpdateWorkItem(AzureItem next)
+    private void UpdateWorkItem(AzureItem next)
     {
-        if (Member is null) return;
+        if (Member is null)
+        {
+            return;
+        }
+
         Cache.UpdateTeamMember(new TeamMember
         {
             Id = Member.Id,
@@ -103,12 +113,20 @@ public partial class TeamWorkItemDetail : IDisposable
         });
     }
 
-    async Task AddLocalNote()
+    private async Task AddLocalNote()
     {
-        if (Member is null || Item is null) return;
-        string text = _newNoteText.Trim();
-        if (string.IsNullOrEmpty(text)) return;
-        if (!int.TryParse(Item.Id, out int workItemIdInt))
+        if (Member is null || Item is null)
+        {
+            return;
+        }
+
+        var text = _newNoteText.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        if (!int.TryParse(Item.Id, out var workItemIdInt))
         {
             await Dialogs.AlertAsync("Unable to save work item note: invalid work item id.");
             return;
@@ -124,7 +142,7 @@ public partial class TeamWorkItemDetail : IDisposable
                 CreatedIso = saved.CreatedAt?.ToString("o") ?? DateTimeOffset.UtcNow.ToString("o"),
                 Text = text
             };
-            List<WorkItemNote> nextNotes = new[] { note }.Concat(Item.LocalNotes).ToList();
+            var nextNotes = new[] { note }.Concat(Item.LocalNotes).ToList();
             UpdateWorkItem(new AzureItem
             {
                 Id = Item.Id,
@@ -148,7 +166,7 @@ public partial class TeamWorkItemDetail : IDisposable
         }
     }
 
-    void OnChanged() => InvokeAsync(() =>
+    private void OnChanged() => InvokeAsync(() =>
     {
         if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
         {

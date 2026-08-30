@@ -50,6 +50,8 @@ public sealed class TeamMemberService
         }
 
         if (tasks.Count > 0)
+        {
             await Task.WhenAll(tasks);
+        }
     }
 }
