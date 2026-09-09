@@ -16,11 +16,8 @@ public partial class Tasks : IDisposable
 
     [Parameter] public string? TaskId { get; set; }
 
-    private bool _editing;
     private bool _creating;
-    private bool _deleting;
     private Guid? _autoEditId;
-    private string _addBlockerText = "";
 
     private string _projectFilter = "All";
     private string _riskFilter = "All";
@@ -41,9 +38,6 @@ public partial class Tasks : IDisposable
 
     private IReadOnlyList<string> RiskOptions =>
         Cache.Risks.Select(r => r.Title).OrderBy(t => t, StringComparer.Ordinal).ToList();
-
-    private IReadOnlyList<TeamMember> AssigneeOptions =>
-        Cache.Team.OrderBy(m => m.Name, StringComparer.Ordinal).ToList();
 
     private Dictionary<Guid, TeamMember> MemberById =>
         Cache.Team.ToDictionary(m => m.Id);
@@ -87,20 +81,11 @@ public partial class Tasks : IDisposable
         if (IsFocusMode && Guid.TryParse(TaskId, out Guid id))
         {
             Selection.SelectTask(id);
-            _editing = _autoEditId == id;
             if (Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
             {
                 Nav.NavigateTo("/tasks", replace: true);
             }
         }
-
-        if (Selected is not null)
-        {
-            _editing = _autoEditId == Selected.Id;
-            _addBlockerText = "";
-        }
-
-        SyncDraftTarget();
     }
 
     private void OnChanged() => InvokeAsync(() =>
@@ -111,58 +96,29 @@ public partial class Tasks : IDisposable
             return;
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id)
-        {
-            _editing = true;
-        }
-
         StateHasChanged();
     });
 
     private void SelectFromList(Guid id)
     {
         Selection.SelectTask(id);
-        _editing = _autoEditId == id;
-        _addBlockerText = "";
-        SyncDraftTarget();
     }
 
-    private void ToggleEdit()
+    private void CloseDetail() => Selection.SelectTask(null);
+
+    private void ClearAutoEdit() => _autoEditId = null;
+
+    private async Task OnTaskDeleted()
     {
-        _editing = !_editing;
-        if (!_editing && Selected is not null && _autoEditId == Selected.Id)
+        if (IsFocusMode)
+        {
+            Nav.NavigateTo("/tasks", replace: true);
+        }
+
+        if (Selected is not null && _autoEditId == Selected.Id)
         {
             _autoEditId = null;
         }
-
-        SyncDraftTarget();
-    }
-
-    private void SyncDraftTarget()
-    {
-        if (!_editing || Selected is null)
-        {
-            Ai.RegisterDraftTarget(null);
-            return;
-        }
-
-        Guid taskId = Selected.Id;
-        Ai.RegisterDraftTarget(new AiDraftTarget
-        {
-            Label = "task notes",
-            Insert = text =>
-            {
-                AtlasTask? task = Cache.Tasks.FirstOrDefault(t => t.Id == taskId);
-                if (task is null)
-                {
-                    return;
-                }
-
-                var current = task.Notes;
-                var next = string.IsNullOrWhiteSpace(current) ? text : $"{current.TrimEnd()}\n\n{text}";
-                _ = SaveTaskAsync(EntityClone.Task(task, notes: next));
-            },
-        });
     }
 
     private void GoFocus(Guid id) => Nav.NavigateTo($"/tasks/{id}");
@@ -203,8 +159,7 @@ public partial class Tasks : IDisposable
             AtlasTask created = await TaskService.CreateAsync(draft);
             Guid id = created.Id;
             _autoEditId = id;
-            _editing = true;
-            SyncDraftTarget();
+            Selection.SelectTask(id);
         }
         catch (Exception)
         {
@@ -214,154 +169,6 @@ public partial class Tasks : IDisposable
         {
             _creating = false;
         }
-    }
-
-    private async Task HandleDelete()
-    {
-        if (Selected is null || _deleting)
-        {
-            return;
-        }
-
-        AtlasTask task = Selected;
-        if (!await Dialogs.ConfirmAsync($"Delete task \"{task.Title}\"? This cannot be undone."))
-        {
-            return;
-        }
-
-        _deleting = true;
-        try
-        {
-            await TaskService.DeleteAsync(task.Id);
-            if (IsFocusMode)
-            {
-                Nav.NavigateTo("/tasks", replace: true);
-            }
-
-            if (_autoEditId == task.Id)
-            {
-                _autoEditId = null;
-            }
-        }
-        catch (Exception)
-        {
-            await Dialogs.AlertAsync("Unable to delete this task right now. Please try again.");
-        }
-        finally
-        {
-            _deleting = false;
-        }
-    }
-
-    private void TouchTask() =>
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, lastTouchedIso: DateTimeOffset.UtcNow.ToString("o")));
-
-    private void OnTitleInput(ChangeEventArgs e) => _ = SaveTaskAsync(EntityClone.Task(Selected!, title: e.Value?.ToString() ?? ""));
-    private void OnEstimateInput(ChangeEventArgs e) => _ = SaveTaskAsync(EntityClone.Task(Selected!, estimatedDurationText: e.Value?.ToString() ?? ""));
-
-    private void OnNotesInput(ChangeEventArgs e) =>
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, notes: e.Value?.ToString() ?? ""));
-
-    private void OnActualInput(ChangeEventArgs e) =>
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, actualDurationText: e.Value?.ToString(), setActual: true));
-
-    private void OnStatusChange(ChangeEventArgs e) =>
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, status: DisplayLabels.ParseTaskStatus(e.Value?.ToString()), setStatus: true));
-
-    private void OnPriorityChange(ChangeEventArgs e)
-    {
-        if (Enum.TryParse(e.Value?.ToString(), out Priority p))
-        {
-            _ = SaveTaskAsync(EntityClone.Task(Selected!, priority: p));
-        }
-    }
-
-    private void OnConfidenceChange(ChangeEventArgs e)
-    {
-        if (Enum.TryParse(e.Value?.ToString(), out Confidence c))
-        {
-            _ = SaveTaskAsync(EntityClone.Task(Selected!, estimateConfidence: c));
-        }
-    }
-
-    private void OnAssigneeChange(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        if (string.IsNullOrEmpty(v))
-        {
-            _ = SaveTaskAsync(EntityClone.Task(Selected!, assigneeId: null, setAssignee: true));
-            return;
-        }
-
-        if (Guid.TryParse(v, out Guid id))
-        {
-            _ = SaveTaskAsync(EntityClone.Task(Selected!, assigneeId: id, setAssignee: true));
-        }
-    }
-
-    private void OnProjectChange(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true));
-    }
-
-    private void OnRiskChange(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, risk: string.IsNullOrEmpty(v) ? null : v, setRisk: true));
-    }
-
-    private void OnDueDateChange(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _ = SaveTaskAsync(EntityClone.Task(Selected!, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
-    }
-
-    private void OnAddBlockerInput(ChangeEventArgs e) => _addBlockerText = e.Value?.ToString() ?? "";
-
-    private void AddBlocker()
-    {
-        if (Selected is null)
-        {
-            return;
-        }
-
-        IReadOnlyList<AtlasTask> candidates = GetBlockerCandidates(Selected);
-        Guid? id = ResolveBlockerIdFromInput(_addBlockerText, candidates);
-        if (id is null)
-        {
-            return;
-        }
-
-        if (GetTasksThatDependOnMe(Selected.Id).Contains(id.Value))
-        {
-            return;
-        }
-
-        IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Append(id.Value).Distinct().ToList();
-        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: next));
-        _addBlockerText = "";
-    }
-
-    private void RemoveBlocker(Guid blockerId)
-    {
-        if (Selected is null)
-        {
-            return;
-        }
-
-        IReadOnlyList<Guid> next = Selected.DependencyTaskIds.Where(id => id != blockerId).ToList();
-        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: next));
-    }
-
-    private void ClearDependencies()
-    {
-        if (Selected is null)
-        {
-            return;
-        }
-
-        _ = SaveTaskAsync(EntityClone.Task(Selected, dependencyTaskIds: Array.Empty<Guid>()));
     }
 
     private void OnProjectFilterChange(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "All";
@@ -385,19 +192,6 @@ public partial class Tasks : IDisposable
             _sortBy = category;
             _sortDir = category is "Project" or "Risk" or "Title" ? "Asc" : "Desc";
         }
-
-    }
-
-    private async Task SaveTaskAsync(AtlasTask next)
-    {
-        try
-        {
-            await TaskService.UpdateAsync(next);
-        }
-        catch (Exception)
-        {
-            await Dialogs.AlertAsync("Unable to save task changes right now. Please try again.");
-        }
     }
 
     private string ActivityColor(int days) =>
@@ -406,18 +200,6 @@ public partial class Tasks : IDisposable
     private int BlockedByCount(AtlasTask task) =>
         task.DependencyTaskIds.Count(id =>
             TaskById.TryGetValue(id, out AtlasTask? dep) && dep.Status != Models.TaskStatus.Done);
-
-    private string? AssigneeName(Guid? assigneeId)
-    {
-        if (assigneeId is null)
-        {
-            return null;
-        }
-
-        return MemberById.TryGetValue(assigneeId.Value, out TeamMember? member)
-            ? member.Name
-            : assigneeId.Value.ToString();
-    }
 
     private static string ListDurationPill(string text)
     {
@@ -572,95 +354,6 @@ public partial class Tasks : IDisposable
         Priority.Medium => 2,
         _ => 1
     };
-
-    private IReadOnlyList<AtlasTask> GetVisibleBlockers(AtlasTask task) =>
-        task.DependencyTaskIds
-            .Select(id => TaskById.GetValueOrDefault(id))
-            .Where(t => t is not null && t.Status != Models.TaskStatus.Done)
-            .Cast<AtlasTask>()
-            .ToList();
-
-    private IReadOnlyList<AtlasTask> GetBlockerCandidates(AtlasTask task)
-    {
-        var chosen = task.DependencyTaskIds.ToHashSet();
-        return Cache.Tasks
-            .Where(t => t.Id != task.Id)
-            .Where(t => t.Status != Models.TaskStatus.Done)
-            .Where(t => !chosen.Contains(t.Id))
-            .OrderBy(t => t.Title, StringComparer.Ordinal)
-            .ToList();
-    }
-
-    private HashSet<Guid> GetTasksThatDependOnMe(Guid taskId)
-    {
-        var dependentsById = new Dictionary<Guid, List<Guid>>();
-        foreach (AtlasTask t in Cache.Tasks)
-        {
-            foreach (Guid dep in t.DependencyTaskIds)
-            {
-                if (!dependentsById.TryGetValue(dep, out List<Guid>? arr))
-                {
-                    arr = new List<Guid>();
-                    dependentsById[dep] = arr;
-                }
-
-                arr.Add(t.Id);
-            }
-        }
-
-        var seen = new HashSet<Guid>();
-        var queue = new Queue<Guid>();
-        queue.Enqueue(taskId);
-        while (queue.Count > 0)
-        {
-            Guid cur = queue.Dequeue();
-            if (!dependentsById.TryGetValue(cur, out List<Guid>? deps))
-            {
-                continue;
-            }
-
-            foreach (Guid next in deps)
-            {
-                if (next == taskId)
-                {
-                    continue;
-                }
-
-                if (!seen.Add(next))
-                {
-                    continue;
-                }
-
-                queue.Enqueue(next);
-            }
-        }
-
-        return seen;
-    }
-
-    private static Guid? ResolveBlockerIdFromInput(string inputRaw, IReadOnlyList<AtlasTask> blockerCandidates)
-    {
-        var input = inputRaw.Trim();
-        if (input.Length == 0)
-        {
-            return null;
-        }
-
-        System.Text.RegularExpressions.Match m = System.Text.RegularExpressions.Regex.Match(input, @"\[([^\]]+)\]\s*$");
-        if (m.Success && Guid.TryParse(m.Groups[1].Value.Trim(), out Guid fromBracket))
-        {
-            return fromBracket;
-        }
-
-        AtlasTask? byId = blockerCandidates.FirstOrDefault(t => t.Id.ToString() == input);
-        if (byId is not null)
-        {
-            return byId.Id;
-        }
-
-        AtlasTask? exactTitle = blockerCandidates.FirstOrDefault(t => t.Title == input);
-        return exactTitle?.Id;
-    }
 
     public void Dispose()
     {

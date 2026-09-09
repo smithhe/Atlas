@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace Atlas.Ui.Services;
 
 /// <summary>Keyed debounce with version gate and per-key semaphore for deferred HTTP work.</summary>
@@ -47,11 +49,42 @@ internal sealed class KeyedDebounceGate : IDisposable
         }
 
         var capturedRouteGen = routeGeneration;
-        _ = Task.Run(async () =>
+        var capturedSyncContext = SynchronizationContext.Current;
+        _ = RunDebouncedAsync(
+            key,
+            version,
+            capturedRouteGen,
+            cts,
+            getRouteGeneration,
+            isActive,
+            dispatch,
+            persist,
+            capturedSyncContext);
+    }
+
+    private async Task RunDebouncedAsync(
+        Key key,
+        long version,
+        long capturedRouteGen,
+        CancellationTokenSource cts,
+        Func<long> getRouteGeneration,
+        Func<bool> isActive,
+        Func<Func<Task>, Task> dispatch,
+        Func<Task> persist,
+        SynchronizationContext? syncContext)
+    {
+        try
         {
-            try
+            await Task.Delay(DebounceMs, cts.Token).ConfigureAwait(false);
+            if (cts.Token.IsCancellationRequested
+                || !isActive()
+                || capturedRouteGen != getRouteGeneration())
             {
-                await Task.Delay(DebounceMs, cts.Token);
+                return;
+            }
+
+            await InvokeOnCapturedContextAsync(syncContext, async () =>
+            {
                 if (cts.Token.IsCancellationRequested
                     || !isActive()
                     || capturedRouteGen != getRouteGeneration())
@@ -60,11 +93,39 @@ internal sealed class KeyedDebounceGate : IDisposable
                 }
 
                 await dispatch(() => RunPersistLoop(key, version, isActive, persist));
-            }
-            catch (TaskCanceledException)
-            {
-            }
-        });
+            });
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+
+    private static Task InvokeOnCapturedContextAsync(SynchronizationContext? syncContext, Func<Task> work)
+    {
+        if (syncContext is null)
+        {
+            return work();
+        }
+
+        TaskCompletionSource tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        syncContext.Post(_ =>
+        {
+            _ = RunPostedWorkAsync(work, tcs);
+        }, null);
+        return tcs.Task;
+    }
+
+    private static async Task RunPostedWorkAsync(Func<Task> work, TaskCompletionSource tcs)
+    {
+        try
+        {
+            await work();
+            tcs.TrySetResult();
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
     }
 
     public void InvalidateKey(Key key)

@@ -68,21 +68,17 @@ public sealed class TeamNoteService
             return;
         }
 
-        TeamMember previousClone = EntityClone.TeamMember(member);
         var nextNotes = member.Notes.Select(x => x.Id == note.Id ? note : x).ToList();
-        _cache.UpdateTeamMember(EntityClone.TeamMember(member, notes: nextNotes));
-        try
-        {
-            await _api.AtlasApiEndpointsTeamMembersNotesUpdateTeamNoteEndpointAsync(
+        TeamMember nextMember = EntityClone.TeamMember(member, notes: nextNotes);
+        await OptimisticCache.ApplyAsync(
+            member,
+            nextMember,
+            m => EntityClone.TeamMember(m),
+            _cache.UpdateTeamMember,
+            () => _api.AtlasApiEndpointsTeamMembersNotesUpdateTeamNoteEndpointAsync(
                 memberId,
                 note.Id,
                 EntityRequestMappers.ToUpdateTeamNoteRequest(note),
-                cancellationToken);
-        }
-        catch
-        {
-            _cache.UpdateTeamMember(previousClone);
-            throw;
-        }
+                cancellationToken));
     }
 }

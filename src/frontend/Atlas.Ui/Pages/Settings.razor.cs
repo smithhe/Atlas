@@ -82,7 +82,7 @@ public partial class Settings : IDisposable
         _staleDays = Math.Clamp(v, 1, 365);
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new AtlasSettings
+            SettingsService.PatchLocal(new AtlasSettings
             {
                 StaleDays = _staleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
@@ -98,7 +98,7 @@ public partial class Settings : IDisposable
         _azureBaseUrl = e.Value?.ToString() ?? "";
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new AtlasSettings
+            SettingsService.PatchLocal(new AtlasSettings
             {
                 StaleDays = Cache.Settings.StaleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
@@ -115,7 +115,7 @@ public partial class Settings : IDisposable
         await Local.SaveDefaultAiPanelOpenAsync(_aiPanelOpen);
         if (Cache.Settings is not null)
         {
-            Cache.PatchSettings(new AtlasSettings
+            SettingsService.PatchLocal(new AtlasSettings
             {
                 StaleDays = Cache.Settings.StaleDays,
                 DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,

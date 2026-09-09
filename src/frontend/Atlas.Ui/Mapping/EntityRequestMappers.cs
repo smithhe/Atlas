@@ -86,59 +86,116 @@ public static class EntityRequestMappers
 
     public static AtlasApiDTOsRisksCreateRiskRequest ToCreateRiskRequest(
         Risk risk,
-        IReadOnlyList<Project> projects) =>
-        new()
+        IReadOnlyList<Project> projects)
+    {
+        RiskRequestFields fields = GetRiskRequestFields(risk, projects);
+        return new()
         {
-            Title = risk.Title,
-            Status = ApiMappers.ToApiRiskStatus(risk.Status),
-            Severity = ApiMappers.ToApiSeverity(risk.Severity),
-            ProjectId = FindProjectIdByName(risk.Project, projects),
-            Description = risk.Description,
-            Evidence = risk.Evidence
+            Title = fields.Title,
+            Status = fields.Status,
+            Severity = fields.Severity,
+            ProjectId = fields.ProjectId,
+            Description = fields.Description,
+            Evidence = fields.Evidence
         };
+    }
 
     public static AtlasApiDTOsRisksUpdateRiskRequest ToUpdateRiskRequest(
         Risk risk,
-        IReadOnlyList<Project> projects) =>
-        new()
+        IReadOnlyList<Project> projects)
+    {
+        RiskRequestFields fields = GetRiskRequestFields(risk, projects);
+        return new()
         {
-            Title = risk.Title,
-            Status = ApiMappers.ToApiRiskStatus(risk.Status),
-            Severity = ApiMappers.ToApiSeverity(risk.Severity),
-            ProjectId = FindProjectIdByName(risk.Project, projects),
-            Description = risk.Description,
-            Evidence = risk.Evidence
+            Title = fields.Title,
+            Status = fields.Status,
+            Severity = fields.Severity,
+            ProjectId = fields.ProjectId,
+            Description = fields.Description,
+            Evidence = fields.Evidence
         };
+    }
 
-    public static AtlasApiDTOsProjectsCreateProjectRequest ToCreateProjectRequest(Project project) =>
-        new()
-        {
-            Name = project.Name,
-            Summary = project.Summary,
-            Description = project.Description,
-            Status = ApiMappers.ToApiProjectStatus(project.Status),
-            Health = ApiMappers.ToApiHealth(project.Health),
-            TargetDate = ParseDate(project.TargetDateIso),
-            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
-            ProductOwnerId = project.ProductOwnerId,
-            Tags = project.Tags.ToList(),
-            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
-        };
+    public static AtlasApiDTOsRisksSetRiskTeamMembersRequest ToSetRiskTeamMembersRequest(Risk risk) =>
+        new() { TeamMemberIds = risk.LinkedTeamMemberIds.ToList() };
 
-    public static AtlasApiDTOsProjectsUpdateProjectRequest ToUpdateProjectRequest(Project project) =>
-        new()
+    private static RiskRequestFields GetRiskRequestFields(Risk risk, IReadOnlyList<Project> projects) =>
+        new(
+            risk.Title,
+            ApiMappers.ToApiRiskStatus(risk.Status),
+            ApiMappers.ToApiSeverity(risk.Severity),
+            FindProjectIdByName(risk.Project, projects),
+            risk.Description,
+            risk.Evidence);
+
+    private sealed record RiskRequestFields(
+        string Title,
+        AtlasDomainEnumsRiskStatus Status,
+        AtlasDomainEnumsSeverityLevel Severity,
+        Guid? ProjectId,
+        string Description,
+        string Evidence);
+
+    public static AtlasApiDTOsProjectsCreateProjectRequest ToCreateProjectRequest(Project project)
+    {
+        ProjectRequestFields fields = GetProjectRequestFields(project);
+        return new()
         {
-            Name = project.Name,
-            Summary = project.Summary,
-            Description = project.Description,
-            Status = ApiMappers.ToApiProjectStatus(project.Status),
-            Health = ApiMappers.ToApiHealth(project.Health),
-            TargetDate = ParseDate(project.TargetDateIso),
-            Priority = project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
-            ProductOwnerId = project.ProductOwnerId,
-            Tags = project.Tags.ToList(),
-            Links = project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList()
+            Name = fields.Name,
+            Summary = fields.Summary,
+            Description = fields.Description,
+            Status = fields.Status,
+            Health = fields.Health,
+            TargetDate = fields.TargetDate,
+            Priority = fields.Priority,
+            ProductOwnerId = fields.ProductOwnerId,
+            Tags = fields.Tags,
+            Links = fields.Links
         };
+    }
+
+    public static AtlasApiDTOsProjectsUpdateProjectRequest ToUpdateProjectRequest(Project project)
+    {
+        ProjectRequestFields fields = GetProjectRequestFields(project);
+        return new()
+        {
+            Name = fields.Name,
+            Summary = fields.Summary,
+            Description = fields.Description,
+            Status = fields.Status,
+            Health = fields.Health,
+            TargetDate = fields.TargetDate,
+            Priority = fields.Priority,
+            ProductOwnerId = fields.ProductOwnerId,
+            Tags = fields.Tags,
+            Links = fields.Links
+        };
+    }
+
+    private static ProjectRequestFields GetProjectRequestFields(Project project) =>
+        new(
+            project.Name,
+            project.Summary,
+            project.Description,
+            ApiMappers.ToApiProjectStatus(project.Status),
+            ApiMappers.ToApiHealth(project.Health),
+            ParseDate(project.TargetDateIso),
+            project.Priority is null ? null : ApiMappers.ToApiPriority(project.Priority.Value),
+            project.ProductOwnerId,
+            project.Tags.ToList(),
+            project.Links.Select(l => new AtlasApiDTOsProjectsProjectLinkDto { Label = l.Label, Url = l.Url }).ToList());
+
+    private sealed record ProjectRequestFields(
+        string Name,
+        string Summary,
+        string? Description,
+        AtlasDomainEnumsProjectStatus? Status,
+        AtlasDomainEnumsHealthSignal? Health,
+        DateTimeOffset? TargetDate,
+        AtlasDomainEnumsPriority? Priority,
+        Guid? ProductOwnerId,
+        List<string> Tags,
+        List<AtlasApiDTOsProjectsProjectLinkDto> Links);
 
     public static AtlasApiDTOsSettingsUpdateSettingsRequest ToUpdateSettingsRequest(Settings settings) =>
         new()
