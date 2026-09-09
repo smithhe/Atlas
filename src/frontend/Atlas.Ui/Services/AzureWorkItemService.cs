@@ -55,4 +55,24 @@ public sealed class AzureWorkItemService
 
         return note;
     }
+
+    public void SetProject(Guid teamMemberId, string workItemId, string? projectId)
+    {
+        TeamMember? member = _cache.Team.FirstOrDefault(m => m.Id == teamMemberId);
+        if (member is null)
+        {
+            return;
+        }
+
+        AzureItem? item = member.AzureItems.FirstOrDefault(a => a.Id == workItemId);
+        if (item is null)
+        {
+            return;
+        }
+
+        AzureItem next = EntityClone.AzureItem(item, projectId: projectId, setProjectId: true);
+        _cache.UpdateTeamMember(EntityClone.TeamMember(
+            member,
+            azureItems: member.AzureItems.Select(a => a.Id == workItemId ? next : a).ToList()));
+    }
 }

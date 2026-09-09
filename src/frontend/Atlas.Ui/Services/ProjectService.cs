@@ -27,27 +27,18 @@ public sealed class ProjectService
         return draft;
     }
 
-    public async Task UpdateAsync(Project project, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Project project, CancellationToken cancellationToken = default)
     {
         Project? previous = _cache.Projects.FirstOrDefault(p => p.Id == project.Id);
-        Project? previousClone = previous is not null ? EntityClone.Project(previous) : null;
-        _cache.UpdateProject(project);
-        try
-        {
-            await _api.AtlasApiEndpointsProjectsUpdateProjectEndpointAsync(
+        return OptimisticCache.ApplyAsync(
+            previous,
+            project,
+            p => EntityClone.Project(p),
+            _cache.UpdateProject,
+            () => _api.AtlasApiEndpointsProjectsUpdateProjectEndpointAsync(
                 project.Id,
                 EntityRequestMappers.ToUpdateProjectRequest(project),
-                cancellationToken);
-        }
-        catch
-        {
-            if (previousClone is not null)
-            {
-                _cache.UpdateProject(previousClone);
-            }
-
-            throw;
-        }
+                cancellationToken));
     }
 
     public async Task DeleteAsync(Guid projectId, CancellationToken cancellationToken = default)

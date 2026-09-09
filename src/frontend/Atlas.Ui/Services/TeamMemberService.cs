@@ -29,42 +29,39 @@ public sealed class TeamMemberService
             return;
         }
 
-        TeamMember rollback = EntityClone.TeamMember(previous);
-        _cache.UpdateTeamMember(next);
+        await OptimisticCache.ApplyAsync(
+            previous,
+            next,
+            m => EntityClone.TeamMember(m),
+            _cache.UpdateTeamMember,
+            async () =>
+            {
+                List<Task> tasks = [];
+                if (memberChanged)
+                {
+                    tasks.Add(_api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(
+                        next.Id,
+                        EntityRequestMappers.ToUpdateTeamMemberRequest(next),
+                        cancellationToken));
+                }
 
-        List<Task> tasks = [];
-        if (memberChanged)
-        {
-            tasks.Add(_api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(
-                next.Id,
-                EntityRequestMappers.ToUpdateTeamMemberRequest(next),
-                cancellationToken));
-        }
+                if (profileChanged)
+                {
+                    tasks.Add(_api.AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpointAsync(
+                        next.Id,
+                        EntityRequestMappers.ToUpdateTeamMemberProfileRequest(next.Profile),
+                        cancellationToken));
+                }
 
-        if (profileChanged)
-        {
-            tasks.Add(_api.AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpointAsync(
-                next.Id,
-                EntityRequestMappers.ToUpdateTeamMemberProfileRequest(next.Profile),
-                cancellationToken));
-        }
+                if (signalsChanged)
+                {
+                    tasks.Add(_api.AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpointAsync(
+                        next.Id,
+                        EntityRequestMappers.ToUpdateTeamMemberSignalsRequest(next.Signals),
+                        cancellationToken));
+                }
 
-        if (signalsChanged)
-        {
-            tasks.Add(_api.AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpointAsync(
-                next.Id,
-                EntityRequestMappers.ToUpdateTeamMemberSignalsRequest(next.Signals),
-                cancellationToken));
-        }
-
-        try
-        {
-            await Task.WhenAll(tasks);
-        }
-        catch
-        {
-            _cache.UpdateTeamMember(rollback);
-            throw;
-        }
+                await Task.WhenAll(tasks);
+            });
     }
 }

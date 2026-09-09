@@ -36,12 +36,9 @@ public partial class GrowthGoalDetail : IDisposable
     private bool _retrying;
     private bool _disposed;
     private bool _routeInitializing;
-    private long _routeGeneration;
     private string _goalValidationError = "";
     private string _actionValidationError = "";
     private string _checkInValidationError = "";
-    private readonly CancellationTokenSource _lifetimeCts = new();
-    private KeyedDebounceGate? _debounceGate;
 
     private void BackToGrowth() => Nav.NavigateTo($"/team/{MemberId}/growth");
 
@@ -106,7 +103,6 @@ public partial class GrowthGoalDetail : IDisposable
     protected override void OnInitialized()
     {
         Cache.Changed += OnChanged;
-        _debounceGate = new KeyedDebounceGate(_lifetimeCts.Token);
         _ = Cache.EnsureHydratedAsync();
     }
 
@@ -128,17 +124,17 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        if (Guid.TryParse(MemberId, out Guid id))
+        if (Guid.TryParse(MemberId, out Guid memberId))
         {
-            Selection.SelectTeamMember(id);
-            _loadStatus = Cache.GetGrowthLoadStatus(id);
-            _loadError = Cache.GetGrowthLoadError(id);
+            Selection.SelectTeamMember(memberId);
+            _loadStatus = Cache.GetGrowthLoadStatus(memberId);
+            _loadError = Cache.GetGrowthLoadError(memberId);
 
-            if (id != _loadedGrowthMemberId)
+            if (memberId != _loadedGrowthMemberId)
             {
-                _loadedGrowthMemberId = id;
+                _loadedGrowthMemberId = memberId;
                 _routeInitializing = true;
-                _ = Cache.EnsureGrowthLoadedAsync(id);
+                _ = Cache.EnsureGrowthLoadedAsync(memberId);
             }
 
             if (Cache.TeamReady && Member is null)
@@ -158,12 +154,9 @@ public partial class GrowthGoalDetail : IDisposable
         }
     }
 
-    private void InvalidatePersistWork() => _debounceGate?.InvalidateAll();
-
     private void InvalidateRouteState()
     {
-        InvalidatePersistWork();
-        _routeGeneration++;
+        GrowthService.AbandonGoalPersists();
         _goalValidationError = "";
         _actionValidationError = "";
         _checkInValidationError = "";
@@ -177,48 +170,6 @@ public partial class GrowthGoalDetail : IDisposable
         _editSummary = false;
         _editSuccessCriteria = false;
         _routeInitializing = true;
-    }
-
-    private bool IsActiveForPersist() =>
-        !_disposed
-        && !_lifetimeCts.IsCancellationRequested
-        && Guid.TryParse(MemberId, out _)
-        && Guid.TryParse(GoalId, out _)
-        && Growth?.Id != Guid.Empty;
-
-    private void SchedulePersist(KeyedDebounceGate.Key key, Func<Task> persist, string failureMessage)
-    {
-        if (_debounceGate is null)
-        {
-            return;
-        }
-
-        long version = _debounceGate.BumpVersion(key);
-        var routeGen = _routeGeneration;
-        _debounceGate.DebounceKeyed(
-            key,
-            version,
-            routeGen,
-            () => _routeGeneration,
-            IsActiveForPersist,
-            async work => await InvokeAsync(work),
-            async () =>
-            {
-                try
-                {
-                    await persist();
-                }
-                catch (Exception ex)
-                {
-                    if (_disposed || _lifetimeCts.IsCancellationRequested || !IsActiveForPersist())
-                    {
-                        return;
-                    }
-
-                    await ReloadGrowthAfterFailureAsync();
-                    await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError(failureMessage, ex));
-                }
-            });
     }
 
     private void SelectAction(Guid id)
@@ -245,18 +196,6 @@ public partial class GrowthGoalDetail : IDisposable
             ? ""
             : GrowthUiHelpers.ValidateCheckInPersist(SelectedCheckIn) ?? "";
     }
-
-    private GrowthGoal? GetGoalSnapshot(Guid goalId) =>
-        Growth?.Goals.FirstOrDefault(g => g.Id == goalId);
-
-    private GrowthGoal? GetGoalSnapshot() =>
-        Guid.TryParse(GoalId, out Guid gid) ? GetGoalSnapshot(gid) : null;
-
-    private GrowthGoalAction? GetActionSnapshot(Guid goalId, Guid actionId) =>
-        GetGoalSnapshot(goalId)?.Actions.FirstOrDefault(a => a.Id == actionId);
-
-    private GrowthGoalCheckIn? GetCheckInSnapshot(Guid goalId, Guid checkInId) =>
-        GetGoalSnapshot(goalId)?.CheckIns.FirstOrDefault(c => c.Id == checkInId);
 
     private async Task RetryLoad()
     {
@@ -285,150 +224,118 @@ public partial class GrowthGoalDetail : IDisposable
 
     private async Task ReloadGrowthAfterFailureAsync()
     {
-        if (!IsActiveForPersist())
+        if (!Guid.TryParse(MemberId, out Guid memberId))
         {
             return;
         }
 
-        InvalidatePersistWork();
+        GrowthService.AbandonGoalPersists();
+        await Cache.RetryGrowthLoadAsync(memberId);
+    }
 
-        if (Guid.TryParse(MemberId, out Guid memberId))
+    private bool TryGetRouteIds(out Guid memberId, out Guid goalId)
+    {
+        memberId = Guid.Empty;
+        goalId = Guid.Empty;
+        return Guid.TryParse(MemberId, out memberId) && Guid.TryParse(GoalId, out goalId);
+    }
+
+    private void ApplyGoalUpdate(Func<GrowthGoal, GrowthGoal> update)
+    {
+        if (_disposed)
         {
-            await Cache.RetryGrowthLoadAsync(memberId);
+            return;
+        }
+
+        if (!TryGetRouteIds(out Guid memberId, out Guid goalId))
+        {
+            return;
+        }
+
+        _goalValidationError = GrowthService.UpdateGoal(memberId, goalId, update) ?? "";
+        if (string.IsNullOrEmpty(_goalValidationError))
+        {
+            _actionValidationError = "";
+            _checkInValidationError = "";
         }
     }
 
-    private void CommitGoal(Func<GrowthGoal, GrowthGoal> update, bool persistGoal = true, Guid? persistActionId = null, Guid? persistCheckInId = null)
+    private void ApplyActionUpdate(Guid actionId, Action<GrowthGoalAction> patch)
     {
-        if (!Guid.TryParse(MemberId, out Guid mid) || !Guid.TryParse(GoalId, out Guid gid) || Growth is null)
+        if (_disposed)
         {
             return;
         }
 
-        GrowthGoal? currentGoal = Growth.Goals.FirstOrDefault(g => g.Id == gid);
-        if (currentGoal is null)
+        if (!TryGetRouteIds(out Guid memberId, out Guid goalId))
         {
             return;
         }
 
-        GrowthGoal baseGoal = CloneGoal(currentGoal);
-        baseGoal.LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o");
-        GrowthGoal nextGoal = update(baseGoal);
-
-        if (persistActionId is { } aid)
+        _actionValidationError = GrowthService.UpdateAction(memberId, goalId, actionId, patch) ?? "";
+        if (string.IsNullOrEmpty(_actionValidationError))
         {
-            GrowthGoalAction action = nextGoal.Actions.First(a => a.Id == aid);
-            _actionValidationError = GrowthUiHelpers.ValidateActionPersist(action) ?? "";
-            if (!string.IsNullOrEmpty(_actionValidationError))
-            {
-                return;
-            }
-
             _goalValidationError = "";
             _checkInValidationError = "";
         }
-        else if (persistCheckInId is { } cid)
-        {
-            GrowthGoalCheckIn checkIn = nextGoal.CheckIns.First(c => c.Id == cid);
-            _checkInValidationError = GrowthUiHelpers.ValidateCheckInPersist(checkIn) ?? "";
-            if (!string.IsNullOrEmpty(_checkInValidationError))
-            {
-                return;
-            }
+    }
 
+    private void ApplyCheckInUpdate(Guid checkInId, Action<GrowthGoalCheckIn> patch)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!TryGetRouteIds(out Guid memberId, out Guid goalId))
+        {
+            return;
+        }
+
+        _checkInValidationError = GrowthService.UpdateCheckIn(memberId, goalId, checkInId, patch) ?? "";
+        if (string.IsNullOrEmpty(_checkInValidationError))
+        {
             _goalValidationError = "";
             _actionValidationError = "";
-        }
-        else if (persistGoal)
-        {
-            _goalValidationError = GrowthUiHelpers.ValidateGoalPersist(nextGoal) ?? "";
-            if (!string.IsNullOrEmpty(_goalValidationError))
-            {
-                return;
-            }
-
-            _actionValidationError = "";
-            _checkInValidationError = "";
-        }
-
-        Cache.UpdateGrowth(EntityClone.ReplaceGoal(Growth, gid, _ => nextGoal));
-
-        if (Growth.Id == Guid.Empty)
-        {
-            return;
-        }
-
-        if (persistActionId is { } actionId)
-        {
-            SchedulePersist(
-                new KeyedDebounceGate.Key("action", actionId),
-                () =>
-                {
-                    GrowthGoalAction? action = GetActionSnapshot(gid, actionId);
-                    return action is null
-                        ? Task.CompletedTask
-                        : GrowthService.PersistActionHttpAsync(Growth.Id, gid, action, _lifetimeCts.Token);
-                },
-                "Unable to save action changes.");
-            return;
-        }
-
-        if (persistCheckInId is { } checkInId)
-        {
-            SchedulePersist(
-                new KeyedDebounceGate.Key("checkin", checkInId),
-                () =>
-                {
-                    GrowthGoalCheckIn? checkIn = GetCheckInSnapshot(gid, checkInId);
-                    return checkIn is null
-                        ? Task.CompletedTask
-                        : GrowthService.PersistCheckInHttpAsync(Growth.Id, gid, checkIn, _lifetimeCts.Token);
-                },
-                "Unable to save check-in changes.");
-            return;
-        }
-
-        if (persistGoal)
-        {
-            SchedulePersist(
-                new KeyedDebounceGate.Key("goal", gid),
-                () =>
-                {
-                    GrowthGoal? goal = GetGoalSnapshot(gid);
-                    return goal is null
-                        ? Task.CompletedTask
-                        : GrowthService.PersistGoalHttpAsync(Growth.Id, goal, _lifetimeCts.Token);
-                },
-                "Unable to save goal changes.");
         }
     }
 
     private void OnStatusChange(ChangeEventArgs e) =>
-        CommitGoal(g => { g.Status = Enum.Parse<GrowthGoalStatus>((string)e.Value!); return g; });
+        ApplyGoalUpdate(g => { g.Status = Enum.Parse<GrowthGoalStatus>((string)e.Value!); return g; });
 
-    private void OnPriorityChange(ChangeEventArgs e)
-    {
-        CommitGoal(g =>
+    private void OnPriorityChange(ChangeEventArgs e) =>
+        ApplyGoalUpdate(g =>
         {
             g.Priority = Enum.TryParse(e.Value?.ToString(), out Priority p) ? p : null;
             return g;
         });
-    }
 
     private void OnCategoryInput(ChangeEventArgs e) =>
-        CommitGoal(g => { g.Category = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+        ApplyGoalUpdate(g =>
+        {
+            g.Category = string.IsNullOrWhiteSpace(e.Value?.ToString()) ? null : e.Value!.ToString();
+            return g;
+        });
 
     private void OnStartChange(ChangeEventArgs e) =>
-        CommitGoal(g => { g.StartDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+        ApplyGoalUpdate(g =>
+        {
+            g.StartDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+            return g;
+        });
 
     private void OnTargetChange(ChangeEventArgs e) =>
-        CommitGoal(g => { g.TargetDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString(); return g; });
+        ApplyGoalUpdate(g =>
+        {
+            g.TargetDateIso = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+            return g;
+        });
 
     private void OnSummaryInput(ChangeEventArgs e) =>
-        CommitGoal(g => { g.Summary = e.Value?.ToString(); return g; });
+        ApplyGoalUpdate(g => { g.Summary = e.Value?.ToString(); return g; });
 
     private void OnCriteriaInput(ChangeEventArgs e) =>
-        CommitGoal(g =>
+        ApplyGoalUpdate(g =>
         {
             g.SuccessCriteria = (e.Value?.ToString() ?? "")
                 .Split('\n')
@@ -439,23 +346,6 @@ public partial class GrowthGoalDetail : IDisposable
             return g;
         });
 
-    private void PatchAction(Guid actionId, Action<GrowthGoalAction> patch) =>
-        CommitGoal(g =>
-        {
-            g.Actions = g.Actions.Select(a =>
-            {
-                if (a.Id != actionId)
-                {
-                    return a;
-                }
-
-                GrowthGoalAction copy = CloneAction(a);
-                patch(copy);
-                return copy;
-            }).ToList();
-            return g;
-        }, persistGoal: false, persistActionId: actionId);
-
     private void OnActionTitleInput(ChangeEventArgs e)
     {
         if (_selectedActionId is not { } id)
@@ -463,7 +353,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchAction(id, a => a.Title = e.Value?.ToString() ?? "");
+        ApplyActionUpdate(id, a => a.Title = e.Value?.ToString() ?? "");
     }
 
     private void OnActionStateChange(ChangeEventArgs e)
@@ -473,7 +363,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchAction(id, a => a.State = Enum.Parse<GrowthGoalActionState>((string)e.Value!));
+        ApplyActionUpdate(id, a => a.State = Enum.Parse<GrowthGoalActionState>((string)e.Value!));
     }
 
     private void OnActionDueChange(ChangeEventArgs e)
@@ -484,7 +374,7 @@ public partial class GrowthGoalDetail : IDisposable
         }
 
         var v = e.Value?.ToString();
-        PatchAction(id, a => a.DueDateIso = string.IsNullOrEmpty(v) ? null : v);
+        ApplyActionUpdate(id, a => a.DueDateIso = string.IsNullOrEmpty(v) ? null : v);
     }
 
     private void OnActionPriorityChange(ChangeEventArgs e)
@@ -494,7 +384,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchAction(id, a => a.Priority = Enum.TryParse(e.Value?.ToString(), out Priority p) ? p : Priority.Medium);
+        ApplyActionUpdate(id, a => a.Priority = Enum.TryParse(e.Value?.ToString(), out Priority p) ? p : Priority.Medium);
     }
 
     private void OnActionNotesInput(ChangeEventArgs e)
@@ -504,7 +394,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchAction(id, a => a.Notes = e.Value?.ToString());
+        ApplyActionUpdate(id, a => a.Notes = e.Value?.ToString());
     }
 
     private void OnActionLinksInput(ChangeEventArgs e)
@@ -519,13 +409,13 @@ public partial class GrowthGoalDetail : IDisposable
             .Select(s => s.Trim())
             .Where(s => s.Length > 0)
             .ToList();
-        PatchAction(id, a => a.Links = links);
+        ApplyActionUpdate(id, a => a.Links = links);
     }
 
     private void OnActionDoneToggle(Guid actionId, ChangeEventArgs e)
     {
         var done = (bool)(e.Value ?? false);
-        PatchAction(actionId, a => a.State = done ? GrowthGoalActionState.Complete : GrowthGoalActionState.Planned);
+        ApplyActionUpdate(actionId, a => a.State = done ? GrowthGoalActionState.Complete : GrowthGoalActionState.Planned);
     }
 
     private static string ActionStateLabel(GrowthGoalActionState state) => state switch
@@ -561,7 +451,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchCheckIn(id, c => c.DateIso = e.Value?.ToString() ?? c.DateIso);
+        ApplyCheckInUpdate(id, c => c.DateIso = e.Value?.ToString() ?? c.DateIso);
     }
 
     private void OnCheckInSignalChange(ChangeEventArgs e)
@@ -571,7 +461,7 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchCheckIn(id, c => c.Signal = Enum.Parse<GrowthGoalCheckInSignal>((string)e.Value!));
+        ApplyCheckInUpdate(id, c => c.Signal = Enum.Parse<GrowthGoalCheckInSignal>((string)e.Value!));
     }
 
     private void OnCheckInNoteInput(ChangeEventArgs e)
@@ -581,28 +471,16 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        PatchCheckIn(id, c => c.Note = e.Value?.ToString() ?? "");
+        ApplyCheckInUpdate(id, c => c.Note = e.Value?.ToString() ?? "");
     }
-
-    private void PatchCheckIn(Guid checkInId, Action<GrowthGoalCheckIn> patch) =>
-        CommitGoal(g =>
-        {
-            g.CheckIns = g.CheckIns.Select(c =>
-            {
-                if (c.Id != checkInId)
-                {
-                    return c;
-                }
-
-                GrowthGoalCheckIn copy = CloneCheckIn(c);
-                patch(copy);
-                return copy;
-            }).ToList();
-            return g;
-        }, persistGoal: false, persistCheckInId: checkInId);
 
     private async Task AddAction()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (Growth is null || !Guid.TryParse(MemberId, out Guid memberId) || !Guid.TryParse(GoalId, out Guid gid) || Growth.Id == Guid.Empty)
         {
             return;
@@ -618,9 +496,19 @@ public partial class GrowthGoalDetail : IDisposable
                 Notes = "",
                 Links = Array.Empty<string>()
             });
+            if (_disposed)
+            {
+                return;
+            }
+
             if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
             {
                 await ReloadGrowthAfterFailureAsync();
+                if (_disposed)
+                {
+                    return;
+                }
+
                 await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("action"));
                 return;
             }
@@ -630,12 +518,22 @@ public partial class GrowthGoalDetail : IDisposable
         }
         catch (Exception ex)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add action.", ex));
         }
     }
 
     private async Task AddCheckIn()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (Growth is null || !Guid.TryParse(MemberId, out Guid memberId) || !Guid.TryParse(GoalId, out Guid gid) || Growth.Id == Guid.Empty)
         {
             return;
@@ -650,9 +548,19 @@ public partial class GrowthGoalDetail : IDisposable
                 Signal = GrowthGoalCheckInSignal.Mixed,
                 Note = DefaultCheckInNote
             });
+            if (_disposed)
+            {
+                return;
+            }
+
             if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
             {
                 await ReloadGrowthAfterFailureAsync();
+                if (_disposed)
+                {
+                    return;
+                }
+
                 await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("check-in"));
                 return;
             }
@@ -663,21 +571,14 @@ public partial class GrowthGoalDetail : IDisposable
         }
         catch (Exception ex)
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add check-in.", ex));
         }
     }
-
-    private static GrowthGoal CloneGoal(GrowthGoal g) =>
-        EntityClone.Goal(
-            g,
-            successCriteria: g.SuccessCriteria.ToList(),
-            actions: g.Actions.Select(CloneAction).ToList(),
-            checkIns: g.CheckIns.Select(CloneCheckIn).ToList());
-
-    private static GrowthGoalAction CloneAction(GrowthGoalAction a) =>
-        EntityClone.Action(a, links: a.Links.ToList());
-
-    private static GrowthGoalCheckIn CloneCheckIn(GrowthGoalCheckIn c) => EntityClone.CheckIn(c);
 
     private void OnChanged()
     {
@@ -699,9 +600,7 @@ public partial class GrowthGoalDetail : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        _lifetimeCts.Cancel();
+        GrowthService.AbandonGoalPersists();
         Cache.Changed -= OnChanged;
-        _debounceGate?.Dispose();
-        _lifetimeCts.Dispose();
     }
 }

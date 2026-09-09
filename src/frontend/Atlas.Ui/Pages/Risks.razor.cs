@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
 
@@ -16,21 +15,12 @@ public partial class Risks : IDisposable
 
     [Parameter] public string? RiskId { get; set; }
 
-    private bool _editing;
     private bool _creating;
-    private bool _deleting;
     private Guid? _autoEditId;
-    private Guid? _trackedRiskId;
 
     private string _statusFilter = "All";
     private string _projectFilter = "";
     private string _severityFilter = "All";
-
-    private bool _isAddingNote;
-    private string _newNoteText = "";
-    private Guid? _selectedHistoryId;
-    private string _historyDraftText = "";
-    private string _historyEditTab = "Write";
 
     private bool IsFocusMode => !string.IsNullOrEmpty(RiskId);
     private bool ShowDetail => IsFocusMode || Selection.SelectedRiskId is not null;
@@ -79,8 +69,6 @@ public partial class Risks : IDisposable
                 Nav.NavigateTo("/risks", replace: true);
             }
         }
-
-        SyncDetailUiForRisk(Selected?.Id);
     }
 
     private void OnChanged() => InvokeAsync(() =>
@@ -91,35 +79,8 @@ public partial class Risks : IDisposable
             return;
         }
 
-        SyncDetailUiForRisk(Selected?.Id);
         StateHasChanged();
     });
-
-    private void SyncDetailUiForRisk(Guid? riskId)
-    {
-        if (_trackedRiskId == riskId)
-        {
-            if (riskId is not null && _autoEditId == riskId)
-            {
-                _editing = true;
-            }
-
-            return;
-        }
-
-        _trackedRiskId = riskId;
-        ResetDetailUiState();
-        _editing = riskId is not null && _autoEditId == riskId;
-    }
-
-    private void ResetDetailUiState()
-    {
-        _isAddingNote = false;
-        _newNoteText = "";
-        _selectedHistoryId = null;
-        _historyDraftText = "";
-        _historyEditTab = "Write";
-    }
 
     private bool MatchesFilters(Risk r)
     {
@@ -146,50 +107,26 @@ public partial class Risks : IDisposable
     private void OnSeverityFilterChange(ChangeEventArgs e) => _severityFilter = e.Value?.ToString() ?? "All";
     private void OnProjectFilterInput(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "";
 
-    private IReadOnlyList<AtlasTask> GetLinkedTasks(Risk risk) =>
-        Cache.Tasks.Where(t => t.Risk == risk.Title).ToList();
+    private void SelectFromList(Guid id) => Selection.SelectRisk(id);
 
-    private IReadOnlyList<TeamMember> GetLinkedMembers(Risk risk)
-    {
-        var byId = Cache.Team.ToDictionary(m => m.Id);
-        return risk.LinkedTeamMemberIds
-            .Select(id => byId.GetValueOrDefault(id))
-            .Where(m => m is not null)
-            .Cast<TeamMember>()
-            .ToList();
-    }
+    private void CloseDetail() => Selection.SelectRisk(null);
 
-    private void SelectFromList(Guid id)
+    private void ClearAutoEdit() => _autoEditId = null;
+
+    private async Task OnRiskDeleted()
     {
-        if (Selection.SelectedRiskId != id)
+        if (IsFocusMode)
         {
-            ResetDetailUiState();
-            _editing = _autoEditId == id;
+            Nav.NavigateTo("/risks", replace: true);
         }
 
-        Selection.SelectRisk(id);
-        _trackedRiskId = id;
-    }
-
-    private void CloseDetail()
-    {
-        Selection.SelectRisk(null);
-        _trackedRiskId = null;
-        ResetDetailUiState();
-    }
-
-    private void ToggleEdit()
-    {
-        _editing = !_editing;
-        if (!_editing && Selected is not null && _autoEditId == Selected.Id)
+        if (_autoEditId is not null)
         {
             _autoEditId = null;
         }
     }
 
     private void GoFocus(Guid id) => Nav.NavigateTo($"/risks/{id}");
-    private void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
-    private void GoTeamMember(Guid id) => Nav.NavigateTo($"/team/{id}");
 
     private void EnterFocus()
     {
@@ -228,8 +165,7 @@ public partial class Risks : IDisposable
             Risk created = await RiskService.CreateAsync(draft);
             Guid id = created.Id;
             _autoEditId = id;
-            _editing = true;
-            _trackedRiskId = id;
+            Selection.SelectRisk(id);
         }
         catch (Exception)
         {
@@ -238,181 +174,6 @@ public partial class Risks : IDisposable
         finally
         {
             _creating = false;
-        }
-    }
-
-    private async Task HandleDelete()
-    {
-        if (Selected is null || _deleting)
-        {
-            return;
-        }
-
-        Risk risk = Selected;
-        if (!await Dialogs.ConfirmAsync($"Delete risk \"{risk.Title}\"? This cannot be undone."))
-        {
-            return;
-        }
-
-        _deleting = true;
-        try
-        {
-            await RiskService.DeleteAsync(risk.Id);
-            if (IsFocusMode)
-            {
-                Nav.NavigateTo("/risks", replace: true);
-            }
-
-            if (_autoEditId == risk.Id)
-            {
-                _autoEditId = null;
-            }
-
-            _trackedRiskId = null;
-            ResetDetailUiState();
-        }
-        catch (Exception)
-        {
-            await Dialogs.AlertAsync("Unable to delete this risk right now. Please try again.");
-        }
-        finally
-        {
-            _deleting = false;
-        }
-    }
-
-    private void OnTitleInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Selected!, title: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-    private void OnDescriptionInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Selected!, description: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-    private void OnEvidenceInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Selected!, evidence: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-
-    private void OnStatusChange(ChangeEventArgs e)
-    {
-        if (Enum.TryParse(e.Value?.ToString(), out RiskStatus s))
-        {
-            _ = SaveRiskAsync(EntityClone.Risk(Selected!, status: s, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-        }
-    }
-
-    private void OnSeverityChange(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Selected!, severity: e.Value?.ToString() ?? "Low", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-
-    private void OnProjectChange(ChangeEventArgs e)
-    {
-        var v = e.Value?.ToString();
-        _ = SaveRiskAsync(EntityClone.Risk(Selected!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-    }
-
-    private void OnTeamMemberToggle(Guid memberId, ChangeEventArgs e)
-    {
-        if (Selected is null)
-        {
-            return;
-        }
-
-        var linked = e.Value is bool b && b;
-        var current = new HashSet<Guid>(Selected.LinkedTeamMemberIds);
-        if (linked)
-        {
-            current.Add(memberId);
-        }
-        else
-        {
-            current.Remove(memberId);
-        }
-
-        var memberIds = current.ToList();
-        var next = EntityClone.Risk(Selected, linkedTeamMemberIds: memberIds, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
-        _ = SaveTeamMembersAsync(next);
-    }
-
-    private void ToggleAddingNote() => _isAddingNote = !_isAddingNote;
-    private void OnNewNoteInput(ChangeEventArgs e) => _newNoteText = e.Value?.ToString() ?? "";
-
-    private void AddNote()
-    {
-        if (Selected is null)
-        {
-            return;
-        }
-
-        var text = _newNoteText.Trim();
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        var entry = new RiskHistoryEntry
-        {
-            Id = Guid.NewGuid(),
-            CreatedIso = DateTimeOffset.UtcNow.ToString("o"),
-            Text = text
-        };
-        var nextHistory = new[] { entry }.Concat(Selected.History).ToList();
-        _ = SaveRiskAsync(EntityClone.Risk(Selected, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-        _newNoteText = "";
-        _isAddingNote = false;
-    }
-
-    private void OpenHistoryNote(Guid historyId, string text)
-    {
-        _selectedHistoryId = historyId;
-        _historyDraftText = text;
-        _historyEditTab = "Write";
-    }
-
-    private void CloseHistoryNote()
-    {
-        _selectedHistoryId = null;
-        _historyDraftText = "";
-        _historyEditTab = "Write";
-    }
-
-    private void OnHistoryDraftInput(ChangeEventArgs e) => _historyDraftText = e.Value?.ToString() ?? "";
-
-    private void SaveHistoryNote()
-    {
-        if (Selected is null || _selectedHistoryId is null)
-        {
-            return;
-        }
-
-        var text = _historyDraftText.Trim();
-        if (string.IsNullOrEmpty(text))
-        {
-            return;
-        }
-
-        var nextHistory = Selected.History
-            .Select(h => h.Id == _selectedHistoryId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
-            .ToList();
-        _ = SaveRiskAsync(EntityClone.Risk(Selected, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-        CloseHistoryNote();
-    }
-
-    private async Task SaveRiskAsync(Risk next)
-    {
-        try
-        {
-            await RiskService.UpdateAsync(next);
-        }
-        catch (Exception)
-        {
-            await Dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
-        }
-    }
-
-    private async Task SaveTeamMembersAsync(Risk risk)
-    {
-        try
-        {
-            await RiskService.SetTeamMembersAsync(risk);
-        }
-        catch (Exception)
-        {
-            await Dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
         }
     }
 

@@ -73,33 +73,7 @@ public partial class TeamWorkItemDetail : IDisposable
         }
 
         var nextProject = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
-        UpdateWorkItem(new AzureItem
-        {
-            Id = Item.Id,
-            Title = Item.Title,
-            Status = Item.Status,
-            AssignedTo = Item.AssignedTo,
-            TicketUrl = Item.TicketUrl,
-            ProjectId = nextProject,
-            ChangedDateUtc = Item.ChangedDateUtc,
-            TimeTaken = Item.TimeTaken,
-            StartDateIso = Item.StartDateIso,
-            CommitsUrl = Item.CommitsUrl,
-            PrUrls = Item.PrUrls,
-            LocalNotes = Item.LocalNotes
-        });
-    }
-
-    private void UpdateWorkItem(AzureItem next)
-    {
-        if (Member is null)
-        {
-            return;
-        }
-
-        Cache.UpdateTeamMember(EntityClone.TeamMember(
-            Member,
-            azureItems: Member.AzureItems.Select(a => a.Id == next.Id ? next : a).ToList()));
+        AzureWorkItemService.SetProject(Member.Id, Item.Id, nextProject);
     }
 
     private async Task AddLocalNote()

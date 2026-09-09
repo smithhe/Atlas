@@ -33,27 +33,18 @@ public sealed class TeamMemberRiskService
         return draft;
     }
 
-    public async Task UpdateAsync(Guid memberId, TeamMemberRisk next, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Guid memberId, TeamMemberRisk next, CancellationToken cancellationToken = default)
     {
         TeamMemberRisk? previous = _cache.TeamMemberRisks.FirstOrDefault(r => r.Id == next.Id && r.MemberId == memberId);
-        TeamMemberRisk? rollback = previous is not null ? EntityClone.TeamMemberRisk(previous) : null;
-        _cache.UpdateTeamMemberRisk(next);
-        try
-        {
-            await _api.AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpointAsync(
+        return OptimisticCache.ApplyAsync(
+            previous,
+            next,
+            r => EntityClone.TeamMemberRisk(r),
+            _cache.UpdateTeamMemberRisk,
+            () => _api.AtlasApiEndpointsTeamMembersRisksUpdateTeamMemberRiskEndpointAsync(
                 memberId,
                 next.Id,
                 EntityRequestMappers.ToUpdateTeamMemberRiskRequest(next),
-                cancellationToken);
-        }
-        catch
-        {
-            if (rollback is not null)
-            {
-                _cache.UpdateTeamMemberRisk(rollback);
-            }
-
-            throw;
-        }
+                cancellationToken));
     }
 }
