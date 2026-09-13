@@ -139,7 +139,7 @@ public partial class TeamNoteDetail : IDisposable
                 _draftText = string.IsNullOrWhiteSpace(_draftText)
                     ? text
                     : $"{_draftText.TrimEnd()}\n\n{text}";
-                InvokeAsync(StateHasChanged);
+                return InvokeAsync(StateHasChanged);
             },
         });
     }

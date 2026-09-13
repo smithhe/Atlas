@@ -177,7 +177,7 @@ public partial class MemberNotesTab : IDisposable
                     _draftText = string.IsNullOrWhiteSpace(_draftText)
                         ? text
                         : $"{_draftText.TrimEnd()}\n\n{text}";
-                    InvokeAsync(StateHasChanged);
+                    return InvokeAsync(StateHasChanged);
                 },
             });
             return;
@@ -193,7 +193,7 @@ public partial class MemberNotesTab : IDisposable
                     _newText = string.IsNullOrWhiteSpace(_newText)
                         ? text
                         : $"{_newText.TrimEnd()}\n\n{text}";
-                    InvokeAsync(StateHasChanged);
+                    return InvokeAsync(StateHasChanged);
                 },
             });
             return;

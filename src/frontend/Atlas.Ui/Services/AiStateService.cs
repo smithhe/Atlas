@@ -10,7 +10,7 @@ public sealed record AiTranscriptTurn(string Id, string Prompt, string Response,
 
 public sealed class AiDraftTarget
 {
-    public required Action<string> Insert { get; init; }
+    public required Func<string, Task> Insert { get; init; }
     public string? Label { get; init; }
 }
 
@@ -156,7 +156,7 @@ public sealed class AiStateService : IAsyncDisposable
         Notify();
     }
 
-    public bool InsertDraft(string text)
+    public async Task<bool> InsertDraftAsync(string text)
     {
         var trimmed = text.Trim();
         if (_draftTarget is null || trimmed.Length == 0)
@@ -164,7 +164,7 @@ public sealed class AiStateService : IAsyncDisposable
             return false;
         }
 
-        _draftTarget.Insert(trimmed);
+        await _draftTarget.Insert(trimmed);
         return true;
     }
 
@@ -520,7 +520,7 @@ public sealed class AiStateService : IAsyncDisposable
             Status = dto.Status,
             Message = dto.Message,
             Delta = dto.Delta,
-            OccurredAtUtc = dto.OccurredAtUtc ?? default(DateTimeOffset),
+            OccurredAtUtc = dto.OccurredAtUtc ?? default,
             IsTerminal = dto.IsTerminal ?? false,
         };
     }

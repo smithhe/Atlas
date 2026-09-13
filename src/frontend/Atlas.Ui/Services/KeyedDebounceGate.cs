@@ -49,7 +49,7 @@ internal sealed class KeyedDebounceGate : IDisposable
         }
 
         var capturedRouteGen = routeGeneration;
-        var capturedSyncContext = SynchronizationContext.Current;
+        SynchronizationContext? capturedSyncContext = SynchronizationContext.Current;
         _ = RunDebouncedAsync(
             key,
             version,

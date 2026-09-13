@@ -376,7 +376,7 @@ public partial class Setup
                 TeamId = team.Id
             });
 
-            List<AzureUser> selected = _users
+            var selected = _users
                 .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
                 .ToList();
 

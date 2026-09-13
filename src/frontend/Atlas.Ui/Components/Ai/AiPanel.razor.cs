@@ -119,7 +119,7 @@ public partial class AiPanel : IDisposable
         Ai.SendPrompt(prompt);
     }
 
-    private void HandleInsertDraft()
+    private async Task HandleInsertDraft()
     {
         if (!CanInsertDraft)
         {
@@ -131,7 +131,7 @@ public partial class AiPanel : IDisposable
             return;
         }
 
-        if (!Ai.InsertDraft(LatestAssistantText))
+        if (!await Ai.InsertDraftAsync(LatestAssistantText))
         {
             Ai.AppendOutput("\nEdit a task note or note body first.\n");
         }
