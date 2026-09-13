@@ -14,6 +14,7 @@ public partial class MarkdownBlock : IAsyncDisposable
     private ElementReference _root;
     private string _html = "";
     private string? _lastText;
+    private MarkdownBlockInterop? _markdownInterop;
 
     protected override void OnParametersSet()
     {
@@ -33,15 +34,37 @@ public partial class MarkdownBlock : IAsyncDisposable
             return;
         }
 
+        if (firstRender)
+        {
+            _markdownInterop = new MarkdownBlockInterop(Js);
+        }
+
+        if (_markdownInterop is null)
+        {
+            return;
+        }
+
         try
         {
-            await Js.InvokeVoidAsync("atlasMarkdown.highlight", _root);
+            await _markdownInterop.HighlightAsync(_root);
         }
-        catch
+        catch (JSDisconnectedException)
         {
-            // highlight.js may not be ready during first paint.
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
         }
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public async ValueTask DisposeAsync()
+    {
+        if (_markdownInterop is not null)
+        {
+            await _markdownInterop.DisposeAsync();
+            _markdownInterop = null;
+        }
+    }
 }

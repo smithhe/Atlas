@@ -32,6 +32,7 @@ public partial class ShellLayout
     private int _resizeStartWidth;
     private ElementReference _resizerRef;
     private DotNetObjectReference<ShellLayout>? _selfRef;
+    private ShellLayoutInterop? _resizeInterop;
     private ErrorBoundary? _errorBoundary;
 
     private string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
@@ -93,7 +94,30 @@ public partial class ShellLayout
         Nav.LocationChanged += OnLocationChanged;
         Ai.EnsureStartupPreference();
         HydrateInBackgroundFireAndForget();
-        EnsureResizeListenersFireAndForget();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _resizeInterop ??= new ShellLayoutInterop(Js);
+            _selfRef ??= DotNetObjectReference.Create(this);
+            await _resizeInterop.EnsureResizeListenersAsync(_selfRef);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private async void HydrateInBackgroundFireAndForget()
@@ -105,31 +129,6 @@ public partial class ShellLayout
         catch (Exception ex)
         {
             Cache.RecordHydrationFailure(ex);
-        }
-    }
-
-    private async void EnsureResizeListenersFireAndForget()
-    {
-        try
-        {
-            await EnsureResizeListenersAsync();
-        }
-        catch (Exception ex)
-        {
-            await DispatchExceptionAsync(ex);
-        }
-    }
-
-    private async Task EnsureResizeListenersAsync()
-    {
-        try
-        {
-            _selfRef ??= DotNetObjectReference.Create(this);
-            await Js.InvokeVoidAsync("atlasAiEvents.ensureResizeListeners", _selfRef);
-        }
-        catch
-        {
-            // Module may not be ready on first frame.
         }
     }
 
@@ -168,12 +167,26 @@ public partial class ShellLayout
 
     private void ResetAiWidth() => Ai.SetPanelWidthPx(null);
 
-    private void OnResizePointerDown(PointerEventArgs e)
+    private async Task OnResizePointerDown(PointerEventArgs e)
     {
         _resizing = true;
         _resizeStartX = e.ClientX;
         _resizeStartWidth = Ai.PanelWidthPx ?? MinAiWidth;
-        _ = Js.InvokeVoidAsync("atlasAiEvents.beginResizeCapture", _resizerRef, e.PointerId);
+
+        try
+        {
+            _resizeInterop ??= new ShellLayoutInterop(Js);
+            await _resizeInterop.BeginResizeCaptureAsync(_resizerRef, e.PointerId);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     private void OnResizeKeyDown(KeyboardEventArgs e)
@@ -218,15 +231,11 @@ public partial class ShellLayout
         Cache.Changed -= OnCacheChangedAsync;
         Ai.Changed -= OnAiChangedAsync;
         Nav.LocationChanged -= OnLocationChanged;
-        // Clear JS listeners before disposing DotNetObjectReference so in-flight
-        // pointer callbacks cannot invoke a disposed ref.
-        try
+
+        if (_resizeInterop is not null)
         {
-            await Js.InvokeVoidAsync("atlasAiEvents.clearResizeListeners");
-        }
-        catch
-        {
-            // Ignore dispose races during navigation / host teardown.
+            await _resizeInterop.DisposeAsync();
+            _resizeInterop = null;
         }
 
         _selfRef?.Dispose();
