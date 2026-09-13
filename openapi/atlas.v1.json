@@ -1863,6 +1863,17 @@
         },
         "type": "object"
       },
+      "AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ProjectId": {
+            "format": "guid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AtlasApiDTOsTeamMembersCreateTeamMemberRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4873,6 +4884,59 @@
           }
         },
         "summary": "Add a local note to a team member Azure work item",
+        "tags": [
+          "Team-Members"
+        ]
+      }
+    },
+    "/team-members/{teamMemberId}/azure-work-items/{workItemId}/project": {
+      "put": {
+        "operationId": "AtlasApiEndpointsTeamMembersAzureWorkItemsSetAzureWorkItemProjectEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamMemberId",
+            "required": true,
+            "schema": {
+              "format": "guid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workItemId",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest"
+              }
+            }
+          },
+          "description": "",
+          "required": true,
+          "x-name": "SetAzureWorkItemProjectRequest",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Validation error"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "summary": "Assign or clear the Atlas project linked to a team member Azure work item",
         "tags": [
           "Team-Members"
         ]
