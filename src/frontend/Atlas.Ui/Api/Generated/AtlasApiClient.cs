@@ -524,6 +524,14 @@ namespace Atlas.Ui.Api.Generated
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Assign or clear the Atlas project linked to a team member Azure work item
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="AtlasApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task AtlasApiEndpointsTeamMembersAzureWorkItemsSetAzureWorkItemProjectEndpointAsync(System.Guid teamMemberId, int workItemId, AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest setAzureWorkItemProjectRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a team member's growth plan
         /// </summary>
         /// <returns>Success</returns>
@@ -5611,6 +5619,91 @@ namespace Atlas.Ui.Api.Generated
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Assign or clear the Atlas project linked to a team member Azure work item
+        /// </summary>
+        /// <returns>No Content</returns>
+        /// <exception cref="AtlasApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task AtlasApiEndpointsTeamMembersAzureWorkItemsSetAzureWorkItemProjectEndpointAsync(System.Guid teamMemberId, int workItemId, AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest setAzureWorkItemProjectRequest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (teamMemberId == null)
+                throw new System.ArgumentNullException("teamMemberId");
+
+            if (workItemId == null)
+                throw new System.ArgumentNullException("workItemId");
+
+            if (setAzureWorkItemProjectRequest == null)
+                throw new System.ArgumentNullException("setAzureWorkItemProjectRequest");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(setAzureWorkItemProjectRequest, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "team-members/{teamMemberId}/azure-work-items/{workItemId}/project"
+                    urlBuilder_.Append("team-members/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(teamMemberId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/azure-work-items/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(workItemId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/project");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new AtlasApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get a team member's growth plan
         /// </summary>
         /// <returns>Success</returns>
@@ -8152,6 +8245,15 @@ namespace Atlas.Ui.Api.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("Id")]
         public System.Guid? Id { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.6.3.0 (NJsonSchema v11.5.2.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("ProjectId")]
+        public System.Guid? ProjectId { get; set; } = default!;
 
     }
 

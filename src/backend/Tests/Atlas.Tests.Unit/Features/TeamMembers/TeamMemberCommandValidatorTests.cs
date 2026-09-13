@@ -1,4 +1,5 @@
 using Atlas.Application.Features.TeamMembers.AzureWorkItems.AddAzureWorkItemLocalNote;
+using Atlas.Application.Features.TeamMembers.AzureWorkItems.SetAzureWorkItemProject;
 using Atlas.Application.Features.TeamMembers.Notes.DeleteTeamNote;
 using Atlas.Application.Features.TeamMembers.Notes.SetPinnedNotes;
 using Atlas.Application.Features.TeamMembers.Notes.UpdateTeamNote;
@@ -104,6 +105,38 @@ public sealed class TeamMemberCommandValidatorTests
     {
         var validator = new AddAzureWorkItemLocalNoteCommandValidator();
         ValidationResult result = validator.Validate(new AddAzureWorkItemLocalNoteCommand(TeamMemberId, 42, "Local note"));
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void SetAzureWorkItemProject_WhenTeamMemberIdEmpty_Fails()
+    {
+        var validator = new SetAzureWorkItemProjectCommandValidator();
+        ValidationResult result = validator.Validate(new SetAzureWorkItemProjectCommand(Guid.Empty, 42, Guid.NewGuid()));
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void SetAzureWorkItemProject_WhenWorkItemIdInvalid_Fails()
+    {
+        var validator = new SetAzureWorkItemProjectCommandValidator();
+        ValidationResult result = validator.Validate(new SetAzureWorkItemProjectCommand(TeamMemberId, 0, Guid.NewGuid()));
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void SetAzureWorkItemProject_WhenProjectIdEmpty_Fails()
+    {
+        var validator = new SetAzureWorkItemProjectCommandValidator();
+        ValidationResult result = validator.Validate(new SetAzureWorkItemProjectCommand(TeamMemberId, 42, Guid.Empty));
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void SetAzureWorkItemProject_WhenValid_Passes()
+    {
+        var validator = new SetAzureWorkItemProjectCommandValidator();
+        ValidationResult result = validator.Validate(new SetAzureWorkItemProjectCommand(TeamMemberId, 42, Guid.NewGuid()));
         Assert.True(result.IsValid);
     }
 
