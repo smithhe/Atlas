@@ -13,7 +13,7 @@ public partial class ProjectDetail : IDisposable
     [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
     [Inject] private ProjectService ProjectService { get; set; } = null!;
 
-    [Parameter] public Project? Project { get; set; }
+    [Parameter, EditorRequired] public Project? Project { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
     [Parameter] public EventCallback OnEnterFocus { get; set; }
     [Parameter] public EventCallback OnExitFocus { get; set; }
