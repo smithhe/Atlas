@@ -12,7 +12,7 @@ public partial class RiskDetail : IDisposable
     [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
     [Inject] private RiskService RiskService { get; set; } = null!;
 
-    [Parameter] public Risk? Risk { get; set; }
+    [Parameter, EditorRequired] public Risk? Risk { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnEnterFocus { get; set; }

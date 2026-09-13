@@ -13,7 +13,7 @@ public partial class TaskDetail : IDisposable
     [Inject] private AiStateService Ai { get; set; } = null!;
     [Inject] private TaskService TaskService { get; set; } = null!;
 
-    [Parameter] public AtlasTask? Task { get; set; }
+    [Parameter, EditorRequired] public AtlasTask? Task { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnEnterFocus { get; set; }

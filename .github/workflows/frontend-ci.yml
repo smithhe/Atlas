@@ -23,6 +23,22 @@ jobs:
       - name: Publish Blazor WASM
         run: dotnet publish src/frontend/Atlas.Ui/Atlas.Ui.csproj -c Release -o /tmp/atlas-ui-publish
 
+  ui-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore UI tests
+        run: dotnet restore src/frontend/Tests/Atlas.Ui.Tests/Atlas.Ui.Tests.csproj
+
+      - name: Run UI tests
+        run: dotnet test src/frontend/Tests/Atlas.Ui.Tests --no-restore --verbosity normal
+
   openapi-drift:
     runs-on: ubuntu-latest
     env:
