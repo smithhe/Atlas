@@ -5,7 +5,7 @@ using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Components.Risks;
 
-public partial class RiskDetail
+public partial class RiskDetail : IDisposable
 {
     [Inject] private AppCacheService Cache { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
@@ -24,6 +24,7 @@ public partial class RiskDetail
     private bool _editing;
     private bool _deleting;
     private Guid? _trackedRiskId;
+    private EntitySaveState _saveState = EntitySaveState.Idle;
 
     private bool _isAddingNote;
     private string _newNoteText = "";
@@ -31,8 +32,13 @@ public partial class RiskDetail
     private string _historyDraftText = "";
     private string _historyEditTab = "Write";
 
-    private IReadOnlyList<string> ProjectOptions =>
-        Cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+    private IReadOnlyList<Project> ProjectOptions =>
+        Cache.Projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
+
+    protected override void OnInitialized()
+    {
+        RiskService.SaveStateChanged += OnSaveStateChangedAsync;
+    }
 
     protected override void OnParametersSet()
     {
@@ -54,6 +60,25 @@ public partial class RiskDetail
         _trackedRiskId = riskId;
         ResetDetailUiState();
         _editing = riskId is not null && AutoEditId == riskId;
+        _saveState = riskId is not null ? RiskService.GetSaveState(riskId.Value) : EntitySaveState.Idle;
+    }
+
+    private async void OnSaveStateChangedAsync(Guid riskId)
+    {
+        try
+        {
+            if (Risk?.Id != riskId)
+            {
+                return;
+            }
+
+            _saveState = RiskService.GetSaveState(riskId);
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
     }
 
     private void ResetDetailUiState()
@@ -66,7 +91,7 @@ public partial class RiskDetail
     }
 
     private IReadOnlyList<AtlasTask> GetLinkedTasks(Risk risk) =>
-        Cache.Tasks.Where(t => t.Risk == risk.Title).ToList();
+        Cache.Tasks.Where(t => t.RiskId == risk.Id).ToList();
 
     private IReadOnlyList<TeamMember> GetLinkedMembers(Risk risk)
     {
@@ -121,31 +146,54 @@ public partial class RiskDetail
         }
     }
 
-    private void OnTitleInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Risk!, title: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-    private void OnDescriptionInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Risk!, description: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
-    private void OnEvidenceInput(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Risk!, evidence: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+    private async Task OnTitleInput(ChangeEventArgs e) =>
+        await SaveRiskAsync(
+            r => EntityClone.Risk(r, title: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")),
+            debounce: true);
 
-    private void OnStatusChange(ChangeEventArgs e)
+    private async Task OnDescriptionInput(ChangeEventArgs e) =>
+        await SaveRiskAsync(
+            r => EntityClone.Risk(r, description: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")),
+            debounce: true);
+
+    private async Task OnEvidenceInput(ChangeEventArgs e) =>
+        await SaveRiskAsync(
+            r => EntityClone.Risk(r, evidence: e.Value?.ToString() ?? "", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")),
+            debounce: true);
+
+    private async Task OnStatusChange(ChangeEventArgs e)
     {
         if (Enum.TryParse(e.Value?.ToString(), out RiskStatus s))
         {
-            _ = SaveRiskAsync(EntityClone.Risk(Risk!, status: s, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+            await SaveRiskAsync(
+                r => EntityClone.Risk(r, status: s, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
         }
     }
 
-    private void OnSeverityChange(ChangeEventArgs e) =>
-        _ = SaveRiskAsync(EntityClone.Risk(Risk!, severity: e.Value?.ToString() ?? "Low", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+    private async Task OnSeverityChange(ChangeEventArgs e) =>
+        await SaveRiskAsync(
+            r => EntityClone.Risk(r, severity: e.Value?.ToString() ?? "Low", lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
 
-    private void OnProjectChange(ChangeEventArgs e)
+    private async Task OnProjectChange(ChangeEventArgs e)
     {
         var v = e.Value?.ToString();
-        _ = SaveRiskAsync(EntityClone.Risk(Risk!, project: string.IsNullOrEmpty(v) ? null : v, setProject: true, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+        Guid? projectId = null;
+        if (!string.IsNullOrEmpty(v) && Guid.TryParse(v, out Guid parsed))
+        {
+            projectId = parsed;
+        }
+
+        string? projectName = projectId is null ? null : Cache.Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
+        await SaveRiskAsync(r => EntityClone.Risk(
+            r,
+            projectId: projectId,
+            setProjectId: true,
+            project: projectName,
+            setProject: true,
+            lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
     }
 
-    private void OnTeamMemberToggle(Guid memberId, ChangeEventArgs e)
+    private async Task OnTeamMemberToggle(Guid memberId, ChangeEventArgs e)
     {
         if (Risk is null)
         {
@@ -153,7 +201,8 @@ public partial class RiskDetail
         }
 
         var linked = e.Value is bool b && b;
-        var current = new HashSet<Guid>(Risk.LinkedTeamMemberIds);
+        Risk latest = Cache.TryGetRisk(Risk.Id) ?? Risk;
+        var current = new HashSet<Guid>(latest.LinkedTeamMemberIds);
         if (linked)
         {
             current.Add(memberId);
@@ -163,15 +212,13 @@ public partial class RiskDetail
             current.Remove(memberId);
         }
 
-        var memberIds = current.ToList();
-        var next = EntityClone.Risk(Risk, linkedTeamMemberIds: memberIds, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
-        _ = SaveTeamMembersAsync(next);
+        await SaveTeamMembersAsync(current.ToList());
     }
 
     private void ToggleAddingNote() => _isAddingNote = !_isAddingNote;
     private void OnNewNoteInput(ChangeEventArgs e) => _newNoteText = e.Value?.ToString() ?? "";
 
-    private void AddNote()
+    private async Task AddNote()
     {
         if (Risk is null)
         {
@@ -190,8 +237,12 @@ public partial class RiskDetail
             CreatedIso = DateTimeOffset.UtcNow.ToString("o"),
             Text = text
         };
-        var nextHistory = new[] { entry }.Concat(Risk.History).ToList();
-        _ = SaveRiskAsync(EntityClone.Risk(Risk, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+        await SaveRiskAsync(r =>
+        {
+            Risk latest = Cache.TryGetRisk(r.Id) ?? r;
+            var nextHistory = new[] { entry }.Concat(latest.History).ToList();
+            return EntityClone.Risk(latest, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
+        });
         _newNoteText = "";
         _isAddingNote = false;
     }
@@ -212,7 +263,7 @@ public partial class RiskDetail
 
     private void OnHistoryDraftInput(ChangeEventArgs e) => _historyDraftText = e.Value?.ToString() ?? "";
 
-    private void SaveHistoryNote()
+    private async Task SaveHistoryNote()
     {
         if (Risk is null || _selectedHistoryId is null)
         {
@@ -225,34 +276,63 @@ public partial class RiskDetail
             return;
         }
 
-        var nextHistory = Risk.History
-            .Select(h => h.Id == _selectedHistoryId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
-            .ToList();
-        _ = SaveRiskAsync(EntityClone.Risk(Risk, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o")));
+        Guid historyId = _selectedHistoryId.Value;
+        await SaveRiskAsync(r =>
+        {
+            Risk latest = Cache.TryGetRisk(r.Id) ?? r;
+            var nextHistory = latest.History
+                .Select(h => h.Id == historyId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
+                .ToList();
+            return EntityClone.Risk(latest, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
+        });
         CloseHistoryNote();
     }
 
-    private async Task SaveRiskAsync(Risk next)
+    private async Task SaveRiskAsync(Func<Risk, Risk> edit, bool debounce = false)
     {
+        if (Risk is null)
+        {
+            return;
+        }
+
+        Guid riskId = Risk.Id;
         try
         {
-            await RiskService.UpdateAsync(next);
+            await RiskService.UpdateAsync(riskId, edit, debounce);
+            _saveState = RiskService.GetSaveState(riskId);
         }
         catch (Exception)
         {
+            _saveState = RiskService.GetSaveState(riskId);
             await Dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
         }
     }
 
-    private async Task SaveTeamMembersAsync(Risk risk)
+    private async Task SaveTeamMembersAsync(IReadOnlyList<Guid> memberIds)
     {
+        if (Risk is null)
+        {
+            return;
+        }
+
         try
         {
-            await RiskService.SetTeamMembersAsync(risk);
+            await RiskService.SetTeamMembersAsync(Risk.Id, memberIds);
         }
         catch (Exception)
         {
             await Dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
         }
     }
+
+    private string SaveStateLabel => _saveState switch
+    {
+        EntitySaveState.Saving => "Saving…",
+        EntitySaveState.Saved => "Saved",
+        EntitySaveState.Failed => "Save failed",
+        EntitySaveState.Idle => "",
+        _ => ""
+    };
+
+    public void Dispose() => RiskService.SaveStateChanged -= OnSaveStateChangedAsync;
 }
