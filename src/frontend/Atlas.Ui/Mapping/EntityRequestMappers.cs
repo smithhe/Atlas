@@ -6,12 +6,9 @@ namespace Atlas.Ui.Mapping;
 /// <summary>Domain entity → NSwag request DTOs for create/update mutations.</summary>
 public static class EntityRequestMappers
 {
-    public static AtlasApiDTOsTasksCreateTaskRequest ToCreateTaskRequest(
-        AtlasTask task,
-        IReadOnlyList<Project> projects,
-        IReadOnlyList<Risk> risks)
+    public static AtlasApiDTOsTasksCreateTaskRequest ToCreateTaskRequest(AtlasTask task)
     {
-        TaskRequestFields fields = GetTaskRequestFields(task, projects, risks);
+        TaskRequestFields fields = GetTaskRequestFields(task);
         return new()
         {
             Title = fields.Title,
@@ -29,12 +26,9 @@ public static class EntityRequestMappers
         };
     }
 
-    public static AtlasApiDTOsTasksUpdateTaskRequest ToUpdateTaskRequest(
-        AtlasTask task,
-        IReadOnlyList<Project> projects,
-        IReadOnlyList<Risk> risks)
+    public static AtlasApiDTOsTasksUpdateTaskRequest ToUpdateTaskRequest(AtlasTask task)
     {
-        TaskRequestFields fields = GetTaskRequestFields(task, projects, risks);
+        TaskRequestFields fields = GetTaskRequestFields(task);
         return new()
         {
             Title = fields.Title,
@@ -52,17 +46,14 @@ public static class EntityRequestMappers
         };
     }
 
-    private static TaskRequestFields GetTaskRequestFields(
-        AtlasTask task,
-        IReadOnlyList<Project> projects,
-        IReadOnlyList<Risk> risks) =>
+    private static TaskRequestFields GetTaskRequestFields(AtlasTask task) =>
         new(
             task.Title,
             ApiMappers.ToApiPriority(task.Priority),
             ApiMappers.ToApiTaskStatus(task.Status),
             task.AssigneeId,
-            FindProjectIdByName(task.Project, projects),
-            FindRiskIdByTitle(task.Risk, risks),
+            task.ProjectId,
+            task.RiskId,
             ParseDate(task.DueDate),
             task.DependencyTaskIds.ToList(),
             task.EstimatedDurationText,
@@ -84,11 +75,9 @@ public static class EntityRequestMappers
         string? ActualDurationText,
         string Notes);
 
-    public static AtlasApiDTOsRisksCreateRiskRequest ToCreateRiskRequest(
-        Risk risk,
-        IReadOnlyList<Project> projects)
+    public static AtlasApiDTOsRisksCreateRiskRequest ToCreateRiskRequest(Risk risk)
     {
-        RiskRequestFields fields = GetRiskRequestFields(risk, projects);
+        RiskRequestFields fields = GetRiskRequestFields(risk);
         return new()
         {
             Title = fields.Title,
@@ -100,11 +89,9 @@ public static class EntityRequestMappers
         };
     }
 
-    public static AtlasApiDTOsRisksUpdateRiskRequest ToUpdateRiskRequest(
-        Risk risk,
-        IReadOnlyList<Project> projects)
+    public static AtlasApiDTOsRisksUpdateRiskRequest ToUpdateRiskRequest(Risk risk)
     {
-        RiskRequestFields fields = GetRiskRequestFields(risk, projects);
+        RiskRequestFields fields = GetRiskRequestFields(risk);
         return new()
         {
             Title = fields.Title,
@@ -119,12 +106,12 @@ public static class EntityRequestMappers
     public static AtlasApiDTOsRisksSetRiskTeamMembersRequest ToSetRiskTeamMembersRequest(Risk risk) =>
         new() { TeamMemberIds = risk.LinkedTeamMemberIds.ToList() };
 
-    private static RiskRequestFields GetRiskRequestFields(Risk risk, IReadOnlyList<Project> projects) =>
+    private static RiskRequestFields GetRiskRequestFields(Risk risk) =>
         new(
             risk.Title,
             ApiMappers.ToApiRiskStatus(risk.Status),
             ApiMappers.ToApiSeverity(risk.Severity),
-            FindProjectIdByName(risk.Project, projects),
+            risk.ProjectId,
             risk.Description,
             risk.Evidence);
 
@@ -264,6 +251,9 @@ public static class EntityRequestMappers
     public static AtlasApiDTOsTeamMembersAzureWorkItemsAddAzureWorkItemLocalNoteRequest ToAddAzureWorkItemLocalNoteRequest(string text) =>
         new() { Text = text };
 
+    public static AtlasApiDTOsTeamMembersAzureWorkItemsSetAzureWorkItemProjectRequest ToSetAzureWorkItemProjectRequest(Guid? projectId) =>
+        new() { ProjectId = projectId };
+
     public static AtlasApiDTOsTeamMembersNotesAddTeamNoteRequest ToAddTeamNoteRequest(
         NoteTag tag,
         string text,
@@ -376,12 +366,6 @@ public static class EntityRequestMappers
 
     public static AtlasApiDTOsGrowthUpdateGrowthFocusAreasRequest ToUpdateGrowthFocusAreasRequest(string? markdown) =>
         new() { FocusAreasMarkdown = markdown };
-
-    private static Guid? FindProjectIdByName(string? name, IReadOnlyList<Project> projects) =>
-        string.IsNullOrWhiteSpace(name) ? null : projects.FirstOrDefault(p => p.Name == name)?.Id;
-
-    private static Guid? FindRiskIdByTitle(string? title, IReadOnlyList<Risk> risks) =>
-        string.IsNullOrWhiteSpace(title) ? null : risks.FirstOrDefault(r => r.Title == title)?.Id;
 
     private static DateTimeOffset? ParseDate(string? iso)
     {

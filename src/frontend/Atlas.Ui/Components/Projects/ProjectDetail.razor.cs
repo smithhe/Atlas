@@ -79,14 +79,14 @@ public partial class ProjectDetail : IDisposable
             ? Array.Empty<AtlasTask>()
             : Cache.Tasks.Where(t =>
                 Project.LinkedTaskIds.Contains(t.Id) ||
-                (!string.IsNullOrEmpty(t.Project) && t.Project == Project.Name)).ToList();
+                t.ProjectId == Project.Id).ToList();
 
     private IReadOnlyList<Risk> LinkedRisks =>
         Project is null
             ? Array.Empty<Risk>()
             : Cache.Risks.Where(r =>
                 Project.LinkedRiskIds.Contains(r.Id) ||
-                (!string.IsNullOrEmpty(r.Project) && r.Project == Project.Name)).ToList();
+                r.ProjectId == Project.Id).ToList();
 
     private IReadOnlyList<AzureItem> LinkedAzureItems
     {

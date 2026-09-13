@@ -20,6 +20,10 @@
             <div class="riskDetailHeader">
                 <div class="riskDetailHeaderTop">
                     <div class="riskDetailTitle">@(string.IsNullOrEmpty(risk.Title) ? "Risk Detail" : risk.Title)</div>
+                    @if (!string.IsNullOrEmpty(SaveStateLabel))
+                    {
+                        <div class="mutedSmall">@SaveStateLabel</div>
+                    }
                     <div class="riskDetailHeaderRight">
                         @if (!_editing)
                         {
@@ -79,15 +83,15 @@
                     <div class="fieldLabel">Project</div>
                     @if (_editing)
                     {
-                        <select class="select" value="@(risk.Project ?? "")" @onchange="OnProjectChange">
+                        <select class="select" value="@(risk.ProjectId?.ToString() ?? "")" @onchange="OnProjectChange">
                             <option value="">(None)</option>
-                            @foreach (string p in ProjectOptions)
+                            @foreach (Project p in ProjectOptions)
                             {
-                                <option value="@p">@p</option>
+                                <option value="@p.Id">@p.Name</option>
                             }
-                            @if (!string.IsNullOrEmpty(risk.Project) && !ProjectOptions.Contains(risk.Project))
+                            @if (risk.ProjectId is not null && ProjectOptions.All(p => p.Id != risk.ProjectId))
                             {
-                                <option value="@risk.Project">@risk.Project (custom)</option>
+                                <option value="@risk.ProjectId">@(risk.Project ?? risk.ProjectId.ToString())</option>
                             }
                         </select>
                     }

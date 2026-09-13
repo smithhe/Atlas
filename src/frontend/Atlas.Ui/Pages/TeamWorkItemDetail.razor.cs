@@ -65,15 +65,27 @@ public partial class TeamWorkItemDetail : IDisposable
         }
     }
 
-    private void OnProjectChange(ChangeEventArgs e)
+    private async Task OnProjectChange(ChangeEventArgs e)
     {
         if (Member is null || Item is null)
         {
             return;
         }
 
-        var nextProject = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
-        AzureWorkItemService.SetProject(Member.Id, Item.Id, nextProject);
+        var raw = e.Value?.ToString();
+        Guid? nextProject = null;
+        if (!string.IsNullOrEmpty(raw) && Guid.TryParse(raw, out Guid parsed))
+        {
+            nextProject = parsed;
+        }
+        try
+        {
+            await AzureWorkItemService.SetProjectAsync(Member.Id, Item.Id, nextProject);
+        }
+        catch (Exception)
+        {
+            await Dialogs.AlertAsync("Unable to save work item project right now. Please try again.");
+        }
     }
 
     private async Task AddLocalNote()
