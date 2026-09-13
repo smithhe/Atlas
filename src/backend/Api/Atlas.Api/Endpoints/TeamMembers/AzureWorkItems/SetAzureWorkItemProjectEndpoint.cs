@@ -16,7 +16,13 @@ public sealed class SetAzureWorkItemProjectEndpoint : Endpoint<SetAzureWorkItemP
     {
         Put("/team-members/{teamMemberId:guid}/azure-work-items/{workItemId:int}/project");
         AllowAnonymous();
-        Summary(s => s.Summary = "Assign or clear the Atlas project linked to a team member Azure work item");
+        Summary(s =>
+        {
+            s.Summary = "Assign or clear the Atlas project linked to a team member Azure work item";
+            s.Response(204, "No Content");
+            s.Response(400, "Validation error");
+            s.Response(404, "Not Found");
+        });
     }
 
     public override async Task HandleAsync(SetAzureWorkItemProjectRequest req, CancellationToken ct)
