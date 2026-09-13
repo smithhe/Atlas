@@ -96,7 +96,8 @@
                             {
                                 string projectId = p.Id;
                                 bool selected = projectId == _selectedProjectId;
-                                <button type="button"
+                                <button @key="projectId"
+                                        type="button"
                                         class="listRow listRowBtn @(selected ? "listRowActive" : null)"
                                         disabled="@_loading"
                                         @onclick="() => OnSelectProject(projectId)">
@@ -147,7 +148,8 @@
                                 string teamId = t.Id ?? "";
                                 string teamName = t.Name ?? "";
                                 bool selected = teamId == _selectedTeamId;
-                                <button type="button"
+                                <button @key="teamId"
+                                        type="button"
                                         class="listRow listRowBtn @(selected ? "listRowActive" : null)"
                                         disabled="@_loading"
                                         @onclick="() => OnSelectTeam(teamId, teamName)">

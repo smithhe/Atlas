@@ -89,7 +89,21 @@ public sealed class EntityAutosaveCoordinator<T> where T : class
             }
         }
 
-        await _writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            await _writeGate.WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            RemovePendingEdit(generation);
+            if (generation == Volatile.Read(ref _editGeneration))
+            {
+                SetState(EntitySaveState.Idle);
+            }
+
+            throw;
+        }
+
         try
         {
             while (true)

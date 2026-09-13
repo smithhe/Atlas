@@ -48,17 +48,31 @@ public partial class Settings : IDisposable
         ? DisplayLabels.FormatReadableDateTime(_syncState.LastAttemptedAtUtc.Value.ToString("o"))
         : null;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
         Ai.SetContext("Context: Settings", [new AiAction("settings-help", "Explain settings")]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
         SyncFromCache();
-        _ = LoadAzureAsync();
-        _ = LoadSyncStateAsync();
+        await LoadAzureAsync();
+        await LoadSyncStateAsync();
     }
 
-    private void OnChanged() => InvokeAsync(() => { SyncFromCache(); StateHasChanged(); });
+    private async void OnChangedAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                SyncFromCache();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void SyncFromCache()
     {
@@ -324,5 +338,5 @@ public partial class Settings : IDisposable
         _ => ""
     };
 
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose() => Cache.Changed -= OnChangedAsync;
 }

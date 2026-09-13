@@ -119,7 +119,8 @@
                     int days = DisplayLabels.DaysSince(t.LastTouchedIso) ?? 0;
                     string activity = ActivityColor(days);
                     int depCount = BlockedByCount(t);
-                    <button type="button"
+                    <button @key="taskId"
+                            type="button"
                             class="listRow listRowBtn tasksTaskRow @(taskId == Selection.SelectedTaskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(taskId)"
                             @ondblclick="() => GoFocus(taskId)">

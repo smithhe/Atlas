@@ -99,16 +99,16 @@ public partial class MemberGrowthTab : IDisposable
         }
     }
 
-    protected override void OnInitialized() => Cache.Changed += OnChanged;
+    protected override void OnInitialized() => Cache.Changed += OnChangedAsync;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         if (Member.Id != _growthMemberId)
         {
             ResetMemberState();
             _growthMemberId = Member.Id;
             _memberInitializing = true;
-            _ = Cache.EnsureGrowthLoadedAsync(Member.Id);
+            await Cache.EnsureGrowthLoadedAsync(Member.Id);
         }
 
         _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
@@ -134,21 +134,31 @@ public partial class MemberGrowthTab : IDisposable
         _focusDraft = "";
     }
 
-    private void OnChanged()
+    private async void OnChangedAsync()
     {
         if (_disposed)
         {
             return;
         }
 
-        _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
-        _loadError = Cache.GetGrowthLoadError(Member.Id);
-        if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+        try
         {
-            _memberInitializing = false;
-        }
+            await InvokeAsync(() =>
+            {
+                _loadStatus = Cache.GetGrowthLoadStatus(Member.Id);
+                _loadError = Cache.GetGrowthLoadError(Member.Id);
+                if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+                {
+                    _memberInitializing = false;
+                }
 
-        _ = InvokeAsync(StateHasChanged);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
     }
 
     private async Task RetryLoad()
@@ -499,6 +509,6 @@ public partial class MemberGrowthTab : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        Cache.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
     }
 }

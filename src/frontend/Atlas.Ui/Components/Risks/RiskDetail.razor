@@ -156,7 +156,7 @@
                                 {
                                     @foreach (AtlasTask t in linkedTasks)
                                     {
-                                        <button type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
+                                        <button @key="t.Id" type="button" class="listRow listRowBtn" @onclick="() => GoTask(t.Id)">
                                             <span class="dot dot-@t.Priority.ToString().ToLowerInvariant()" aria-hidden="true"></span>
                                             <div class="listMain">
                                                 <div class="listTitle">@t.Title</div>
@@ -190,7 +190,7 @@
                                         @foreach (TeamMember m in teamMemberOptions)
                                         {
                                             bool linked = risk.LinkedTeamMemberIds.Contains(m.Id);
-                                            <label class="listRow" style="cursor: pointer">
+                                            <label @key="m.Id" class="listRow" style="cursor: pointer">
                                                 <input type="checkbox"
                                                        checked="@linked"
                                                        @onchange="e => OnTeamMemberToggle(m.Id, e)" />
@@ -217,7 +217,7 @@
                                     {
                                         @foreach (TeamMember m in linkedMembers)
                                         {
-                                            <button type="button" class="listRow listRowBtn" @onclick="() => GoTeamMember(m.Id)">
+                                            <button @key="m.Id" type="button" class="listRow listRowBtn" @onclick="() => GoTeamMember(m.Id)">
                                                 <span class="dot dot-@m.StatusDot.ToLowerInvariant()" aria-hidden="true"></span>
                                                 <div class="listMain">
                                                     <div class="listTitle">@m.Name</div>
@@ -269,7 +269,8 @@
                                 @foreach (RiskHistoryEntry h in historyNewestFirst)
                                 {
                                     Guid historyId = h.Id;
-                                    <button type="button"
+                                    <button @key="historyId"
+                                            type="button"
                                             class="listRow listRowBtn"
                                             @onclick="() => OpenHistoryNote(historyId, h.Text)">
                                         <div class="listMain">

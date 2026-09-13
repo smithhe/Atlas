@@ -24,7 +24,7 @@
                     {
                         @foreach (DashRow row in _needsAction)
                         {
-                            <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@row.Title</div>
@@ -52,7 +52,7 @@
                     {
                         @foreach (DashRow row in _watchlist)
                         {
-                            <button class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@row.Title</div>
@@ -87,7 +87,7 @@
                     {
                         @foreach (AtlasTask t in _commitmentToday)
                         {
-                            <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
+                            <button @key="t.Id" class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@t.Title</div>
@@ -111,7 +111,7 @@
                     {
                         @foreach (AtlasTask t in _commitmentWeek)
                         {
-                            <button class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
+                            <button @key="t.Id" class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@t.Title</div>
@@ -148,7 +148,7 @@
                         int? days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
                         string freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
                         string freshnessTone = days is null ? "pillToneBad" : days > 7 ? "pillToneBad" : days >= 4 ? "pillToneWarn" : "pillToneOk";
-                        <button class="listRow listRowBtn" type="button" @onclick="() => GoTeam(m.Id)">
+                        <button @key="m.Id" class="listRow listRowBtn" type="button" @onclick="() => GoTeam(m.Id)">
                             <span class="dot dot-@(m.StatusDot.ToLowerInvariant())"></span>
                             <div class="listMain">
                                 <div class="listTitle">@m.Name</div>
@@ -175,7 +175,7 @@
                 {
                     @foreach (DriftRow d in _drift)
                     {
-                        <button class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
+                        <button @key="d.Key" class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
                             <span class="dot dot-stale"></span>
                             <div class="listMain">
                                 <div class="listTitle">@d.Title</div>

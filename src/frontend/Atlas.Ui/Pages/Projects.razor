@@ -16,7 +16,8 @@
                         Guid projectId = p.Id;
                         string projectName = p.Name;
                         string projectSummary = p.Summary;
-                        <button type="button"
+                        <button @key="projectId"
+                                type="button"
                                 class="listRow listRowBtn @(projectId == Selection.SelectedProjectId ? "listRowActive" : null)"
                                 @onclick="() => SelectFromList(projectId)"
                                 @ondblclick="() => GoFocus(projectId)">

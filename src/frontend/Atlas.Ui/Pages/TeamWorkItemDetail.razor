@@ -114,7 +114,7 @@
                 {
                     @foreach (WorkItemNote n in Item.LocalNotes ?? [])
                     {
-                        <div class="listRow">
+                        <div @key="n.Id" class="listRow">
                             <div class="listMain">
                                 <div class="listMeta">@DisplayLabels.FormatDateTime(n.CreatedIso)</div>
                                 <div class="noteText noteBody"><MarkdownBlock Text="@n.Text" /></div>

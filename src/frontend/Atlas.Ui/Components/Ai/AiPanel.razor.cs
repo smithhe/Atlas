@@ -4,7 +4,7 @@ using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Components.Ai;
 
-public partial class AiPanel : IDisposable
+public partial class AiPanel
 {
     [Inject] private AiStateService Ai { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
@@ -17,9 +17,9 @@ public partial class AiPanel : IDisposable
     {
         get
         {
-            for (var i = Ai.Turns.Count - 1; i >= 0; i--)
+            for (int i = Ai.Turns.Count - 1; i >= 0; i--)
             {
-                var text = Ai.Turns[i].Response?.Trim();
+                string? text = Ai.Turns[i].Response?.Trim();
                 if (!string.IsNullOrEmpty(text))
                 {
                     return text;
@@ -86,7 +86,7 @@ public partial class AiPanel : IDisposable
 
     protected override void OnInitialized()
     {
-        Ai.Changed += OnAiChanged;
+        Ai.Changed += OnAiChangedAsync;
         Ai.EnsureStartupPreference();
         if (Ai.IsOpen)
         {
@@ -94,27 +94,37 @@ public partial class AiPanel : IDisposable
         }
     }
 
-    private void OnAiChanged() => InvokeAsync(async () =>
+    private async void OnAiChangedAsync()
     {
-        StateHasChanged();
-        if (ShouldStickToBottom && Ai.IsOpen)
+        try
         {
-            try
+            await InvokeAsync(async () =>
             {
-                await Js.InvokeVoidAsync("atlasAiEvents.scrollToBottom", _scrollRef);
-            }
-            catch
-            {
-                // Element may not be mounted yet.
-            }
+                StateHasChanged();
+                if (ShouldStickToBottom && Ai.IsOpen)
+                {
+                    try
+                    {
+                        await Js.InvokeVoidAsync("atlasAiEvents.scrollToBottom", _scrollRef);
+                    }
+                    catch
+                    {
+                        // Element may not be mounted yet.
+                    }
+                }
+            });
         }
-    });
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void OnPromptInput(ChangeEventArgs e) => Ai.SetPromptDraft(e.Value?.ToString() ?? "");
 
     private void SendPrompt()
     {
-        var prompt = Ai.PromptDraft;
+        string prompt = Ai.PromptDraft;
         Ai.SetPromptDraft("");
         Ai.SendPrompt(prompt);
     }
@@ -146,7 +156,7 @@ public partial class AiPanel : IDisposable
 
         try
         {
-            var ok = await Js.InvokeAsync<bool>("atlasAiEvents.copyText", turn.Response);
+            bool ok = await Js.InvokeAsync<bool>("atlasAiEvents.copyText", turn.Response);
             if (!ok)
             {
                 Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
@@ -155,29 +165,23 @@ public partial class AiPanel : IDisposable
 
             _copiedTurnId = turn.Id;
             _copyResetCts?.Cancel();
+            _copyResetCts?.Dispose();
             _copyResetCts = new CancellationTokenSource();
             CancellationToken token = _copyResetCts.Token;
-            _ = Task.Run(async () =>
+            try
             {
-                try
+                await Task.Delay(1500, token);
+                if (_copiedTurnId == turn.Id)
                 {
-                    await Task.Delay(1500, token);
-                    await InvokeAsync(() =>
-                    {
-                        if (_copiedTurnId == turn.Id)
-                        {
-                            _copiedTurnId = null;
-                        }
+                    _copiedTurnId = null;
+                }
 
-                        StateHasChanged();
-                    });
-                }
-                catch (TaskCanceledException)
-                {
-                    // superseded
-                }
-            });
-            StateHasChanged();
+                StateHasChanged();
+            }
+            catch (OperationCanceledException)
+            {
+                // superseded
+            }
         }
         catch
         {
@@ -185,20 +189,29 @@ public partial class AiPanel : IDisposable
         }
     }
 
-    private void OnConversationChange(ChangeEventArgs e)
+    private async Task OnConversationChange(ChangeEventArgs e)
     {
         if (Guid.TryParse(e.Value?.ToString(), out Guid id))
         {
-            _ = Ai.OpenConversationAsync(id);
+            await Ai.OpenConversationAsync(id);
         }
+    }
+
+    private async Task StartNewSessionAsync()
+    {
+        await Ai.StartNewSessionAsync();
     }
 
     private static bool IsOpenAiNotConfigured(string text) => text.Contains("OpenAI is not configured", StringComparison.Ordinal);
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        Ai.Changed -= OnAiChanged;
-        _copyResetCts?.Cancel();
-        _copyResetCts?.Dispose();
+        Ai.Changed -= OnAiChangedAsync;
+        if (_copyResetCts is not null)
+        {
+            await _copyResetCts.CancelAsync();
+            _copyResetCts.Dispose();
+            _copyResetCts = null;
+        }
     }
 }

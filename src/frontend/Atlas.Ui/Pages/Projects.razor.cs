@@ -36,16 +36,16 @@ public partial class Projects : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
-        Selection.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
+        Selection.Changed += OnChangedAsync;
         Ai.SetContext("Context: Projects",
         [
             new AiAction("project-summary", "Summarize project status"),
             new AiAction("identify-risks", "Identify risks"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -60,16 +60,26 @@ public partial class Projects : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+        try
         {
-            Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
-            return;
-        }
+            await InvokeAsync(() =>
+            {
+                if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+                {
+                    Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
+                    return;
+                }
 
-        StateHasChanged();
-    });
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void SelectFromList(Guid id) => Selection.SelectProject(id);
 
@@ -167,7 +177,7 @@ public partial class Projects : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
-        Selection.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
+        Selection.Changed -= OnChangedAsync;
     }
 }

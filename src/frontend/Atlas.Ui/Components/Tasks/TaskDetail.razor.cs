@@ -83,8 +83,23 @@ public partial class TaskDetail : IDisposable
                 return;
             }
 
-            _saveState = TaskService.GetSaveState(taskId);
-            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(() =>
+            {
+                _saveState = TaskService.GetSaveState(taskId);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private async void ClearAutoEditFireAndForget()
+    {
+        try
+        {
+            await AutoEditCleared.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -97,7 +112,7 @@ public partial class TaskDetail : IDisposable
         _editing = !_editing;
         if (!_editing && Task is not null && AutoEditId == Task.Id)
         {
-            _ = AutoEditCleared.InvokeAsync();
+            ClearAutoEditFireAndForget();
         }
 
         SyncDraftTarget();

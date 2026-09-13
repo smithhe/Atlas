@@ -63,17 +63,17 @@ public partial class Tasks : IDisposable
 
     private IReadOnlyList<AtlasTask> FilteredSorted => BuildFilteredSorted();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
-        Selection.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
+        Selection.Changed += OnChangedAsync;
         Ai.SetContext("Context: Tasks",
         [
             new AiAction("suggest-next-task", "Suggest Next Task"),
             new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
             new AiAction("reprioritize", "Reprioritize suggestions"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -88,16 +88,26 @@ public partial class Tasks : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (IsFocusMode && Guid.TryParse(TaskId, out Guid id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+        try
         {
-            Nav.NavigateTo("/tasks", replace: true);
-            return;
-        }
+            await InvokeAsync(() =>
+            {
+                if (IsFocusMode && Guid.TryParse(TaskId, out Guid id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+                {
+                    Nav.NavigateTo("/tasks", replace: true);
+                    return;
+                }
 
-        StateHasChanged();
-    });
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void SelectFromList(Guid id)
     {
@@ -357,8 +367,8 @@ public partial class Tasks : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
-        Selection.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
+        Selection.Changed -= OnChangedAsync;
         Ai.RegisterDraftTarget(null);
     }
 }

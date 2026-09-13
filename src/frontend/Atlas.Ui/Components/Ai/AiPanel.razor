@@ -1,3 +1,5 @@
+@implements IAsyncDisposable
+
 @if (Ai.IsOpen)
 {
     <aside class="aiPanel" aria-label="AI panel">
@@ -11,7 +13,7 @@
                         @onclick="HandleInsertDraft">
                     Insert Draft
                 </button>
-                <button class="btn btnGhost" type="button" disabled="@Ai.IsRunning" @onclick="() => _ = Ai.StartNewSessionAsync()">
+                <button class="btn btnGhost" type="button" disabled="@Ai.IsRunning" @onclick="StartNewSessionAsync">
                     New session
                 </button>
                 <button class="btn btnGhost" type="button" @onclick="Ai.ClearOutput">Clear</button>
@@ -98,7 +100,8 @@
                 <div class="aiPanelQuickActions">
                     @foreach (AiAction action in Ai.Actions)
                     {
-                        <button class="btn btnSecondary"
+                        <button @key="action.Id"
+                                class="btn btnSecondary"
                                 type="button"
                                 disabled="@(Ai.IsRunning || !Ai.IsContextSupported)"
                                 @onclick="() => Ai.RunAction(action.Id)">

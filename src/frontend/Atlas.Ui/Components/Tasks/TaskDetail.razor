@@ -272,7 +272,7 @@
                             {
                                 string blockerStatus = DisplayLabels.FormatTaskStatus(blocker.Status);
                                 var suffix = $"{(string.IsNullOrEmpty(blocker.Project) ? "" : $" • {blocker.Project}")}{(string.IsNullOrEmpty(blocker.Risk) ? "" : $" • Risk: {blocker.Risk}")}";
-                                <div class="blockersItem" role="listitem">
+                                <div @key="blocker.Id" class="blockersItem" role="listitem">
                                     <div class="blockersItemText">
                                         <div class="blockersItemTitle">@blocker.Title</div>
                                         <div class="blockersItemMeta">@suffix</div>

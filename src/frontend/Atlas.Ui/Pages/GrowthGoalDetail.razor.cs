@@ -100,13 +100,13 @@ public partial class GrowthGoalDetail : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
-        _ = Cache.EnsureHydratedAsync();
+        Cache.Changed += OnChangedAsync;
+        await Cache.EnsureHydratedAsync();
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         var routeChanged = !string.Equals(_routeMemberId, MemberId, StringComparison.Ordinal)
                            || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
@@ -134,7 +134,7 @@ public partial class GrowthGoalDetail : IDisposable
             {
                 _loadedGrowthMemberId = memberId;
                 _routeInitializing = true;
-                _ = Cache.EnsureGrowthLoadedAsync(memberId);
+                await Cache.EnsureGrowthLoadedAsync(memberId);
             }
 
             if (Cache.TeamReady && Member is null)
@@ -580,27 +580,37 @@ public partial class GrowthGoalDetail : IDisposable
         }
     }
 
-    private void OnChanged()
+    private async void OnChangedAsync()
     {
         if (_disposed)
         {
             return;
         }
 
-        if (Guid.TryParse(MemberId, out Guid id))
+        try
         {
-            _loadStatus = Cache.GetGrowthLoadStatus(id);
-            _loadError = Cache.GetGrowthLoadError(id);
-            UpdateRouteInitializingFromLoadStatus();
-        }
+            await InvokeAsync(() =>
+            {
+                if (Guid.TryParse(MemberId, out Guid id))
+                {
+                    _loadStatus = Cache.GetGrowthLoadStatus(id);
+                    _loadError = Cache.GetGrowthLoadError(id);
+                    UpdateRouteInitializingFromLoadStatus();
+                }
 
-        _ = InvokeAsync(StateHasChanged);
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
     }
 
     public void Dispose()
     {
         _disposed = true;
         GrowthService.AbandonGoalPersists();
-        Cache.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
     }
 }

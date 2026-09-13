@@ -72,8 +72,11 @@ public partial class RiskDetail : IDisposable
                 return;
             }
 
-            _saveState = RiskService.GetSaveState(riskId);
-            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(() =>
+            {
+                _saveState = RiskService.GetSaveState(riskId);
+                StateHasChanged();
+            });
         }
         catch (Exception ex)
         {
@@ -103,12 +106,24 @@ public partial class RiskDetail : IDisposable
             .ToList();
     }
 
+    private async void ClearAutoEditFireAndForget()
+    {
+        try
+        {
+            await AutoEditCleared.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
     private void ToggleEdit()
     {
         _editing = !_editing;
         if (!_editing && Risk is not null && AutoEditId == Risk.Id)
         {
-            _ = AutoEditCleared.InvokeAsync();
+            ClearAutoEditFireAndForget();
         }
     }
 
@@ -321,6 +336,7 @@ public partial class RiskDetail : IDisposable
         }
         catch (Exception)
         {
+            _saveState = EntitySaveState.Failed;
             await Dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
         }
     }

@@ -104,6 +104,7 @@ public sealed class AppCacheService
     private readonly Dictionary<Guid, CancellationTokenSource> _growthLoadCancellations = new();
 
     private const string GrowthEnsureFailedMessage = "Unable to ensure growth record for team member.";
+    private const string HydrationFailedMessage = "Unable to load application data.";
 
     public string? LastError { get; private set; }
 
@@ -116,6 +117,12 @@ public sealed class AppCacheService
             _hydration ??= HydrateAsync(cancellationToken);
             return _hydration;
         }
+    }
+
+    public void RecordHydrationFailure(Exception ex)
+    {
+        LastError ??= HydrationFailedMessage;
+        Notify();
     }
 
     private async Task HydrateAsync(CancellationToken cancellationToken)
