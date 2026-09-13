@@ -50,7 +50,7 @@
                 {
                     TeamNote note = n;
                     bool expanded = _expandedNoteId == note.Id;
-                    <div class="listRow memberNotesRow memberNotesRowBtn @(expanded ? "memberNotesRowExpanded" : null)"
+                    <div @key="note.Id" class="listRow memberNotesRow memberNotesRowBtn @(expanded ? "memberNotesRowExpanded" : null)"
                          role="button"
                          tabindex="0"
                          aria-expanded="@expanded"

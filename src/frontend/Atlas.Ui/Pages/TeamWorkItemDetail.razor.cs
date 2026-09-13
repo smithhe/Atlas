@@ -40,11 +40,11 @@ public partial class TeamWorkItemDetail : IDisposable
             ? null
             : Member.AzureItems.FirstOrDefault(a => a.Id == WorkItemId);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
         Ai.SetContext("Context: Team Work Item Detail", [new AiAction("summarize-item", "Summarize this work item")]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -118,16 +118,26 @@ public partial class TeamWorkItemDetail : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        try
         {
-            Nav.NavigateTo("/team", replace: true);
-            return;
+            await InvokeAsync(() =>
+            {
+                if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                {
+                    Nav.NavigateTo("/team", replace: true);
+                    return;
+                }
+
+                StateHasChanged();
+            });
         }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
-        StateHasChanged();
-    });
-
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose() => Cache.Changed -= OnChangedAsync;
 }

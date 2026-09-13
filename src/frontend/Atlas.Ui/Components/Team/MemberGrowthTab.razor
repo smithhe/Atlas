@@ -33,7 +33,7 @@
                 @foreach (GrowthGoal g in ActiveGoals)
                 {
                     GrowthGoal goal = g;
-                    <button type="button" class="card subtle growthGoalCard growthGoalCardBtn"
+                    <button @key="goal.Id" type="button" class="card subtle growthGoalCard growthGoalCardBtn"
                             @onclick="() => OpenGoal(goal.Id)">
                         <div class="pad">
                             <div class="growthGoalTop">
@@ -100,7 +100,7 @@
                     @foreach (GrowthFeedbackTheme t in Themes)
                     {
                         GrowthFeedbackTheme theme = t;
-                        <button type="button" class="growthListRow growthListRowBtn" title="Edit theme" @onclick="() => OpenEditTheme(theme.Id)">
+                        <button @key="theme.Id" type="button" class="growthListRow growthListRowBtn" title="Edit theme" @onclick="() => OpenEditTheme(theme.Id)">
                             <div class="growthListMain">
                                 <div class="growthListTitle">@theme.Title</div>
                                 <div class="growthListDesc">@theme.Description</div>

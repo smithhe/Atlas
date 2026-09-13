@@ -26,19 +26,33 @@ public partial class Dashboard : IDisposable
     private string _nowIso = "";
     private string _todayIsoDate = "";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnCacheChanged;
+        Cache.Changed += OnCacheChangedAsync;
         Ai.SetContext("Context: Dashboard",
         [
             new AiAction("suggest-next-action", "Suggest Next Action"),
             new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
         Rebuild();
     }
 
-    private void OnCacheChanged() => InvokeAsync(() => { Rebuild(); StateHasChanged(); });
+    private async void OnCacheChangedAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                Rebuild();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void Rebuild()
     {
@@ -385,5 +399,5 @@ public partial class Dashboard : IDisposable
         }
     }
 
-    public void Dispose() => Cache.Changed -= OnCacheChanged;
+    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
 }

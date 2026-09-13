@@ -28,14 +28,24 @@ public partial class AzureImport : IDisposable
             ? Cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
             : null;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnCacheChanged;
-        _ = Cache.EnsureHydratedAsync();
-        _ = LoadAsync();
+        Cache.Changed += OnCacheChangedAsync;
+        await Cache.EnsureHydratedAsync();
+        await LoadAsync();
     }
 
-    private void OnCacheChanged() => InvokeAsync(StateHasChanged);
+    private async void OnCacheChangedAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private async Task LoadAsync()
     {
@@ -272,5 +282,5 @@ public partial class AzureImport : IDisposable
         _selectedWorkItems = [];
     }
 
-    public void Dispose() => Cache.Changed -= OnCacheChanged;
+    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
 }

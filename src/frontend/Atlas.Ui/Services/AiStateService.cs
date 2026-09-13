@@ -122,7 +122,7 @@ public sealed class AiStateService : IAsyncDisposable
         Notify();
         if (isOpen)
         {
-            _ = RefreshConversationsAsync();
+            RefreshConversationsFireAndForget();
         }
     }
 
@@ -198,7 +198,7 @@ public sealed class AiStateService : IAsyncDisposable
         Notify();
     }
 
-    public void LoadConversations() => _ = RefreshConversationsAsync();
+    public void LoadConversations() => RefreshConversationsFireAndForget();
 
     public async Task OpenConversationAsync(Guid conversationId)
     {
@@ -263,10 +263,10 @@ public sealed class AiStateService : IAsyncDisposable
         var prompt = string.IsNullOrWhiteSpace(promptOverride)
             ? $"Please help with this action: {action?.Label ?? actionId}"
             : promptOverride.Trim();
-        _ = SendTurnAsync(prompt, actionId);
+        RunSendTurnFireAndForget(prompt, actionId);
     }
 
-    public void SendPrompt(string prompt) => _ = SendTurnAsync(prompt);
+    public void SendPrompt(string prompt) => RunSendTurnFireAndForget(prompt);
 
     private async Task SendTurnAsync(string prompt, string? actionId = null)
     {
@@ -360,7 +360,7 @@ public sealed class AiStateService : IAsyncDisposable
 
         Status = "Failed";
         IsRunning = false;
-        _ = _events.CloseAsync();
+        CloseEventsFireAndForget();
         Notify();
     }
 
@@ -384,10 +384,64 @@ public sealed class AiStateService : IAsyncDisposable
         {
             IsRunning = false;
             _activeTurnId = null;
-            _ = FinishTerminalAsync();
+            FinishTerminalFireAndForget();
         }
 
         Notify();
+    }
+
+    private async void RefreshConversationsFireAndForget()
+    {
+        try
+        {
+            await RefreshConversationsAsync();
+        }
+        catch (Exception)
+        {
+            Notice = "Unable to refresh conversation history.";
+            Notify();
+        }
+    }
+
+    private async void RunSendTurnFireAndForget(string prompt, string? actionId = null)
+    {
+        try
+        {
+            await SendTurnAsync(prompt, actionId);
+        }
+        catch (Exception)
+        {
+            Status = "Failed";
+            IsRunning = false;
+            Notice = "Unable to complete AI request.";
+            Notify();
+        }
+    }
+
+    private async void CloseEventsFireAndForget()
+    {
+        try
+        {
+            await _events.CloseAsync();
+        }
+        catch
+        {
+            // Stream may already be closed.
+        }
+    }
+
+    private async void FinishTerminalFireAndForget()
+    {
+        try
+        {
+            await FinishTerminalAsync();
+        }
+        catch (Exception)
+        {
+            Status = "Failed";
+            Notice = "Unable to complete AI request.";
+            Notify();
+        }
     }
 
     private async Task FinishTerminalAsync()

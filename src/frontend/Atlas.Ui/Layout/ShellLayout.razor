@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IAsyncDisposable
 <div class="appShell">
     <header class="topBar">
         <div class="topBarLeft">
@@ -31,7 +32,17 @@
             <div class="srOnly" aria-hidden="true">@ContextTitle</div>
             <div class="loadingOverlayWrap @(Cache.IsHydrating ? "loadingOverlayWrapActive" : null)">
                 <div class="loadingOverlayBody" aria-hidden="@(Cache.IsHydrating ? "true" : null)">
-                    @Body
+                    <ErrorBoundary @ref="_errorBoundary">
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                        <ErrorContent>
+                            <div class="card pad">
+                                <div class="textBad">Something went wrong loading this view.</div>
+                                <button class="btn btnSecondary mt-sm" type="button" @onclick="RecoverFromError">Retry</button>
+                            </div>
+                        </ErrorContent>
+                    </ErrorBoundary>
                 </div>
                 @if (Cache.IsHydrating)
                 {

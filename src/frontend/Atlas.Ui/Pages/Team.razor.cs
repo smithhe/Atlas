@@ -57,17 +57,17 @@ public partial class Team : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
-        Nav.LocationChanged += OnLocationChanged;
+        Cache.Changed += OnChangedAsync;
+        Nav.LocationChanged += OnLocationChangedAsync;
         Ai.SetContext("Context: Team",
         [
             new AiAction("summarize-patterns", "Summarize patterns (frequent blockers)"),
             new AiAction("growth-areas", "Highlight growth areas"),
             new AiAction("cite-notes", "Cite specific notes"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -89,8 +89,17 @@ public partial class Team : IDisposable
         }
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
-        InvokeAsync(StateHasChanged);
+    private async void OnLocationChangedAsync(object? sender, LocationChangedEventArgs e)
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private MemberTab GetRouteTab()
     {
@@ -201,20 +210,30 @@ public partial class Team : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (MemberIdParsed is { } id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        try
         {
-            Nav.NavigateTo("/team", replace: true);
-            return;
-        }
+            await InvokeAsync(() =>
+            {
+                if (MemberIdParsed is { } id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                {
+                    Nav.NavigateTo("/team", replace: true);
+                    return;
+                }
 
-        StateHasChanged();
-    });
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
-        Nav.LocationChanged -= OnLocationChanged;
+        Cache.Changed -= OnChangedAsync;
+        Nav.LocationChanged -= OnLocationChangedAsync;
     }
 }

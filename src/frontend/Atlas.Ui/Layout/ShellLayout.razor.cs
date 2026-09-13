@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Layout;
 
-public partial class ShellLayout : IAsyncDisposable
+public partial class ShellLayout
 {
     [Inject] private AppCacheService Cache { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
@@ -31,6 +32,7 @@ public partial class ShellLayout : IAsyncDisposable
     private int _resizeStartWidth;
     private ElementReference _resizerRef;
     private DotNetObjectReference<ShellLayout>? _selfRef;
+    private ErrorBoundary? _errorBoundary;
 
     private string BodyGridClass => Ai.IsOpen ? "bodyGrid bodyGridAiOpen" : "bodyGrid bodyGridNoAi";
 
@@ -38,7 +40,7 @@ public partial class ShellLayout : IAsyncDisposable
     {
         get
         {
-            var width = Ai.PanelWidthPx is { } px
+            string width = Ai.PanelWidthPx is { } px
                 ? $"{Math.Max(MinAiWidth, px)}px"
                 : DefaultAiWidthCss;
             return $"--aiWidth: {width}";
@@ -49,7 +51,7 @@ public partial class ShellLayout : IAsyncDisposable
     {
         get
         {
-            var path = new Uri(Nav.Uri).AbsolutePath;
+            string path = new Uri(Nav.Uri).AbsolutePath;
             if (path.StartsWith("/dashboard", StringComparison.OrdinalIgnoreCase))
             {
                 return "Context: Dashboard";
@@ -86,11 +88,36 @@ public partial class ShellLayout : IAsyncDisposable
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnCacheChanged;
-        Ai.Changed += OnAiChanged;
+        Cache.Changed += OnCacheChangedAsync;
+        Ai.Changed += OnAiChangedAsync;
+        Nav.LocationChanged += OnLocationChanged;
         Ai.EnsureStartupPreference();
-        _ = Cache.EnsureHydratedAsync();
-        _ = EnsureResizeListenersAsync();
+        HydrateInBackgroundFireAndForget();
+        EnsureResizeListenersFireAndForget();
+    }
+
+    private async void HydrateInBackgroundFireAndForget()
+    {
+        try
+        {
+            await Cache.EnsureHydratedAsync();
+        }
+        catch (Exception ex)
+        {
+            Cache.RecordHydrationFailure(ex);
+        }
+    }
+
+    private async void EnsureResizeListenersFireAndForget()
+    {
+        try
+        {
+            await EnsureResizeListenersAsync();
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
     }
 
     private async Task EnsureResizeListenersAsync()
@@ -106,8 +133,34 @@ public partial class ShellLayout : IAsyncDisposable
         }
     }
 
-    private void OnCacheChanged() => InvokeAsync(StateHasChanged);
-    private void OnAiChanged() => InvokeAsync(StateHasChanged);
+    private async void OnCacheChangedAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private async void OnAiChangedAsync()
+    {
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        _errorBoundary?.Recover();
+
+    private void RecoverFromError() => _errorBoundary?.Recover();
 
     private void OpenQuickAdd() => _quickAddOpen = true;
     private void CloseQuickAdd() => _quickAddOpen = false;
@@ -131,7 +184,7 @@ public partial class ShellLayout : IAsyncDisposable
             return;
         }
 
-        var current = Ai.PanelWidthPx ?? MinAiWidth;
+        int current = Ai.PanelWidthPx ?? MinAiWidth;
         if (e.Key == "ArrowLeft")
         {
             Ai.SetPanelWidthPx(current + 20);
@@ -151,9 +204,9 @@ public partial class ShellLayout : IAsyncDisposable
             return;
         }
 
-        var dx = _resizeStartX - clientX;
-        var next = _resizeStartWidth + dx;
-        var max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
+        double dx = _resizeStartX - clientX;
+        double next = _resizeStartWidth + dx;
+        int max = Math.Max(MinAiWidth, (int)Math.Floor(innerWidth * 0.6));
         Ai.SetPanelWidthPx(Math.Max(MinAiWidth, Math.Min(max, (int)Math.Floor(next))));
     }
 
@@ -162,8 +215,9 @@ public partial class ShellLayout : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        Cache.Changed -= OnCacheChanged;
-        Ai.Changed -= OnAiChanged;
+        Cache.Changed -= OnCacheChangedAsync;
+        Ai.Changed -= OnAiChangedAsync;
+        Nav.LocationChanged -= OnLocationChanged;
         // Clear JS listeners before disposing DotNetObjectReference so in-flight
         // pointer callbacks cannot invoke a disposed ref.
         try

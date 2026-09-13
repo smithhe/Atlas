@@ -46,17 +46,17 @@ public partial class Risks : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
-        Selection.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
+        Selection.Changed += OnChangedAsync;
         Ai.SetContext("Context: Risks",
         [
             new AiAction("summarize-impact", "Summarize impact"),
             new AiAction("suggest-mitigations", "Suggest mitigations"),
             new AiAction("why-matters", "Explain “why this matters”"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -71,16 +71,26 @@ public partial class Risks : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (IsFocusMode && Guid.TryParse(RiskId, out Guid id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+        try
         {
-            Nav.NavigateTo("/risks", replace: true);
-            return;
-        }
+            await InvokeAsync(() =>
+            {
+                if (IsFocusMode && Guid.TryParse(RiskId, out Guid id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+                {
+                    Nav.NavigateTo("/risks", replace: true);
+                    return;
+                }
 
-        StateHasChanged();
-    });
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private bool MatchesFilters(Risk r)
     {
@@ -179,7 +189,7 @@ public partial class Risks : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
-        Selection.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
+        Selection.Changed -= OnChangedAsync;
     }
 }

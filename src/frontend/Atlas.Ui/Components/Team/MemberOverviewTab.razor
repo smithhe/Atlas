@@ -45,7 +45,7 @@
                     @foreach (AzureItem t in TopCurrentTickets)
                     {
                         string workItemId = t.Id;
-                        <li>
+                        <li @key="workItemId">
                             <button type="button"
                                     class="linkBtn @Tones.TicketAttentionTone(t.Status)"
                                     title="Open work item"
@@ -95,7 +95,7 @@
                 <div class="notesList" style="margin-top: 0">
                     @foreach (TeamNote n in PinnedNotes)
                     {
-                        <button type="button" class="noteRow noteRowBtn" title="Open Notes tab" @onclick="OnGoToNotes">
+                        <button @key="n.Id" type="button" class="noteRow noteRowBtn" title="Open Notes tab" @onclick="OnGoToNotes">
                             <div class="noteMeta">
                                 <span class="chip chipTag chipTag-@n.Tag.ToString().ToLowerInvariant()">@n.Tag</span>
                                 <span class="mutedSmall">@DisplayLabels.FormatLocalDate(n.CreatedIso)</span>

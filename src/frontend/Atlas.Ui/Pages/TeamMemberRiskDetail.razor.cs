@@ -72,15 +72,15 @@ public partial class TeamMemberRiskDetail : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
         Ai.SetContext("Context: Team Member Risk Detail",
         [
             new AiAction("summarize-risk", "Summarize this risk"),
             new AiAction("suggest-mitigation", "Suggest mitigation experiments"),
         ]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -197,7 +197,19 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        _ = PersistAsync(memberId, next);
+        PersistRiskFireAndForget(memberId, next);
+    }
+
+    private async void PersistRiskFireAndForget(Guid memberId, TeamMemberRisk next)
+    {
+        try
+        {
+            await PersistAsync(memberId, next);
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
     }
 
     private async Task PersistAsync(Guid memberId, TeamMemberRisk next)
@@ -212,16 +224,26 @@ public partial class TeamMemberRiskDetail : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        try
         {
-            Nav.NavigateTo("/team", replace: true);
-            return;
+            await InvokeAsync(() =>
+            {
+                if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                {
+                    Nav.NavigateTo("/team", replace: true);
+                    return;
+                }
+
+                StateHasChanged();
+            });
         }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
-        StateHasChanged();
-    });
-
-    public void Dispose() => Cache.Changed -= OnChanged;
+    public void Dispose() => Cache.Changed -= OnChangedAsync;
 }

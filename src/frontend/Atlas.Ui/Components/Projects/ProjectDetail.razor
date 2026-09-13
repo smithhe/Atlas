@@ -337,7 +337,7 @@
                                     @foreach (AtlasTask t in FilteredTasks)
                                     {
                                         Guid taskId = t.Id;
-                                        <button type="button" class="projectTableRow projectTableRowBtn" role="row" title="Open task in focus mode" @onclick="() => GoTask(taskId)">
+                                        <button @key="taskId" type="button" class="projectTableRow projectTableRowBtn" role="row" title="Open task in focus mode" @onclick="() => GoTask(taskId)">
                                             <div class="projectTd" role="cell">
                                                 <span class="pill @Tones.TaskStatusTone(t.Status)">@DisplayLabels.FormatTaskStatus(t.Status)</span>
                                             </div>
@@ -402,7 +402,7 @@
                                     @foreach (Risk r in FilteredRisks)
                                     {
                                         Guid riskId = r.Id;
-                                        <button type="button" class="projectTableRow projectRisksRow projectTableRowBtn" role="row" title="Open risk in focus mode" @onclick="() => GoRisk(riskId)">
+                                        <button @key="riskId" type="button" class="projectTableRow projectRisksRow projectTableRowBtn" role="row" title="Open risk in focus mode" @onclick="() => GoRisk(riskId)">
                                             <div class="projectTd" role="cell">
                                                 <span class="pill @Tones.SeverityTone(r.Severity)">@r.Severity</span>
                                             </div>

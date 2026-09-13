@@ -161,7 +161,7 @@
                         string? assigned = item.SuggestedTeamMemberId is { } mid
                             ? Cache.Team.FirstOrDefault(m => m.Id == mid)?.Name
                             : null;
-                        <div class="tableRow">
+                        <div @key="itemId" class="tableRow">
                             <div class="tableCell">
                                 <input type="checkbox" checked="@isSelected" @onchange="e => ToggleWorkItem(itemId, e)" />
                             </div>

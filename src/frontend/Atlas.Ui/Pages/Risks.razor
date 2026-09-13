@@ -55,7 +55,8 @@
                 {
                     Guid riskId = r.Id;
                     int days = DisplayLabels.DaysSince(r.LastUpdatedIso) ?? 0;
-                    <button type="button"
+                    <button @key="riskId"
+                            type="button"
                             class="listRow listRowBtn risksRiskRow @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(riskId)"
                             @ondblclick="() => GoFocus(riskId)">

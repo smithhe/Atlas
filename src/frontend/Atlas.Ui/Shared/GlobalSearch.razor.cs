@@ -26,14 +26,24 @@ public partial class GlobalSearch : IDisposable
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnCacheChanged;
+        Cache.Changed += OnCacheChangedAsync;
     }
 
-    private void OnCacheChanged() => InvokeAsync(() =>
+    private async void OnCacheChangedAsync()
     {
-        Rebuild();
-        StateHasChanged();
-    });
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                Rebuild();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void OnQueryInput(ChangeEventArgs e)
     {
@@ -212,5 +222,5 @@ public partial class GlobalSearch : IDisposable
 
     private void OnRootKeyDown(KeyboardEventArgs e) { }
 
-    public void Dispose() => Cache.Changed -= OnCacheChanged;
+    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
 }

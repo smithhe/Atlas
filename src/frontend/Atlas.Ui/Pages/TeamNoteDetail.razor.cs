@@ -48,11 +48,11 @@ public partial class TeamNoteDetail : IDisposable
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChanged;
+        Cache.Changed += OnChangedAsync;
         Ai.SetContext("Context: Team Note Detail", [new AiAction("summarize-note", "Summarize this note")]);
-        _ = Cache.EnsureHydratedAsync();
+        await Cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -178,21 +178,31 @@ public partial class TeamNoteDetail : IDisposable
         }
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+        try
         {
-            Nav.NavigateTo("/team", replace: true);
-            return;
-        }
+            await InvokeAsync(() =>
+            {
+                if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                {
+                    Nav.NavigateTo("/team", replace: true);
+                    return;
+                }
 
-        SyncDraftsFromNote();
-        StateHasChanged();
-    });
+                SyncDraftsFromNote();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
+        Cache.Changed -= OnChangedAsync;
         Ai.RegisterDraftTarget(null);
     }
 }

@@ -31,7 +31,7 @@
                 {
                     TeamMemberRisk risk = r;
                     Risk? linkedGlobal = risk.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
-                    <button type="button" class="listRow listRowBtn" @onclick="() => OpenRisk(risk.Id)">
+                    <button @key="risk.Id" type="button" class="listRow listRowBtn" @onclick="() => OpenRisk(risk.Id)">
                         <span class="dot dot-@risk.Severity.ToLowerInvariant()" aria-hidden="true"></span>
                         <div class="listMain">
                             <div class="listTitle">@risk.Title</div>

@@ -36,7 +36,8 @@
                 @foreach (AzureItem a in Filtered)
                 {
                     AzureItem item = a;
-                    <button type="button"
+                    <button @key="item.Id"
+                            type="button"
                             class="focusTicketRow focusTicketRowBtn @Tones.TicketAttentionTone(item.Status)"
                             @onclick="() => OpenItem(item.Id)">
                         <div class="listMain">

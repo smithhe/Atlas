@@ -46,7 +46,8 @@
                         @foreach (TeamMember m in Cache.Team.OrderBy(x => x.Name))
                         {
                             Guid id = m.Id;
-                            <button type="button"
+                            <button @key="id"
+                                    type="button"
                                     class="listRow listRowBtn @(id == Selection.SelectedTeamMemberId ? "listRowActive" : null)"
                                     @onclick="() => SelectFromList(id)"
                                     @ondblclick="() => GoFocus(id)">

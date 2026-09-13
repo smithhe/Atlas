@@ -308,7 +308,8 @@ else
                                     GrowthGoalAction action = a;
                                     string notesPreview = GetNotesPreview(action.Notes);
                                     bool done = action.State == GrowthGoalActionState.Complete;
-                                    <button type="button"
+                                    <button @key="action.Id"
+                                            type="button"
                                             class="ggRow ggRowBtn @(_selectedActionId == action.Id ? "ggRowSelected" : null)"
                                             role="row"
                                             @onclick="() => SelectAction(action.Id)">
@@ -358,7 +359,8 @@ else
                                 @foreach (GrowthGoalCheckIn c in Goal.CheckIns)
                                 {
                                     GrowthGoalCheckIn checkIn = c;
-                                    <button type="button"
+                                    <button @key="checkIn.Id"
+                                            type="button"
                                             class="ggRow ggRow3 ggRowBtn @(_selectedCheckInId == checkIn.Id ? "ggRowSelected" : null)"
                                             role="row"
                                             @onclick="() => SelectCheckIn(checkIn.Id)">

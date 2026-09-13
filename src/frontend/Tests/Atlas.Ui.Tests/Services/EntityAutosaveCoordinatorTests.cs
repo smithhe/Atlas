@@ -258,6 +258,48 @@ public sealed class EntityAutosaveCoordinatorTests
     }
 
     [Fact]
+    public async Task SaveAsync_WhenCallerCancelledWaitingForWriteGate_ReturnsToIdleAndClearsPendingEdit()
+    {
+        EntityAutosaveCoordinator<SampleEntity> coordinator = new();
+        CacheHolder cache = CreateCache(value: "initial");
+        TaskCompletionSource releaseGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseBlockedPersist = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using CancellationTokenSource cancellation = new();
+
+        Task blockedSave = SaveAsync(
+            coordinator,
+            cache,
+            entity => Edit(entity, value: "blocked"),
+            async _ =>
+            {
+                releaseGate.TrySetResult();
+                await releaseBlockedPersist.Task;
+            },
+            debounce: false);
+
+        await releaseGate.Task;
+        Task cancelledWait = SaveAsync(
+            coordinator,
+            cache,
+            entity => Edit(entity, value: "cancelled"),
+            _ => Task.CompletedTask,
+            debounce: false,
+            cancellationToken: cancellation.Token);
+
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelledWait);
+
+        coordinator.State.Should().Be(EntitySaveState.Idle);
+        coordinator.PendingEditCount.Should().Be(1);
+        cache.Value.Value.Should().Be("cancelled");
+
+        releaseBlockedPersist.TrySetResult();
+        await blockedSave;
+        coordinator.State.Should().Be(EntitySaveState.Saved);
+        coordinator.PendingEditCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task SaveAsync_WhenCallerCancelledDuringDebounce_ReturnsToIdle()
     {
         EntityAutosaveCoordinator<SampleEntity> coordinator = new(TimeSpan.FromMilliseconds(100));

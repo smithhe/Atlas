@@ -42,6 +42,19 @@ builder.Services.AddScoped<AzureWorkItemService>();
 WebAssemblyHost host = builder.Build();
 
 // Kick off hydration topology (settings/projects/productOwners/team → risks → tasks).
-_ = host.Services.GetRequiredService<AppCacheService>().EnsureHydratedAsync();
+AppCacheService cache = host.Services.GetRequiredService<AppCacheService>();
+_ = HydrateInBackgroundAsync(cache);
 
 await host.RunAsync();
+
+static async Task HydrateInBackgroundAsync(AppCacheService cache)
+{
+    try
+    {
+        await cache.EnsureHydratedAsync();
+    }
+    catch (Exception ex)
+    {
+        cache.RecordHydrationFailure(ex);
+    }
+}

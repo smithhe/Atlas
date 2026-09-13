@@ -251,8 +251,8 @@ public partial class ProjectDetail : IDisposable
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnChanged;
-        Nav.LocationChanged += OnLocationChanged;
+        Cache.Changed += OnChangedAsync;
+        Nav.LocationChanged += OnLocationChangedAsync;
         SyncTabFromUri();
     }
 
@@ -280,12 +280,21 @@ public partial class ProjectDetail : IDisposable
         }
     }
 
-    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
-        InvokeAsync(() =>
+    private async void OnLocationChangedAsync(object? sender, LocationChangedEventArgs e)
+    {
+        try
         {
-            SyncTabFromUri();
-            StateHasChanged();
-        });
+            await InvokeAsync(() =>
+            {
+                SyncTabFromUri();
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void SyncTabFromUri()
     {
@@ -353,15 +362,25 @@ public partial class ProjectDetail : IDisposable
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
-    private void OnChanged() => InvokeAsync(() =>
+    private async void OnChangedAsync()
     {
-        if (Project is not null && AutoEditId == Project.Id && !_editing)
+        try
         {
-            StartEdit();
-        }
+            await InvokeAsync(() =>
+            {
+                if (Project is not null && AutoEditId == Project.Id && !_editing)
+                {
+                    StartEdit();
+                }
 
-        StateHasChanged();
-    });
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
 
     private void ResetDraftFromProject(Project project, bool autoEdit)
     {
@@ -405,6 +424,18 @@ public partial class ProjectDetail : IDisposable
         Nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
+    private async void ClearAutoEditFireAndForget()
+    {
+        try
+        {
+            await AutoEditCleared.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
     private void CancelEdit()
     {
         if (Project is not null)
@@ -415,7 +446,7 @@ public partial class ProjectDetail : IDisposable
         _editing = false;
         if (Project is not null && AutoEditId == Project.Id)
         {
-            _ = AutoEditCleared.InvokeAsync();
+            ClearAutoEditFireAndForget();
         }
     }
 
@@ -534,7 +565,7 @@ public partial class ProjectDetail : IDisposable
             _editing = false;
             if (AutoEditId == next.Id)
             {
-                _ = AutoEditCleared.InvokeAsync();
+                ClearAutoEditFireAndForget();
             }
         }
         catch (Exception)
@@ -625,8 +656,8 @@ public partial class ProjectDetail : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChanged;
-        Nav.LocationChanged -= OnLocationChanged;
+        Cache.Changed -= OnChangedAsync;
+        Nav.LocationChanged -= OnLocationChangedAsync;
     }
 
     private sealed record AssigneeOption(Guid Id, string Name);
