@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Functional/integration hosts create many WebApplicationFactory instances; default
+         FileSystemWatcher inotify usage can exceed fs.inotify.max_user_instances on Linux. -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)atlas.tests.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+</Project>

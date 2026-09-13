@@ -63,6 +63,14 @@ cd tests/e2e && npm ci && npm run test:e2e
 
 `playwright.config.ts` starts this Blazor host on port **5173**. Capture specs (`capture-*.spec.ts`) stay skipped unless their `ATLAS_*_SHOTS` / `ATLAS_REACT_BASELINE` env vars are set.
 
+## Tests
+
+From the repository root:
+
+```bash
+dotnet test src/frontend/Tests/Atlas.Ui.Tests
+```
+
 ## Visual evidence
 
 - React baseline: [`docs/migration-screenshots/react-baseline/`](../../../docs/migration-screenshots/react-baseline/)
