@@ -5,8 +5,9 @@ namespace Atlas.Ui.Mapping;
 public static class EntityClone
 {
     public static AtlasTask Task(AtlasTask t, string? title = null, Priority? priority = null, Models.TaskStatus? status = null,
-        bool setStatus = false, Guid? assigneeId = null, bool setAssignee = false, string? project = null, bool setProject = false,
-        string? risk = null, bool setRisk = false, string? dueDate = null, bool setDueDate = false,
+        bool setStatus = false, Guid? assigneeId = null, bool setAssignee = false,
+        Guid? projectId = null, bool setProjectId = false, string? project = null, bool setProject = false,
+        Guid? riskId = null, bool setRiskId = false, string? risk = null, bool setRisk = false, string? dueDate = null, bool setDueDate = false,
         IReadOnlyList<Guid>? dependencyTaskIds = null, string? estimatedDurationText = null,
         Confidence? estimateConfidence = null, string? actualDurationText = null, bool setActual = false,
         string? notes = null, string? lastTouchedIso = null) =>
@@ -17,7 +18,9 @@ public static class EntityClone
             Priority = priority ?? t.Priority,
             Status = setStatus ? status : t.Status,
             AssigneeId = setAssignee ? assigneeId : t.AssigneeId,
+            ProjectId = setProjectId ? projectId : t.ProjectId,
             Project = setProject ? project : t.Project,
+            RiskId = setRiskId ? riskId : t.RiskId,
             Risk = setRisk ? risk : t.Risk,
             DueDate = setDueDate ? dueDate : t.DueDate,
             DependencyTaskIds = dependencyTaskIds ?? t.DependencyTaskIds,
@@ -29,7 +32,8 @@ public static class EntityClone
         };
 
     public static Risk Risk(Risk r, string? title = null, RiskStatus? status = null, string? severity = null,
-        string? project = null, bool setProject = false, string? description = null, string? evidence = null,
+        Guid? projectId = null, bool setProjectId = false, string? project = null, bool setProject = false,
+        string? description = null, string? evidence = null,
         IReadOnlyList<Guid>? linkedTaskIds = null, IReadOnlyList<Guid>? linkedTeamMemberIds = null,
         IReadOnlyList<RiskHistoryEntry>? history = null, string? lastUpdatedIso = null) =>
         new()
@@ -38,6 +42,7 @@ public static class EntityClone
             Title = title ?? r.Title,
             Status = status ?? r.Status,
             Severity = severity ?? r.Severity,
+            ProjectId = setProjectId ? projectId : r.ProjectId,
             Project = setProject ? project : r.Project,
             OwnerId = r.OwnerId,
             Description = description ?? r.Description,

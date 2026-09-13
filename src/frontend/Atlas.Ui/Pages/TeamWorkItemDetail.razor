@@ -112,7 +112,7 @@
                 }
                 else
                 {
-                    @foreach (WorkItemNote n in Item.LocalNotes)
+                    @foreach (WorkItemNote n in Item.LocalNotes ?? [])
                     {
                         <div class="listRow">
                             <div class="listMain">

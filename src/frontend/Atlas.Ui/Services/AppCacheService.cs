@@ -195,6 +195,8 @@ public sealed class AppCacheService
         Notify();
     }
 
+    public AtlasTask? TryGetTask(Guid taskId) => Tasks.FirstOrDefault(t => t.Id == taskId);
+
     public void RemoveTask(Guid taskId)
     {
         Tasks = Tasks.Where(t => t.Id != taskId).ToList();
@@ -222,6 +224,8 @@ public sealed class AppCacheService
         Notify();
     }
 
+    public Risk? TryGetRisk(Guid riskId) => Risks.FirstOrDefault(r => r.Id == riskId);
+
     public void UpdateRisk(Risk risk)
     {
         Risk? previous = Risks.FirstOrDefault(r => r.Id == risk.Id);
@@ -229,8 +233,8 @@ public sealed class AppCacheService
         SyncProjectLinkedRiskIds(risk);
         if (previous is not null && previous.Title != risk.Title)
         {
-            Tasks = Tasks.Select(t => t.Risk == previous.Title ? EntityClone.Task(t, risk: risk.Title) : t).ToList();
-            foreach (AtlasTask task in Tasks.Where(t => t.Risk == risk.Title))
+            Tasks = Tasks.Select(t => t.RiskId == risk.Id ? EntityClone.Task(t, risk: risk.Title) : t).ToList();
+            foreach (AtlasTask task in Tasks.Where(t => t.RiskId == risk.Id))
             {
                 SyncRiskLinkedTaskIds(task);
             }
@@ -249,7 +253,7 @@ public sealed class AppCacheService
                 : p).ToList();
         if (previous is not null)
         {
-            Tasks = Tasks.Select(t => t.Risk == previous.Title ? EntityClone.Task(t, risk: null, setRisk: true) : t).ToList();
+            Tasks = Tasks.Select(t => t.RiskId == riskId ? EntityClone.Task(t, riskId: null, setRiskId: true, risk: null, setRisk: true) : t).ToList();
         }
 
         if (_selection.SelectedRiskId == riskId)
@@ -273,8 +277,8 @@ public sealed class AppCacheService
         Projects = Projects.Select(p => p.Id == project.Id ? project : p).ToList();
         if (previous is not null && previous.Name != project.Name)
         {
-            Tasks = Tasks.Select(t => t.Project == previous.Name ? EntityClone.Task(t, project: project.Name) : t).ToList();
-            Risks = Risks.Select(r => r.Project == previous.Name ? EntityClone.Risk(r, project: project.Name) : r).ToList();
+            Tasks = Tasks.Select(t => t.ProjectId == project.Id ? EntityClone.Task(t, project: project.Name) : t).ToList();
+            Risks = Risks.Select(r => r.ProjectId == project.Id ? EntityClone.Risk(r, project: project.Name) : r).ToList();
         }
 
         Notify();
@@ -286,8 +290,8 @@ public sealed class AppCacheService
         Projects = Projects.Where(p => p.Id != projectId).ToList();
         if (previous is not null)
         {
-            Tasks = Tasks.Select(t => t.Project == previous.Name ? EntityClone.Task(t, project: null, setProject: true) : t).ToList();
-            Risks = Risks.Select(r => r.Project == previous.Name ? EntityClone.Risk(r, project: null, setProject: true) : r).ToList();
+            Tasks = Tasks.Select(t => t.ProjectId == projectId ? EntityClone.Task(t, projectId: null, setProjectId: true, project: null, setProject: true) : t).ToList();
+            Risks = Risks.Select(r => r.ProjectId == projectId ? EntityClone.Risk(r, projectId: null, setProjectId: true, project: null, setProject: true) : r).ToList();
         }
 
         if (_selection.SelectedProjectId == projectId)
@@ -711,7 +715,7 @@ public sealed class AppCacheService
     {
         Projects = Projects.Select(p =>
         {
-            var shouldInclude = !string.IsNullOrEmpty(task.Project) && p.Name == task.Project;
+            var shouldInclude = task.ProjectId == p.Id;
             var has = p.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
             {
@@ -731,7 +735,7 @@ public sealed class AppCacheService
     {
         Risks = Risks.Select(r =>
         {
-            var shouldInclude = !string.IsNullOrEmpty(task.Risk) && r.Title == task.Risk;
+            var shouldInclude = task.RiskId == r.Id;
             var has = r.LinkedTaskIds.Contains(task.Id);
             if (shouldInclude && !has)
             {
@@ -751,7 +755,7 @@ public sealed class AppCacheService
     {
         Projects = Projects.Select(p =>
         {
-            var shouldInclude = !string.IsNullOrEmpty(risk.Project) && p.Name == risk.Project;
+            var shouldInclude = risk.ProjectId == p.Id;
             var has = p.LinkedRiskIds.Contains(risk.Id);
             if (shouldInclude && !has)
             {

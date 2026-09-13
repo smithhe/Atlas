@@ -48,7 +48,9 @@ public static class ApiMappers
             Priority = MapPriority(dto.Priority),
             Status = MapTaskStatus(dto.Status),
             AssigneeId = dto.AssigneeId,
+            ProjectId = dto.ProjectId,
             Project = project,
+            RiskId = dto.RiskId,
             Risk = risk,
             DueDate = dto.DueDate?.ToString("yyyy-MM-dd"),
             DependencyTaskIds = dto.DependencyTaskIds?.ToList() ?? [],
@@ -97,6 +99,7 @@ public static class ApiMappers
             Title = dto.Title ?? "",
             Status = MapRiskStatus(dto.Status),
             Severity = MapSeverity(dto.Severity),
+            ProjectId = dto.ProjectId,
             Project = project,
             Description = dto.Description ?? "",
             Evidence = dto.Evidence ?? "",
@@ -144,7 +147,7 @@ public static class ApiMappers
                 Status = w.Status ?? "",
                 AssignedTo = w.AssignedTo,
                 TicketUrl = w.TicketUrl,
-                ProjectId = w.ProjectId?.ToString(),
+                ProjectId = w.ProjectId is Guid projectId && projectId != Guid.Empty ? projectId.ToString() : null,
                 ChangedDateUtc = w.ChangedDateUtc?.ToString("o"),
                 LocalNotes = (w.LocalNotes ?? [])
                     .Select(n => new WorkItemNote

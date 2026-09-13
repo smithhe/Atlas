@@ -56,7 +56,11 @@ public sealed class AzureWorkItemService
         return note;
     }
 
-    public void SetProject(Guid teamMemberId, string workItemId, string? projectId)
+    public async Task SetProjectAsync(
+        Guid teamMemberId,
+        string workItemId,
+        Guid? projectId,
+        CancellationToken cancellationToken = default)
     {
         TeamMember? member = _cache.Team.FirstOrDefault(m => m.Id == teamMemberId);
         if (member is null)
@@ -70,9 +74,26 @@ public sealed class AzureWorkItemService
             return;
         }
 
-        AzureItem next = EntityClone.AzureItem(item, projectId: projectId, setProjectId: true);
-        _cache.UpdateTeamMember(EntityClone.TeamMember(
+        if (!int.TryParse(workItemId, out int workItemIdInt))
+        {
+            throw new ArgumentException($"Invalid Azure work item id '{workItemId}'.", nameof(workItemId));
+        }
+
+        string? projectIdText = projectId?.ToString();
+        AzureItem next = EntityClone.AzureItem(item, projectId: projectIdText, setProjectId: true);
+        TeamMember optimistic = EntityClone.TeamMember(
             member,
-            azureItems: member.AzureItems.Select(a => a.Id == workItemId ? next : a).ToList()));
+            azureItems: member.AzureItems.Select(a => a.Id == workItemId ? next : a).ToList());
+
+        await OptimisticCache.ApplyAsync(
+            member,
+            optimistic,
+            m => EntityClone.TeamMember(m),
+            _cache.UpdateTeamMember,
+            () => _api.AtlasApiEndpointsTeamMembersAzureWorkItemsSetAzureWorkItemProjectEndpointAsync(
+                teamMemberId,
+                workItemIdInt,
+                EntityRequestMappers.ToSetAzureWorkItemProjectRequest(projectId),
+                cancellationToken));
     }
 }

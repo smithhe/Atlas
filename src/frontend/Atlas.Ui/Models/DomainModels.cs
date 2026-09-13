@@ -127,7 +127,9 @@ public sealed class AtlasTask
     public Priority Priority { get; set; }
     public TaskStatus? Status { get; set; }
     public Guid? AssigneeId { get; set; }
+    public Guid? ProjectId { get; set; }
     public string? Project { get; set; }
+    public Guid? RiskId { get; set; }
     public string? Risk { get; set; }
     public string? DueDate { get; set; }
     public IReadOnlyList<Guid> DependencyTaskIds { get; set; } = Array.Empty<Guid>();
@@ -176,6 +178,7 @@ public sealed class Risk
     public string Title { get; set; } = "";
     public RiskStatus Status { get; set; }
     public string Severity { get; set; } = "Low";
+    public Guid? ProjectId { get; set; }
     public string? Project { get; set; }
     public Guid? OwnerId { get; set; }
     public string Description { get; set; } = "";
