@@ -15,13 +15,14 @@
 | **Unit** | `Atlas.Tests.Unit` | MediatR handlers, FluentValidation validators, behaviors — mocked/faked dependencies, no HTTP, no DB |
 | **Functional** | `Atlas.Tests.Functional` | HTTP endpoint contracts via `WebApplicationFactory` — InMemory EF, fake Azure/AI |
 | **Integration** | `Atlas.Tests.Integration` | Persistence/repository behavior and multi-step workflows — InMemory locally; **Postgres in CI** when `ConnectionStrings__AtlasDb` / `ATLAS_TEST_DB` is set |
+| **UI services** | `Atlas.Ui.Tests` (`src/frontend/Tests/`) | Moq + FluentAssertions tests for Blazor UI services, coordinators, and mappers — pure C#, no rendering |
 
 ### Placement rules
 
 - Prefer a unit test for each MediatR handler under `Atlas.Tests.Unit/Features/...`, mirroring `Atlas.Application/Features/...`.
 - Prefer a functional `*EndpointTests.cs` for each public HTTP route under `Atlas.Tests.Functional/Endpoints/...`.
 - Prefer integration tests for complex repository queries (includes, filters, ordering, link/unlink) under `Atlas.Tests.Integration/Persistence/...`.
-- Do **not** add domain entity unit tests, frontend tests, auth tests, Testcontainers, or a coverage % gate.
+- Do **not** add domain entity unit tests, Blazor component/bUnit/browser-unit tests, auth tests, Testcontainers, or a coverage % gate. `Atlas.Ui.Tests` may hold Moq+FluentAssertions tests for UI services, coordinators, and mappers (no rendering).
 
 ### Postgres scope
 
