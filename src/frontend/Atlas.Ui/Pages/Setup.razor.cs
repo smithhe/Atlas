@@ -27,6 +27,8 @@ public partial class Setup
     private int _scrolledTeamsGen = -1;
     private int _scrolledMembersGen = -1;
 
+    private SetupInterop? _setupInterop;
+
     private string _organization = "";
     private string _areaPath = "";
     private bool _areaPathLoading;
@@ -137,18 +139,28 @@ public partial class Setup
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            _setupInterop = new SetupInterop(Js);
+        }
+
+        if (_setupInterop is null)
+        {
+            return;
+        }
+
         try
         {
             if (_projects.Count > 0 && _projectsScrollGen != _scrolledProjectsGen)
             {
                 _scrolledProjectsGen = _projectsScrollGen;
-                await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _projectsCardRef);
+                await _setupInterop.ScrollToCardAsync(_headerRef, _projectsCardRef);
             }
 
             if (_step == SetupStep.Team && _teams.Count > 0 && _teamsScrollGen != _scrolledTeamsGen)
             {
                 _scrolledTeamsGen = _teamsScrollGen;
-                await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _teamsCardRef);
+                await _setupInterop.ScrollToCardAsync(_headerRef, _teamsCardRef);
             }
 
             if (_step == SetupStep.Members && _membersScrollGen != _scrolledMembersGen)
@@ -156,11 +168,11 @@ public partial class Setup
                 _scrolledMembersGen = _membersScrollGen;
                 if (_users.Count > 0)
                 {
-                    await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _membersCardRef);
+                    await _setupInterop.ScrollToCardAsync(_headerRef, _membersCardRef);
                 }
                 else if (!string.IsNullOrEmpty(_selectedTeamId))
                 {
-                    await Js.InvokeVoidAsync("atlasUi.scrollToCard", _headerRef, _areaPathCardRef);
+                    await _setupInterop.ScrollToCardAsync(_headerRef, _areaPathCardRef);
                 }
             }
         }
@@ -396,6 +408,15 @@ public partial class Setup
         finally
         {
             _loading = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_setupInterop is not null)
+        {
+            await _setupInterop.DisposeAsync();
+            _setupInterop = null;
         }
     }
 }

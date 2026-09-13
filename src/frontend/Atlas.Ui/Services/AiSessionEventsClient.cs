@@ -8,6 +8,11 @@ namespace Atlas.Ui.Services;
 /// </summary>
 public sealed class AiSessionEventsClient : IAsyncDisposable
 {
+    internal const string ModulePath = "./js/modules/ai-events.js";
+    internal const string OpenMethod = "open";
+    internal const string CloseMethod = "close";
+    internal const string DisposeMethod = "dispose";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -16,6 +21,7 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
 
     private readonly IJSRuntime _js;
     private readonly string _apiBaseUrl;
+    private IJSObjectReference? _module;
     private DotNetObjectReference<AiSessionEventsClient>? _selfRef;
     private string? _activeStreamId;
     private Action<AiSessionEventPayload>? _onEvent;
@@ -27,6 +33,9 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
         _apiBaseUrl = (config["ApiBaseUrl"] ?? "http://localhost:5012").TrimEnd('/');
     }
 
+    private async ValueTask<IJSObjectReference> GetModuleAsync()
+        => _module ??= await _js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+
     public async Task ConnectAsync(Guid sessionId, Action<AiSessionEventPayload> onEvent, Action? onError = null)
     {
         await CloseAsync();
@@ -36,8 +45,9 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
         _selfRef = DotNetObjectReference.Create(this);
         _activeStreamId = Guid.NewGuid().ToString("N");
 
-        var url = $"{_apiBaseUrl}/ai/sessions/{sessionId:D}/events";
-        await _js.InvokeVoidAsync("atlasAiEvents.open", _activeStreamId, url, _selfRef);
+        string url = $"{_apiBaseUrl}/ai/sessions/{sessionId:D}/events";
+        IJSObjectReference module = await GetModuleAsync();
+        await module.InvokeVoidAsync(OpenMethod, _activeStreamId, url, _selfRef);
     }
 
     public async Task CloseAsync()
@@ -46,7 +56,10 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
         {
             try
             {
-                await _js.InvokeVoidAsync("atlasAiEvents.close", _activeStreamId);
+                if (_module is not null)
+                {
+                    await _module.InvokeVoidAsync(CloseMethod, _activeStreamId);
+                }
             }
             catch
             {
@@ -87,7 +100,25 @@ public sealed class AiSessionEventsClient : IAsyncDisposable
     [JSInvokable]
     public void OnSessionEventError() => _onError?.Invoke();
 
-    public async ValueTask DisposeAsync() => await CloseAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await CloseAsync();
+
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync(DisposeMethod);
+            }
+            catch
+            {
+                // Ignore dispose races during navigation.
+            }
+
+            await _module.DisposeAsync();
+            _module = null;
+        }
+    }
 }
 
 public sealed class AiSessionEventPayload

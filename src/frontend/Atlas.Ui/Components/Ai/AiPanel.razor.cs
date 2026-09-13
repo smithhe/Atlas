@@ -4,7 +4,7 @@ using Atlas.Ui.Services;
 
 namespace Atlas.Ui.Components.Ai;
 
-public partial class AiPanel
+public partial class AiPanel : IAsyncDisposable
 {
     [Inject] private AiStateService Ai { get; set; } = null!;
     [Inject] private IJSRuntime Js { get; set; } = null!;
@@ -12,6 +12,7 @@ public partial class AiPanel
     private ElementReference _scrollRef;
     private string? _copiedTurnId;
     private CancellationTokenSource? _copyResetCts;
+    private AiPanelInterop? _aiPanelInterop;
 
     private string LatestAssistantText
     {
@@ -94,6 +95,14 @@ public partial class AiPanel
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _aiPanelInterop = new AiPanelInterop(Js);
+        }
+    }
+
     private async void OnAiChangedAsync()
     {
         try
@@ -101,15 +110,20 @@ public partial class AiPanel
             await InvokeAsync(async () =>
             {
                 StateHasChanged();
-                if (ShouldStickToBottom && Ai.IsOpen)
+                if (ShouldStickToBottom && Ai.IsOpen && _aiPanelInterop is not null)
                 {
                     try
                     {
-                        await Js.InvokeVoidAsync("atlasAiEvents.scrollToBottom", _scrollRef);
+                        await _aiPanelInterop.ScrollToBottomAsync(_scrollRef);
                     }
-                    catch
+                    catch (JSDisconnectedException)
                     {
-                        // Element may not be mounted yet.
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                    catch (InvalidOperationException)
+                    {
                     }
                 }
             });
@@ -154,9 +168,14 @@ public partial class AiPanel
             return;
         }
 
+        if (_aiPanelInterop is null)
+        {
+            _aiPanelInterop = new AiPanelInterop(Js);
+        }
+
         try
         {
-            bool ok = await Js.InvokeAsync<bool>("atlasAiEvents.copyText", turn.Response);
+            bool ok = await _aiPanelInterop.CopyTextAsync(turn.Response);
             if (!ok)
             {
                 Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
@@ -183,7 +202,15 @@ public partial class AiPanel
                 // superseded
             }
         }
-        catch
+        catch (JSDisconnectedException)
+        {
+            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+        }
+        catch (ObjectDisposedException)
+        {
+            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+        }
+        catch (InvalidOperationException)
         {
             Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
         }
@@ -212,6 +239,12 @@ public partial class AiPanel
             await _copyResetCts.CancelAsync();
             _copyResetCts.Dispose();
             _copyResetCts = null;
+        }
+
+        if (_aiPanelInterop is not null)
+        {
+            await _aiPanelInterop.DisposeAsync();
+            _aiPanelInterop = null;
         }
     }
 }
