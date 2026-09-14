@@ -27,7 +27,12 @@ public sealed class TeamMemberRiskService
                 EntityRequestMappers.ToAddTeamMemberRiskRequest(draft),
                 cancellationToken);
 
-        draft.Id = res.Id ?? Guid.NewGuid();
+        if (res.Id is not Guid riskId || riskId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Add team member risk response did not include a risk id.");
+        }
+
+        draft.Id = riskId;
         draft.MemberId = memberId;
         _cache.AddTeamMemberRisk(draft);
         return draft;

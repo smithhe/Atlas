@@ -29,9 +29,15 @@ public sealed class AzureWorkItemService
                 EntityRequestMappers.ToAddAzureWorkItemLocalNoteRequest(text),
                 cancellationToken);
 
+        if (saved.Id is not Guid noteId || noteId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Add Azure work item local note response did not include a note id.");
+        }
+
         var note = new WorkItemNote
         {
-            Id = saved.Id ?? Guid.NewGuid(),
+            Id = noteId,
             CreatedIso = saved.CreatedAt?.ToString("o") ?? DateTimeOffset.UtcNow.ToString("o"),
             Text = text
         };
@@ -62,17 +68,12 @@ public sealed class AzureWorkItemService
         Guid? projectId,
         CancellationToken cancellationToken = default)
     {
-        TeamMember? member = _cache.Team.FirstOrDefault(m => m.Id == teamMemberId);
-        if (member is null)
-        {
-            return;
-        }
+        TeamMember member = _cache.Team.FirstOrDefault(m => m.Id == teamMemberId)
+            ?? throw new InvalidOperationException($"Team member {teamMemberId} is not in the cache.");
 
-        AzureItem? item = member.AzureItems.FirstOrDefault(a => a.Id == workItemId);
-        if (item is null)
-        {
-            return;
-        }
+        AzureItem item = member.AzureItems.FirstOrDefault(a => a.Id == workItemId)
+            ?? throw new InvalidOperationException(
+                $"Azure work item '{workItemId}' is not in the cache for team member {teamMemberId}.");
 
         if (!int.TryParse(workItemId, out int workItemIdInt))
         {
