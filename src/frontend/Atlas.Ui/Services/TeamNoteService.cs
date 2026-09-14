@@ -31,10 +31,15 @@ public sealed class TeamNoteService
                 EntityRequestMappers.ToAddTeamNoteRequest(tag, text, title, adoWorkItemId, prUrl),
                 cancellationToken);
 
+        if (res.Id is not Guid noteId || noteId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Add team note response did not include a note id.");
+        }
+
         var now = DateTimeOffset.UtcNow.ToString("o");
         var note = new TeamNote
         {
-            Id = res.Id ?? Guid.NewGuid(),
+            Id = noteId,
             CreatedIso = now,
             LastModifiedIso = now,
             Tag = tag,
