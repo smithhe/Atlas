@@ -2,184 +2,186 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
-public partial class QuickAddModal
+namespace Atlas.Ui.Shared
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private TaskService TaskService { get; set; } = null!;
-    [Inject] private RiskService RiskService { get; set; } = null!;
-    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
-
-    private static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
-
-    [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
-
-    private ElementReference _panel;
-    private string _kind = "task";
-    private bool _saving;
-    private string _taskTitle = "";
-    private string _riskTitle = "";
-    private string _memberId = "";
-    private string _noteTag = "Quick";
-    private string _noteTitle = "";
-    private string _noteText = "";
-    private string _noteAdo = "";
-    private string _notePr = "";
-
-    private bool CanCreate =>
-        _kind is "task" or "risk"
-        || (_kind == "note" && !string.IsNullOrWhiteSpace(_memberId) && !string.IsNullOrWhiteSpace(_noteText));
-
-    private void ResetForm()
+    public partial class QuickAddModal
     {
-        _kind = "task";
-        _taskTitle = "";
-        _riskTitle = "";
-        _memberId = "";
-        _noteTag = "Quick";
-        _noteTitle = "";
-        _noteText = "";
-        _noteAdo = "";
-        _notePr = "";
-        _saving = false;
-    }
+        [Inject] private IAppCacheService _cache { get; set; } = null!;
+        [Inject] private SelectionState _selection { get; set; } = null!;
+        [Inject] private NavigationManager _nav { get; set; } = null!;
+        [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+        [Inject] private ITaskService _taskService { get; set; } = null!;
+        [Inject] private IRiskService _riskService { get; set; } = null!;
+        [Inject] private ITeamNoteService _teamNoteService { get; set; } = null!;
 
-    private async Task HandleClose()
-    {
-        if (_saving)
+        private static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
+
+        [Parameter] public bool IsOpen { get; set; }
+        [Parameter] public EventCallback OnClose { get; set; }
+
+        private ElementReference Panel { get; set; }
+        private string Kind { get; set; } = "task";
+        private bool Saving { get; set; }
+        private string TaskTitle { get; set; } = "";
+        private string RiskTitle { get; set; } = "";
+        private string MemberId { get; set; } = "";
+        private string NoteTag { get; set; } = "Quick";
+        private string NoteTitle { get; set; } = "";
+        private string NoteText { get; set; } = "";
+        private string NoteAdo { get; set; } = "";
+        private string NotePr { get; set; } = "";
+
+        private bool CanCreate =>
+            this.Kind is "task" or "risk"
+            || (this.Kind == "note" && !string.IsNullOrWhiteSpace(this.MemberId) && !string.IsNullOrWhiteSpace(this.NoteText));
+
+        private void ResetForm()
         {
-            return;
+            this.Kind = "task";
+            this.TaskTitle = "";
+            this.RiskTitle = "";
+            this.MemberId = "";
+            this.NoteTag = "Quick";
+            this.NoteTitle = "";
+            this.NoteText = "";
+            this.NoteAdo = "";
+            this.NotePr = "";
+            this.Saving = false;
         }
 
-        ResetForm();
-        await OnClose.InvokeAsync();
-    }
-
-    private Task CloseFromOverlay() => HandleClose();
-
-    private async Task OnOverlayKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape")
+        private async Task HandleClose()
         {
-            await HandleClose();
-        }
-    }
-
-    private void OnNoteTagChange(ChangeEventArgs e) => _noteTag = e.Value?.ToString() ?? "Quick";
-
-    private async Task OnTitleKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && CanCreate && !_saving)
-        {
-            await HandleCreate();
-        }
-    }
-
-    private async Task HandleCreate()
-    {
-        if (_saving || !CanCreate)
-        {
-            return;
-        }
-
-        _saving = true;
-        try
-        {
-            if (_kind == "task")
+            if (this.Saving)
             {
-                var title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
-                var draft = new AtlasTask
-                {
-                    Title = title,
-                    Priority = Priority.Medium,
-                    Status = Models.TaskStatus.NotStarted,
-                    EstimatedDurationText = "1h",
-                    EstimateConfidence = Confidence.Medium,
-                    Notes = "",
-                    DependencyTaskIds = Array.Empty<Guid>(),
-                    LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
-                };
-                AtlasTask created = await TaskService.CreateAsync(draft);
-                Guid id = created.Id;
-                ResetForm();
-                await OnClose.InvokeAsync();
-                Nav.NavigateTo($"/tasks/{id}");
                 return;
             }
 
-            if (_kind == "risk")
-            {
-                var title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
-                var draft = new Risk
-                {
-                    Title = title,
-                    Status = RiskStatus.Open,
-                    Severity = "Medium",
-                    Description = "",
-                    Evidence = "",
-                    LinkedTaskIds = Array.Empty<Guid>(),
-                    LinkedTeamMemberIds = Array.Empty<Guid>(),
-                    History = Array.Empty<RiskHistoryEntry>(),
-                    LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
-                };
-                Risk created = await RiskService.CreateAsync(draft);
-                Guid id = created.Id;
-                ResetForm();
-                await OnClose.InvokeAsync();
-                Nav.NavigateTo($"/risks/{id}");
-                return;
-            }
-
-            if (!Guid.TryParse(_memberId, out Guid memberId))
-            {
-                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
-                return;
-            }
-
-            var text = _noteText.Trim();
-            if (string.IsNullOrEmpty(text))
-            {
-                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
-                return;
-            }
-
-            TeamMember? member = Cache.Team.FirstOrDefault(m => m.Id == memberId);
-            if (member is null)
-            {
-                await Dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
-                return;
-            }
-
-            Enum.TryParse(_noteTag, out NoteTag tag);
-            var titleOpt = _noteTitle.Trim();
-            var ado = _noteAdo.Trim();
-            var pr = _notePr.Trim();
-            TeamNote saved = await TeamNoteService.AddAsync(
-                memberId,
-                tag,
-                text,
-                string.IsNullOrEmpty(titleOpt) ? null : titleOpt,
-                string.IsNullOrEmpty(ado) ? null : ado,
-                string.IsNullOrEmpty(pr) ? null : pr);
-
-            Selection.SelectTeamMember(memberId);
             ResetForm();
             await OnClose.InvokeAsync();
-            Nav.NavigateTo($"/team/{memberId}/notes");
         }
-        catch (Exception)
+
+        private Task CloseFromOverlay() => HandleClose();
+
+        private async Task OnOverlayKey(KeyboardEventArgs e)
         {
-            await Dialogs.AlertAsync($"Unable to create {(_kind == "note" ? "note" : _kind)} right now. Please try again.");
+            if (e.Key == "Escape")
+            {
+                await HandleClose();
+            }
         }
-        finally
+
+        private void OnNoteTagChange(ChangeEventArgs e) => this.NoteTag = e.Value?.ToString() ?? "Quick";
+
+        private async Task OnTitleKey(KeyboardEventArgs e)
         {
-            _saving = false;
+            if (e.Key == "Enter" && CanCreate && !this.Saving)
+            {
+                await HandleCreate();
+            }
+        }
+
+        private async Task HandleCreate()
+        {
+            if (this.Saving || !CanCreate)
+            {
+                return;
+            }
+
+            this.Saving = true;
+            try
+            {
+                if (this.Kind == "task")
+                {
+                    var title = string.IsNullOrWhiteSpace(this.TaskTitle) ? "New task" : this.TaskTitle.Trim();
+                    var draft = new AtlasTask
+                    {
+                        Title = title,
+                        Priority = Priority.Medium,
+                        Status = Models.TaskStatus.NotStarted,
+                        EstimatedDurationText = "1h",
+                        EstimateConfidence = Confidence.Medium,
+                        Notes = "",
+                        DependencyTaskIds = Array.Empty<Guid>(),
+                        LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
+                    };
+                    AtlasTask created = await this._taskService.CreateAsync(draft);
+                    Guid id = created.Id;
+                    ResetForm();
+                    await OnClose.InvokeAsync();
+                    this._nav.NavigateTo($"/tasks/{id}");
+                    return;
+                }
+
+                if (this.Kind == "risk")
+                {
+                    var title = string.IsNullOrWhiteSpace(this.RiskTitle) ? "New risk" : this.RiskTitle.Trim();
+                    var draft = new Risk
+                    {
+                        Title = title,
+                        Status = RiskStatus.Open,
+                        Severity = "Medium",
+                        Description = "",
+                        Evidence = "",
+                        LinkedTaskIds = Array.Empty<Guid>(),
+                        LinkedTeamMemberIds = Array.Empty<Guid>(),
+                        History = Array.Empty<RiskHistoryEntry>(),
+                        LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
+                    };
+                    Risk created = await this._riskService.CreateAsync(draft);
+                    Guid id = created.Id;
+                    ResetForm();
+                    await OnClose.InvokeAsync();
+                    this._nav.NavigateTo($"/risks/{id}");
+                    return;
+                }
+
+                if (!Guid.TryParse(this.MemberId, out Guid memberId))
+                {
+                    await this._dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                    return;
+                }
+
+                var text = this.NoteText.Trim();
+                if (string.IsNullOrEmpty(text))
+                {
+                    await this._dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                    return;
+                }
+
+                TeamMember? member = this._cache.Team.FirstOrDefault(m => m.Id == memberId);
+                if (member is null)
+                {
+                    await this._dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
+                    return;
+                }
+
+                Enum.TryParse(this.NoteTag, out NoteTag tag);
+                var titleOpt = this.NoteTitle.Trim();
+                var ado = this.NoteAdo.Trim();
+                var pr = this.NotePr.Trim();
+                TeamNote saved = await this._teamNoteService.AddAsync(
+                    memberId,
+                    tag,
+                    text,
+                    string.IsNullOrEmpty(titleOpt) ? null : titleOpt,
+                    string.IsNullOrEmpty(ado) ? null : ado,
+                    string.IsNullOrEmpty(pr) ? null : pr);
+
+                this._selection.SelectTeamMember(memberId);
+                ResetForm();
+                await OnClose.InvokeAsync();
+                this._nav.NavigateTo($"/team/{memberId}/notes");
+            }
+            catch (Exception)
+            {
+                await this._dialogs.AlertAsync($"Unable to create {(this.Kind == "note" ? "note" : this.Kind)} right now. Please try again.");
+            }
+            finally
+            {
+                this.Saving = false;
+            }
         }
     }
 }

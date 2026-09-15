@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Components;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
-public partial class Login
+namespace Atlas.Ui.Pages
 {
-    [Inject] private NavigationManager Nav { get; set; } = null!;
+    public partial class Login
+    {
+        [Inject] private NavigationManager _nav { get; set; } = null!;
 
-    private void Continue() => Nav.NavigateTo("/dashboard");
+        private void Continue() => this._nav.NavigateTo("/dashboard");
+    }
 }

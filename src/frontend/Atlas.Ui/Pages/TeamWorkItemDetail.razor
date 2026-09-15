@@ -18,8 +18,8 @@
             <div class="mutedSmall">@(Member?.Name ?? "")</div>
         </div>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnGhost" type="button" @onclick="BackToWorkItems">Back to work items</button>
-            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToWorkItems">Back to work items</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToMember">Back to member</button>
         </div>
     </div>
 
@@ -36,7 +36,7 @@
 
     @if (Member is null)
     {
-        <div class="card pad"><div class="muted">@(Cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
+        <div class="card pad"><div class="muted">@(this._cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
     }
     else if (Item is null)
     {
@@ -50,9 +50,9 @@
                 <div class="workItemField">
                     <div class="workItemFieldKey">Project</div>
                     <div class="workItemFieldVal">
-                        <select class="select" value="@(Item.ProjectId ?? "")" @onchange="OnProjectChange">
+                        <select class="select" value="@(Item.ProjectId ?? "")" @onchange="this.OnProjectChange">
                             <option value="">(None)</option>
-                            @foreach (Project p in Cache.Projects.OrderBy(x => x.Name))
+                            @foreach (Project p in this._cache.Projects.OrderBy(x => x.Name))
                             {
                                 <option value="@p.Id">@p.Name</option>
                             }
@@ -99,10 +99,10 @@
             <div class="fieldGrid">
                 <label class="field">
                     <div class="fieldLabel">Add note</div>
-                    <textarea class="textarea" @bind="_newNoteText" @bind:event="oninput" placeholder="Local context for this work item…"></textarea>
+                    <textarea class="textarea" @bind="this.NewNoteText" @bind:event="oninput" placeholder="Local context for this work item…"></textarea>
                 </label>
                 <div>
-                    <button class="btn btnSecondary" type="button" @onclick="AddLocalNote" disabled="@string.IsNullOrWhiteSpace(_newNoteText)">Add</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.AddLocalNote" disabled="@string.IsNullOrWhiteSpace(this.NewNoteText)">Add</button>
                 </div>
             </div>
             <div class="list" style="margin-top: 12px">

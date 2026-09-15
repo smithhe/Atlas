@@ -1,7 +1,7 @@
 @page "/team/{MemberId}/growth/goals/{GoalId}"
 <PageTitle>Growth Goal — Atlas</PageTitle>
 
-@if (!Cache.TeamReady)
+@if (!this._cache.TeamReady)
 {
     <div class="page">
         <h2 class="pageTitle">Growth Goal</h2>
@@ -15,27 +15,27 @@ else if (Member is null)
         <div class="card pad">
             <div class="muted">@(string.IsNullOrEmpty(MemberId) ? "Missing route params." : "Team member not found.")</div>
             <div class="row">
-                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
 }
-else if (_routeInitializing || _loadStatus == GrowthLoadStatus.Loading || (_loadStatus == GrowthLoadStatus.Idle && Growth is null))
+else if (this.RouteInitializing || this.LoadStatus == GrowthLoadStatus.Loading || (this.LoadStatus == GrowthLoadStatus.Idle && Growth is null))
 {
     <div class="page">
         <h2 class="pageTitle">Growth Goal</h2>
         <div class="card pad muted">Loading growth data…</div>
     </div>
 }
-else if (_loadStatus == GrowthLoadStatus.Failed)
+else if (this.LoadStatus == GrowthLoadStatus.Failed)
 {
     <div class="page">
         <h2 class="pageTitle">Growth Goal</h2>
         <div class="card pad">
-            <div class="muted">@(_loadError ?? "Unable to load growth data.")</div>
+            <div class="muted">@(this.LoadError ?? "Unable to load growth data.")</div>
             <div class="row" style="margin-top: 8px">
-                <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@_retrying">@(_retrying ? "Retrying…" : "Retry")</button>
-                <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.RetryLoad" disabled="@this.Retrying">@(this.Retrying ? "Retrying…" : "Retry")</button>
+                <button class="btn btnGhost" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
@@ -47,7 +47,7 @@ else if (Growth is null || Goal is null)
         <div class="card pad">
             <div class="muted">@(string.IsNullOrEmpty(GoalId) ? "Missing route params." : "Goal not found.")</div>
             <div class="row">
-                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
@@ -76,9 +76,9 @@ else
                     </div>
                 </div>
                 <div class="growthGoalHeaderActions">
-                    <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
-                    <button class="btn btnSecondary" type="button" @onclick="AddAction">+ Add Action</button>
-                    <button class="btn" type="button" @onclick="AddCheckIn">+ Add Check-in</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.AddAction">+ Add Action</button>
+                    <button class="btn" type="button" @onclick="this.AddCheckIn">+ Add Check-in</button>
                 </div>
             </div>
         </div>
@@ -98,9 +98,9 @@ else
                             <div class="ggMiniCard">
                                 <div class="ggMiniHeader">
                                     <div class="ggMiniLabel">Timeframe</div>
-                                    <button class="linkBtn" type="button" @onclick="() => _editTimeframe = !_editTimeframe">@(_editTimeframe ? "Done" : "Edit")</button>
+                                    <button class="linkBtn" type="button" @onclick="() => this.EditTimeframe = !this.EditTimeframe">@(this.EditTimeframe ? "Done" : "Edit")</button>
                                 </div>
-                                @if (!_editTimeframe)
+                                @if (!this.EditTimeframe)
                                 {
                                     <div class="ggMiniValue ggTimeframeLines">
                                         <div><span class="ggTimeframeKey">Start</span> <strong>@DisplayLabels.FormatDateLabel(Goal.StartDateIso)</strong></div>
@@ -112,11 +112,11 @@ else
                                     <div class="ggMiniEditRow">
                                         <label class="field">
                                             <div class="fieldLabel">Start</div>
-                                            <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="OnStartChange" />
+                                            <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="this.OnStartChange" />
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Target</div>
-                                            <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="OnTargetChange" />
+                                            <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="this.OnTargetChange" />
                                         </label>
                                     </div>
                                 }
@@ -125,9 +125,9 @@ else
                             <div class="ggMiniCard">
                                 <div class="ggMiniHeader">
                                     <div class="ggMiniLabel">Status</div>
-                                    <button class="linkBtn" type="button" @onclick="() => _editStatus = !_editStatus">@(_editStatus ? "Done" : "Edit")</button>
+                                    <button class="linkBtn" type="button" @onclick="() => this.EditStatus = !this.EditStatus">@(this.EditStatus ? "Done" : "Edit")</button>
                                 </div>
-                                @if (!_editStatus)
+                                @if (!this.EditStatus)
                                 {
                                     <div class="ggMiniValue">
                                         <span class="pill @Tones.GoalStatusTone(Goal.Status)">@DisplayLabels.GoalStatusLabel(Goal.Status)</span>
@@ -137,7 +137,7 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Status</div>
-                                        <select class="select" value="@Goal.Status" @onchange="OnStatusChange">
+                                        <select class="select" value="@Goal.Status" @onchange="this.OnStatusChange">
                                             <option value="OnTrack">On Track</option>
                                             <option value="NeedsAttention">Needs Attention</option>
                                             <option value="Completed">Completed</option>
@@ -149,9 +149,9 @@ else
                             <div class="ggMiniCard">
                                 <div class="ggMiniHeader">
                                     <div class="ggMiniLabel">Priority</div>
-                                    <button class="linkBtn" type="button" @onclick="() => _editPriority = !_editPriority">@(_editPriority ? "Done" : "Edit")</button>
+                                    <button class="linkBtn" type="button" @onclick="() => this.EditPriority = !this.EditPriority">@(this.EditPriority ? "Done" : "Edit")</button>
                                 </div>
-                                @if (!_editPriority)
+                                @if (!this.EditPriority)
                                 {
                                     <div class="ggMiniValue"><strong>@(Goal.Priority?.ToString() ?? "Medium")</strong></div>
                                 }
@@ -159,7 +159,7 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Priority</div>
-                                        <select class="select" value="@(Goal.Priority?.ToString() ?? "Medium")" @onchange="OnPriorityChange">
+                                        <select class="select" value="@(Goal.Priority?.ToString() ?? "Medium")" @onchange="this.OnPriorityChange">
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
@@ -172,9 +172,9 @@ else
                             <div class="ggMiniCard">
                                 <div class="ggMiniHeader">
                                     <div class="ggMiniLabel">Category</div>
-                                    <button class="linkBtn" type="button" @onclick="() => _editCategory = !_editCategory">@(_editCategory ? "Done" : "Edit")</button>
+                                    <button class="linkBtn" type="button" @onclick="() => this.EditCategory = !this.EditCategory">@(this.EditCategory ? "Done" : "Edit")</button>
                                 </div>
-                                @if (!_editCategory)
+                                @if (!this.EditCategory)
                                 {
                                     <div class="ggMiniValue">
                                         @if (string.IsNullOrWhiteSpace(Goal.Category))
@@ -191,15 +191,15 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Category</div>
-                                        <input class="input" value="@(Goal.Category ?? "")" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g. Leadership" @oninput="OnCategoryInput" />
+                                        <input class="input" value="@(Goal.Category ?? "")" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g. Leadership" @oninput="this.OnCategoryInput" />
                                     </label>
                                 }
                             </div>
                         </div>
 
-                        @if (!string.IsNullOrEmpty(_goalValidationError))
+                        @if (!string.IsNullOrEmpty(this.GoalValidationError))
                         {
-                            <div class="mutedSmall" style="color: var(--danger, #c0392b)">@_goalValidationError</div>
+                            <div class="mutedSmall" style="color: var(--danger, #c0392b)">@this.GoalValidationError</div>
                         }
 
                         <div class="ggBlock">
@@ -217,9 +217,9 @@ else
                         <div class="ggBlock">
                             <div class="ggBlockHeader">
                                 <div class="ggBlockTitle">Summary</div>
-                                <button class="linkBtn" type="button" @onclick="() => _editSummary = !_editSummary">@(_editSummary ? "Done" : "Edit")</button>
+                                <button class="linkBtn" type="button" @onclick="() => this.EditSummary = !this.EditSummary">@(this.EditSummary ? "Done" : "Edit")</button>
                             </div>
-                            @if (!_editSummary)
+                            @if (!this.EditSummary)
                             {
                                 <div class="ggBlockBody">
                                     @if (string.IsNullOrWhiteSpace(Goal.Summary))
@@ -234,16 +234,16 @@ else
                             }
                             else
                             {
-                                <textarea class="textarea" value="@(Goal.Summary ?? "")" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Short paragraph describing the goal and why it matters…" @oninput="OnSummaryInput"></textarea>
+                                <textarea class="textarea" value="@(Goal.Summary ?? "")" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Short paragraph describing the goal and why it matters…" @oninput="this.OnSummaryInput"></textarea>
                             }
                         </div>
 
                         <div class="ggBlock">
                             <div class="ggBlockHeader">
                                 <div class="ggBlockTitle">Success Criteria</div>
-                                <button class="linkBtn" type="button" @onclick="() => _editSuccessCriteria = !_editSuccessCriteria">@(_editSuccessCriteria ? "Done" : "Edit")</button>
+                                <button class="linkBtn" type="button" @onclick="() => this.EditSuccessCriteria = !this.EditSuccessCriteria">@(this.EditSuccessCriteria ? "Done" : "Edit")</button>
                             </div>
-                            @if (!_editSuccessCriteria)
+                            @if (!this.EditSuccessCriteria)
                             {
                                 @if (Goal.SuccessCriteria.Count == 0)
                                 {
@@ -261,7 +261,7 @@ else
                             }
                             else
                             {
-                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" maxlength="@GrowthUiHelpers.MaxSuccessCriteriaAggregate" placeholder="One bullet per line…" @oninput="OnCriteriaInput"></textarea>
+                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" maxlength="@GrowthUiHelpers.MaxSuccessCriteriaAggregate" placeholder="One bullet per line…" @oninput="this.OnCriteriaInput"></textarea>
                             }
                         </div>
                     </div>
@@ -273,7 +273,7 @@ else
                         <div class="ggControlsRow" aria-label="Actions controls">
                             <label class="ggControl">
                                 <span class="ggControlLabel">Filter</span>
-                                <select class="select selectCompact" @bind="_actionFilter">
+                                <select class="select selectCompact" @bind="this.ActionFilter">
                                 <option value="All">All</option>
                                 <option value="Planned">Planned</option>
                                 <option value="InProgress">In Progress</option>
@@ -282,7 +282,7 @@ else
                             </label>
                             <label class="ggControl">
                                 <span class="ggControlLabel">Sort</span>
-                                <select class="select selectCompact" @bind="_actionSort">
+                                <select class="select selectCompact" @bind="this.ActionSort">
                                 <option value="DueDate">Due date</option>
                                 <option value="State">State</option>
                                 </select>
@@ -310,7 +310,7 @@ else
                                     bool done = action.State == GrowthGoalActionState.Complete;
                                     <button @key="action.Id"
                                             type="button"
-                                            class="ggRow ggRowBtn @(_selectedActionId == action.Id ? "ggRowSelected" : null)"
+                                            class="ggRow ggRowBtn @(this.SelectedActionId == action.Id ? "ggRowSelected" : null)"
                                             role="row"
                                             @onclick="() => SelectAction(action.Id)">
                                         <div class="ggCell ggCellDone" role="cell" @onclick:stopPropagation="true">
@@ -361,7 +361,7 @@ else
                                     GrowthGoalCheckIn checkIn = c;
                                     <button @key="checkIn.Id"
                                             type="button"
-                                            class="ggRow ggRow3 ggRowBtn @(_selectedCheckInId == checkIn.Id ? "ggRowSelected" : null)"
+                                            class="ggRow ggRow3 ggRowBtn @(this.SelectedCheckInId == checkIn.Id ? "ggRowSelected" : null)"
                                             role="row"
                                             @onclick="() => SelectCheckIn(checkIn.Id)">
                                         <div class="ggCell ggCellDate" role="cell">
@@ -388,11 +388,11 @@ else
                         <div class="mutedSmall">Selection-based editing</div>
                     </div>
                     <div class="pad">
-                        @if (_selectedActionId is not null && SelectedAction is null)
+                        @if (this.SelectedActionId is not null && SelectedAction is null)
                         {
                             <div class="muted">Action not found.</div>
                         }
-                        else if (_selectedCheckInId is not null && SelectedCheckIn is null)
+                        else if (this.SelectedCheckInId is not null && SelectedCheckIn is null)
                         {
                             <div class="muted">Check-in not found.</div>
                         }
@@ -407,16 +407,16 @@ else
                         {
                             <div class="fieldGrid" aria-label="Action editor">
                                 <div class="ggEditorSelectedPillRow">
-                                    <span class="pill toneNeutral">Selected: Action</span>
+                                    <span class="pill toneNeutral">this.Selected: Action</span>
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Title</div>
-                                    <input class="input" value="@SelectedAction.Title" maxlength="@GrowthUiHelpers.MaxActionTitle" @oninput="OnActionTitleInput" />
+                                    <input class="input" value="@SelectedAction.Title" maxlength="@GrowthUiHelpers.MaxActionTitle" @oninput="this.OnActionTitleInput" />
                                 </label>
                                 <div class="fieldGrid2">
                                     <label class="field">
                                         <div class="fieldLabel">State</div>
-                                        <select class="select" value="@SelectedAction.State" @onchange="OnActionStateChange">
+                                        <select class="select" value="@SelectedAction.State" @onchange="this.OnActionStateChange">
                                             <option value="Planned">Planned</option>
                                             <option value="InProgress">In Progress</option>
                                             <option value="Complete">Complete</option>
@@ -424,11 +424,11 @@ else
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Due date</div>
-                                        <input class="input" type="date" value="@(SelectedAction.DueDateIso ?? "")" @onchange="OnActionDueChange" />
+                                        <input class="input" type="date" value="@(SelectedAction.DueDateIso ?? "")" @onchange="this.OnActionDueChange" />
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Priority</div>
-                                        <select class="select" value="@(SelectedAction.Priority?.ToString() ?? "Medium")" @onchange="OnActionPriorityChange">
+                                        <select class="select" value="@(SelectedAction.Priority?.ToString() ?? "Medium")" @onchange="this.OnActionPriorityChange">
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
@@ -438,15 +438,15 @@ else
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Notes (what you're tracking)</div>
-                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" maxlength="@GrowthUiHelpers.MaxActionNotes" placeholder="Free-text notes..." @oninput="OnActionNotesInput"></textarea>
-                                    @if (!string.IsNullOrEmpty(_actionValidationError))
+                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" maxlength="@GrowthUiHelpers.MaxActionNotes" placeholder="Free-text notes..." @oninput="this.OnActionNotesInput"></textarea>
+                                    @if (!string.IsNullOrEmpty(this.ActionValidationError))
                                     {
-                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@_actionValidationError</div>
+                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@this.ActionValidationError</div>
                                     }
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Evidence / Links (optional)</div>
-                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" maxlength="@GrowthUiHelpers.MaxActionEvidence" placeholder="https://..." @oninput="OnActionLinksInput"></textarea>
+                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" maxlength="@GrowthUiHelpers.MaxActionEvidence" placeholder="https://..." @oninput="this.OnActionLinksInput"></textarea>
                                 </label>
                             </div>
                         }
@@ -454,16 +454,16 @@ else
                         {
                             <div class="fieldGrid" aria-label="Check-in editor">
                                 <div class="ggEditorSelectedPillRow">
-                                    <span class="pill toneNeutral">Selected: Check-in</span>
+                                    <span class="pill toneNeutral">this.Selected: Check-in</span>
                                 </div>
                                 <div class="fieldGrid2">
                                     <label class="field">
                                         <div class="fieldLabel">Date</div>
-                                        <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="OnCheckInDateChange" />
+                                        <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="this.OnCheckInDateChange" />
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Signal</div>
-                                        <select class="select" value="@SelectedCheckIn.Signal" @onchange="OnCheckInSignalChange">
+                                        <select class="select" value="@SelectedCheckIn.Signal" @onchange="this.OnCheckInSignalChange">
                                             <option value="Positive">Positive</option>
                                             <option value="Mixed">Mixed</option>
                                             <option value="Concern">Concern</option>
@@ -472,10 +472,10 @@ else
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Check-in Note</div>
-                                    <textarea class="textarea" value="@SelectedCheckIn.Note" maxlength="@GrowthUiHelpers.MaxCheckInNote" placeholder="Short narrative signal about how the goal is going..." @oninput="OnCheckInNoteInput"></textarea>
-                                    @if (!string.IsNullOrEmpty(_checkInValidationError))
+                                    <textarea class="textarea" value="@SelectedCheckIn.Note" maxlength="@GrowthUiHelpers.MaxCheckInNote" placeholder="Short narrative signal about how the goal is going..." @oninput="this.OnCheckInNoteInput"></textarea>
+                                    @if (!string.IsNullOrEmpty(this.CheckInValidationError))
                                     {
-                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@_checkInValidationError</div>
+                                        <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@this.CheckInValidationError</div>
                                     }
                                 </label>
                             </div>

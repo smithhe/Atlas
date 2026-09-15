@@ -4,7 +4,7 @@
 <div class="page">
     <h2 class="pageTitle">Settings</h2>
 
-    @if (Cache.Settings is null)
+    @if (this._cache.Settings is null)
     {
         <div class="muted">Loading settings…</div>
     }
@@ -19,8 +19,8 @@
                            min="1"
                            data-testid="settings-stale-days"
                            aria-label="Stale threshold (days)"
-                           value="@_staleDays"
-                           @oninput="OnStaleDaysInput" />
+                           value="@this.StaleDays"
+                           @oninput="this.OnStaleDaysInput" />
                 </label>
 
                 <label class="field">
@@ -36,7 +36,7 @@
 
                 <label class="field span2">
                     <div class="fieldLabel">Default AI chat panel state on app open</div>
-                    <select class="input" value="@(_aiPanelOpen ? "on" : "off")" @onchange="OnAiPanelChange">
+                    <select class="input" value="@(this.AiPanelOpen ? "on" : "off")" @onchange="this.OnAiPanelChange">
                         <option value="off">Off (closed)</option>
                         <option value="on">On (open)</option>
                     </select>
@@ -53,29 +53,29 @@
 
                 <label class="field span2">
                     <div class="fieldLabel">Azure DevOps base URL</div>
-                    <input class="input" value="@_azureBaseUrl" @oninput="OnAzureBaseUrlInput" />
+                    <input class="input" value="@this.AzureBaseUrl" @oninput="this.OnAzureBaseUrlInput" />
                 </label>
             </div>
 
             <div class="row mt-lg">
-                <button class="btn" type="button" @onclick="SaveSettings" disabled="@_saving" aria-busy="@(_saving ? true : null)">
+                <button class="btn" type="button" @onclick="this.SaveSettings" disabled="@this.Saving" aria-busy="@(this.Saving ? true : null)">
                     <span class="btnContent">
-                        @if (_saving)
+                        @if (this.Saving)
                         {
                             <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving settings"></span>
                         }
                         <span class="btnLabel">Save settings</span>
                     </span>
                 </button>
-                @if (!string.IsNullOrEmpty(_settingsError))
+                @if (!string.IsNullOrEmpty(this.SettingsError))
                 {
-                    <div class="muted" style="margin-left: 12px">@_settingsError</div>
+                    <div class="muted" style="margin-left: 12px">@this.SettingsError</div>
                 }
             </div>
         </div>
 
         <div class="card pad mt-lg">
-            <div class="loadingOverlayWrap @(_azureLoading ? "loadingOverlayWrapActive" : null)">
+            <div class="loadingOverlayWrap @(this.AzureLoading ? "loadingOverlayWrapActive" : null)">
                 <div class="loadingOverlayBody">
                     <div class="rowTiny items-center mb-sm">
                         <h3 style="margin: 0">Azure DevOps</h3>
@@ -83,31 +83,31 @@
                     <div class="fieldGrid2">
                         <label class="field">
                             <div class="fieldLabel">Organization</div>
-                            <input class="input" @bind="_org" @bind:event="oninput" />
+                            <input class="input" @bind="this.Org" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Project</div>
-                            <input class="input" @bind="_project" @bind:event="oninput" />
+                            <input class="input" @bind="this.Project" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Area path</div>
-                            <input class="input" @bind="_areaPath" @bind:event="oninput" />
+                            <input class="input" @bind="this.AreaPath" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Team (optional)</div>
-                            <input class="input" @bind="_teamName" @bind:event="oninput" />
+                            <input class="input" @bind="this.TeamName" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Project ID</div>
-                            <input class="input" @bind="_projectId" @bind:event="oninput" />
+                            <input class="input" @bind="this.ProjectId" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Team ID</div>
-                            <input class="input" @bind="_teamId" @bind:event="oninput" />
+                            <input class="input" @bind="this.TeamId" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Enabled</div>
-                            <select class="input" @bind="_enabledYesNo">
+                            <select class="input" @bind="this.EnabledYesNo">
                                 <option value="yes">Yes</option>
                                 <option value="no">No</option>
                             </select>
@@ -117,11 +117,11 @@
                     <div class="rowTiny mt-lg items-center">
                         <button class="btn btnWide"
                                 type="button"
-                                @onclick="SaveAzureConnection"
-                                disabled="@(!_azureLoaded || _azureSaving || string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))"
-                                aria-busy="@(_azureSaving ? true : null)">
+                                @onclick="this.SaveAzureConnection"
+                                disabled="@(!this.AzureLoaded || this.AzureSaving || string.IsNullOrWhiteSpace(this.ProjectId) || string.IsNullOrWhiteSpace(this.TeamId))"
+                                aria-busy="@(this.AzureSaving ? true : null)">
                             <span class="btnContent">
-                                @if (_azureSaving)
+                                @if (this.AzureSaving)
                                 {
                                     <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving Azure DevOps connection"></span>
                                 }
@@ -130,39 +130,39 @@
                         </button>
                         <button class="btn btnSecondary btnWide"
                                 type="button"
-                                @onclick="SyncNow"
-                                disabled="@(!_azureLoaded || SyncInProgress)"
-                                aria-busy="@(_syncRunning ? true : null)">
+                                @onclick="this.SyncNow"
+                                disabled="@(!this.AzureLoaded || SyncInProgress)"
+                                aria-busy="@(this.SyncRunning ? true : null)">
                             <span class="btnContent">
-                                @if (_syncRunning)
+                                @if (this.SyncRunning)
                                 {
                                     <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Syncing…"></span>
                                 }
                                 <span class="btnLabel">@(SyncInProgress ? "Syncing…" : "Sync now")</span>
                             </span>
                         </button>
-                        <button class="btn btnSecondary btnWide" type="button" @onclick="OpenAzureImport">
+                        <button class="btn btnSecondary btnWide" type="button" @onclick="this.OpenAzureImport">
                             Open Azure Import
                         </button>
                     </div>
-                    @if (_azureLoaded && (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId)))
+                    @if (this.AzureLoaded && (string.IsNullOrWhiteSpace(this.ProjectId) || string.IsNullOrWhiteSpace(this.TeamId)))
                     {
                         <div class="mutedSmall textBad mt-sm">
                             Azure connection needs Project ID and Team ID. Use <NavLink href="/setup">Azure Setup</NavLink>.
                         </div>
                     }
-                    @if (!string.IsNullOrEmpty(_azureError))
+                    @if (!string.IsNullOrEmpty(this.AzureError))
                     {
-                        <div class="mutedSmall textBad mt-xs">@_azureError</div>
+                        <div class="mutedSmall textBad mt-xs">@this.AzureError</div>
                     }
-                    @if (!string.IsNullOrEmpty(_azureSyncMessage))
+                    @if (!string.IsNullOrEmpty(this.AzureSyncMessage))
                     {
-                        <div class="mutedSmall mt-xs">@_azureSyncMessage</div>
+                        <div class="mutedSmall mt-xs">@this.AzureSyncMessage</div>
                     }
 
-                    <div class="loadingOverlayWrap @(_syncStateLoading ? "loadingOverlayWrapActive" : null)">
+                    <div class="loadingOverlayWrap @(this.SyncStateLoading ? "loadingOverlayWrapActive" : null)">
                         <div class="loadingOverlayBody">
-                            @if (_syncState is not null)
+                            @if (this.SyncState is not null)
                             {
                                 <div class="muted mt-md">
                                     @if (SyncInProgress)
@@ -177,11 +177,11 @@
                                             <text> · Last attempt: @LastAttemptedLabel</text>
                                         }
                                         <text> · Status: </text>
-                                        <span class="@SyncStatusClass(_syncState.LastRunStatus)">@_syncState.LastRunStatus</span>
-                                        @if (!string.IsNullOrEmpty(_syncState.LastError))
+                                        <span class="@SyncStatusClass(this.SyncState.LastRunStatus)">@this.SyncState.LastRunStatus</span>
+                                        @if (!string.IsNullOrEmpty(this.SyncState.LastError))
                                         {
                                             <text> · </text>
-                                            <span class="textBad">Error: @_syncState.LastError</span>
+                                            <span class="textBad">Error: @this.SyncState.LastError</span>
                                         }
                                     }
                                 </div>
@@ -191,7 +191,7 @@
                                 <div class="muted mt-md">No sync history yet.</div>
                             }
                         </div>
-                        @if (_syncStateLoading)
+                        @if (this.SyncStateLoading)
                         {
                             <div class="loadingOverlay" role="presentation">
                                 <span class="spinner spinner-sm" role="status" aria-label="Loading sync history"></span>
@@ -199,7 +199,7 @@
                         }
                     </div>
                 </div>
-                @if (_azureLoading)
+                @if (this.AzureLoading)
                 {
                     <div class="loadingOverlay" role="presentation">
                         <span class="spinner spinner-md" role="status" aria-label="Loading Azure DevOps connection"></span>

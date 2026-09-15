@@ -9,45 +9,45 @@
     </div>
     <h2 class="pageTitle">Azure DevOps Import</h2>
 
-    @if (!string.IsNullOrEmpty(_error))
+    @if (!string.IsNullOrEmpty(this.Error))
     {
         <div class="card pad" style="margin-bottom: 12px">
-            <div class="textBad">Error: @_error</div>
+            <div class="textBad">Error: @this.Error</div>
         </div>
     }
-    @if (!string.IsNullOrEmpty(_productOwnerWarning))
+    @if (!string.IsNullOrEmpty(this.ProductOwnerWarning))
     {
         <div class="card pad" style="margin-bottom: 12px">
-            <div class="textWarn">@_productOwnerWarning</div>
+            <div class="textWarn">@this.ProductOwnerWarning</div>
         </div>
     }
 
     <div class="card" style="margin-bottom: 16px">
         <div class="cardHeader">
             <div class="cardTitle">Select Azure team members</div>
-            <div class="mutedSmall">@_users.Count available</div>
+            <div class="mutedSmall">@this.Users.Count available</div>
         </div>
         <div class="pad">
-            @if (_loading)
+            @if (this.Loading)
             {
                 <div class="mutedSmall">Loading Azure import data…</div>
             }
-            else if (string.IsNullOrWhiteSpace(_connection?.Organization))
+            else if (string.IsNullOrWhiteSpace(this.Connection?.Organization))
             {
                 <div class="mutedSmall">Set your Azure organization in Settings before importing users.</div>
             }
-            else if (_users.Count > 0)
+            else if (this.Users.Count > 0)
             {
                 <div class="rowTiny" style="margin-top: 10px; align-items: center">
-                    <button type="button" class="btn btnGhost" disabled="@(_users.Count == 0)" @onclick="SelectAllUsers">Select all</button>
-                    <button type="button" class="btn btnGhost" disabled="@(_selectedUsers.Count == 0)" @onclick="ClearSelectedUsers">Clear</button>
-                    <span class="mutedSmall" style="margin-left: auto">@_selectedUsers.Count selected</span>
+                    <button type="button" class="btn btnGhost" disabled="@(this.Users.Count == 0)" @onclick="this.SelectAllUsers">Select all</button>
+                    <button type="button" class="btn btnGhost" disabled="@(this.SelectedUsers.Count == 0)" @onclick="this.ClearSelectedUsers">Clear</button>
+                    <span class="mutedSmall" style="margin-left: auto">@this.SelectedUsers.Count selected</span>
                 </div>
                 <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
-                    @foreach (AzureUser u in _users)
+                    @foreach (AzureUser u in this.Users)
                     {
                         string unique = u.UniqueName ?? "";
-                        bool selected = _selectedUsers.Contains(unique);
+                        bool selected = this.SelectedUsers.Contains(unique);
                         <label class="listRow listRowBtn @(selected ? "listRowActive" : null)" style="cursor: pointer">
                             <input type="checkbox" checked="@selected" @onchange="e => ToggleUser(unique, e)" />
                             <div class="listMain">
@@ -70,15 +70,15 @@
             <div class="rowTiny" style="align-items: center">
                 <button class="btn btnWide"
                         type="button"
-                        disabled="@(_selectedUsers.Count == 0 || _loading || _importingProductOwners || _importingUsers)"
-                        @onclick="OnImportUsers">
-                    @(_importingUsers ? "Importing…" : "Import as team members")
+                        disabled="@(this.SelectedUsers.Count == 0 || this.Loading || this.ImportingProductOwners || this.ImportingUsers)"
+                        @onclick="this.OnImportUsers">
+                    @(this.ImportingUsers ? "Importing…" : "Import as team members")
                 </button>
                 <button class="btn btnWide"
                         type="button"
-                        disabled="@(_selectedUsers.Count == 0 || _loading || _importingUsers || _importingProductOwners)"
-                        @onclick="OnImportProductOwners">
-                    @(_importingProductOwners ? "Importing…" : "Import as product owners")
+                        disabled="@(this.SelectedUsers.Count == 0 || this.Loading || this.ImportingUsers || this.ImportingProductOwners)"
+                        @onclick="this.OnImportProductOwners">
+                    @(this.ImportingProductOwners ? "Importing…" : "Import as product owners")
                 </button>
                 <div class="mutedSmall">Select users once, then import to either target list.</div>
             </div>
@@ -88,13 +88,13 @@
     <div class="card">
         <div class="cardHeader">
             <div class="cardTitle">Work items awaiting import</div>
-            <div class="mutedSmall">@_importWorkItems.Count items</div>
+            <div class="mutedSmall">@this.ImportWorkItems.Count items</div>
         </div>
-        @if (_loading)
+        @if (this.Loading)
         {
             <div class="pad muted">Loading Azure import data…</div>
         }
-        else if (_importWorkItems.Count == 0)
+        else if (this.ImportWorkItems.Count == 0)
         {
             <div class="pad muted">No work items awaiting import.</div>
         }
@@ -104,9 +104,9 @@
                 <div class="fieldGrid2" style="margin-bottom: 12px">
                     <label class="field">
                         <div class="fieldLabel">Target project</div>
-                        <select class="input" value="@_projectId" @onchange="OnProjectChange">
+                        <select class="input" value="@this.ProjectId" @onchange="this.OnProjectChange">
                             <option value="">Select project</option>
-                            @foreach (Project p in Cache.Projects)
+                            @foreach (Project p in this._cache.Projects)
                             {
                                 <option value="@p.Id">@p.Name</option>
                             }
@@ -114,9 +114,9 @@
                     </label>
                     <label class="field">
                         <div class="fieldLabel">Assign to</div>
-                        <select class="input" value="@_teamMemberId" @onchange="OnTeamMemberChange">
+                        <select class="input" value="@this.TeamMemberId" @onchange="this.OnTeamMemberChange">
                             <option value="">Auto-assign from mapping</option>
-                            @foreach (TeamMember m in Cache.Team)
+                            @foreach (TeamMember m in this._cache.Team)
                             {
                                 <option value="@m.Id">@m.Name</option>
                             }
@@ -127,22 +127,22 @@
                 <div class="rowTiny" style="align-items: center; margin-bottom: 12px">
                     <button class="btn btnWide"
                             type="button"
-                            disabled="@(string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0 || _linkingWorkItems)"
-                            @onclick="OnLinkWorkItems">
-                        @(_linkingWorkItems ? "Linking…" : "Link selected")
+                            disabled="@(string.IsNullOrEmpty(this.ProjectId) || this.SelectedWorkItems.Count == 0 || this.LinkingWorkItems)"
+                            @onclick="this.OnLinkWorkItems">
+                        @(this.LinkingWorkItems ? "Linking…" : "Link selected")
                     </button>
                     <button type="button"
                             class="btn btnGhost"
-                            disabled="@(_selectedWorkItems.Count == 0 || _linkingWorkItems)"
-                            @onclick="OnIgnoreSelectedWorkItems">
+                            disabled="@(this.SelectedWorkItems.Count == 0 || this.LinkingWorkItems)"
+                            @onclick="this.OnIgnoreSelectedWorkItems">
                         Ignore selected
                     </button>
                     <div class="mutedSmall">
-                        @(string.IsNullOrEmpty(_selectedProjectName)
+                        @(string.IsNullOrEmpty(this.SelectedProjectName)
                             ? "Select a project to link work items."
-                            : $"Linking to {_selectedProjectName}.")
+                            : $"Linking to {this.SelectedProjectName}.")
                     </div>
-                    <span class="mutedSmall" style="margin-left: auto">@_selectedWorkItems.Count selected</span>
+                    <span class="mutedSmall" style="margin-left: auto">@this.SelectedWorkItems.Count selected</span>
                 </div>
 
                 <div class="tableGrid" style="grid-template-columns: 40px 100px 1fr 120px 160px 140px">
@@ -153,13 +153,13 @@
                     <div class="tableCell tableHeader">Assigned</div>
                     <div class="tableCell tableHeader">Type</div>
 
-                    @foreach (AzureImportWorkItem item in _importWorkItems)
+                    @foreach (AzureImportWorkItem item in this.ImportWorkItems)
                     {
                         if (item.Id == Guid.Empty) continue;
                         Guid itemId = item.Id;
-                        bool isSelected = _selectedWorkItems.Contains(itemId);
+                        bool isSelected = this.SelectedWorkItems.Contains(itemId);
                         string? assigned = item.SuggestedTeamMemberId is { } mid
-                            ? Cache.Team.FirstOrDefault(m => m.Id == mid)?.Name
+                            ? this._cache.Team.FirstOrDefault(m => m.Id == mid)?.Name
                             : null;
                         <div @key="itemId" class="tableRow">
                             <div class="tableCell">

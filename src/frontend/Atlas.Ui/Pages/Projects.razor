@@ -4,21 +4,21 @@
 <PageTitle>Projects — Atlas</PageTitle>
 
 <div class="page pageFill">
-    <PageTitleRow Title="Projects" AddLabel="Add project" AddingLabel="Adding…" Adding="_creating" OnAdd="HandleAddProject" />
+    <PageTitleRow Title="Projects" AddLabel="Add project" AddingLabel="Adding…" Adding="this.Creating" OnAdd="this.HandleAddProject" />
 
-    <div class="splitGrid splitGridFill @(IsFocusMode ? "projectsSplitFocus" : null)">
-        @if (!IsFocusMode)
+    <div class="splitGrid splitGridFill @(this.IsFocusMode ? "projectsSplitFocus" : null)">
+        @if (!this.IsFocusMode)
         {
             <section class="pane paneLeft" aria-label="Project list">
                 <div class="list listCard">
-                    @foreach (Project p in Cache.Projects)
+                    @foreach (Project p in this._cache.Projects)
                     {
                         Guid projectId = p.Id;
                         string projectName = p.Name;
                         string projectSummary = p.Summary;
                         <button @key="projectId"
                                 type="button"
-                                class="listRow listRowBtn @(projectId == Selection.SelectedProjectId ? "listRowActive" : null)"
+                                class="listRow listRowBtn @(projectId == this._selection.SelectedProjectId ? "listRowActive" : null)"
                                 @onclick="() => SelectFromList(projectId)"
                                 @ondblclick="() => GoFocus(projectId)">
                             <div class="listMain">
@@ -32,19 +32,19 @@
         }
 
         <section class="pane paneCenter" aria-label="Project detail">
-            @if (Selected is null)
+            @if (this.Selected is null)
             {
                 <div class="card pad"><div class="muted">Select a project.</div></div>
             }
             else
             {
-                <ProjectDetail Project="Selected"
-                               IsFocusMode="IsFocusMode"
-                               AutoEditId="_autoEditId"
-                               AutoEditCleared="ClearAutoEdit"
-                               OnEnterFocus="EnterFocus"
-                               OnExitFocus="ExitFocus"
-                               OnDeleted="OnProjectDeleted" />
+                <ProjectDetail Project="this.Selected"
+                               IsFocusMode="this.IsFocusMode"
+                               AutoEditId="this.AutoEditId"
+                               AutoEditCleared="this.ClearAutoEdit"
+                               OnEnterFocus="this.EnterFocus"
+                               OnExitFocus="this.ExitFocus"
+                               OnDeleted="this.OnProjectDeleted" />
             }
         </section>
     </div>

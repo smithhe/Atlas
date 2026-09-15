@@ -1,40 +1,40 @@
 @if (IsOpen)
 {
-    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay" @onkeydown="OnOverlayKey">
+    <div class="modalOverlay" role="presentation" @onmousedown="this.CloseFromOverlay" @onkeydown="this.OnOverlayKey">
         <div class="modalPanel"
              role="dialog"
              aria-modal="true"
              aria-labelledby="_quickAddTitle"
              tabindex="-1"
              @onmousedown:stopPropagation="true"
-             @ref="_panel">
+             @ref="this.Panel">
             <div class="modalHeader">
                 <div class="modalTitle" id="_quickAddTitle">Quick Add</div>
-                <button class="btn btnGhost" type="button" @onclick="HandleClose" disabled="@_saving">Close</button>
+                <button class="btn btnGhost" type="button" @onclick="this.HandleClose" disabled="@this.Saving">Close</button>
             </div>
             <div class="modalBody">
                 <div class="chipRow" style="margin-bottom: 14px">
-                    <button type="button" class="chipBtn @(_kind == "task" ? "chipBtnActive" : null)" @onclick='() => _kind = "task"' disabled="@_saving">Task</button>
-                    <button type="button" class="chipBtn @(_kind == "risk" ? "chipBtnActive" : null)" @onclick='() => _kind = "risk"' disabled="@_saving">Risk</button>
-                    <button type="button" class="chipBtn @(_kind == "note" ? "chipBtnActive" : null)" @onclick='() => _kind = "note"' disabled="@_saving">Team note</button>
+                    <button type="button" class="chipBtn @(this.Kind == "task" ? "chipBtnActive" : null)" @onclick='() => this.Kind = "task"' disabled="@this.Saving">Task</button>
+                    <button type="button" class="chipBtn @(this.Kind == "risk" ? "chipBtnActive" : null)" @onclick='() => this.Kind = "risk"' disabled="@this.Saving">Risk</button>
+                    <button type="button" class="chipBtn @(this.Kind == "note" ? "chipBtnActive" : null)" @onclick='() => this.Kind = "note"' disabled="@this.Saving">Team note</button>
                 </div>
 
-                @if (_kind == "task")
+                @if (this.Kind == "task")
                 {
                     <div class="fieldGrid">
                         <label class="field">
                             <div class="fieldLabel">Title</div>
-                            <input class="input" @bind="_taskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New task" />
+                            <input class="input" @bind="this.TaskTitle" @bind:event="oninput" @onkeydown="this.OnTitleKey" placeholder="New task" />
                         </label>
                         <div class="mutedSmall">Creates with Medium priority and Not Started status. Edit details on the task page.</div>
                     </div>
                 }
-                else if (_kind == "risk")
+                else if (this.Kind == "risk")
                 {
                     <div class="fieldGrid">
                         <label class="field">
                             <div class="fieldLabel">Title</div>
-                            <input class="input" @bind="_riskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New risk" />
+                            <input class="input" @bind="this.RiskTitle" @bind:event="oninput" @onkeydown="this.OnTitleKey" placeholder="New risk" />
                         </label>
                         <div class="mutedSmall">Creates as Open / Medium severity. Edit details on the risk page.</div>
                     </div>
@@ -44,21 +44,21 @@
                     <div class="fieldGrid">
                         <label class="field">
                             <div class="fieldLabel">Team member</div>
-                            <select class="select" @bind="_memberId">
+                            <select class="select" @bind="this.MemberId">
                                 <option value="">Select a member…</option>
-                                @foreach (TeamMember m in Cache.Team.OrderBy(x => x.Name))
+                                @foreach (TeamMember m in this._cache.Team.OrderBy(x => x.Name))
                                 {
                                     <option value="@m.Id">@m.Name</option>
                                 }
                             </select>
                         </label>
-                        @if (Cache.Team.Count == 0)
+                        @if (this._cache.Team.Count == 0)
                         {
                             <div class="mutedSmall">No team members yet. Import from Azure DevOps in Settings.</div>
                         }
                         <label class="field">
                             <div class="fieldLabel">Tag</div>
-                            <select class="select" value="@_noteTag" @onchange="OnNoteTagChange">
+                            <select class="select" value="@this.NoteTag" @onchange="this.OnNoteTagChange">
                                 @foreach (string t in NoteTags)
                                 {
                                     <option value="@t">@t</option>
@@ -67,29 +67,29 @@
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Title (optional)</div>
-                            <input class="input" @bind="_noteTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
+                            <input class="input" @bind="this.NoteTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">ADO work item id (optional)</div>
-                            <input class="input" @bind="_noteAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                            <input class="input" @bind="this.NoteAdo" @bind:event="oninput" placeholder="e.g., 12345" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">PR URL (optional)</div>
-                            <input class="input" @bind="_notePr" @bind:event="oninput" placeholder="https://…" />
+                            <input class="input" @bind="this.NotePr" @bind:event="oninput" placeholder="https://…" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Note</div>
-                            <textarea class="textarea" @bind="_noteText" @bind:event="oninput" placeholder="Write your note…"></textarea>
+                            <textarea class="textarea" @bind="this.NoteText" @bind:event="oninput" placeholder="Write your note…"></textarea>
                         </label>
                     </div>
                 }
             </div>
             <div class="modalFooter">
                 <div class="row" style="margin-top: 0">
-                    <button class="btn btnSecondary" type="button" disabled="@(!CanCreate || _saving)" @onclick="HandleCreate">
-                        @(_saving ? "Creating…" : "Create")
+                    <button class="btn btnSecondary" type="button" disabled="@(!CanCreate || this.Saving)" @onclick="this.HandleCreate">
+                        @(this.Saving ? "Creating…" : "Create")
                     </button>
-                    <button class="btn btnGhost" type="button" disabled="@_saving" @onclick="HandleClose">Cancel</button>
+                    <button class="btn btnGhost" type="button" disabled="@this.Saving" @onclick="this.HandleClose">Cancel</button>
                 </div>
             </div>
         </div>

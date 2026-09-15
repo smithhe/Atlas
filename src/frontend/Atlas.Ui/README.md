@@ -45,7 +45,21 @@ Docker Compose bakes `API_BASE_URL` into `wwwroot/appsettings.json` at image bui
 - Default layout: `Layout/ShellLayout.razor` (nav, search/quick-add, AI panel, hydration overlay)
 - Entry: `Pages/Login.razor` (`/` + `/login`), `Pages/Setup.razor` (`/setup`) use `EmptyLayout`
 - Pages for all former React `router.tsx` patterns under `Pages/`
-- Cache: `Services/AppCacheService` (`IsHydrating`, projects → risks → tasks)
+- Cache: `IAppCacheService` / `AppCacheService` (`IsHydrating`, projects → risks → tasks)
+- Hydration: `Program.cs` starts a single fire-and-forget `EnsureHydratedAsync()` so the cache warms before first render. That method latches one in-flight task, so it is safe to await again from page `OnInitializedAsync`. `ShellLayout` does not start a second background hydrate.
+
+## House style
+
+Atlas.Ui follows the EcommerceApp-derived conventions, with one documented indent exception:
+
+- Domain HTTP wrappers live behind `Contracts/IXxxService`; pages inject interfaces, not concrete `*Service` types.
+- `ServiceRegistration.AddAtlasUiServices` owns DI. `Program.cs` is host bootstrap only.
+- `[Inject]` is a `_camelCase` private property on the code-behind (not `@inject`, not PascalCase inject properties). Blazor's `InjectAttribute` does not allow fields on this TFM.
+- Page/modal UI state is PascalCase. Qualify instance members with `this.` in markup **values** and code-behind, not in Blazor component parameter names (`IsFocusMode="this.IsFocusMode"`, never `this.IsFocusMode="..."`).
+- New/updated C# uses braced namespaces.
+- Indent is **4 spaces** (see `src/.editorconfig`), not EcommerceApp tabs, so UI and backend stay consistent.
+
+Keep NSwag `IAtlasApiClient`, `BrowserDialogs` (pages own dialogs; domain services do not call them), and Shared modals. Growth autosave persist failures are raised on `IGrowthService.PersistFailed`; `ShellLayout` is the durable listener so the alert survives page disposal during reload.
 
 ## OpenAPI / NSwag
 

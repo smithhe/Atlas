@@ -1,58 +1,60 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Team;
-
-public partial class MemberWorkItemsTab
+namespace Atlas.Ui.Components.Team
 {
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-
-    [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
-
-    private string _query = "";
-    private string _quickFilter = "All";
-    private string _statusFilter = "All";
-
-    private List<string> StatusOptions =>
-        new[] { "All" }.Concat(Member.AzureItems.Select(a => a.Status).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s)).ToList();
-
-    private List<AzureItem> Filtered
+    public partial class MemberWorkItemsTab
     {
-        get
+        [Inject] private NavigationManager _nav { get; set; } = null!;
+
+        [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
+
+        private string Query { get; set; } = "";
+        private string QuickFilter { get; set; } = "All";
+        private string StatusFilter { get; set; } = "All";
+
+        private List<string> StatusOptions =>
+            new[] { "All" }.Concat(Member.AzureItems.Select(a => a.Status).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s)).ToList();
+
+        private List<AzureItem> Filtered
         {
-            var q = _query.Trim().ToLowerInvariant();
-            IEnumerable<AzureItem> items = Member.AzureItems;
-            if (_quickFilter == "Current")
+            get
             {
-                items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
-            }
-            else if (_quickFilter == "Blocked")
-            {
-                items = items.Where(a => a.Status.Contains("blocked", StringComparison.OrdinalIgnoreCase));
-            }
-            else if (_quickFilter == "InReview")
-            {
-                items = items.Where(a =>
+                var q = this.Query.Trim().ToLowerInvariant();
+                IEnumerable<AzureItem> items = Member.AzureItems;
+                if (this.QuickFilter == "Current")
                 {
-                    var s = a.Status.ToLowerInvariant();
-                    return s.Contains("code review") || s.Contains("in review") || s.Contains("review");
-                });
-            }
+                    items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
+                }
+                else if (this.QuickFilter == "Blocked")
+                {
+                    items = items.Where(a => a.Status.Contains("blocked", StringComparison.OrdinalIgnoreCase));
+                }
+                else if (this.QuickFilter == "InReview")
+                {
+                    items = items.Where(a =>
+                    {
+                        var s = a.Status.ToLowerInvariant();
+                        return s.Contains("code review") || s.Contains("in review") || s.Contains("review");
+                    });
+                }
 
-            if (_statusFilter != "All")
-            {
-                items = items.Where(a => a.Status == _statusFilter);
-            }
+                if (this.StatusFilter != "All")
+                {
+                    items = items.Where(a => a.Status == this.StatusFilter);
+                }
 
-            if (!string.IsNullOrEmpty(q))
-            {
-                items = items.Where(a => $"{a.Id} {a.Title} {a.Status}".ToLowerInvariant().Contains(q));
-            }
+                if (!string.IsNullOrEmpty(q))
+                {
+                    items = items.Where(a => $"{a.Id} {a.Title} {a.Status}".ToLowerInvariant().Contains(q));
+                }
 
-            return items.ToList();
+                return items.ToList();
+            }
         }
-    }
 
-    private void OpenItem(string id) => Nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
+        private void OpenItem(string id) => this._nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
+    }
 }

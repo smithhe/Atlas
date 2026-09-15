@@ -1,6 +1,6 @@
-<div class="markdown" @ref="_root">
-    @if (!string.IsNullOrEmpty(_html))
+<div class="markdown" @ref="this.Root">
+    @if (!string.IsNullOrEmpty(this.Html))
     {
-        @((MarkupString)_html)
+        @((MarkupString)this.Html)
     }
 </div>

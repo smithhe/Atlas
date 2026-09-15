@@ -8,7 +8,7 @@
         <section class="card">
             <header class="cardHeader">
                 <div class="cardTitle">Attention Required</div>
-                <div class="mutedSmall">Stale soon: @(_staleSoonDays)d • Stale: @(_staleDays)d</div>
+                <div class="mutedSmall">Stale soon: @(this.StaleSoonDays)d • Stale: @(this.StaleDays)d</div>
             </header>
             <div class="list">
                 <div class="dashboardGroup" data-testid="dashboard-needs-action">
@@ -16,15 +16,15 @@
                         <div class="dashboardGroupTitle">Needs Action</div>
                         <div class="mutedSmall">Things you should decide/unblock</div>
                     </div>
-                    @if (_needsAction.Count == 0)
+                    @if (this.NeedsAction.Count == 0)
                     {
                         <div class="dashboardEmpty">Nothing urgent right now.</div>
                     }
                     else
                     {
-                        @foreach (DashRow row in _needsAction)
+                        @foreach (DashRow row in this.NeedsAction)
                         {
-                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => this.Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@row.Title</div>
@@ -44,15 +44,15 @@
                         <div class="dashboardGroupTitle">Watchlist</div>
                         <div class="mutedSmall">Monitor — no immediate action</div>
                     </div>
-                    @if (_watchlist.Count == 0)
+                    @if (this.Watchlist.Count == 0)
                     {
                         <div class="dashboardEmpty">No watch items.</div>
                     }
                     else
                     {
-                        @foreach (DashRow row in _watchlist)
+                        @foreach (DashRow row in this.Watchlist)
                         {
-                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => Go(row.To)">
+                            <button @key="row.Key" class="listRow listRowBtn" type="button" @onclick="() => this.Go(row.To)">
                                 <span class="dot @row.DotClass"></span>
                                 <div class="listMain">
                                     <div class="listTitle">@row.Title</div>
@@ -79,13 +79,13 @@
                         <div class="dashboardGroupTitle">Today</div>
                         <div class="mutedSmall">Due today or recently-touched commitments</div>
                     </div>
-                    @if (_commitmentToday.Count == 0)
+                    @if (this.CommitmentToday.Count == 0)
                     {
                         <div class="dashboardEmpty">No items.</div>
                     }
                     else
                     {
-                        @foreach (AtlasTask t in _commitmentToday)
+                        @foreach (AtlasTask t in this.CommitmentToday)
                         {
                             <button @key="t.Id" class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
@@ -103,13 +103,13 @@
                         <div class="dashboardGroupTitle">This Week</div>
                         <div class="mutedSmall">Due soon or medium-term commitments</div>
                     </div>
-                    @if (_commitmentWeek.Count == 0)
+                    @if (this.CommitmentWeek.Count == 0)
                     {
                         <div class="dashboardEmpty">No items.</div>
                     }
                     else
                     {
-                        @foreach (AtlasTask t in _commitmentWeek)
+                        @foreach (AtlasTask t in this.CommitmentWeek)
                         {
                             <button @key="t.Id" class="listRow listRowBtn" type="button" @onclick="() => GoTask(t.Id)">
                                 <span class="dot @PriorityDot(t.Priority)"></span>
@@ -125,7 +125,7 @@
             </div>
 
             <div class="cardFooter">
-                <button class="btn" type="button" @onclick="AskAiAttention">Ask AI: What needs my attention?</button>
+                <button class="btn" type="button" @onclick="this.AskAiAttention">Ask AI: What needs my attention?</button>
             </div>
         </section>
 
@@ -134,7 +134,7 @@
                 <div class="cardTitle">Team Pulse</div>
             </header>
             <div class="list">
-                @if (_teamPulse.Count == 0)
+                @if (this.TeamPulse.Count == 0)
                 {
                     <div class="dashboardEmpty">
                         No team members imported yet.
@@ -143,7 +143,7 @@
                 }
                 else
                 {
-                    @foreach (TeamMember m in _teamPulse)
+                    @foreach (TeamMember m in this.TeamPulse)
                     {
                         int? days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
                         string freshness = days is null ? "no update yet" : days > 7 ? "no update this week" : $"updated {days}d ago";
@@ -167,15 +167,15 @@
                 <div class="mutedSmall">Early warnings (not a backlog)</div>
             </header>
             <div class="list dashboardDriftList">
-                @if (_drift.Count == 0)
+                @if (this.Drift.Count == 0)
                 {
                     <div class="dashboardEmpty">No drift signals.</div>
                 }
                 else
                 {
-                    @foreach (DriftRow d in _drift)
+                    @foreach (DriftRow d in this.Drift)
                     {
-                        <button @key="d.Key" class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => Go(d.To)">
+                        <button @key="d.Key" class="listRow listRowBtn dashboardDriftRow" type="button" @onclick="() => this.Go(d.To)">
                             <span class="dot dot-stale"></span>
                             <div class="listMain">
                                 <div class="listTitle">@d.Title</div>

@@ -1,48 +1,49 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
-namespace Atlas.Ui.Shared;
-
-public partial class AtlasModal
+namespace Atlas.Ui.Shared
 {
-    [Parameter] public string Title { get; set; } = "";
-    [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-    [Parameter] public RenderFragment? Footer { get; set; }
-
-    private readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
-    private ElementReference _panel;
-    private bool _wasOpen;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    public partial class AtlasModal
     {
-        if (IsOpen && !_wasOpen)
+        [Parameter] public string Title { get; set; } = "";
+        [Parameter] public bool IsOpen { get; set; }
+        [Parameter] public EventCallback OnClose { get; set; }
+        [Parameter] public RenderFragment? ChildContent { get; set; }
+        [Parameter] public RenderFragment? Footer { get; set; }
+
+        private readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
+        private ElementReference Panel { get; set; }
+        private bool WasOpen { get; set; }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            _wasOpen = true;
-            try { await _panel.FocusAsync(); } catch { /* ignore */ }
-            return;
+            if (IsOpen && !this.WasOpen)
+            {
+                this.WasOpen = true;
+                try { await this.Panel.FocusAsync(); } catch { /* ignore */ }
+                return;
+            }
+
+            if (!IsOpen)
+            {
+                this.WasOpen = false;
+            }
         }
 
-        if (!IsOpen)
+        private async Task HandleClose() => await OnClose.InvokeAsync();
+
+        private async Task CloseFromOverlay(MouseEventArgs e)
         {
-            _wasOpen = false;
-        }
-    }
-
-    private async Task HandleClose() => await OnClose.InvokeAsync();
-
-    private async Task CloseFromOverlay(MouseEventArgs e)
-    {
-        // Overlay itself only — panel stops propagation.
-        await OnClose.InvokeAsync();
-    }
-
-    private async Task OnOverlayKey(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape")
-        {
+            // Overlay itself only — panel stops propagation.
             await OnClose.InvokeAsync();
+        }
+
+        private async Task OnOverlayKey(KeyboardEventArgs e)
+        {
+            if (e.Key == "Escape")
+            {
+                await OnClose.InvokeAsync();
+            }
         }
     }
 }

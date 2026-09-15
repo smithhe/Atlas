@@ -2,7 +2,7 @@
     <div class="cardHeader">
         <div class="cardTitle">Notes</div>
         <div class="row" style="margin-top: 0">
-            <button class="btn" type="button" @onclick="OpenNew">+ New</button>
+            <button class="btn" type="button" @onclick="this.OpenNew">+ New</button>
         </div>
     </div>
 
@@ -10,11 +10,11 @@
         <div class="tasksFiltersRow" aria-label="Notes filters">
             <label class="field" style="grid-column: 1 / span 2">
                 <div class="fieldLabel">Search</div>
-                <input class="input" placeholder="Search notes by title, tag, person, or text…" @bind="_query" @bind:event="oninput" />
+                <input class="input" placeholder="Search notes by title, tag, person, or text…" @bind="this.Query" @bind:event="oninput" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Tag</div>
-                <select class="select" @bind="_tagFilter">
+                <select class="select" @bind="this.TagFilter">
                     <option value="All">Any tag</option>
                     @foreach (NoteTag t in NoteTags)
                     {
@@ -24,7 +24,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Sort</div>
-                <select class="select" @bind="_sortBy">
+                <select class="select" @bind="this.SortBy">
                     <option value="Newest">Newest first</option>
                     <option value="Oldest">Oldest first</option>
                 </select>
@@ -32,24 +32,24 @@
         </div>
 
         <div class="chipRow memberNotesQuickFilters" aria-label="Notes quick filters">
-            <button type="button" class="chipBtn @(_quickFilter == "All" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "All"'>All</button>
-            <button type="button" class="chipBtn @(_quickFilter == "ThisWeek" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "ThisWeek"'>This Week</button>
-            <button type="button" class="chipBtn @(_quickFilter == "ActionItems" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "ActionItems"'>Action Items</button>
-            <button type="button" class="chipBtn @(_quickFilter == "OneOnOne" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "OneOnOne"'>1:1</button>
-            <button type="button" class="chipBtn @(_quickFilter == "Risks" ? "chipBtnActive" : null)" @onclick='() => _quickFilter = "Risks"'>Risks</button>
+            <button type="button" class="chipBtn @(this.QuickFilter == "All" ? "chipBtnActive" : null)" @onclick='() => this.QuickFilter = "All"'>All</button>
+            <button type="button" class="chipBtn @(this.QuickFilter == "ThisWeek" ? "chipBtnActive" : null)" @onclick='() => this.QuickFilter = "ThisWeek"'>This Week</button>
+            <button type="button" class="chipBtn @(this.QuickFilter == "ActionItems" ? "chipBtnActive" : null)" @onclick='() => this.QuickFilter = "ActionItems"'>Action Items</button>
+            <button type="button" class="chipBtn @(this.QuickFilter == "OneOnOne" ? "chipBtnActive" : null)" @onclick='() => this.QuickFilter = "OneOnOne"'>1:1</button>
+            <button type="button" class="chipBtn @(this.QuickFilter == "Risks" ? "chipBtnActive" : null)" @onclick='() => this.QuickFilter = "Risks"'>Risks</button>
         </div>
 
         <div class="list listCard memberNotesList">
-            @if (FilteredSorted.Count == 0)
+            @if (this.FilteredSorted.Count == 0)
             {
                 <div class="muted pad">No notes match your filters.</div>
             }
             else
             {
-                @foreach (TeamNote n in FilteredSorted)
+                @foreach (TeamNote n in this.FilteredSorted)
                 {
                     TeamNote note = n;
-                    bool expanded = _expandedNoteId == note.Id;
+                    bool expanded = this.ExpandedNoteId == note.Id;
                     <div @key="note.Id" class="listRow memberNotesRow memberNotesRowBtn @(expanded ? "memberNotesRowExpanded" : null)"
                          role="button"
                          tabindex="0"
@@ -117,7 +117,7 @@
 
 <AtlasModal Title="@(SelectedNote is null ? "Note" : DisplayLabels.GetDerivedTitle(SelectedNote))"
             IsOpen="@(SelectedNote is not null)"
-            OnClose="CloseNoteModal">
+            OnClose="this.CloseNoteModal">
     <ChildContent>
         @if (SelectedNote is not null)
         {
@@ -133,30 +133,30 @@
                     <span class="chip chipGhost">PR</span>
                 }
             </div>
-            @if (_isEditOpen)
+            @if (this.IsEditOpen)
             {
                 <div class="noteEdit">
                     <div class="fieldGrid2" style="margin-bottom: 12px">
                         <label class="field">
                             <div class="fieldLabel">ADO work item id (optional)</div>
-                            <input class="input" @bind="_draftAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                            <input class="input" @bind="this.DraftAdo" @bind:event="oninput" placeholder="e.g., 12345" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">PR URL (optional)</div>
-                            <input class="input" @bind="_draftPr" @bind:event="oninput" placeholder="https://…" />
+                            <input class="input" @bind="this.DraftPr" @bind:event="oninput" placeholder="https://…" />
                         </label>
                     </div>
                     <div class="noteEditTabs">
-                        <button type="button" class="btn btnGhost @(_editTab == "Write" ? "noteEditTabActive" : null)" @onclick='() => _editTab = "Write"'>Write</button>
-                        <button type="button" class="btn btnGhost @(_editTab == "Preview" ? "noteEditTabActive" : null)" @onclick='() => _editTab = "Preview"'>Preview</button>
+                        <button type="button" class="btn btnGhost @(this.EditTab == "Write" ? "noteEditTabActive" : null)" @onclick='() => this.EditTab = "Write"'>Write</button>
+                        <button type="button" class="btn btnGhost @(this.EditTab == "Preview" ? "noteEditTabActive" : null)" @onclick='() => this.EditTab = "Preview"'>Preview</button>
                     </div>
-                    @if (_editTab == "Write")
+                    @if (this.EditTab == "Write")
                     {
-                        <textarea class="textarea textareaAutoGrow noteEditTextarea" @bind="_draftText" @bind:event="oninput"></textarea>
+                        <textarea class="textarea textareaAutoGrow noteEditTextarea" @bind="this.DraftText" @bind:event="oninput"></textarea>
                     }
                     else
                     {
-                        <div class="noteText noteBody"><MarkdownBlock Text="@_draftText" /></div>
+                        <div class="noteText noteBody"><MarkdownBlock Text="@this.DraftText" /></div>
                     }
                 </div>
             }
@@ -170,14 +170,14 @@
         @if (SelectedNote is not null)
         {
             <div class="row" style="margin-top: 0">
-                @if (_isEditOpen)
+                @if (this.IsEditOpen)
                 {
-                    <button class="btn btnSecondary" type="button" @onclick="SaveNoteEdit">Save</button>
-                    <button class="btn btnGhost" type="button" @onclick="CancelNoteEdit">Cancel</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.SaveNoteEdit">Save</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.CancelNoteEdit">Cancel</button>
                 }
                 else
                 {
-                    <button class="btn btnGhost" type="button" @onclick="BeginNoteEdit">Edit</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.BeginNoteEdit">Edit</button>
                 }
                 <button class="btn btnGhost" type="button" @onclick="() => OpenFull(SelectedNote.Id)">Open full page</button>
             </div>
@@ -185,12 +185,12 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="New note" IsOpen="_isNewOpen" OnClose="CloseNew">
+<AtlasModal Title="New note" IsOpen="this.IsNewOpen" OnClose="this.CloseNew">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Tag</div>
-                <select class="select" value="@_newTag" @onchange="e => _newTag = Enum.Parse<NoteTag>((string)e.Value!)">
+                <select class="select" value="@this.NewTag" @onchange="e => this.NewTag = Enum.Parse<NoteTag>((string)e.Value!)">
                     @foreach (NoteTag t in NoteTags)
                     {
                         <option value="@t">@t</option>
@@ -199,26 +199,26 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Title (optional)</div>
-                <input class="input" @bind="_newTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
+                <input class="input" @bind="this.NewTitle" @bind:event="oninput" placeholder="e.g., 1:1 follow-ups, Standup recap…" />
             </label>
             <label class="field">
                 <div class="fieldLabel">ADO work item id (optional)</div>
-                <input class="input" @bind="_newAdo" @bind:event="oninput" placeholder="e.g., 12345" />
+                <input class="input" @bind="this.NewAdo" @bind:event="oninput" placeholder="e.g., 12345" />
             </label>
             <label class="field">
                 <div class="fieldLabel">PR URL (optional)</div>
-                <input class="input" @bind="_newPr" @bind:event="oninput" placeholder="https://…" />
+                <input class="input" @bind="this.NewPr" @bind:event="oninput" placeholder="https://…" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Note</div>
-                <textarea class="textarea" @bind="_newText" @bind:event="oninput" placeholder="Write your note…"></textarea>
+                <textarea class="textarea" @bind="this.NewText" @bind:event="oninput" placeholder="Write your note…"></textarea>
             </label>
         </div>
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="CreateNote">Create</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseNew">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.CreateNote">Create</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseNew">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>

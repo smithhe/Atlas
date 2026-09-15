@@ -7,7 +7,7 @@
 <PageTitle>Team — Atlas</PageTitle>
 
 <div class="page">
-    @if (IsFocusMode && MemberIdParsed is { } mid)
+    @if (this.IsFocusMode && MemberIdParsed is { } mid)
     {
         <nav class="pageBreadcrumbs" aria-label="Breadcrumbs">
             <a class="crumbLink" href="/team">Team</a>
@@ -27,12 +27,12 @@
 
     <h2 class="pageTitle">Team</h2>
 
-    <div class="teamGrid @(IsFocusMode ? "teamGridFocus" : null)">
-        @if (!IsFocusMode)
+    <div class="teamGrid @(this.IsFocusMode ? "teamGridFocus" : null)">
+        @if (!this.IsFocusMode)
         {
             <section class="pane paneTeamLeft" aria-label="Team member list">
                 <div class="list listCard">
-                    @if (Cache.Team.Count == 0)
+                    @if (this._cache.Team.Count == 0)
                     {
                         <div class="muted pad">
                             No team members yet. Import from
@@ -43,12 +43,12 @@
                     }
                     else
                     {
-                        @foreach (TeamMember m in Cache.Team.OrderBy(x => x.Name))
+                        @foreach (TeamMember m in this._cache.Team.OrderBy(x => x.Name))
                         {
                             Guid id = m.Id;
                             <button @key="id"
                                     type="button"
-                                    class="listRow listRowBtn @(id == Selection.SelectedTeamMemberId ? "listRowActive" : null)"
+                                    class="listRow listRowBtn @(id == this._selection.SelectedTeamMemberId ? "listRowActive" : null)"
                                     @onclick="() => SelectFromList(id)"
                                     @ondblclick="() => GoFocus(id)">
                                 <div class="listMain">
@@ -64,11 +64,11 @@
         }
 
         <section class="pane paneTeamCenter" aria-label="Member detail">
-            @if (Selected is null)
+            @if (this.Selected is null)
             {
                 <div class="card pad">
                     <div class="muted">
-                        @if (Cache.Team.Count == 0)
+                        @if (this._cache.Team.Count == 0)
                         {
                             <text>
                                 No team members yet. Import from
@@ -77,11 +77,11 @@
                                 <a class="crumbLink" href="/settings/azure-import">Settings → Azure Import</a>.
                             </text>
                         }
-                        else if (IsFocusMode && Cache.TeamReady)
+                        else if (this.IsFocusMode && this._cache.TeamReady)
                         {
                             <text>Member not found. Redirecting…</text>
                         }
-                        else if (IsFocusMode)
+                        else if (this.IsFocusMode)
                         {
                             <text>Loading member…</text>
                         }
@@ -97,54 +97,54 @@
                 <div class="card pad">
                     <div class="detailHeader">
                         <div>
-                            <div class="detailTitle">@Selected.Name</div>
-                            <div class="mutedSmall">@(Selected.Role ?? "")</div>
+                            <div class="detailTitle">@this.Selected.Name</div>
+                            <div class="mutedSmall">@(this.Selected.Role ?? "")</div>
                         </div>
-                        @if (IsFocusMode)
+                        @if (this.IsFocusMode)
                         {
-                            <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.ExitFocus">Exit focus</button>
                         }
                         else
                         {
-                            <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.EnterFocus">Focus</button>
                         }
                     </div>
 
                     <div class="tabsBar" role="tablist" aria-label="Member tabs">
-                        @if (IsFocusMode)
+                        @if (this.IsFocusMode)
                         {
-                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}")" Match="NavLinkMatch.All">Overview</NavLink>
-                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/notes")">Notes</NavLink>
-                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/work-items")">Work Items</NavLink>
-                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/risks")">Risks</NavLink>
-                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{Selected.Id}/growth")">Growth</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{this.Selected.Id}")" Match="NavLinkMatch.All">Overview</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{this.Selected.Id}/notes")">Notes</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{this.Selected.Id}/work-items")">Work Items</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{this.Selected.Id}/risks")">Risks</NavLink>
+                            <NavLink class="tabBtn" ActiveClass="tabBtnActive" href="@($"/team/{this.Selected.Id}/growth")">Growth</NavLink>
                         }
                         else
                         {
-                            <button type="button" class="tabBtn @(_localTab == MemberTab.Overview ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Overview">Overview</button>
-                            <button type="button" class="tabBtn @(_localTab == MemberTab.Notes ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Notes">Notes</button>
-                            <button type="button" class="tabBtn @(_localTab == MemberTab.WorkItems ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.WorkItems">Work Items</button>
-                            <button type="button" class="tabBtn @(_localTab == MemberTab.Risks ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Risks">Risks</button>
-                            <button type="button" class="tabBtn @(_localTab == MemberTab.Growth ? "tabBtnActive" : null)" @onclick="() => _localTab = MemberTab.Growth">Growth</button>
+                            <button type="button" class="tabBtn @(this.LocalTab == MemberTab.Overview ? "tabBtnActive" : null)" @onclick="() => this.LocalTab = MemberTab.Overview">Overview</button>
+                            <button type="button" class="tabBtn @(this.LocalTab == MemberTab.Notes ? "tabBtnActive" : null)" @onclick="() => this.LocalTab = MemberTab.Notes">Notes</button>
+                            <button type="button" class="tabBtn @(this.LocalTab == MemberTab.WorkItems ? "tabBtnActive" : null)" @onclick="() => this.LocalTab = MemberTab.WorkItems">Work Items</button>
+                            <button type="button" class="tabBtn @(this.LocalTab == MemberTab.Risks ? "tabBtnActive" : null)" @onclick="() => this.LocalTab = MemberTab.Risks">Risks</button>
+                            <button type="button" class="tabBtn @(this.LocalTab == MemberTab.Growth ? "tabBtnActive" : null)" @onclick="() => this.LocalTab = MemberTab.Growth">Growth</button>
                         }
                     </div>
 
                     @switch (ActiveTab)
                     {
                         case MemberTab.Overview:
-                            <MemberOverviewTab Member="Selected" OnUpdate="HandleMemberUpdate" OnGoToNotes="GoNotes" OnGoToWorkItem="GoWorkItem" />
+                            <MemberOverviewTab Member="this.Selected" OnUpdate="this.HandleMemberUpdate" OnGoToNotes="this.GoNotes" OnGoToWorkItem="this.GoWorkItem" />
                             break;
                         case MemberTab.Notes:
-                            <MemberNotesTab Member="Selected" />
+                            <MemberNotesTab Member="this.Selected" />
                             break;
                         case MemberTab.WorkItems:
-                            <MemberWorkItemsTab Member="Selected" />
+                            <MemberWorkItemsTab Member="this.Selected" />
                             break;
                         case MemberTab.Risks:
-                            <MemberRisksTab MemberId="Selected.Id" />
+                            <MemberRisksTab MemberId="this.Selected.Id" />
                             break;
                         case MemberTab.Growth:
-                            <MemberGrowthTab Member="Selected" />
+                            <MemberGrowthTab Member="this.Selected" />
                             break;
                     }
                 </div>

@@ -1,17 +1,17 @@
 <section class="card subtle" aria-label="Risks tab">
     <div class="cardHeader">
         <div class="cardTitle">Risks</div>
-        <button class="btn btnGhost" type="button" @onclick="OpenCreate">Add risk</button>
+        <button class="btn btnGhost" type="button" @onclick="this.OpenCreate">Add risk</button>
     </div>
     <div class="pad">
         <div class="tasksFiltersRow" aria-label="Risks filters" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-bottom: 12px">
             <label class="field">
                 <div class="fieldLabel">Search</div>
-                <input class="input" placeholder="Search by title, type, impact area, or text…" @bind="_query" @bind:event="oninput" />
+                <input class="input" placeholder="Search by title, type, impact area, or text…" @bind="this.Query" @bind:event="oninput" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Status</div>
-                <select class="select" @bind="_statusFilter">
+                <select class="select" @bind="this.StatusFilter">
                     <option value="All">All</option>
                     <option value="Open">Open</option>
                     <option value="Mitigating">Mitigating</option>
@@ -30,7 +30,7 @@
                 @foreach (TeamMemberRisk r in MemberRisks)
                 {
                     TeamMemberRisk risk = r;
-                    Risk? linkedGlobal = risk.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
+                    Risk? linkedGlobal = risk.LinkedRiskId is { } lid ? this._cache.Risks.FirstOrDefault(x => x.Id == lid) : null;
                     <button @key="risk.Id" type="button" class="listRow listRowBtn" @onclick="() => OpenRisk(risk.Id)">
                         <span class="dot dot-@risk.Severity.ToLowerInvariant()" aria-hidden="true"></span>
                         <div class="listMain">
@@ -50,16 +50,16 @@
     </div>
 </section>
 
-<AtlasModal Title="Add team member risk" IsOpen="_createOpen" OnClose="CloseCreate">
+<AtlasModal Title="Add team member risk" IsOpen="this.CreateOpen" OnClose="this.CloseCreate">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Title</div>
-                <input class="input" @bind="_title" @bind:event="oninput" placeholder="What could go wrong?" />
+                <input class="input" @bind="this.Title" @bind:event="oninput" placeholder="What could go wrong?" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Severity</div>
-                <select class="select" @bind="_severity">
+                <select class="select" @bind="this.Severity">
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
                     <option value="High">High</option>
@@ -67,7 +67,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Status</div>
-                <select class="select" @bind="_status">
+                <select class="select" @bind="this.Status">
                     <option value="Open">Open</option>
                     <option value="Mitigating">Mitigating</option>
                     <option value="Resolved">Resolved</option>
@@ -75,7 +75,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Trend</div>
-                <select class="select" @bind="_trend">
+                <select class="select" @bind="this.Trend">
                     <option value="Improving">Improving</option>
                     <option value="Stable">Stable</option>
                     <option value="Worsening">Worsening</option>
@@ -83,21 +83,21 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">First noticed</div>
-                <input class="input" type="date" value="@_firstNoticed" @onchange="OnFirstNoticedChange" />
+                <input class="input" type="date" value="@this.FirstNoticed" @onchange="this.OnFirstNoticedChange" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Type</div>
-                <input class="input" @bind="_riskType" @bind:event="oninput" placeholder="e.g., Burnout, Delivery, Role clarity" />
+                <input class="input" @bind="this.RiskType" @bind:event="oninput" placeholder="e.g., Burnout, Delivery, Role clarity" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Impact area</div>
-                <input class="input" @bind="_impactArea" @bind:event="oninput" placeholder="e.g., Quality, Schedule, Team health" />
+                <input class="input" @bind="this.ImpactArea" @bind:event="oninput" placeholder="e.g., Quality, Schedule, Team health" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Link to global risk (optional)</div>
-                <select class="select" @bind="_linkedRiskId">
+                <select class="select" @bind="this.LinkedRiskId">
                     <option value="">(None)</option>
-                    @foreach (Risk gr in Cache.Risks.OrderBy(x => x.Title))
+                    @foreach (Risk gr in this._cache.Risks.OrderBy(x => x.Title))
                     {
                         <option value="@gr.Id">@gr.Title</option>
                     }
@@ -105,18 +105,18 @@
             </label>
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Description</div>
-                <textarea class="textarea" @bind="_description" @bind:event="oninput" placeholder="What are you observing? What evidence supports it?"></textarea>
+                <textarea class="textarea" @bind="this.Description" @bind:event="oninput" placeholder="What are you observing? What evidence supports it?"></textarea>
             </label>
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Current action</div>
-                <textarea class="textarea" @bind="_currentAction" @bind:event="oninput" placeholder="What are you doing next to mitigate?"></textarea>
+                <textarea class="textarea" @bind="this.CurrentAction" @bind:event="oninput" placeholder="What are you doing next to mitigate?"></textarea>
             </label>
         </div>
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveCreate" disabled="@string.IsNullOrWhiteSpace(_title)">Add</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseCreate">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.SaveCreate" disabled="@string.IsNullOrWhiteSpace(this.Title)">Add</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseCreate">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>

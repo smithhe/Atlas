@@ -1,70 +1,72 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
-public partial class MarkdownBlock : IAsyncDisposable
+namespace Atlas.Ui.Shared
 {
-    [Inject] private MarkdownRenderer Renderer { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
-
-    [Parameter] public string Text { get; set; } = "";
-
-    private ElementReference _root;
-    private string _html = "";
-    private string? _lastText;
-    private MarkdownBlockInterop? _markdownInterop;
-
-    protected override void OnParametersSet()
+    public partial class MarkdownBlock : IAsyncDisposable
     {
-        if (Text == _lastText)
+        [Inject] private MarkdownRenderer _renderer { get; set; } = null!;
+        [Inject] private IJSRuntime _js { get; set; } = null!;
+
+        [Parameter] public string Text { get; set; } = "";
+
+        private ElementReference Root { get; set; }
+        private string Html { get; set; } = "";
+        private string? LastText { get; set; }
+        private MarkdownBlockInterop? MarkdownInterop { get; set; }
+
+        protected override void OnParametersSet()
         {
-            return;
+            if (Text == this.LastText)
+            {
+                return;
+            }
+
+            this.LastText = Text;
+            this.Html = this._renderer.ToSafeHtml(Text);
         }
 
-        _lastText = Text;
-        _html = Renderer.ToSafeHtml(Text);
-    }
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (string.IsNullOrEmpty(this.Html))
+            {
+                return;
+            }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (string.IsNullOrEmpty(_html))
-        {
-            return;
+            if (firstRender)
+            {
+                this.MarkdownInterop = new MarkdownBlockInterop(this._js);
+            }
+
+            if (this.MarkdownInterop is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await this.MarkdownInterop.HighlightAsync(this.Root);
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
-        if (firstRender)
+        public async ValueTask DisposeAsync()
         {
-            _markdownInterop = new MarkdownBlockInterop(Js);
-        }
-
-        if (_markdownInterop is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await _markdownInterop.HighlightAsync(_root);
-        }
-        catch (JSDisconnectedException)
-        {
-        }
-        catch (ObjectDisposedException)
-        {
-        }
-        catch (InvalidOperationException)
-        {
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_markdownInterop is not null)
-        {
-            await _markdownInterop.DisposeAsync();
-            _markdownInterop = null;
+            if (this.MarkdownInterop is not null)
+            {
+                await this.MarkdownInterop.DisposeAsync();
+                this.MarkdownInterop = null;
+            }
         }
     }
 }

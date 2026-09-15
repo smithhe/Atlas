@@ -1,250 +1,252 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Ai;
-
-public partial class AiPanel : IAsyncDisposable
+namespace Atlas.Ui.Components.Ai
 {
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
-
-    private ElementReference _scrollRef;
-    private string? _copiedTurnId;
-    private CancellationTokenSource? _copyResetCts;
-    private AiPanelInterop? _aiPanelInterop;
-
-    private string LatestAssistantText
+    public partial class AiPanel : IAsyncDisposable
     {
-        get
+        [Inject] private IAiStateService _ai { get; set; } = null!;
+        [Inject] private IJSRuntime _js { get; set; } = null!;
+
+        private ElementReference ScrollRef { get; set; }
+        private string? CopiedTurnId { get; set; }
+        private CancellationTokenSource? CopyResetCts { get; set; }
+        private AiPanelInterop? AiPanelInteropRef { get; set; }
+
+        private string LatestAssistantText
         {
-            for (int i = Ai.Turns.Count - 1; i >= 0; i--)
+            get
             {
-                string? text = Ai.Turns[i].Response?.Trim();
-                if (!string.IsNullOrEmpty(text))
+                for (int i = this._ai.Turns.Count - 1; i >= 0; i--)
                 {
-                    return text;
-                }
-            }
-            return "";
-        }
-    }
-
-    private bool CanInsertDraft =>
-        Ai.HasDraftTarget
-        && !string.IsNullOrEmpty(LatestAssistantText)
-        && !IsOpenAiNotConfigured(LatestAssistantText);
-
-    private string InsertDraftTitle
-    {
-        get
-        {
-            if (!Ai.HasDraftTarget)
-            {
-                return "Edit a field first";
-            }
-
-            if (string.IsNullOrEmpty(LatestAssistantText))
-            {
-                return "No assistant response to insert";
-            }
-
-            if (!string.IsNullOrEmpty(Ai.DraftTargetLabel))
-            {
-                return $"Insert into {Ai.DraftTargetLabel}";
-            }
-
-            return "Insert Draft";
-        }
-    }
-
-    private bool ShowOpenAiSetup
-    {
-        get
-        {
-            if (!string.IsNullOrEmpty(Ai.Notice) && IsOpenAiNotConfigured(Ai.Notice))
-            {
-                return true;
-            }
-
-            return Ai.Turns.Any(t => IsOpenAiNotConfigured(t.Response));
-        }
-    }
-
-    private bool ShouldStickToBottom
-    {
-        get
-        {
-            if (Ai.IsRunning)
-            {
-                return true;
-            }
-
-            AiTranscriptTurn? last = Ai.Turns.LastOrDefault();
-            return last is not null && string.IsNullOrWhiteSpace(last.Response);
-        }
-    }
-
-    protected override void OnInitialized()
-    {
-        Ai.Changed += OnAiChangedAsync;
-        Ai.EnsureStartupPreference();
-        if (Ai.IsOpen)
-        {
-            Ai.LoadConversations();
-        }
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _aiPanelInterop = new AiPanelInterop(Js);
-        }
-    }
-
-    private async void OnAiChangedAsync()
-    {
-        try
-        {
-            await InvokeAsync(async () =>
-            {
-                StateHasChanged();
-                if (ShouldStickToBottom && Ai.IsOpen && _aiPanelInterop is not null)
-                {
-                    try
+                    string? text = this._ai.Turns[i].Response?.Trim();
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        await _aiPanelInterop.ScrollToBottomAsync(_scrollRef);
-                    }
-                    catch (JSDisconnectedException)
-                    {
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                    }
-                    catch (InvalidOperationException)
-                    {
+                        return text;
                     }
                 }
-            });
-        }
-        catch (Exception ex)
-        {
-            await DispatchExceptionAsync(ex);
-        }
-    }
-
-    private void OnPromptInput(ChangeEventArgs e) => Ai.SetPromptDraft(e.Value?.ToString() ?? "");
-
-    private void SendPrompt()
-    {
-        string prompt = Ai.PromptDraft;
-        Ai.SetPromptDraft("");
-        Ai.SendPrompt(prompt);
-    }
-
-    private async Task HandleInsertDraft()
-    {
-        if (!CanInsertDraft)
-        {
-            if (!Ai.HasDraftTarget)
-            {
-                Ai.AppendOutput("\nEdit a task note or note body first.\n");
+                return "";
             }
-
-            return;
         }
 
-        if (!await Ai.InsertDraftAsync(LatestAssistantText))
-        {
-            Ai.AppendOutput("\nEdit a task note or note body first.\n");
-        }
-    }
+        private bool CanInsertDraft =>
+            this._ai.HasDraftTarget
+            && !string.IsNullOrEmpty(LatestAssistantText)
+            && !IsOpenAiNotConfigured(LatestAssistantText);
 
-    private async Task CopyTurnResponse(AiTranscriptTurn turn)
-    {
-        if (string.IsNullOrWhiteSpace(turn.Response))
+        private string InsertDraftTitle
         {
-            return;
-        }
-
-        if (_aiPanelInterop is null)
-        {
-            _aiPanelInterop = new AiPanelInterop(Js);
-        }
-
-        try
-        {
-            bool ok = await _aiPanelInterop.CopyTextAsync(turn.Response);
-            if (!ok)
+            get
             {
-                Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+                if (!this._ai.HasDraftTarget)
+                {
+                    return "Edit a field first";
+                }
+
+                if (string.IsNullOrEmpty(LatestAssistantText))
+                {
+                    return "No assistant response to insert";
+                }
+
+                if (!string.IsNullOrEmpty(this._ai.DraftTargetLabel))
+                {
+                    return $"Insert into {this._ai.DraftTargetLabel}";
+                }
+
+                return "Insert Draft";
+            }
+        }
+
+        private bool ShowOpenAiSetup
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(this._ai.Notice) && IsOpenAiNotConfigured(this._ai.Notice))
+                {
+                    return true;
+                }
+
+                return this._ai.Turns.Any(t => IsOpenAiNotConfigured(t.Response));
+            }
+        }
+
+        private bool ShouldStickToBottom
+        {
+            get
+            {
+                if (this._ai.IsRunning)
+                {
+                    return true;
+                }
+
+                AiTranscriptTurn? last = this._ai.Turns.LastOrDefault();
+                return last is not null && string.IsNullOrWhiteSpace(last.Response);
+            }
+        }
+
+        protected override void OnInitialized()
+        {
+            this._ai.Changed += OnAiChangedAsync;
+            this._ai.EnsureStartupPreference();
+            if (this._ai.IsOpen)
+            {
+                this._ai.LoadConversations();
+            }
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                this.AiPanelInteropRef = new AiPanelInterop(this._js);
+            }
+        }
+
+        private async void OnAiChangedAsync()
+        {
+            try
+            {
+                await InvokeAsync(async () =>
+                {
+                    StateHasChanged();
+                    if (ShouldStickToBottom && this._ai.IsOpen && this.AiPanelInteropRef is not null)
+                    {
+                        try
+                        {
+                            await this.AiPanelInteropRef.ScrollToBottomAsync(this.ScrollRef);
+                        }
+                        catch (JSDisconnectedException)
+                        {
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                        }
+                        catch (InvalidOperationException)
+                        {
+                        }
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                await DispatchExceptionAsync(ex);
+            }
+        }
+
+        private void OnPromptInput(ChangeEventArgs e) => this._ai.SetPromptDraft(e.Value?.ToString() ?? "");
+
+        private void SendPrompt()
+        {
+            string prompt = this._ai.PromptDraft;
+            this._ai.SetPromptDraft("");
+            this._ai.SendPrompt(prompt);
+        }
+
+        private async Task HandleInsertDraft()
+        {
+            if (!CanInsertDraft)
+            {
+                if (!this._ai.HasDraftTarget)
+                {
+                    this._ai.AppendOutput("\nEdit a task note or note body first.\n");
+                }
+
                 return;
             }
 
-            _copiedTurnId = turn.Id;
-            _copyResetCts?.Cancel();
-            _copyResetCts?.Dispose();
-            _copyResetCts = new CancellationTokenSource();
-            CancellationToken token = _copyResetCts.Token;
+            if (!await this._ai.InsertDraftAsync(LatestAssistantText))
+            {
+                this._ai.AppendOutput("\nEdit a task note or note body first.\n");
+            }
+        }
+
+        private async Task CopyTurnResponse(AiTranscriptTurn turn)
+        {
+            if (string.IsNullOrWhiteSpace(turn.Response))
+            {
+                return;
+            }
+
+            if (this.AiPanelInteropRef is null)
+            {
+                this.AiPanelInteropRef = new AiPanelInterop(this._js);
+            }
+
             try
             {
-                await Task.Delay(1500, token);
-                if (_copiedTurnId == turn.Id)
+                bool ok = await this.AiPanelInteropRef.CopyTextAsync(turn.Response);
+                if (!ok)
                 {
-                    _copiedTurnId = null;
+                    this._ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+                    return;
                 }
 
-                StateHasChanged();
+                this.CopiedTurnId = turn.Id;
+                this.CopyResetCts?.Cancel();
+                this.CopyResetCts?.Dispose();
+                this.CopyResetCts = new CancellationTokenSource();
+                CancellationToken token = this.CopyResetCts.Token;
+                try
+                {
+                    await Task.Delay(1500, token);
+                    if (this.CopiedTurnId == turn.Id)
+                    {
+                        this.CopiedTurnId = null;
+                    }
+
+                    StateHasChanged();
+                }
+                catch (OperationCanceledException)
+                {
+                    // superseded
+                }
             }
-            catch (OperationCanceledException)
+            catch (JSDisconnectedException)
             {
-                // superseded
+                this._ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+            }
+            catch (ObjectDisposedException)
+            {
+                this._ai.AppendOutput("Copy failed — clipboard permission unavailable.");
+            }
+            catch (InvalidOperationException)
+            {
+                this._ai.AppendOutput("Copy failed — clipboard permission unavailable.");
             }
         }
-        catch (JSDisconnectedException)
-        {
-            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
-        }
-        catch (ObjectDisposedException)
-        {
-            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
-        }
-        catch (InvalidOperationException)
-        {
-            Ai.AppendOutput("Copy failed — clipboard permission unavailable.");
-        }
-    }
 
-    private async Task OnConversationChange(ChangeEventArgs e)
-    {
-        if (Guid.TryParse(e.Value?.ToString(), out Guid id))
+        private async Task OnConversationChange(ChangeEventArgs e)
         {
-            await Ai.OpenConversationAsync(id);
-        }
-    }
-
-    private async Task StartNewSessionAsync()
-    {
-        await Ai.StartNewSessionAsync();
-    }
-
-    private static bool IsOpenAiNotConfigured(string text) => text.Contains("OpenAI is not configured", StringComparison.Ordinal);
-
-    public async ValueTask DisposeAsync()
-    {
-        Ai.Changed -= OnAiChangedAsync;
-        if (_copyResetCts is not null)
-        {
-            await _copyResetCts.CancelAsync();
-            _copyResetCts.Dispose();
-            _copyResetCts = null;
+            if (Guid.TryParse(e.Value?.ToString(), out Guid id))
+            {
+                await this._ai.OpenConversationAsync(id);
+            }
         }
 
-        if (_aiPanelInterop is not null)
+        private async Task StartNewSessionAsync()
         {
-            await _aiPanelInterop.DisposeAsync();
-            _aiPanelInterop = null;
+            await this._ai.StartNewSessionAsync();
+        }
+
+        private static bool IsOpenAiNotConfigured(string text) => text.Contains("OpenAI is not configured", StringComparison.Ordinal);
+
+        public async ValueTask DisposeAsync()
+        {
+            this._ai.Changed -= OnAiChangedAsync;
+            if (this.CopyResetCts is not null)
+            {
+                await this.CopyResetCts.CancelAsync();
+                this.CopyResetCts.Dispose();
+                this.CopyResetCts = null;
+            }
+
+            if (this.AiPanelInteropRef is not null)
+            {
+                await this.AiPanelInteropRef.DisposeAsync();
+                this.AiPanelInteropRef = null;
+            }
         }
     }
 }
