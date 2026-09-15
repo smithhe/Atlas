@@ -4,7 +4,7 @@
 <PageTitle>Projects — Atlas</PageTitle>
 
 <div class="page pageFill">
-    <PageTitleRow Title="Projects" AddLabel="Add project" AddingLabel="Adding…" Adding="this.Creating" OnAdd="HandleAddProject" />
+    <PageTitleRow Title="Projects" AddLabel="Add project" AddingLabel="Adding…" Adding="this.Creating" OnAdd="this.HandleAddProject" />
 
     <div class="splitGrid splitGridFill @(this.IsFocusMode ? "projectsSplitFocus" : null)">
         @if (!this.IsFocusMode)
@@ -41,10 +41,10 @@
                 <ProjectDetail Project="this.Selected"
                                IsFocusMode="this.IsFocusMode"
                                AutoEditId="this.AutoEditId"
-                               AutoEditCleared="ClearAutoEdit"
-                               OnEnterFocus="EnterFocus"
-                               OnExitFocus="ExitFocus"
-                               OnDeleted="OnProjectDeleted" />
+                               AutoEditCleared="this.ClearAutoEdit"
+                               OnEnterFocus="this.EnterFocus"
+                               OnExitFocus="this.ExitFocus"
+                               OnDeleted="this.OnProjectDeleted" />
             }
         </section>
     </div>

@@ -18,8 +18,8 @@
             <div class="mutedSmall">@(Member?.Name ?? "")</div>
         </div>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnGhost" type="button" @onclick="BackToWorkItems">Back to work items</button>
-            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToWorkItems">Back to work items</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToMember">Back to member</button>
         </div>
     </div>
 
@@ -50,7 +50,7 @@
                 <div class="workItemField">
                     <div class="workItemFieldKey">Project</div>
                     <div class="workItemFieldVal">
-                        <select class="select" value="@(Item.ProjectId ?? "")" @onchange="OnProjectChange">
+                        <select class="select" value="@(Item.ProjectId ?? "")" @onchange="this.OnProjectChange">
                             <option value="">(None)</option>
                             @foreach (Project p in this._cache.Projects.OrderBy(x => x.Name))
                             {
@@ -102,7 +102,7 @@
                     <textarea class="textarea" @bind="this.NewNoteText" @bind:event="oninput" placeholder="Local context for this work item…"></textarea>
                 </label>
                 <div>
-                    <button class="btn btnSecondary" type="button" @onclick="AddLocalNote" disabled="@string.IsNullOrWhiteSpace(this.NewNoteText)">Add</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.AddLocalNote" disabled="@string.IsNullOrWhiteSpace(this.NewNoteText)">Add</button>
                 </div>
             </div>
             <div class="list" style="margin-top: 12px">

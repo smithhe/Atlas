@@ -10,10 +10,10 @@
                         type="button"
                         disabled="@(!CanInsertDraft)"
                         title="@InsertDraftTitle"
-                        @onclick="HandleInsertDraft">
+                        @onclick="this.HandleInsertDraft">
                     Insert Draft
                 </button>
-                <button class="btn btnGhost" type="button" disabled="@this._ai.IsRunning" @onclick="StartNewSessionAsync">
+                <button class="btn btnGhost" type="button" disabled="@this._ai.IsRunning" @onclick="this.StartNewSessionAsync">
                     New session
                 </button>
                 <button class="btn btnGhost" type="button" @onclick="this._ai.ClearOutput">Clear</button>
@@ -114,13 +114,13 @@
             <div class="aiPanelComposer">
                 <textarea class="textarea aiPanelPrompt"
                           value="@this._ai.PromptDraft"
-                          @oninput="OnPromptInput"
+                          @oninput="this.OnPromptInput"
                           placeholder="Ask AI about this context..."
                           rows="3"></textarea>
                 <button class="btn aiPanelSend"
                         type="button"
                         disabled="@(this._ai.IsRunning || !this._ai.IsContextSupported || string.IsNullOrWhiteSpace(this._ai.PromptDraft))"
-                        @onclick="SendPrompt">
+                        @onclick="this.SendPrompt">
                     Send Prompt
                 </button>
             </div>
@@ -134,7 +134,7 @@
                                 class="input aiPanelHistorySelect"
                                 value="@(this._ai.ActiveConversationId?.ToString() ?? "")"
                                 disabled="@(this._ai.IsLoadingHistory || this._ai.IsRunning)"
-                                @onchange="OnConversationChange">
+                                @onchange="this.OnConversationChange">
                             <option value="">Recent conversations…</option>
                             @foreach (AiConversationListItem conversation in this._ai.Conversations)
                             {

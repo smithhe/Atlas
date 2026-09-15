@@ -15,7 +15,7 @@ else if (Member is null)
         <div class="card pad">
             <div class="muted">@(string.IsNullOrEmpty(MemberId) ? "Missing route params." : "Team member not found.")</div>
             <div class="row">
-                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
@@ -34,8 +34,8 @@ else if (this.LoadStatus == GrowthLoadStatus.Failed)
         <div class="card pad">
             <div class="muted">@(this.LoadError ?? "Unable to load growth data.")</div>
             <div class="row" style="margin-top: 8px">
-                <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@this.Retrying">@(this.Retrying ? "Retrying…" : "Retry")</button>
-                <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.RetryLoad" disabled="@this.Retrying">@(this.Retrying ? "Retrying…" : "Retry")</button>
+                <button class="btn btnGhost" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
@@ -47,7 +47,7 @@ else if (Growth is null || Goal is null)
         <div class="card pad">
             <div class="muted">@(string.IsNullOrEmpty(GoalId) ? "Missing route params." : "Goal not found.")</div>
             <div class="row">
-                <button class="btn btnSecondary" type="button" @onclick="BackToGrowth">Back to Growth</button>
+                <button class="btn btnSecondary" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
             </div>
         </div>
     </div>
@@ -76,9 +76,9 @@ else
                     </div>
                 </div>
                 <div class="growthGoalHeaderActions">
-                    <button class="btn btnGhost" type="button" @onclick="BackToGrowth">Back to Growth</button>
-                    <button class="btn btnSecondary" type="button" @onclick="AddAction">+ Add Action</button>
-                    <button class="btn" type="button" @onclick="AddCheckIn">+ Add Check-in</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.BackToGrowth">Back to Growth</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.AddAction">+ Add Action</button>
+                    <button class="btn" type="button" @onclick="this.AddCheckIn">+ Add Check-in</button>
                 </div>
             </div>
         </div>
@@ -112,11 +112,11 @@ else
                                     <div class="ggMiniEditRow">
                                         <label class="field">
                                             <div class="fieldLabel">Start</div>
-                                            <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="OnStartChange" />
+                                            <input class="input" type="date" value="@(Goal.StartDateIso ?? "")" @onchange="this.OnStartChange" />
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Target</div>
-                                            <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="OnTargetChange" />
+                                            <input class="input" type="date" value="@(Goal.TargetDateIso ?? "")" @onchange="this.OnTargetChange" />
                                         </label>
                                     </div>
                                 }
@@ -137,7 +137,7 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Status</div>
-                                        <select class="select" value="@Goal.Status" @onchange="OnStatusChange">
+                                        <select class="select" value="@Goal.Status" @onchange="this.OnStatusChange">
                                             <option value="OnTrack">On Track</option>
                                             <option value="NeedsAttention">Needs Attention</option>
                                             <option value="Completed">Completed</option>
@@ -159,7 +159,7 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Priority</div>
-                                        <select class="select" value="@(Goal.Priority?.ToString() ?? "Medium")" @onchange="OnPriorityChange">
+                                        <select class="select" value="@(Goal.Priority?.ToString() ?? "Medium")" @onchange="this.OnPriorityChange">
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
@@ -191,7 +191,7 @@ else
                                 {
                                     <label class="field">
                                         <div class="fieldLabel">Category</div>
-                                        <input class="input" value="@(Goal.Category ?? "")" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g. Leadership" @oninput="OnCategoryInput" />
+                                        <input class="input" value="@(Goal.Category ?? "")" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g. Leadership" @oninput="this.OnCategoryInput" />
                                     </label>
                                 }
                             </div>
@@ -234,7 +234,7 @@ else
                             }
                             else
                             {
-                                <textarea class="textarea" value="@(Goal.Summary ?? "")" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Short paragraph describing the goal and why it matters…" @oninput="OnSummaryInput"></textarea>
+                                <textarea class="textarea" value="@(Goal.Summary ?? "")" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Short paragraph describing the goal and why it matters…" @oninput="this.OnSummaryInput"></textarea>
                             }
                         </div>
 
@@ -261,7 +261,7 @@ else
                             }
                             else
                             {
-                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" maxlength="@GrowthUiHelpers.MaxSuccessCriteriaAggregate" placeholder="One bullet per line…" @oninput="OnCriteriaInput"></textarea>
+                                <textarea class="textarea" value="@string.Join('\n', Goal.SuccessCriteria)" maxlength="@GrowthUiHelpers.MaxSuccessCriteriaAggregate" placeholder="One bullet per line…" @oninput="this.OnCriteriaInput"></textarea>
                             }
                         </div>
                     </div>
@@ -411,12 +411,12 @@ else
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Title</div>
-                                    <input class="input" value="@SelectedAction.Title" maxlength="@GrowthUiHelpers.MaxActionTitle" @oninput="OnActionTitleInput" />
+                                    <input class="input" value="@SelectedAction.Title" maxlength="@GrowthUiHelpers.MaxActionTitle" @oninput="this.OnActionTitleInput" />
                                 </label>
                                 <div class="fieldGrid2">
                                     <label class="field">
                                         <div class="fieldLabel">State</div>
-                                        <select class="select" value="@SelectedAction.State" @onchange="OnActionStateChange">
+                                        <select class="select" value="@SelectedAction.State" @onchange="this.OnActionStateChange">
                                             <option value="Planned">Planned</option>
                                             <option value="InProgress">In Progress</option>
                                             <option value="Complete">Complete</option>
@@ -424,11 +424,11 @@ else
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Due date</div>
-                                        <input class="input" type="date" value="@(SelectedAction.DueDateIso ?? "")" @onchange="OnActionDueChange" />
+                                        <input class="input" type="date" value="@(SelectedAction.DueDateIso ?? "")" @onchange="this.OnActionDueChange" />
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Priority</div>
-                                        <select class="select" value="@(SelectedAction.Priority?.ToString() ?? "Medium")" @onchange="OnActionPriorityChange">
+                                        <select class="select" value="@(SelectedAction.Priority?.ToString() ?? "Medium")" @onchange="this.OnActionPriorityChange">
                                             <option value="Low">Low</option>
                                             <option value="Medium">Medium</option>
                                             <option value="High">High</option>
@@ -438,7 +438,7 @@ else
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Notes (what you're tracking)</div>
-                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" maxlength="@GrowthUiHelpers.MaxActionNotes" placeholder="Free-text notes..." @oninput="OnActionNotesInput"></textarea>
+                                    <textarea class="textarea" value="@(SelectedAction.Notes ?? "")" maxlength="@GrowthUiHelpers.MaxActionNotes" placeholder="Free-text notes..." @oninput="this.OnActionNotesInput"></textarea>
                                     @if (!string.IsNullOrEmpty(this.ActionValidationError))
                                     {
                                         <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@this.ActionValidationError</div>
@@ -446,7 +446,7 @@ else
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Evidence / Links (optional)</div>
-                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" maxlength="@GrowthUiHelpers.MaxActionEvidence" placeholder="https://..." @oninput="OnActionLinksInput"></textarea>
+                                    <textarea class="textarea" value="@string.Join('\n', SelectedAction.Links)" maxlength="@GrowthUiHelpers.MaxActionEvidence" placeholder="https://..." @oninput="this.OnActionLinksInput"></textarea>
                                 </label>
                             </div>
                         }
@@ -459,11 +459,11 @@ else
                                 <div class="fieldGrid2">
                                     <label class="field">
                                         <div class="fieldLabel">Date</div>
-                                        <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="OnCheckInDateChange" />
+                                        <input class="input" type="date" value="@SelectedCheckIn.DateIso" @onchange="this.OnCheckInDateChange" />
                                     </label>
                                     <label class="field">
                                         <div class="fieldLabel">Signal</div>
-                                        <select class="select" value="@SelectedCheckIn.Signal" @onchange="OnCheckInSignalChange">
+                                        <select class="select" value="@SelectedCheckIn.Signal" @onchange="this.OnCheckInSignalChange">
                                             <option value="Positive">Positive</option>
                                             <option value="Mixed">Mixed</option>
                                             <option value="Concern">Concern</option>
@@ -472,7 +472,7 @@ else
                                 </div>
                                 <label class="field">
                                     <div class="fieldLabel">Check-in Note</div>
-                                    <textarea class="textarea" value="@SelectedCheckIn.Note" maxlength="@GrowthUiHelpers.MaxCheckInNote" placeholder="Short narrative signal about how the goal is going..." @oninput="OnCheckInNoteInput"></textarea>
+                                    <textarea class="textarea" value="@SelectedCheckIn.Note" maxlength="@GrowthUiHelpers.MaxCheckInNote" placeholder="Short narrative signal about how the goal is going..." @oninput="this.OnCheckInNoteInput"></textarea>
                                     @if (!string.IsNullOrEmpty(this.CheckInValidationError))
                                     {
                                         <div class="mutedSmall" style="margin-top: 4px; color: var(--danger, #c0392b)">@this.CheckInValidationError</div>

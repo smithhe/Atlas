@@ -33,18 +33,18 @@
                             </div>
                         }
                         <div class="rowTiny">
-                            <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
-                            <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                            <button class="btn btnGhost" type="button" @onclick="this.ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
+                            <button class="btn btnGhost textBad" type="button" @onclick="this.HandleDelete" disabled="@this.Deleting">
                                 @(this.Deleting ? "Deleting…" : "Delete")
                             </button>
                             @if (this.IsFocusMode)
                             {
-                                <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
+                                <button class="btn btnGhost" type="button" @onclick="this.OnExitFocus">Exit focus</button>
                             }
                             else
                             {
-                                <button class="btn btnGhost" type="button" @onclick="OnClose">Close</button>
-                                <button class="btn btnGhost" type="button" @onclick="OnEnterFocus">Focus</button>
+                                <button class="btn btnGhost" type="button" @onclick="this.OnClose">Close</button>
+                                <button class="btn btnGhost" type="button" @onclick="this.OnEnterFocus">Focus</button>
                             }
                         </div>
                     </div>
@@ -57,12 +57,12 @@
                 {
                     <label class="field span2">
                         <div class="fieldLabel">Title</div>
-                        <input class="input" value="@risk.Title" @oninput="OnTitleInput" />
+                        <input class="input" value="@risk.Title" @oninput="this.OnTitleInput" />
                     </label>
 
                     <label class="field">
                         <div class="fieldLabel">Status</div>
-                        <select class="select" value="@risk.Status.ToString()" @onchange="OnStatusChange">
+                        <select class="select" value="@risk.Status.ToString()" @onchange="this.OnStatusChange">
                             <option value="Open">Open</option>
                             <option value="Watching">Watching</option>
                             <option value="Resolved">Resolved</option>
@@ -71,7 +71,7 @@
 
                     <label class="field">
                         <div class="fieldLabel">Severity</div>
-                        <select class="select" value="@risk.Severity" @onchange="OnSeverityChange">
+                        <select class="select" value="@risk.Severity" @onchange="this.OnSeverityChange">
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
@@ -83,7 +83,7 @@
                     <div class="fieldLabel">Project</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@(risk.ProjectId?.ToString() ?? "")" @onchange="OnProjectChange">
+                        <select class="select" value="@(risk.ProjectId?.ToString() ?? "")" @onchange="this.OnProjectChange">
                             <option value="">(None)</option>
                             @foreach (Project p in this.ProjectOptions)
                             {
@@ -105,7 +105,7 @@
                     <div class="fieldLabel">Description</div>
                     @if (this.Editing)
                     {
-                        <textarea class="textarea" value="@risk.Description" @oninput="OnDescriptionInput"></textarea>
+                        <textarea class="textarea" value="@risk.Description" @oninput="this.OnDescriptionInput"></textarea>
                     }
                     else
                     {
@@ -126,7 +126,7 @@
                     <div class="fieldLabel">Evidence / Examples</div>
                     @if (this.Editing)
                     {
-                        <textarea class="textarea" value="@risk.Evidence" @oninput="OnEvidenceInput"></textarea>
+                        <textarea class="textarea" value="@risk.Evidence" @oninput="this.OnEvidenceInput"></textarea>
                     }
                     else
                     {
@@ -237,7 +237,7 @@
                 <div class="field span2">
                     <div class="fieldLabel">Notes / History</div>
                     <div class="row mt-sm">
-                        <button class="btn btnSecondary" type="button" @onclick="ToggleAddingNote">
+                        <button class="btn btnSecondary" type="button" @onclick="this.ToggleAddingNote">
                             @(this.IsAddingNote ? "Cancel" : "Add note")
                         </button>
                     </div>
@@ -250,10 +250,10 @@
                                 <textarea class="textarea"
                                           placeholder="Write a note (Markdown supported)…"
                                           value="@this.NewNoteText"
-                                          @oninput="OnNewNoteInput"></textarea>
+                                          @oninput="this.OnNewNoteInput"></textarea>
                             </label>
                             <div class="row mt-sm">
-                                <button class="btn btnSecondary" type="button" @onclick="AddNote">Add</button>
+                                <button class="btn btnSecondary" type="button" @onclick="this.AddNote">Add</button>
                             </div>
                         </div>
                     }
@@ -290,7 +290,7 @@
 
         <AtlasModal Title="Note"
                     IsOpen="@(selectedHistory is not null)"
-                    OnClose="CloseHistoryNote">
+                    OnClose="this.CloseHistoryNote">
             <ChildContent>
                 @if (selectedHistory is not null)
                 {
@@ -317,7 +317,7 @@
                         {
                             <textarea class="textarea textareaAutoGrow noteEditTextarea"
                                       value="@this.HistoryDraftText"
-                                      @oninput="OnHistoryDraftInput"></textarea>
+                                      @oninput="this.OnHistoryDraftInput"></textarea>
                         }
                         else
                         {
@@ -332,8 +332,8 @@
                 @if (selectedHistory is not null)
                 {
                     <div class="row mt-0">
-                        <button class="btn btnSecondary" type="button" @onclick="SaveHistoryNote">Save</button>
-                        <button class="btn btnGhost" type="button" @onclick="CloseHistoryNote">Cancel</button>
+                        <button class="btn btnSecondary" type="button" @onclick="this.SaveHistoryNote">Save</button>
+                        <button class="btn btnGhost" type="button" @onclick="this.CloseHistoryNote">Cancel</button>
                     </div>
                 }
             </Footer>

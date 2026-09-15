@@ -6,65 +6,65 @@ using Atlas.Ui.Models;
 namespace Atlas.Ui.Services
 {
 
-/// <summary>Team member mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class TeamMemberService : ITeamMemberService
-{
-    private readonly IAtlasApiClient _api;
-    private readonly IAppCacheService _cache;
-
-    public TeamMemberService(IAtlasApiClient api, IAppCacheService cache)
+    /// <summary>Team member mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
+    public sealed class TeamMemberService : ITeamMemberService
     {
-        _api = api;
-        _cache = cache;
-    }
+        private readonly IAtlasApiClient _api;
+        private readonly IAppCacheService _cache;
 
-    public async Task UpdateAsync(TeamMember previous, TeamMember next, CancellationToken cancellationToken = default)
-    {
-        bool memberChanged = previous.Name != next.Name || previous.Role != next.Role || previous.CurrentFocus != next.CurrentFocus;
-        bool profileChanged = previous.Profile.TimeZone != next.Profile.TimeZone || previous.Profile.TypicalHours != next.Profile.TypicalHours;
-        bool signalsChanged = previous.Signals.Load != next.Signals.Load
-            || previous.Signals.Delivery != next.Signals.Delivery
-            || previous.Signals.SupportNeeded != next.Signals.SupportNeeded;
-
-        if (!memberChanged && !profileChanged && !signalsChanged)
+        public TeamMemberService(IAtlasApiClient api, IAppCacheService cache)
         {
-            return;
+            _api = api;
+            _cache = cache;
         }
 
-        await OptimisticCache.ApplyAsync(
-            previous,
-            next,
-            m => EntityClone.TeamMember(m),
-            _cache.UpdateTeamMember,
-            async () =>
+        public async Task UpdateAsync(TeamMember previous, TeamMember next, CancellationToken cancellationToken = default)
+        {
+            bool memberChanged = previous.Name != next.Name || previous.Role != next.Role || previous.CurrentFocus != next.CurrentFocus;
+            bool profileChanged = previous.Profile.TimeZone != next.Profile.TimeZone || previous.Profile.TypicalHours != next.Profile.TypicalHours;
+            bool signalsChanged = previous.Signals.Load != next.Signals.Load
+                || previous.Signals.Delivery != next.Signals.Delivery
+                || previous.Signals.SupportNeeded != next.Signals.SupportNeeded;
+
+            if (!memberChanged && !profileChanged && !signalsChanged)
             {
-                List<Task> tasks = [];
-                if (memberChanged)
-                {
-                    tasks.Add(_api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(
-                        next.Id,
-                        EntityRequestMappers.ToUpdateTeamMemberRequest(next),
-                        cancellationToken));
-                }
+                return;
+            }
 
-                if (profileChanged)
+            await OptimisticCache.ApplyAsync(
+                previous,
+                next,
+                m => EntityClone.TeamMember(m),
+                _cache.UpdateTeamMember,
+                async () =>
                 {
-                    tasks.Add(_api.AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpointAsync(
-                        next.Id,
-                        EntityRequestMappers.ToUpdateTeamMemberProfileRequest(next.Profile),
-                        cancellationToken));
-                }
+                    List<Task> tasks = [];
+                    if (memberChanged)
+                    {
+                        tasks.Add(_api.AtlasApiEndpointsTeamMembersUpdateTeamMemberEndpointAsync(
+                            next.Id,
+                            EntityRequestMappers.ToUpdateTeamMemberRequest(next),
+                            cancellationToken));
+                    }
 
-                if (signalsChanged)
-                {
-                    tasks.Add(_api.AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpointAsync(
-                        next.Id,
-                        EntityRequestMappers.ToUpdateTeamMemberSignalsRequest(next.Signals),
-                        cancellationToken));
-                }
+                    if (profileChanged)
+                    {
+                        tasks.Add(_api.AtlasApiEndpointsTeamMembersProfileUpdateTeamMemberProfileEndpointAsync(
+                            next.Id,
+                            EntityRequestMappers.ToUpdateTeamMemberProfileRequest(next.Profile),
+                            cancellationToken));
+                    }
 
-                await Task.WhenAll(tasks);
-            });
+                    if (signalsChanged)
+                    {
+                        tasks.Add(_api.AtlasApiEndpointsTeamMembersSignalsUpdateTeamMemberSignalsEndpointAsync(
+                            next.Id,
+                            EntityRequestMappers.ToUpdateTeamMemberSignalsRequest(next.Signals),
+                            cancellationToken));
+                    }
+
+                    await Task.WhenAll(tasks);
+                });
+        }
     }
-}
 }

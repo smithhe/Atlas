@@ -20,7 +20,7 @@
                            data-testid="settings-stale-days"
                            aria-label="Stale threshold (days)"
                            value="@this.StaleDays"
-                           @oninput="OnStaleDaysInput" />
+                           @oninput="this.OnStaleDaysInput" />
                 </label>
 
                 <label class="field">
@@ -36,7 +36,7 @@
 
                 <label class="field span2">
                     <div class="fieldLabel">Default AI chat panel state on app open</div>
-                    <select class="input" value="@(this.AiPanelOpen ? "on" : "off")" @onchange="OnAiPanelChange">
+                    <select class="input" value="@(this.AiPanelOpen ? "on" : "off")" @onchange="this.OnAiPanelChange">
                         <option value="off">Off (closed)</option>
                         <option value="on">On (open)</option>
                     </select>
@@ -53,12 +53,12 @@
 
                 <label class="field span2">
                     <div class="fieldLabel">Azure DevOps base URL</div>
-                    <input class="input" value="@this.AzureBaseUrl" @oninput="OnAzureBaseUrlInput" />
+                    <input class="input" value="@this.AzureBaseUrl" @oninput="this.OnAzureBaseUrlInput" />
                 </label>
             </div>
 
             <div class="row mt-lg">
-                <button class="btn" type="button" @onclick="SaveSettings" disabled="@this.Saving" aria-busy="@(this.Saving ? true : null)">
+                <button class="btn" type="button" @onclick="this.SaveSettings" disabled="@this.Saving" aria-busy="@(this.Saving ? true : null)">
                     <span class="btnContent">
                         @if (this.Saving)
                         {
@@ -117,7 +117,7 @@
                     <div class="rowTiny mt-lg items-center">
                         <button class="btn btnWide"
                                 type="button"
-                                @onclick="SaveAzureConnection"
+                                @onclick="this.SaveAzureConnection"
                                 disabled="@(!this.AzureLoaded || this.AzureSaving || string.IsNullOrWhiteSpace(this.ProjectId) || string.IsNullOrWhiteSpace(this.TeamId))"
                                 aria-busy="@(this.AzureSaving ? true : null)">
                             <span class="btnContent">
@@ -130,7 +130,7 @@
                         </button>
                         <button class="btn btnSecondary btnWide"
                                 type="button"
-                                @onclick="SyncNow"
+                                @onclick="this.SyncNow"
                                 disabled="@(!this.AzureLoaded || SyncInProgress)"
                                 aria-busy="@(this.SyncRunning ? true : null)">
                             <span class="btnContent">
@@ -141,7 +141,7 @@
                                 <span class="btnLabel">@(SyncInProgress ? "Syncing…" : "Sync now")</span>
                             </span>
                         </button>
-                        <button class="btn btnSecondary btnWide" type="button" @onclick="OpenAzureImport">
+                        <button class="btn btnSecondary btnWide" type="button" @onclick="this.OpenAzureImport">
                             Open Azure Import
                         </button>
                     </div>

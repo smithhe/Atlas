@@ -2,7 +2,7 @@
     <div class="cardHeader">
         <div class="cardTitle">Notes</div>
         <div class="row" style="margin-top: 0">
-            <button class="btn" type="button" @onclick="OpenNew">+ New</button>
+            <button class="btn" type="button" @onclick="this.OpenNew">+ New</button>
         </div>
     </div>
 
@@ -117,7 +117,7 @@
 
 <AtlasModal Title="@(SelectedNote is null ? "Note" : DisplayLabels.GetDerivedTitle(SelectedNote))"
             IsOpen="@(SelectedNote is not null)"
-            OnClose="CloseNoteModal">
+            OnClose="this.CloseNoteModal">
     <ChildContent>
         @if (SelectedNote is not null)
         {
@@ -172,12 +172,12 @@
             <div class="row" style="margin-top: 0">
                 @if (this.IsEditOpen)
                 {
-                    <button class="btn btnSecondary" type="button" @onclick="SaveNoteEdit">Save</button>
-                    <button class="btn btnGhost" type="button" @onclick="CancelNoteEdit">Cancel</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.SaveNoteEdit">Save</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.CancelNoteEdit">Cancel</button>
                 }
                 else
                 {
-                    <button class="btn btnGhost" type="button" @onclick="BeginNoteEdit">Edit</button>
+                    <button class="btn btnGhost" type="button" @onclick="this.BeginNoteEdit">Edit</button>
                 }
                 <button class="btn btnGhost" type="button" @onclick="() => OpenFull(SelectedNote.Id)">Open full page</button>
             </div>
@@ -185,7 +185,7 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="New note" IsOpen="this.IsNewOpen" OnClose="CloseNew">
+<AtlasModal Title="New note" IsOpen="this.IsNewOpen" OnClose="this.CloseNew">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
@@ -217,8 +217,8 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="CreateNote">Create</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseNew">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.CreateNote">Create</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseNew">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>

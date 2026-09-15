@@ -18,8 +18,8 @@
             <div class="mutedSmall">@(Member?.Name ?? "")</div>
         </div>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnGhost" type="button" @onclick="BackToRisks">Back to risks</button>
-            <button class="btn btnGhost" type="button" @onclick="BackToMember">Back to member</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToRisks">Back to risks</button>
+            <button class="btn btnGhost" type="button" @onclick="this.BackToMember">Back to member</button>
         </div>
     </div>
 
@@ -68,13 +68,13 @@
                     @if (this.Editing)
                     {
                         <div class="row" style="margin-top: 0">
-                            <button class="btn btnSecondary" type="button" @onclick="SaveEdit">Save</button>
-                            <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                            <button class="btn btnSecondary" type="button" @onclick="this.SaveEdit">Save</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.CancelEdit">Cancel</button>
                         </div>
                     }
                     else
                     {
-                        <button class="btn btnGhost" type="button" @onclick="BeginEdit">Edit</button>
+                        <button class="btn btnGhost" type="button" @onclick="this.BeginEdit">Edit</button>
                     }
                 </div>
             </div>
@@ -123,7 +123,7 @@
                         </label>
                         <label class="field">
                             <div class="fieldLabel">First noticed</div>
-                            <input class="input" type="date" value="@(this.Draft.FirstNoticedDateIso)" @onchange="OnDraftFirstNoticed" />
+                            <input class="input" type="date" value="@(this.Draft.FirstNoticedDateIso)" @onchange="this.OnDraftFirstNoticed" />
                         </label>
                         <label class="field span2">
                             <div class="fieldLabel">Impact area</div>
@@ -146,7 +146,7 @@
                     <label class="field tmRiskLinkField">
                         <div class="fieldLabel">Linked global risk</div>
                         <div class="fieldInline">
-                            <select class="select selectCompact" value="@LinkedRiskValue" @onchange="OnLinkedRiskChange">
+                            <select class="select selectCompact" value="@LinkedRiskValue" @onchange="this.OnLinkedRiskChange">
                                 <option value="">(None)</option>
                                 @foreach (Risk r in this._cache.Risks.OrderBy(x => x.Title))
                                 {
@@ -156,13 +156,13 @@
                             <button type="button" class="btn btnGhost btnIcon"
                                     title="@(LinkedGlobal is null ? "No linked global risk" : "Open in Risks & Mitigation")"
                                     disabled="@(LinkedGlobal is null)"
-                                    @onclick="OpenLinkedGlobal">↗</button>
+                                    @onclick="this.OpenLinkedGlobal">↗</button>
                         </div>
                     </label>
                 </div>
                 <div class="tmRiskFooterRight">
                     <div class="tmRiskFooterControls">
-                        <button type="button" class="btn btnGhost" title="Update last reviewed timestamp" @onclick="MarkReviewed">Mark reviewed</button>
+                        <button type="button" class="btn btnGhost" title="Update last reviewed timestamp" @onclick="this.MarkReviewed">Mark reviewed</button>
                         <div class="mutedSmall tmRiskLastReviewedText" aria-label="Last reviewed">
                             <span class="tmRiskLastReviewedLabel">Last reviewed:</span>
                             <span class="tmRiskLastReviewedValue">@ReviewedLabel</span>

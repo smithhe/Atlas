@@ -32,23 +32,23 @@
                         {
                             @if (this.Editing)
                             {
-                                <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@this.Saving">Save</button>
-                                <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
+                                <button class="btn btnSecondary" type="button" @onclick="this.SaveOverview" disabled="@this.Saving">Save</button>
+                                <button class="btn btnGhost" type="button" @onclick="this.CancelEdit">Cancel</button>
                             }
                             else
                             {
-                                <button class="btn btnGhost" type="button" @onclick="StartEdit">Edit</button>
+                                <button class="btn btnGhost" type="button" @onclick="this.StartEdit">Edit</button>
                             }
                         }
                         @if (this.IsFocusMode)
                         {
-                            <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.OnExitFocus">Exit focus</button>
                         }
                         else
                         {
-                            <button class="btn btnGhost" type="button" @onclick="OnEnterFocus">Focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.OnEnterFocus">Focus</button>
                         }
-                        <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                        <button class="btn btnGhost textBad" type="button" @onclick="this.HandleDelete" disabled="@this.Deleting">
                             @(this.Deleting ? "Deleting…" : "Delete")
                         </button>
                     </div>
@@ -96,11 +96,11 @@
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Target</div>
-                                            <input class="input" type="date" value="@this.DraftTargetDateIso" @onchange="OnDraftTargetDateChange" />
+                                            <input class="input" type="date" value="@this.DraftTargetDateIso" @onchange="this.OnDraftTargetDateChange" />
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Priority</div>
-                                            <select class="select" value="@(this.DraftPriority ?? "Medium")" @onchange="OnDraftPriorityChange">
+                                            <select class="select" value="@(this.DraftPriority ?? "Medium")" @onchange="this.OnDraftPriorityChange">
                                                 <option value="Low">Low</option>
                                                 <option value="Medium">Medium</option>
                                                 <option value="High">High</option>
@@ -131,7 +131,7 @@
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Latest check-in date</div>
-                                            <input class="input" type="date" value="@this.DraftCheckInDate" @onchange="OnDraftCheckInDateChange" />
+                                            <input class="input" type="date" value="@this.DraftCheckInDate" @onchange="this.OnDraftCheckInDateChange" />
                                         </label>
                                         <label class="field span2">
                                             <div class="fieldLabel">Latest check-in note</div>
@@ -150,7 +150,7 @@
                                                         <button type="button" class="btn btnGhost btnIcon" title="Remove link" @onclick="() => RemoveLink(idx)">×</button>
                                                     </div>
                                                 }
-                                                <button type="button" class="btn btnGhost" @onclick="AddLink">+ Add link</button>
+                                                <button type="button" class="btn btnGhost" @onclick="this.AddLink">+ Add link</button>
                                             </div>
                                         </div>
                                     </div>

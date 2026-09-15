@@ -1,7 +1,7 @@
 <section class="card subtle" aria-label="Risks tab">
     <div class="cardHeader">
         <div class="cardTitle">Risks</div>
-        <button class="btn btnGhost" type="button" @onclick="OpenCreate">Add risk</button>
+        <button class="btn btnGhost" type="button" @onclick="this.OpenCreate">Add risk</button>
     </div>
     <div class="pad">
         <div class="tasksFiltersRow" aria-label="Risks filters" style="grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); margin-bottom: 12px">
@@ -50,7 +50,7 @@
     </div>
 </section>
 
-<AtlasModal Title="Add team member risk" IsOpen="this.CreateOpen" OnClose="CloseCreate">
+<AtlasModal Title="Add team member risk" IsOpen="this.CreateOpen" OnClose="this.CloseCreate">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field" style="grid-column: 1 / -1">
@@ -83,7 +83,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">First noticed</div>
-                <input class="input" type="date" value="@this.FirstNoticed" @onchange="OnFirstNoticedChange" />
+                <input class="input" type="date" value="@this.FirstNoticed" @onchange="this.OnFirstNoticedChange" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Type</div>
@@ -115,8 +115,8 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveCreate" disabled="@string.IsNullOrWhiteSpace(this.Title)">Add</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseCreate">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.SaveCreate" disabled="@string.IsNullOrWhiteSpace(this.Title)">Add</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseCreate">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>

@@ -7,222 +7,222 @@ using Atlas.Ui.Contracts;
 
 namespace Atlas.Ui.Shared
 {
-public partial class GlobalSearch : IDisposable
-{
-    [Inject] private IAppCacheService _cache { get; set; } = null!;
-    [Inject] private SelectionState _selection { get; set; } = null!;
-    [Inject] private NavigationManager _nav { get; set; } = null!;
-
-    private sealed record SearchResult(string Id, string Kind, string Title, string Meta, string To, Guid EntityId);
-
-    private static readonly string[] KindOrder = ["Task", "Risk", "Person", "Project"];
-    private const int MaxResults = 12;
-
-    private string Query { get; set; } = "";
-    private bool Open { get; set; }
-    private int Active { get; set; }
-    private List<SearchResult> Results { get; set; } = [];
-
-    private bool HasQuery => !string.IsNullOrWhiteSpace(this.Query);
-
-    protected override void OnInitialized()
+    public partial class GlobalSearch : IDisposable
     {
-        this._cache.Changed += OnCacheChangedAsync;
-    }
+        [Inject] private IAppCacheService _cache { get; set; } = null!;
+        [Inject] private SelectionState _selection { get; set; } = null!;
+        [Inject] private NavigationManager _nav { get; set; } = null!;
 
-    private async void OnCacheChangedAsync()
-    {
-        try
-        {
-            await InvokeAsync(() =>
-            {
-                Rebuild();
-                StateHasChanged();
-            });
-        }
-        catch (Exception ex)
-        {
-            await DispatchExceptionAsync(ex);
-        }
-    }
+        private sealed record SearchResult(string Id, string Kind, string Title, string Meta, string To, Guid EntityId);
 
-    private void OnQueryInput(ChangeEventArgs e)
-    {
-        this.Query = e.Value?.ToString() ?? "";
-        this.Open = true;
-        this.Active = 0;
-        Rebuild();
-    }
+        private static readonly string[] KindOrder = ["Task", "Risk", "Person", "Project"];
+        private const int MaxResults = 12;
 
-    private void Rebuild()
-    {
-        var q = this.Query.Trim().ToLowerInvariant();
-        if (q.Length == 0)
+        private string Query { get; set; } = "";
+        private bool Open { get; set; }
+        private int Active { get; set; }
+        private List<SearchResult> Results { get; set; } = [];
+
+        private bool HasQuery => !string.IsNullOrWhiteSpace(this.Query);
+
+        protected override void OnInitialized()
         {
-            this.Results = [];
-            return;
+            this._cache.Changed += OnCacheChangedAsync;
         }
 
-        List<SearchResult> results = new();
-
-        foreach (AtlasTask task in this._cache.Tasks)
+        private async void OnCacheChangedAsync()
         {
-            var haystack = string.Join(' ', new[]
+            try
             {
-                task.Title, task.Project, task.Risk, DisplayLabels.FormatTaskStatus(task.Status),
-                task.Priority.ToString(), task.Notes
-            }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
+                await InvokeAsync(() =>
+                {
+                    Rebuild();
+                    StateHasChanged();
+                });
             }
-
-            results.Add(new SearchResult(
-                $"task:{task.Id}",
-                "Task",
-                task.Title,
-                string.Join(" · ", new[] { DisplayLabels.FormatTaskStatus(task.Status), task.Priority.ToString(), task.Project }.Where(s => !string.IsNullOrEmpty(s))),
-                $"/tasks/{task.Id}",
-                task.Id));
-        }
-
-        foreach (Risk risk in this._cache.Risks)
-        {
-            var haystack = string.Join(' ', new[]
+            catch (Exception ex)
             {
-                risk.Title, risk.Project, risk.Description, risk.Evidence, risk.Status.ToString(), risk.Severity
-            }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
+                await DispatchExceptionAsync(ex);
             }
-
-            results.Add(new SearchResult(
-                $"risk:{risk.Id}",
-                "Risk",
-                risk.Title,
-                string.Join(" · ", new[] { risk.Status.ToString(), risk.Severity, risk.Project }.Where(s => !string.IsNullOrEmpty(s))),
-                $"/risks/{risk.Id}",
-                risk.Id));
         }
 
-        foreach (TeamMember member in this._cache.Team)
+        private void OnQueryInput(ChangeEventArgs e)
         {
-            var haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            results.Add(new SearchResult(
-                $"person:{member.Id}",
-                "Person",
-                member.Name,
-                string.Join(" · ", new[] { member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s))),
-                $"/team/{member.Id}",
-                member.Id));
-        }
-
-        foreach (Project project in this._cache.Projects)
-        {
-            var haystack = string.Join(' ', new[]
-            {
-                project.Name, project.Summary, project.Description, project.Status?.ToString()
-            }.Concat(project.Tags).Where(s => !string.IsNullOrEmpty(s)));
-            if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            results.Add(new SearchResult(
-                $"project:{project.Id}",
-                "Project",
-                project.Name,
-                string.Join(" · ", new[] { project.Status?.ToString(), project.Summary }.Where(s => !string.IsNullOrEmpty(s))),
-                $"/projects/{project.Id}",
-                project.Id));
-        }
-
-        results.Sort((a, b) =>
-        {
-            var kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
-            return kindDiff != 0 ? kindDiff : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
-        });
-
-        this.Results = results.Take(MaxResults).ToList();
-        if (this.Active >= this.Results.Count)
-        {
+            this.Query = e.Value?.ToString() ?? "";
+            this.Open = true;
             this.Active = 0;
-        }
-    }
-
-    private void SelectResult(SearchResult result)
-    {
-        if (result.Kind == "Task")
-        {
-            this._selection.SelectTask(result.EntityId);
+            Rebuild();
         }
 
-        if (result.Kind == "Risk")
+        private void Rebuild()
         {
-            this._selection.SelectRisk(result.EntityId);
-        }
-
-        if (result.Kind == "Person")
-        {
-            this._selection.SelectTeamMember(result.EntityId);
-        }
-
-        if (result.Kind == "Project")
-        {
-            this._selection.SelectProject(result.EntityId);
-        }
-
-        this._nav.NavigateTo(result.To);
-        this.Query = "";
-        this.Open = false;
-        this.Active = 0;
-        this.Results = [];
-    }
-
-    private void OnKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Escape")
-        {
-            if (this.Open && HasQuery)
+            var q = this.Query.Trim().ToLowerInvariant();
+            if (q.Length == 0)
             {
-                this.Open = false;
+                this.Results = [];
+                return;
+            }
+
+            List<SearchResult> results = new();
+
+            foreach (AtlasTask task in this._cache.Tasks)
+            {
+                var haystack = string.Join(' ', new[]
+                {
+                    task.Title, task.Project, task.Risk, DisplayLabels.FormatTaskStatus(task.Status),
+                    task.Priority.ToString(), task.Notes
+                }.Where(s => !string.IsNullOrEmpty(s)));
+                if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                results.Add(new SearchResult(
+                    $"task:{task.Id}",
+                    "Task",
+                    task.Title,
+                    string.Join(" · ", new[] { DisplayLabels.FormatTaskStatus(task.Status), task.Priority.ToString(), task.Project }.Where(s => !string.IsNullOrEmpty(s))),
+                    $"/tasks/{task.Id}",
+                    task.Id));
+            }
+
+            foreach (Risk risk in this._cache.Risks)
+            {
+                var haystack = string.Join(' ', new[]
+                {
+                    risk.Title, risk.Project, risk.Description, risk.Evidence, risk.Status.ToString(), risk.Severity
+                }.Where(s => !string.IsNullOrEmpty(s)));
+                if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                results.Add(new SearchResult(
+                    $"risk:{risk.Id}",
+                    "Risk",
+                    risk.Title,
+                    string.Join(" · ", new[] { risk.Status.ToString(), risk.Severity, risk.Project }.Where(s => !string.IsNullOrEmpty(s))),
+                    $"/risks/{risk.Id}",
+                    risk.Id));
+            }
+
+            foreach (TeamMember member in this._cache.Team)
+            {
+                var haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
+                if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                results.Add(new SearchResult(
+                    $"person:{member.Id}",
+                    "Person",
+                    member.Name,
+                    string.Join(" · ", new[] { member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s))),
+                    $"/team/{member.Id}",
+                    member.Id));
+            }
+
+            foreach (Project project in this._cache.Projects)
+            {
+                var haystack = string.Join(' ', new[]
+                {
+                    project.Name, project.Summary, project.Description, project.Status?.ToString()
+                }.Concat(project.Tags).Where(s => !string.IsNullOrEmpty(s)));
+                if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                results.Add(new SearchResult(
+                    $"project:{project.Id}",
+                    "Project",
+                    project.Name,
+                    string.Join(" · ", new[] { project.Status?.ToString(), project.Summary }.Where(s => !string.IsNullOrEmpty(s))),
+                    $"/projects/{project.Id}",
+                    project.Id));
+            }
+
+            results.Sort((a, b) =>
+            {
+                var kindDiff = Array.IndexOf(KindOrder, a.Kind) - Array.IndexOf(KindOrder, b.Kind);
+                return kindDiff != 0 ? kindDiff : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
+            });
+
+            this.Results = results.Take(MaxResults).ToList();
+            if (this.Active >= this.Results.Count)
+            {
                 this.Active = 0;
             }
-            else if (HasQuery)
+        }
+
+        private void SelectResult(SearchResult result)
+        {
+            if (result.Kind == "Task")
             {
-                this.Query = "";
-                this.Results = [];
+                this._selection.SelectTask(result.EntityId);
             }
-            return;
+
+            if (result.Kind == "Risk")
+            {
+                this._selection.SelectRisk(result.EntityId);
+            }
+
+            if (result.Kind == "Person")
+            {
+                this._selection.SelectTeamMember(result.EntityId);
+            }
+
+            if (result.Kind == "Project")
+            {
+                this._selection.SelectProject(result.EntityId);
+            }
+
+            this._nav.NavigateTo(result.To);
+            this.Query = "";
+            this.Open = false;
+            this.Active = 0;
+            this.Results = [];
         }
 
-        if (!this.Open || !HasQuery || this.Results.Count == 0)
+        private void OnKeyDown(KeyboardEventArgs e)
         {
-            return;
+            if (e.Key == "Escape")
+            {
+                if (this.Open && HasQuery)
+                {
+                    this.Open = false;
+                    this.Active = 0;
+                }
+                else if (HasQuery)
+                {
+                    this.Query = "";
+                    this.Results = [];
+                }
+                return;
+            }
+
+            if (!this.Open || !HasQuery || this.Results.Count == 0)
+            {
+                return;
+            }
+
+            if (e.Key == "ArrowDown")
+            {
+                this.Active = (this.Active + 1) % this.Results.Count;
+            }
+            else if (e.Key == "ArrowUp")
+            {
+                this.Active = (this.Active - 1 + this.Results.Count) % this.Results.Count;
+            }
+            else if (e.Key == "Enter")
+            {
+                SelectResult(this.Results[this.Active]);
+            }
         }
 
-        if (e.Key == "ArrowDown")
-        {
-            this.Active = (this.Active + 1) % this.Results.Count;
-        }
-        else if (e.Key == "ArrowUp")
-        {
-            this.Active = (this.Active - 1 + this.Results.Count) % this.Results.Count;
-        }
-        else if (e.Key == "Enter")
-        {
-            SelectResult(this.Results[this.Active]);
-        }
+        private void OnRootKeyDown(KeyboardEventArgs e) { }
+
+        public void Dispose() => this._cache.Changed -= OnCacheChangedAsync;
     }
-
-    private void OnRootKeyDown(KeyboardEventArgs e) { }
-
-    public void Dispose() => this._cache.Changed -= OnCacheChangedAsync;
-}
 }

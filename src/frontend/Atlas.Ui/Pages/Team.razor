@@ -102,11 +102,11 @@
                         </div>
                         @if (this.IsFocusMode)
                         {
-                            <button class="btn btnGhost" type="button" @onclick="ExitFocus">Exit focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.ExitFocus">Exit focus</button>
                         }
                         else
                         {
-                            <button class="btn btnGhost" type="button" @onclick="EnterFocus">Focus</button>
+                            <button class="btn btnGhost" type="button" @onclick="this.EnterFocus">Focus</button>
                         }
                     </div>
 
@@ -132,7 +132,7 @@
                     @switch (ActiveTab)
                     {
                         case MemberTab.Overview:
-                            <MemberOverviewTab Member="this.Selected" OnUpdate="HandleMemberUpdate" OnGoToNotes="GoNotes" OnGoToWorkItem="GoWorkItem" />
+                            <MemberOverviewTab Member="this.Selected" OnUpdate="this.HandleMemberUpdate" OnGoToNotes="this.GoNotes" OnGoToWorkItem="this.GoWorkItem" />
                             break;
                         case MemberTab.Notes:
                             <MemberNotesTab Member="this.Selected" />

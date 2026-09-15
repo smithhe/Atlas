@@ -15,8 +15,8 @@
             <GlobalSearch />
         </div>
         <div class="topBarRight">
-            <button class="btn btnSecondary" type="button" @onclick="OpenQuickAdd">+ Quick Add</button>
-            <button class="btn" type="button" @onclick="ToggleAi">AI ▸</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.OpenQuickAdd">+ Quick Add</button>
+            <button class="btn" type="button" @onclick="this.ToggleAi">AI ▸</button>
         </div>
     </header>
 
@@ -39,7 +39,7 @@
                         <ErrorContent>
                             <div class="card pad">
                                 <div class="textBad">Something went wrong loading this view.</div>
-                                <button class="btn btnSecondary mt-sm" type="button" @onclick="RecoverFromError">Retry</button>
+                                <button class="btn btnSecondary mt-sm" type="button" @onclick="this.RecoverFromError">Retry</button>
                             </div>
                         </ErrorContent>
                     </ErrorBoundary>
@@ -61,12 +61,12 @@
                  aria-orientation="vertical"
                  aria-label="Resize AI panel"
                  tabindex="0"
-                 @ondblclick="ResetAiWidth"
-                 @onpointerdown="OnResizePointerDown"
-                 @onkeydown="OnResizeKeyDown"></div>
+                 @ondblclick="this.ResetAiWidth"
+                 @onpointerdown="this.OnResizePointerDown"
+                 @onkeydown="this.OnResizeKeyDown"></div>
             <AiPanel />
         }
     </div>
 
-    <QuickAddModal IsOpen="this.QuickAddOpen" OnClose="CloseQuickAdd" />
+    <QuickAddModal IsOpen="this.QuickAddOpen" OnClose="this.CloseQuickAdd" />
 </div>

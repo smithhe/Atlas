@@ -45,18 +45,18 @@
                             }
                         </div>
                     }
-                    <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
-                    <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                    <button class="btn btnGhost" type="button" @onclick="this.ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
+                    <button class="btn btnGhost textBad" type="button" @onclick="this.HandleDelete" disabled="@this.Deleting">
                         @(this.Deleting ? "Deleting…" : "Delete")
                     </button>
                     @if (this.IsFocusMode)
                     {
-                        <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
+                        <button class="btn btnGhost" type="button" @onclick="this.OnExitFocus">Exit focus</button>
                     }
                     else
                     {
-                        <button class="btn btnGhost" type="button" @onclick="OnClose">Close</button>
-                        <button class="btn btnGhost" type="button" @onclick="OnEnterFocus">Focus</button>
+                        <button class="btn btnGhost" type="button" @onclick="this.OnClose">Close</button>
+                        <button class="btn btnGhost" type="button" @onclick="this.OnEnterFocus">Focus</button>
                     }
                 </div>
             </div>
@@ -66,7 +66,7 @@
                 {
                     <label class="field span2">
                         <div class="fieldLabel">Title</div>
-                        <input class="input" value="@task.Title" @oninput="OnTitleInput" />
+                        <input class="input" value="@task.Title" @oninput="this.OnTitleInput" />
                     </label>
                 }
                 else
@@ -81,7 +81,7 @@
                     <div class="fieldLabel">Status</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@statusLabel" @onchange="OnStatusChange">
+                        <select class="select" value="@statusLabel" @onchange="this.OnStatusChange">
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Blocked">Blocked</option>
@@ -100,7 +100,7 @@
                     <div class="fieldLabel">Priority (required)</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@task.Priority.ToString()" @onchange="OnPriorityChange">
+                        <select class="select" value="@task.Priority.ToString()" @onchange="this.OnPriorityChange">
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
@@ -117,7 +117,7 @@
                     <div class="fieldLabel">Assignee (optional)</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@(task.AssigneeId?.ToString() ?? "")" @onchange="OnAssigneeChange">
+                        <select class="select" value="@(task.AssigneeId?.ToString() ?? "")" @onchange="this.OnAssigneeChange">
                             <option value="">(None)</option>
                             @foreach (TeamMember m in AssigneeOptions)
                             {
@@ -139,7 +139,7 @@
                     <div class="fieldLabel">Estimated Duration (required)</div>
                     @if (this.Editing)
                     {
-                        <input class="input" placeholder="e.g., 1d, 2h30m" value="@task.EstimatedDurationText" @oninput="OnEstimateInput" />
+                        <input class="input" placeholder="e.g., 1d, 2h30m" value="@task.EstimatedDurationText" @oninput="this.OnEstimateInput" />
                         <div class="mutedSmall @(estimateParsed is null ? "textBad" : null)">Estimated: @estimatePreview</div>
                     }
                     else
@@ -153,7 +153,7 @@
                     <div class="fieldLabel">Confidence</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@task.EstimateConfidence.ToString()" @onchange="OnConfidenceChange">
+                        <select class="select" value="@task.EstimateConfidence.ToString()" @onchange="this.OnConfidenceChange">
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
@@ -169,7 +169,7 @@
                     <div class="fieldLabel">Project (optional)</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@(task.ProjectId?.ToString() ?? "")" @onchange="OnProjectChange">
+                        <select class="select" value="@(task.ProjectId?.ToString() ?? "")" @onchange="this.OnProjectChange">
                             <option value="">(None)</option>
                             @foreach (Project p in this.ProjectOptions)
                             {
@@ -191,7 +191,7 @@
                     <div class="fieldLabel">Risk (optional)</div>
                     @if (this.Editing)
                     {
-                        <select class="select" value="@(task.RiskId?.ToString() ?? "")" @onchange="OnRiskChange">
+                        <select class="select" value="@(task.RiskId?.ToString() ?? "")" @onchange="this.OnRiskChange">
                             <option value="">(None)</option>
                             @foreach (Risk r in this.RiskOptions)
                             {
@@ -213,7 +213,7 @@
                     <div class="fieldLabel">Due date (optional)</div>
                     @if (this.Editing)
                     {
-                        <input class="input" type="date" value="@(task.DueDate ?? "")" @onchange="OnDueDateChange" />
+                        <input class="input" type="date" value="@(task.DueDate ?? "")" @onchange="this.OnDueDateChange" />
                     }
                     else
                     {
@@ -225,7 +225,7 @@
                     <div class="fieldLabel">Actual Duration (optional)</div>
                     @if (this.Editing)
                     {
-                        <input class="input" placeholder="e.g., 1d2h, 45m" value="@(task.ActualDurationText ?? "")" @oninput="OnActualInput" />
+                        <input class="input" placeholder="e.g., 1d2h, 45m" value="@(task.ActualDurationText ?? "")" @oninput="this.OnActualInput" />
                         <div class="mutedSmall @(task.ActualDurationText is not null && !string.IsNullOrWhiteSpace(task.ActualDurationText) && actualParsed is null ? "textBad" : null)">Actual: @actualPreview</div>
                     }
                     else
@@ -245,7 +245,7 @@
                                        list="blockerCandidatesList"
                                        placeholder="Add blocker…"
                                        value="@this.AddBlockerText"
-                                       @oninput="OnAddBlockerInput" />
+                                       @oninput="this.OnAddBlockerInput" />
                                 <datalist id="blockerCandidatesList">
                                     @foreach (AtlasTask candidate in blockerCandidates)
                                     {
@@ -257,7 +257,7 @@
                                 <button type="button"
                                         class="btn btnSecondary"
                                         disabled="@(resolvedBlockerId is null || tasksThatDependOnMe.Contains(resolvedBlockerId.Value))"
-                                        @onclick="AddBlocker">
+                                        @onclick="this.AddBlocker">
                                     Add
                                 </button>
                             </div>
@@ -300,7 +300,7 @@
                     @if (this.Editing && task.DependencyTaskIds.Count > 0)
                     {
                         <div class="rowTiny">
-                            <button type="button" class="btn btnGhost" @onclick="ClearDependencies">Clear dependencies</button>
+                            <button type="button" class="btn btnGhost" @onclick="this.ClearDependencies">Clear dependencies</button>
                         </div>
                     }
                 </div>
@@ -311,7 +311,7 @@
                     {
                         <textarea class="textarea textareaAutoGrow"
                                   value="@task.Notes"
-                                  @oninput="OnNotesInput"></textarea>
+                                  @oninput="this.OnNotesInput"></textarea>
                     }
                     else
                     {
@@ -323,7 +323,7 @@
             </div>
 
             <div class="row">
-                <button class="btn" type="button" @onclick="TouchTask">Touch / Update Activity</button>
+                <button class="btn" type="button" @onclick="this.TouchTask">Touch / Update Activity</button>
             </div>
         </div>
     }

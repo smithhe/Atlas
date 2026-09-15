@@ -2,7 +2,7 @@
     <section class="card subtle" aria-label="Profile">
         <div class="cardHeader">
             <div class="cardTitle">Profile</div>
-            <button class="btn btnGhost" type="button" @onclick="OpenProfileModal">Edit</button>
+            <button class="btn btnGhost" type="button" @onclick="this.OpenProfileModal">Edit</button>
         </div>
         <div class="pad">
             <div class="memberProfileSummary">
@@ -25,7 +25,7 @@
     <section class="card subtle memberOverviewFocus" aria-label="Focus Right Now">
         <div class="cardHeader">
             <div class="cardTitle">Focus Right Now</div>
-            <button class="btn btnGhost" type="button" @onclick="OpenFocusModal">Edit</button>
+            <button class="btn btnGhost" type="button" @onclick="this.OpenFocusModal">Edit</button>
         </div>
         <div class="pad memberOverviewFocusBody">
             <div class="memberOverviewFocusSummary @(string.IsNullOrWhiteSpace(Member.CurrentFocus) ? "muted" : null)">
@@ -62,17 +62,17 @@
     <section class="card subtle" aria-label="At-a-glance signals">
         <div class="cardHeader">
             <div class="cardTitle">At-a-glance Signals</div>
-            <button class="btn btnGhost" type="button" @onclick="OpenSignalsModal">Edit</button>
+            <button class="btn btnGhost" type="button" @onclick="this.OpenSignalsModal">Edit</button>
         </div>
         <div class="pad">
             <div class="signalPillsRow" aria-label="Signals">
-                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.Load.ToString())" @onclick="CycleLoad">
+                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.Load.ToString())" @onclick="this.CycleLoad">
                     Load: @Member.Signals.Load
                 </button>
-                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.Delivery.ToString())" @onclick="CycleDelivery">
+                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.Delivery.ToString())" @onclick="this.CycleDelivery">
                     Delivery: @DisplayLabels.DeliveryLabel(Member.Signals.Delivery)
                 </button>
-                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.SupportNeeded.ToString())" @onclick="CycleSupport">
+                <button type="button" class="pill pillBtn @Tones.SignalTone(Member.Signals.SupportNeeded.ToString())" @onclick="this.CycleSupport">
                     Support needed: @Member.Signals.SupportNeeded
                 </button>
             </div>
@@ -83,7 +83,7 @@
     <section class="card subtle span2" aria-label="Pinned Notes preview">
         <div class="cardHeader">
             <div class="cardTitle">Pinned Notes (Preview)</div>
-            <button class="btn btnGhost" type="button" @onclick="OnGoToNotes">View all notes</button>
+            <button class="btn btnGhost" type="button" @onclick="this.OnGoToNotes">View all notes</button>
         </div>
         <div class="pad pinnedNotesPreview">
             @if (PinnedNotes.Count == 0)
@@ -95,7 +95,7 @@
                 <div class="notesList" style="margin-top: 0">
                     @foreach (TeamNote n in PinnedNotes)
                     {
-                        <button @key="n.Id" type="button" class="noteRow noteRowBtn" title="Open Notes tab" @onclick="OnGoToNotes">
+                        <button @key="n.Id" type="button" class="noteRow noteRowBtn" title="Open Notes tab" @onclick="this.OnGoToNotes">
                             <div class="noteMeta">
                                 <span class="chip chipTag chipTag-@n.Tag.ToString().ToLowerInvariant()">@n.Tag</span>
                                 <span class="mutedSmall">@DisplayLabels.FormatLocalDate(n.CreatedIso)</span>
@@ -143,7 +143,7 @@
     </section>
 </div>
 
-<AtlasModal Title="Edit profile" IsOpen="this.ProfileOpen" OnClose="CloseProfileModal">
+<AtlasModal Title="Edit profile" IsOpen="this.ProfileOpen" OnClose="this.CloseProfileModal">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
@@ -172,8 +172,8 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveProfile">Save</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseProfileModal">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.SaveProfile">Save</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseProfileModal">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>
@@ -212,13 +212,13 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveSignals">Save</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.SaveSignals">Save</button>
             <button class="btn btnGhost" type="button" @onclick="() => this.SignalsOpen = false">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="Edit focus right now" IsOpen="this.FocusOpen" OnClose="CloseFocusModal">
+<AtlasModal Title="Edit focus right now" IsOpen="this.FocusOpen" OnClose="this.CloseFocusModal">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
@@ -229,8 +229,8 @@
     </ChildContent>
     <Footer>
         <div class="row" style="margin-top: 0">
-            <button class="btn btnSecondary" type="button" @onclick="SaveFocus">Save</button>
-            <button class="btn btnGhost" type="button" @onclick="CloseFocusModal">Cancel</button>
+            <button class="btn btnSecondary" type="button" @onclick="this.SaveFocus">Save</button>
+            <button class="btn btnGhost" type="button" @onclick="this.CloseFocusModal">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>

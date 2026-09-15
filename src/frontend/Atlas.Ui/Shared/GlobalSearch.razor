@@ -1,4 +1,4 @@
-<div class="globalSearch" @onkeydown="OnRootKeyDown">
+<div class="globalSearch" @onkeydown="this.OnRootKeyDown">
     <input class="searchInput"
            role="combobox"
            aria-label="Search"
@@ -10,9 +10,9 @@
            placeholder="Search tasks, risks, people, projects…"
            disabled="@this._cache.IsHydrating"
            value="@this.Query"
-           @oninput="OnQueryInput"
+           @oninput="this.OnQueryInput"
            @onfocus="() => this.Open = true"
-           @onkeydown="OnKeyDown" />
+           @onkeydown="this.OnKeyDown" />
     @if (this.Open && HasQuery)
     {
         <div class="searchResults list listCard" id="atlas-search-results" role="listbox" aria-label="Search results">

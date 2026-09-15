@@ -39,8 +39,8 @@
             else if (this.Users.Count > 0)
             {
                 <div class="rowTiny" style="margin-top: 10px; align-items: center">
-                    <button type="button" class="btn btnGhost" disabled="@(this.Users.Count == 0)" @onclick="SelectAllUsers">Select all</button>
-                    <button type="button" class="btn btnGhost" disabled="@(this.SelectedUsers.Count == 0)" @onclick="ClearSelectedUsers">Clear</button>
+                    <button type="button" class="btn btnGhost" disabled="@(this.Users.Count == 0)" @onclick="this.SelectAllUsers">Select all</button>
+                    <button type="button" class="btn btnGhost" disabled="@(this.SelectedUsers.Count == 0)" @onclick="this.ClearSelectedUsers">Clear</button>
                     <span class="mutedSmall" style="margin-left: auto">@this.SelectedUsers.Count selected</span>
                 </div>
                 <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
@@ -71,13 +71,13 @@
                 <button class="btn btnWide"
                         type="button"
                         disabled="@(this.SelectedUsers.Count == 0 || this.Loading || this.ImportingProductOwners || this.ImportingUsers)"
-                        @onclick="OnImportUsers">
+                        @onclick="this.OnImportUsers">
                     @(this.ImportingUsers ? "Importing…" : "Import as team members")
                 </button>
                 <button class="btn btnWide"
                         type="button"
                         disabled="@(this.SelectedUsers.Count == 0 || this.Loading || this.ImportingUsers || this.ImportingProductOwners)"
-                        @onclick="OnImportProductOwners">
+                        @onclick="this.OnImportProductOwners">
                     @(this.ImportingProductOwners ? "Importing…" : "Import as product owners")
                 </button>
                 <div class="mutedSmall">Select users once, then import to either target list.</div>
@@ -104,7 +104,7 @@
                 <div class="fieldGrid2" style="margin-bottom: 12px">
                     <label class="field">
                         <div class="fieldLabel">Target project</div>
-                        <select class="input" value="@this.ProjectId" @onchange="OnProjectChange">
+                        <select class="input" value="@this.ProjectId" @onchange="this.OnProjectChange">
                             <option value="">Select project</option>
                             @foreach (Project p in this._cache.Projects)
                             {
@@ -114,7 +114,7 @@
                     </label>
                     <label class="field">
                         <div class="fieldLabel">Assign to</div>
-                        <select class="input" value="@this.TeamMemberId" @onchange="OnTeamMemberChange">
+                        <select class="input" value="@this.TeamMemberId" @onchange="this.OnTeamMemberChange">
                             <option value="">Auto-assign from mapping</option>
                             @foreach (TeamMember m in this._cache.Team)
                             {
@@ -128,13 +128,13 @@
                     <button class="btn btnWide"
                             type="button"
                             disabled="@(string.IsNullOrEmpty(this.ProjectId) || this.SelectedWorkItems.Count == 0 || this.LinkingWorkItems)"
-                            @onclick="OnLinkWorkItems">
+                            @onclick="this.OnLinkWorkItems">
                         @(this.LinkingWorkItems ? "Linking…" : "Link selected")
                     </button>
                     <button type="button"
                             class="btn btnGhost"
                             disabled="@(this.SelectedWorkItems.Count == 0 || this.LinkingWorkItems)"
-                            @onclick="OnIgnoreSelectedWorkItems">
+                            @onclick="this.OnIgnoreSelectedWorkItems">
                         Ignore selected
                     </button>
                     <div class="mutedSmall">

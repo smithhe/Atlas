@@ -14,7 +14,7 @@
                     </div>
                 </div>
                 <div class="pageHeaderRight" style="display: flex; gap: 8px; align-items: center;">
-                    <button class="btn btnSecondary" type="button" @onclick="Skip">Skip for now</button>
+                    <button class="btn btnSecondary" type="button" @onclick="this.Skip">Skip for now</button>
                     <span class="pill toneInfo">
                         <span class="btnContent">
                             @StepLabel
@@ -36,7 +36,7 @@
                     <div class="fieldLabel setupOrgLabel">Organization (required)</div>
                     <input class="input"
                            value="@this.Organization"
-                           @oninput="OnOrganizationInput"
+                           @oninput="this.OnOrganizationInput"
                            placeholder="e.g. contoso"
                            autocapitalize="none"
                            autocorrect="off"
@@ -49,7 +49,7 @@
                 <button class="btn btnWide"
                         type="button"
                         disabled="@(this.Loading || string.IsNullOrWhiteSpace(this.Organization))"
-                        @onclick="OnLoadProjects">
+                        @onclick="this.OnLoadProjects">
                     <span class="btnContent">
                         @if (this.Loading && this.Step == SetupStep.Project)
                         {
@@ -86,7 +86,7 @@
                             <div class="fieldLabel">Search</div>
                             <input class="input"
                                    value="@this.ProjectQuery"
-                                   @oninput="OnProjectQueryInput"
+                                   @oninput="this.OnProjectQueryInput"
                                    placeholder="Filter projects…" />
                         </label>
                         <div class="mutedSmall" style="margin-top: 8px">
@@ -137,7 +137,7 @@
                             <div class="fieldLabel">Search</div>
                             <input class="input"
                                    value="@this.TeamQuery"
-                                   @oninput="OnTeamQueryInput"
+                                   @oninput="this.OnTeamQueryInput"
                                    placeholder="Filter teams…" />
                         </label>
                         <div class="mutedSmall" style="margin-top: 8px">
@@ -222,20 +222,20 @@
                             <div class="fieldLabel">Search</div>
                             <input class="input"
                                    value="@this.MemberQuery"
-                                   @oninput="OnMemberQueryInput"
+                                   @oninput="this.OnMemberQueryInput"
                                    placeholder="Filter members…" />
                         </label>
                         <div class="rowTiny" style="margin-top: 10px">
                             <button type="button"
                                     class="btn btnGhost"
                                     disabled="@(FilteredUsers.Count == 0)"
-                                    @onclick="SelectAllShown">
+                                    @onclick="this.SelectAllShown">
                                 Select all shown
                             </button>
                             <button type="button"
                                     class="btn btnGhost"
                                     disabled="@(this.SelectedUsers.Count == 0)"
-                                    @onclick="ClearSelectedUsers">
+                                    @onclick="this.ClearSelectedUsers">
                                 Clear
                             </button>
                             <span class="mutedSmall" style="margin-left: auto">
@@ -270,7 +270,7 @@
                             <button class="btn"
                                     type="button"
                                     disabled="@this.Loading"
-                                    @onclick="OnSave">
+                                    @onclick="this.OnSave">
                                 <span class="btnContent">
                                     @if (this.Step == SetupStep.Saving)
                                     {

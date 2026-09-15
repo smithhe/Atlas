@@ -1,6 +1,6 @@
 @if (IsOpen)
 {
-    <div class="modalOverlay" role="presentation" @onmousedown="CloseFromOverlay" @onkeydown="OnOverlayKey">
+    <div class="modalOverlay" role="presentation" @onmousedown="this.CloseFromOverlay" @onkeydown="this.OnOverlayKey">
         <div class="modalPanel"
              role="dialog"
              aria-modal="true"
@@ -10,7 +10,7 @@
              @ref="this.Panel">
             <div class="modalHeader">
                 <div class="modalTitle" id="_quickAddTitle">Quick Add</div>
-                <button class="btn btnGhost" type="button" @onclick="HandleClose" disabled="@this.Saving">Close</button>
+                <button class="btn btnGhost" type="button" @onclick="this.HandleClose" disabled="@this.Saving">Close</button>
             </div>
             <div class="modalBody">
                 <div class="chipRow" style="margin-bottom: 14px">
@@ -24,7 +24,7 @@
                     <div class="fieldGrid">
                         <label class="field">
                             <div class="fieldLabel">Title</div>
-                            <input class="input" @bind="this.TaskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New task" />
+                            <input class="input" @bind="this.TaskTitle" @bind:event="oninput" @onkeydown="this.OnTitleKey" placeholder="New task" />
                         </label>
                         <div class="mutedSmall">Creates with Medium priority and Not Started status. Edit details on the task page.</div>
                     </div>
@@ -34,7 +34,7 @@
                     <div class="fieldGrid">
                         <label class="field">
                             <div class="fieldLabel">Title</div>
-                            <input class="input" @bind="this.RiskTitle" @bind:event="oninput" @onkeydown="OnTitleKey" placeholder="New risk" />
+                            <input class="input" @bind="this.RiskTitle" @bind:event="oninput" @onkeydown="this.OnTitleKey" placeholder="New risk" />
                         </label>
                         <div class="mutedSmall">Creates as Open / Medium severity. Edit details on the risk page.</div>
                     </div>
@@ -58,7 +58,7 @@
                         }
                         <label class="field">
                             <div class="fieldLabel">Tag</div>
-                            <select class="select" value="@this.NoteTag" @onchange="OnNoteTagChange">
+                            <select class="select" value="@this.NoteTag" @onchange="this.OnNoteTagChange">
                                 @foreach (string t in NoteTags)
                                 {
                                     <option value="@t">@t</option>
@@ -86,10 +86,10 @@
             </div>
             <div class="modalFooter">
                 <div class="row" style="margin-top: 0">
-                    <button class="btn btnSecondary" type="button" disabled="@(!CanCreate || this.Saving)" @onclick="HandleCreate">
+                    <button class="btn btnSecondary" type="button" disabled="@(!CanCreate || this.Saving)" @onclick="this.HandleCreate">
                         @(this.Saving ? "Creating…" : "Create")
                     </button>
-                    <button class="btn btnGhost" type="button" disabled="@this.Saving" @onclick="HandleClose">Cancel</button>
+                    <button class="btn btnGhost" type="button" disabled="@this.Saving" @onclick="this.HandleClose">Cancel</button>
                 </div>
             </div>
         </div>
