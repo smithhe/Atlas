@@ -240,7 +240,7 @@ public sealed class AppCacheService
         SyncProjectLinkedRiskIds(risk);
         if (previous is not null && previous.Title != risk.Title)
         {
-            Tasks = Tasks.Select(t => t.RiskId == risk.Id ? EntityClone.Task(t, risk: risk.Title) : t).ToList();
+            Tasks = Tasks.Select(t => t.RiskId == risk.Id ? EntityClone.Task(t, risk: risk.Title, setRisk: true) : t).ToList();
             foreach (AtlasTask task in Tasks.Where(t => t.RiskId == risk.Id))
             {
                 SyncRiskLinkedTaskIds(task);
@@ -284,8 +284,8 @@ public sealed class AppCacheService
         Projects = Projects.Select(p => p.Id == project.Id ? project : p).ToList();
         if (previous is not null && previous.Name != project.Name)
         {
-            Tasks = Tasks.Select(t => t.ProjectId == project.Id ? EntityClone.Task(t, project: project.Name) : t).ToList();
-            Risks = Risks.Select(r => r.ProjectId == project.Id ? EntityClone.Risk(r, project: project.Name) : r).ToList();
+            Tasks = Tasks.Select(t => t.ProjectId == project.Id ? EntityClone.Task(t, project: project.Name, setProject: true) : t).ToList();
+            Risks = Risks.Select(r => r.ProjectId == project.Id ? EntityClone.Risk(r, project: project.Name, setProject: true) : r).ToList();
         }
 
         Notify();
