@@ -104,7 +104,6 @@ public partial class GrowthGoalDetail : IDisposable
     protected override async Task OnInitializedAsync()
     {
         this._cache.Changed += OnChangedAsync;
-        this._growthService.PersistFailed += OnPersistFailed;
         await this._cache.EnsureHydratedAsync();
     }
 
@@ -609,27 +608,9 @@ public partial class GrowthGoalDetail : IDisposable
         }
     }
 
-    private async void OnPersistFailed(string message)
-    {
-        try
-        {
-            if (this.Disposed)
-            {
-                return;
-            }
-
-            await InvokeAsync(async () => await this._dialogs.AlertAsync(message));
-        }
-        catch (Exception ex)
-        {
-            await DispatchExceptionAsync(ex);
-        }
-    }
-
     public void Dispose()
     {
         this.Disposed = true;
-        this._growthService.PersistFailed -= OnPersistFailed;
         this._growthService.AbandonGoalPersists();
         this._cache.Changed -= OnChangedAsync;
     }

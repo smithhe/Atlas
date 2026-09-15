@@ -116,11 +116,7 @@ public partial class MemberGrowthTab : IDisposable
         }
     }
 
-    protected override void OnInitialized()
-    {
-        this._cache.Changed += OnChangedAsync;
-        this._growthService.PersistFailed += OnPersistFailed;
-    }
+    protected override void OnInitialized() => this._cache.Changed += OnChangedAsync;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -527,27 +523,9 @@ public partial class MemberGrowthTab : IDisposable
         }
     }
 
-    private async void OnPersistFailed(string message)
-    {
-        try
-        {
-            if (this.Disposed)
-            {
-                return;
-            }
-
-            await InvokeAsync(async () => await this._dialogs.AlertAsync(message));
-        }
-        catch (Exception ex)
-        {
-            await DispatchExceptionAsync(ex);
-        }
-    }
-
     public void Dispose()
     {
         this.Disposed = true;
-        this._growthService.PersistFailed -= OnPersistFailed;
         this._cache.Changed -= OnChangedAsync;
     }
 }

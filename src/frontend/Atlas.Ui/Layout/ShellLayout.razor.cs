@@ -13,6 +13,8 @@ public partial class ShellLayout
     [Inject] private NavigationManager _nav { get; set; } = null!;
     [Inject] private IAiStateService _ai { get; set; } = null!;
     [Inject] private IJSRuntime _js { get; set; } = null!;
+    [Inject] private IGrowthService _growthService { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
 
     private const int MinAiWidth = 320;
     private const string DefaultAiWidthCss = "clamp(320px, 26vw, 560px)";
@@ -94,6 +96,7 @@ public partial class ShellLayout
         this._ai.Changed += OnAiChangedAsync;
         this._nav.LocationChanged += OnLocationChanged;
         this._ai.EnsureStartupPreference();
+        this._growthService.PersistFailed += OnPersistFailed;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -214,11 +217,24 @@ public partial class ShellLayout
     [JSInvokable]
     public void OnAiResizeUp() => this.Resizing = false;
 
+    private async void OnPersistFailed(string message)
+    {
+        try
+        {
+            await InvokeAsync(async () => await this._dialogs.AlertAsync(message));
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         this._cache.Changed -= OnCacheChangedAsync;
         this._ai.Changed -= OnAiChangedAsync;
         this._nav.LocationChanged -= OnLocationChanged;
+        this._growthService.PersistFailed -= OnPersistFailed;
 
         if (this.ResizeInterop is not null)
         {

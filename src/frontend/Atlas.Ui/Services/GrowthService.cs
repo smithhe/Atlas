@@ -402,8 +402,10 @@ public sealed class GrowthService : IGrowthService
                     }
 
                     CancelInFlightPersists();
-                    await _cache.RetryGrowthLoadAsync(memberId);
+                    // Raise before reload so ShellLayout can alert even if the page
+                    // is disposed while RetryGrowthLoadAsync is still in flight.
                     PersistFailed?.Invoke(GrowthUiHelpers.FormatUserError(failureMessage, ex));
+                    await _cache.RetryGrowthLoadAsync(memberId);
                 }
             });
     }

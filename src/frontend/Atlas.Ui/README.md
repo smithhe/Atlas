@@ -59,7 +59,7 @@ Atlas.Ui follows the EcommerceApp-derived conventions, with one documented inden
 - New/updated C# uses braced namespaces.
 - Indent is **4 spaces** (see `src/.editorconfig`), not EcommerceApp tabs, so UI and backend stay consistent.
 
-Keep NSwag `IAtlasApiClient`, `BrowserDialogs` (pages own dialogs; domain services do not call them), and Shared modals.
+Keep NSwag `IAtlasApiClient`, `BrowserDialogs` (pages own dialogs; domain services do not call them), and Shared modals. Growth autosave persist failures are raised on `IGrowthService.PersistFailed`; `ShellLayout` is the durable listener so the alert survives page disposal during reload.
 
 ## OpenAPI / NSwag
 
