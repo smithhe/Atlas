@@ -55,7 +55,7 @@ Atlas.Ui follows the EcommerceApp-derived conventions, with one documented inden
 - Domain HTTP wrappers live behind `Contracts/IXxxService`; pages inject interfaces, not concrete `*Service` types.
 - `ServiceRegistration.AddAtlasUiServices` owns DI. `Program.cs` is host bootstrap only.
 - `[Inject]` is a `_camelCase` private property on the code-behind (not `@inject`, not PascalCase inject properties). Blazor's `InjectAttribute` does not allow fields on this TFM.
-- Page/modal UI state is PascalCase. Qualify instance members with `this.` in markup and code-behind.
+- Page/modal UI state is PascalCase. Qualify instance members with `this.` in markup **values** and code-behind, not in Blazor component parameter names (`IsFocusMode="this.IsFocusMode"`, never `this.IsFocusMode="..."`).
 - New/updated C# uses braced namespaces.
 - Indent is **4 spaces** (see `src/.editorconfig`), not EcommerceApp tabs, so UI and backend stay consistent.
 
