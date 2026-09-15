@@ -44,19 +44,26 @@ namespace Atlas.Ui.Tests.Services
             });
 
             GrowthService service = new(api.Object, cache);
-            string? failedMessage = null;
-            service.PersistFailed += message => failedMessage = message;
+            var persistFailed = new TaskCompletionSource<string>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            service.PersistFailed += message => persistFailed.TrySetResult(message);
 
-            string? validation = service.UpdateGoal(memberId, goalId, goal =>
+            try
             {
-                goal.Summary = "updated";
-                return goal;
-            });
+                string? validation = service.UpdateGoal(memberId, goalId, goal =>
+                {
+                    goal.Summary = "updated";
+                    return goal;
+                });
 
-            validation.Should().BeNull();
-            await Task.Delay(700);
-
-            failedMessage.Should().Be("Unable to save goal changes. Please try again.");
+                validation.Should().BeNull();
+                string failedMessage = await persistFailed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+                failedMessage.Should().Be("Unable to save goal changes. Please try again.");
+            }
+            finally
+            {
+                service.Dispose();
+            }
         }
 
         [Fact]
