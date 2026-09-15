@@ -2,54 +2,55 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Setup
 {
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private IJSRuntime Js { get; set; } = null!;
-    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private IJSRuntime _js { get; set; } = null!;
+    [Inject] private IAzureDevOpsService _azureDevOpsService { get; set; } = null!;
 
     private enum SetupStep { Project, Team, Members, Saving }
 
-    private ElementReference _headerRef;
-    private ElementReference _projectsCardRef;
-    private ElementReference _teamsCardRef;
-    private ElementReference _areaPathCardRef;
-    private ElementReference _membersCardRef;
+    private ElementReference HeaderRef { get; set; }
+    private ElementReference ProjectsCardRef { get; set; }
+    private ElementReference TeamsCardRef { get; set; }
+    private ElementReference AreaPathCardRef { get; set; }
+    private ElementReference MembersCardRef { get; set; }
 
-    private int _projectsScrollGen;
-    private int _teamsScrollGen;
-    private int _membersScrollGen;
-    private int _scrolledProjectsGen = -1;
-    private int _scrolledTeamsGen = -1;
-    private int _scrolledMembersGen = -1;
+    private int ProjectsScrollGen { get; set; }
+    private int TeamsScrollGen { get; set; }
+    private int MembersScrollGen { get; set; }
+    private int ScrolledProjectsGen { get; set; } = -1;
+    private int ScrolledTeamsGen { get; set; } = -1;
+    private int ScrolledMembersGen { get; set; } = -1;
 
-    private SetupInterop? _setupInterop;
+    private SetupInterop? SetupInteropRef { get; set; }
 
-    private string _organization = "";
-    private string _areaPath = "";
-    private bool _areaPathLoading;
-    private string? _areaPathError;
+    private string Organization { get; set; } = "";
+    private string AreaPath { get; set; } = "";
+    private bool AreaPathLoading { get; set; }
+    private string? AreaPathError { get; set; }
 
-    private List<AzureProject> _projects = [];
-    private string _selectedProjectId = "";
-    private List<AzureTeam> _teams = [];
-    private string _selectedTeamId = "";
-    private List<AzureUser> _users = [];
-    private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
+    private List<AzureProject> Projects { get; set; } = [];
+    private string SelectedProjectId { get; set; } = "";
+    private List<AzureTeam> Teams { get; set; } = [];
+    private string SelectedTeamId { get; set; } = "";
+    private List<AzureUser> Users { get; set; } = [];
+    private HashSet<string> SelectedUsers { get; set; } = new(StringComparer.Ordinal);
 
-    private string _projectQuery = "";
-    private string _teamQuery = "";
-    private string _memberQuery = "";
+    private string ProjectQuery { get; set; } = "";
+    private string TeamQuery { get; set; } = "";
+    private string MemberQuery { get; set; } = "";
 
-    private SetupStep _step = SetupStep.Project;
-    private bool _loading;
-    private string? _error;
+    private SetupStep Step { get; set; } = SetupStep.Project;
+    private bool Loading { get; set; }
+    private string? Error { get; set; }
 
-    private string StepLabel => _step switch
+    private string StepLabel => this.Step switch
     {
         SetupStep.Saving => "Saving",
         SetupStep.Project => "Step 1/3 • Project",
@@ -58,18 +59,18 @@ public partial class Setup
     };
 
     private AzureProject? SelectedProject =>
-        _projects.FirstOrDefault(p => p.Id == _selectedProjectId);
+        this.Projects.FirstOrDefault(p => p.Id == this.SelectedProjectId);
 
     private AzureTeam? SelectedTeam =>
-        _teams.FirstOrDefault(t => t.Id == _selectedTeamId);
+        this.Teams.FirstOrDefault(t => t.Id == this.SelectedTeamId);
 
     private List<AzureProject> FilteredProjects
     {
         get
         {
-            IEnumerable<AzureProject> sorted = _projects
+            IEnumerable<AzureProject> sorted = this.Projects
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase);
-            var q = _projectQuery.Trim();
+            var q = this.ProjectQuery.Trim();
             if (q.Length == 0)
             {
                 return sorted.ToList();
@@ -85,9 +86,9 @@ public partial class Setup
     {
         get
         {
-            IEnumerable<AzureTeam> sorted = _teams
+            IEnumerable<AzureTeam> sorted = this.Teams
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase);
-            var q = _teamQuery.Trim();
+            var q = this.TeamQuery.Trim();
             if (q.Length == 0)
             {
                 return sorted.ToList();
@@ -103,9 +104,9 @@ public partial class Setup
     {
         get
         {
-            IEnumerable<AzureUser> sorted = _users
+            IEnumerable<AzureUser> sorted = this.Users
                 .OrderBy(u => (u.DisplayName ?? u.UniqueName ?? ""), StringComparer.OrdinalIgnoreCase);
-            var q = _memberQuery.Trim();
+            var q = this.MemberQuery.Trim();
             if (q.Length == 0)
             {
                 return sorted.ToList();
@@ -125,10 +126,10 @@ public partial class Setup
     {
         try
         {
-            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            AzureConnection? conn = await this._azureDevOpsService.TryGetConnectionAsync();
             if (!string.IsNullOrWhiteSpace(conn?.Organization))
             {
-                _organization = conn.Organization;
+                this.Organization = conn.Organization;
             }
         }
         catch
@@ -141,38 +142,38 @@ public partial class Setup
     {
         if (firstRender)
         {
-            _setupInterop = new SetupInterop(Js);
+            this.SetupInteropRef = new SetupInterop(this._js);
         }
 
-        if (_setupInterop is null)
+        if (this.SetupInteropRef is null)
         {
             return;
         }
 
         try
         {
-            if (_projects.Count > 0 && _projectsScrollGen != _scrolledProjectsGen)
+            if (this.Projects.Count > 0 && this.ProjectsScrollGen != this.ScrolledProjectsGen)
             {
-                _scrolledProjectsGen = _projectsScrollGen;
-                await _setupInterop.ScrollToCardAsync(_headerRef, _projectsCardRef);
+                this.ScrolledProjectsGen = this.ProjectsScrollGen;
+                await this.SetupInteropRef.ScrollToCardAsync(this.HeaderRef, this.ProjectsCardRef);
             }
 
-            if (_step == SetupStep.Team && _teams.Count > 0 && _teamsScrollGen != _scrolledTeamsGen)
+            if (this.Step == SetupStep.Team && this.Teams.Count > 0 && this.TeamsScrollGen != this.ScrolledTeamsGen)
             {
-                _scrolledTeamsGen = _teamsScrollGen;
-                await _setupInterop.ScrollToCardAsync(_headerRef, _teamsCardRef);
+                this.ScrolledTeamsGen = this.TeamsScrollGen;
+                await this.SetupInteropRef.ScrollToCardAsync(this.HeaderRef, this.TeamsCardRef);
             }
 
-            if (_step == SetupStep.Members && _membersScrollGen != _scrolledMembersGen)
+            if (this.Step == SetupStep.Members && this.MembersScrollGen != this.ScrolledMembersGen)
             {
-                _scrolledMembersGen = _membersScrollGen;
-                if (_users.Count > 0)
+                this.ScrolledMembersGen = this.MembersScrollGen;
+                if (this.Users.Count > 0)
                 {
-                    await _setupInterop.ScrollToCardAsync(_headerRef, _membersCardRef);
+                    await this.SetupInteropRef.ScrollToCardAsync(this.HeaderRef, this.MembersCardRef);
                 }
-                else if (!string.IsNullOrEmpty(_selectedTeamId))
+                else if (!string.IsNullOrEmpty(this.SelectedTeamId))
                 {
-                    await _setupInterop.ScrollToCardAsync(_headerRef, _areaPathCardRef);
+                    await this.SetupInteropRef.ScrollToCardAsync(this.HeaderRef, this.AreaPathCardRef);
                 }
             }
         }
@@ -187,107 +188,107 @@ public partial class Setup
         }
     }
 
-    private void Skip() => Nav.NavigateTo("/dashboard");
+    private void Skip() => this._nav.NavigateTo("/dashboard");
 
-    private void OnOrganizationInput(ChangeEventArgs e) => _organization = e.Value?.ToString() ?? "";
-    private void OnProjectQueryInput(ChangeEventArgs e) => _projectQuery = e.Value?.ToString() ?? "";
-    private void OnTeamQueryInput(ChangeEventArgs e) => _teamQuery = e.Value?.ToString() ?? "";
-    private void OnMemberQueryInput(ChangeEventArgs e) => _memberQuery = e.Value?.ToString() ?? "";
+    private void OnOrganizationInput(ChangeEventArgs e) => this.Organization = e.Value?.ToString() ?? "";
+    private void OnProjectQueryInput(ChangeEventArgs e) => this.ProjectQuery = e.Value?.ToString() ?? "";
+    private void OnTeamQueryInput(ChangeEventArgs e) => this.TeamQuery = e.Value?.ToString() ?? "";
+    private void OnMemberQueryInput(ChangeEventArgs e) => this.MemberQuery = e.Value?.ToString() ?? "";
 
     private async Task OnLoadProjects()
     {
-        if (string.IsNullOrWhiteSpace(_organization) || _loading)
+        if (string.IsNullOrWhiteSpace(this.Organization) || this.Loading)
         {
             return;
         }
 
-        _loading = true;
-        _error = null;
+        this.Loading = true;
+        this.Error = null;
         try
         {
-            IReadOnlyList<AzureProject> list = await AzureDevOpsService.ListProjectsAsync(_organization);
-            _projects = list.ToList();
-            _selectedProjectId = "";
-            _selectedTeamId = "";
-            _teams = [];
-            _users = [];
-            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
-            _projectQuery = "";
-            _teamQuery = "";
-            _memberQuery = "";
-            _areaPath = "";
-            _areaPathError = null;
-            _areaPathLoading = false;
-            _step = SetupStep.Project;
-            _projectsScrollGen++;
+            IReadOnlyList<AzureProject> list = await this._azureDevOpsService.ListProjectsAsync(this.Organization);
+            this.Projects = list.ToList();
+            this.SelectedProjectId = "";
+            this.SelectedTeamId = "";
+            this.Teams = [];
+            this.Users = [];
+            this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
+            this.ProjectQuery = "";
+            this.TeamQuery = "";
+            this.MemberQuery = "";
+            this.AreaPath = "";
+            this.AreaPathError = null;
+            this.AreaPathLoading = false;
+            this.Step = SetupStep.Project;
+            this.ProjectsScrollGen++;
         }
         catch (Exception ex)
         {
-            _error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load projects" : ex.Message;
+            this.Error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load projects" : ex.Message;
         }
         finally
         {
-            _loading = false;
+            this.Loading = false;
         }
     }
 
     private async Task OnSelectProject(string projectId)
     {
-        if (_loading)
+        if (this.Loading)
         {
             return;
         }
 
-        _selectedProjectId = projectId;
-        _selectedTeamId = "";
-        _teams = [];
-        _users = [];
-        _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
-        _teamQuery = "";
-        _memberQuery = "";
-        _areaPath = "";
-        _areaPathError = null;
-        _areaPathLoading = false;
-        _error = null;
-        _loading = true;
+        this.SelectedProjectId = projectId;
+        this.SelectedTeamId = "";
+        this.Teams = [];
+        this.Users = [];
+        this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
+        this.TeamQuery = "";
+        this.MemberQuery = "";
+        this.AreaPath = "";
+        this.AreaPathError = null;
+        this.AreaPathLoading = false;
+        this.Error = null;
+        this.Loading = true;
         try
         {
-            IReadOnlyList<AzureTeam> list = await AzureDevOpsService.ListTeamsAsync(_organization, projectId);
-            _teams = list.ToList();
-            _step = SetupStep.Team;
-            _teamsScrollGen++;
+            IReadOnlyList<AzureTeam> list = await this._azureDevOpsService.ListTeamsAsync(this.Organization, projectId);
+            this.Teams = list.ToList();
+            this.Step = SetupStep.Team;
+            this.TeamsScrollGen++;
         }
         catch (Exception ex)
         {
-            _error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load teams" : ex.Message;
+            this.Error = string.IsNullOrWhiteSpace(ex.Message) ? "Failed to load teams" : ex.Message;
         }
         finally
         {
-            _loading = false;
+            this.Loading = false;
         }
     }
 
     private async Task OnSelectTeam(string teamId, string teamName)
     {
-        if (_loading)
+        if (this.Loading)
         {
             return;
         }
 
-        _selectedTeamId = teamId;
-        _users = [];
-        _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
-        _memberQuery = "";
-        _error = null;
-        _loading = true;
-        _areaPathLoading = true;
-        _areaPathError = null;
+        this.SelectedTeamId = teamId;
+        this.Users = [];
+        this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
+        this.MemberQuery = "";
+        this.Error = null;
+        this.Loading = true;
+        this.AreaPathLoading = true;
+        this.AreaPathError = null;
         try
         {
             Task<IReadOnlyList<AzureUser>> usersTask =
-                AzureDevOpsService.ListUsersAsync(_organization, _selectedProjectId, teamId);
+                this._azureDevOpsService.ListUsersAsync(this.Organization, this.SelectedProjectId, teamId);
             Task<AzureTeamAreaPaths> areasTask =
-                AzureDevOpsService.ListTeamAreaPathsAsync(_organization, _selectedProjectId, teamName);
+                this._azureDevOpsService.ListTeamAreaPathsAsync(this.Organization, this.SelectedProjectId, teamName);
 
             IReadOnlyList<AzureUser> users;
             try
@@ -299,7 +300,7 @@ public partial class Setup
                 throw new InvalidOperationException(ex.Message, ex);
             }
 
-            _users = users.ToList();
+            this.Users = users.ToList();
 
             try
             {
@@ -307,39 +308,39 @@ public partial class Setup
                 var defaultValue = (areas.DefaultValue ?? "").Trim();
                 if (defaultValue.Length > 0)
                 {
-                    _areaPath = defaultValue;
+                    this.AreaPath = defaultValue;
                 }
                 else if (areas.Values.Count > 0)
                 {
-                    _areaPath = areas.Values.First().Value ?? "";
+                    this.AreaPath = areas.Values.First().Value ?? "";
                 }
                 else
                 {
-                    _areaPath = "";
+                    this.AreaPath = "";
                 }
             }
             catch (Exception ex)
             {
-                _areaPathError = ex.Message;
+                this.AreaPathError = ex.Message;
             }
 
-            _step = SetupStep.Members;
-            _membersScrollGen++;
+            this.Step = SetupStep.Members;
+            this.MembersScrollGen++;
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            this.Error = ex.Message;
         }
         finally
         {
-            _loading = false;
-            _areaPathLoading = false;
+            this.Loading = false;
+            this.AreaPathLoading = false;
         }
     }
 
     private void ToggleUser(string uniqueName, ChangeEventArgs e)
     {
-        HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
+        HashSet<string> next = new(this.SelectedUsers, StringComparer.Ordinal);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
         {
             next.Add(uniqueName);
@@ -349,74 +350,75 @@ public partial class Setup
             next.Remove(uniqueName);
         }
 
-        _selectedUsers = next;
+        this.SelectedUsers = next;
     }
 
     private void SelectAllShown()
     {
-        _selectedUsers = FilteredUsers
+        this.SelectedUsers = FilteredUsers
             .Select(u => u.UniqueName)
             .Where(s => !string.IsNullOrEmpty(s))
             .Select(s => s!)
             .ToHashSet(StringComparer.Ordinal);
     }
 
-    private void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+    private void ClearSelectedUsers() => this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
 
     private async Task OnSave()
     {
         AzureProject? project = SelectedProject;
         AzureTeam? team = SelectedTeam;
-        if (project is null || team is null || _loading)
+        if (project is null || team is null || this.Loading)
         {
             return;
         }
 
-        _loading = true;
-        _error = null;
-        _step = SetupStep.Saving;
+        this.Loading = true;
+        this.Error = null;
+        this.Step = SetupStep.Saving;
         try
         {
-            await AzureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
+            await this._azureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
             {
-                Organization = _organization,
+                Organization = this.Organization,
                 Project = project.Name,
-                AreaPath = _areaPath,
+                AreaPath = this.AreaPath,
                 TeamName = team.Name,
                 IsEnabled = true,
                 ProjectId = project.Id,
                 TeamId = team.Id
             });
 
-            var selected = _users
-                .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
+            var selected = this.Users
+                .Where(u => u.UniqueName is not null && this.SelectedUsers.Contains(u.UniqueName))
                 .ToList();
 
             if (selected.Count > 0)
             {
-                await AzureDevOpsService.ImportTeamAsync(selected);
-                await Cache.RefetchTeamAsync();
+                await this._azureDevOpsService.ImportTeamAsync(selected);
+                await this._cache.RefetchTeamAsync();
             }
 
-            Nav.NavigateTo("/dashboard");
+            this._nav.NavigateTo("/dashboard");
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
-            _step = SetupStep.Members;
+            this.Error = ex.Message;
+            this.Step = SetupStep.Members;
         }
         finally
         {
-            _loading = false;
+            this.Loading = false;
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_setupInterop is not null)
+        if (this.SetupInteropRef is not null)
         {
-            await _setupInterop.DisposeAsync();
-            _setupInterop = null;
+            await this.SetupInteropRef.DisposeAsync();
+            this.SetupInteropRef = null;
         }
     }
+}
 }

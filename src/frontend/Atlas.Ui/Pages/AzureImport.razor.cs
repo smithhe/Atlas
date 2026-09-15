@@ -1,37 +1,38 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class AzureImport : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private IAzureDevOpsService _azureDevOpsService { get; set; } = null!;
 
-    private AzureConnection? _connection;
-    private List<AzureUser> _users = [];
-    private HashSet<string> _selectedUsers = new(StringComparer.Ordinal);
-    private List<AzureImportWorkItem> _importWorkItems = [];
-    private HashSet<Guid> _selectedWorkItems = [];
-    private string _projectId = "";
-    private string _teamMemberId = "";
-    private bool _loading;
-    private bool _importingUsers;
-    private bool _importingProductOwners;
-    private bool _linkingWorkItems;
-    private string? _error;
-    private string? _productOwnerWarning;
+    private AzureConnection? Connection { get; set; }
+    private List<AzureUser> Users { get; set; } = [];
+    private HashSet<string> SelectedUsers { get; set; } = new(StringComparer.Ordinal);
+    private List<AzureImportWorkItem> ImportWorkItems { get; set; } = [];
+    private HashSet<Guid> SelectedWorkItems { get; set; } = [];
+    private string ProjectId { get; set; } = "";
+    private string TeamMemberId { get; set; } = "";
+    private bool Loading { get; set; }
+    private bool ImportingUsers { get; set; }
+    private bool ImportingProductOwners { get; set; }
+    private bool LinkingWorkItems { get; set; }
+    private string? Error { get; set; }
+    private string? ProductOwnerWarning { get; set; }
 
-    private string? _selectedProjectName =>
-        Guid.TryParse(_projectId, out Guid id)
-            ? Cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
+    private string? SelectedProjectName =>
+        Guid.TryParse(this.ProjectId, out Guid id)
+            ? this._cache.Projects.FirstOrDefault(p => p.Id == id)?.Name
             : null;
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnCacheChangedAsync;
-        await Cache.EnsureHydratedAsync();
+        this._cache.Changed += OnCacheChangedAsync;
+        await this._cache.EnsureHydratedAsync();
         await LoadAsync();
     }
 
@@ -49,52 +50,52 @@ public partial class AzureImport : IDisposable
 
     private async Task LoadAsync()
     {
-        _loading = true;
-        _error = null;
+        this.Loading = true;
+        this.Error = null;
         try
         {
-            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            AzureConnection? conn = await this._azureDevOpsService.TryGetConnectionAsync();
             if (conn is null)
             {
-                _connection = null;
-                _error = "Set Project ID and Team ID in Settings before importing users.";
-                _users = [];
-                _importWorkItems = (await SafeListWorkItemsAsync()).ToList();
+                this.Connection = null;
+                this.Error = "Set Project ID and Team ID in Settings before importing users.";
+                this.Users = [];
+                this.ImportWorkItems = (await SafeListWorkItemsAsync()).ToList();
                 return;
             }
 
-            _connection = conn;
+            this.Connection = conn;
             if (string.IsNullOrWhiteSpace(conn.Organization)
                 || string.IsNullOrWhiteSpace(conn.ProjectId)
                 || string.IsNullOrWhiteSpace(conn.TeamId))
             {
-                _error = "Set Project ID and Team ID in Settings before importing users.";
-                _users = [];
+                this.Error = "Set Project ID and Team ID in Settings before importing users.";
+                this.Users = [];
             }
             else
             {
-                IReadOnlyList<AzureUser> list = await AzureDevOpsService.ListUsersAsync(
+                IReadOnlyList<AzureUser> list = await this._azureDevOpsService.ListUsersAsync(
                     conn.Organization!, conn.ProjectId!, conn.TeamId!);
-                IReadOnlyList<AzureUser> imported = await AzureDevOpsService.ListImportedUsersAsync();
+                IReadOnlyList<AzureUser> imported = await this._azureDevOpsService.ListImportedUsersAsync();
                 HashSet<string> importedSet = new(
                     imported
                         .Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant())
                         .Where(s => s.Length > 0),
                     StringComparer.Ordinal);
-                _users = list
+                this.Users = list
                     .Where(u => !importedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                     .ToList();
             }
 
-            _importWorkItems = (await SafeListWorkItemsAsync()).ToList();
+            this.ImportWorkItems = (await SafeListWorkItemsAsync()).ToList();
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            this.Error = ex.Message;
         }
         finally
         {
-            _loading = false;
+            this.Loading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -103,7 +104,7 @@ public partial class AzureImport : IDisposable
     {
         try
         {
-            return await AzureDevOpsService.ListImportWorkItemsAsync();
+            return await this._azureDevOpsService.ListImportWorkItemsAsync();
         }
         catch
         {
@@ -112,16 +113,16 @@ public partial class AzureImport : IDisposable
     }
 
     private void SelectAllUsers() =>
-        _selectedUsers = _users
+        this.SelectedUsers = this.Users
             .Select(u => u.UniqueName ?? "")
             .Where(s => s.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
 
-    private void ClearSelectedUsers() => _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+    private void ClearSelectedUsers() => this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
 
     private void ToggleUser(string uniqueName, ChangeEventArgs e)
     {
-        HashSet<string> next = new(_selectedUsers, StringComparer.Ordinal);
+        HashSet<string> next = new(this.SelectedUsers, StringComparer.Ordinal);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
         {
             next.Add(uniqueName);
@@ -131,12 +132,12 @@ public partial class AzureImport : IDisposable
             next.Remove(uniqueName);
         }
 
-        _selectedUsers = next;
+        this.SelectedUsers = next;
     }
 
     private void ToggleWorkItem(Guid id, ChangeEventArgs e)
     {
-        HashSet<Guid> next = new(_selectedWorkItems);
+        HashSet<Guid> next = new(this.SelectedWorkItems);
         if (e.Value is bool b ? b : string.Equals(e.Value?.ToString(), "true", StringComparison.OrdinalIgnoreCase))
         {
             next.Add(id);
@@ -146,141 +147,142 @@ public partial class AzureImport : IDisposable
             next.Remove(id);
         }
 
-        _selectedWorkItems = next;
+        this.SelectedWorkItems = next;
     }
 
-    private void OnProjectChange(ChangeEventArgs e) => _projectId = e.Value?.ToString() ?? "";
-    private void OnTeamMemberChange(ChangeEventArgs e) => _teamMemberId = e.Value?.ToString() ?? "";
+    private void OnProjectChange(ChangeEventArgs e) => this.ProjectId = e.Value?.ToString() ?? "";
+    private void OnTeamMemberChange(ChangeEventArgs e) => this.TeamMemberId = e.Value?.ToString() ?? "";
 
-    private List<AzureUser> SelectedUsers() =>
-        _users
-            .Where(u => u.UniqueName is not null && _selectedUsers.Contains(u.UniqueName))
+    private List<AzureUser> SelectedUserList() =>
+        this.Users
+            .Where(u => u.UniqueName is not null && this.SelectedUsers.Contains(u.UniqueName))
             .ToList();
 
     private async Task OnImportUsers()
     {
-        if (_importingUsers || _selectedUsers.Count == 0)
+        if (this.ImportingUsers || this.SelectedUsers.Count == 0)
         {
             return;
         }
 
-        _error = null;
-        _productOwnerWarning = null;
-        _importingUsers = true;
+        this.Error = null;
+        this.ProductOwnerWarning = null;
+        this.ImportingUsers = true;
         try
         {
-            List<AzureUser> selected = SelectedUsers();
-            await AzureDevOpsService.ImportTeamAsync(selected);
-            await Cache.RefetchTeamAsync();
+            List<AzureUser> selected = this.SelectedUserList();
+            await this._azureDevOpsService.ImportTeamAsync(selected);
+            await this._cache.RefetchTeamAsync();
             HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
                 StringComparer.Ordinal);
-            _users = _users
+            this.Users = this.Users
                 .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                 .ToList();
-            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+            this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            this.Error = ex.Message;
         }
         finally
         {
-            _importingUsers = false;
+            this.ImportingUsers = false;
         }
     }
 
     private async Task OnImportProductOwners()
     {
-        if (_importingProductOwners || _selectedUsers.Count == 0)
+        if (this.ImportingProductOwners || this.SelectedUsers.Count == 0)
         {
             return;
         }
 
-        _error = null;
-        _productOwnerWarning = null;
-        _importingProductOwners = true;
+        this.Error = null;
+        this.ProductOwnerWarning = null;
+        this.ImportingProductOwners = true;
         try
         {
-            List<AzureUser> selected = SelectedUsers();
-            ImportProductOwnersResult result = await AzureDevOpsService.ImportProductOwnersAsync(selected);
-            await Cache.RefetchProductOwnersAsync();
+            List<AzureUser> selected = this.SelectedUserList();
+            ImportProductOwnersResult result = await this._azureDevOpsService.ImportProductOwnersAsync(selected);
+            await this._cache.RefetchProductOwnersAsync();
             HashSet<string> selectedSet = new(
                 selected.Select(u => (u.UniqueName ?? "").Trim().ToLowerInvariant()),
                 StringComparer.Ordinal);
-            _users = _users
+            this.Users = this.Users
                 .Where(u => !selectedSet.Contains((u.UniqueName ?? "").Trim().ToLowerInvariant()))
                 .ToList();
-            _selectedUsers = new HashSet<string>(StringComparer.Ordinal);
+            this.SelectedUsers = new HashSet<string>(StringComparer.Ordinal);
             IReadOnlyList<ReusedProductOwnerName> reused = result.ReusedProductOwnerNames;
             if (reused.Count > 0)
             {
                 var details = string.Join(", ", reused.Select(r => $"{r.DisplayName} ({r.AzureUniqueName})"));
-                _productOwnerWarning =
+                this.ProductOwnerWarning =
                     $"{reused.Count} product owner{(reused.Count == 1 ? "" : "s")} reused existing names: {details}";
             }
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            this.Error = ex.Message;
         }
         finally
         {
-            _importingProductOwners = false;
+            this.ImportingProductOwners = false;
         }
     }
 
     private async Task OnLinkWorkItems()
     {
-        if (_linkingWorkItems || string.IsNullOrEmpty(_projectId) || _selectedWorkItems.Count == 0)
+        if (this.LinkingWorkItems || string.IsNullOrEmpty(this.ProjectId) || this.SelectedWorkItems.Count == 0)
         {
             return;
         }
 
-        if (!Guid.TryParse(_projectId, out Guid projectId))
+        if (!Guid.TryParse(this.ProjectId, out Guid projectId))
         {
             return;
         }
 
-        _error = null;
-        _productOwnerWarning = null;
-        _linkingWorkItems = true;
+        this.Error = null;
+        this.ProductOwnerWarning = null;
+        this.LinkingWorkItems = true;
         try
         {
-            Guid? teamMemberId = Guid.TryParse(_teamMemberId, out Guid mid) ? mid : null;
-            await AzureDevOpsService.LinkWorkItemsAsync(new LinkAzureWorkItemsRequest
+            Guid? teamMemberId = Guid.TryParse(this.TeamMemberId, out Guid mid) ? mid : null;
+            await this._azureDevOpsService.LinkWorkItemsAsync(new LinkAzureWorkItemsRequest
             {
-                AzureWorkItemIds = _selectedWorkItems.ToList(),
+                AzureWorkItemIds = this.SelectedWorkItems.ToList(),
                 ProjectId = projectId,
                 TeamMemberId = teamMemberId
             });
-            await Cache.RefetchTeamAsync();
-            await Cache.RefetchProjectsAsync();
-            _selectedWorkItems = [];
-            _importWorkItems = (await AzureDevOpsService.ListImportWorkItemsAsync()).ToList();
+            await this._cache.RefetchTeamAsync();
+            await this._cache.RefetchProjectsAsync();
+            this.SelectedWorkItems = [];
+            this.ImportWorkItems = (await this._azureDevOpsService.ListImportWorkItemsAsync()).ToList();
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            this.Error = ex.Message;
         }
         finally
         {
-            _linkingWorkItems = false;
+            this.LinkingWorkItems = false;
         }
     }
 
     private void OnIgnoreSelectedWorkItems()
     {
-        if (_selectedWorkItems.Count == 0)
+        if (this.SelectedWorkItems.Count == 0)
         {
             return;
         }
 
-        _importWorkItems = _importWorkItems
-            .Where(item => !_selectedWorkItems.Contains(item.Id))
+        this.ImportWorkItems = this.ImportWorkItems
+            .Where(item => !this.SelectedWorkItems.Contains(item.Id))
             .ToList();
-        _selectedWorkItems = [];
+        this.SelectedWorkItems = [];
     }
 
-    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
+    public void Dispose() => this._cache.Changed -= OnCacheChangedAsync;
+}
 }

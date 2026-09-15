@@ -2,39 +2,40 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Dashboard : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
 
     private sealed record DashRow(string Key, string DotClass, string Title, string Meta, string? Pill, string To);
 
     private sealed record DriftRow(string Key, string Tag, string Title, string Detail, string To);
 
-    private List<DashRow> _needsAction = [];
-    private List<DashRow> _watchlist = [];
-    private List<AtlasTask> _commitmentToday = [];
-    private List<AtlasTask> _commitmentWeek = [];
-    private List<TeamMember> _teamPulse = [];
-    private List<DriftRow> _drift = [];
-    private int _staleDays = 10;
-    private int _staleSoonDays = 7;
-    private string _nowIso = "";
-    private string _todayIsoDate = "";
+    private List<DashRow> NeedsAction { get; set; } = [];
+    private List<DashRow> Watchlist { get; set; } = [];
+    private List<AtlasTask> CommitmentToday { get; set; } = [];
+    private List<AtlasTask> CommitmentWeek { get; set; } = [];
+    private List<TeamMember> TeamPulse { get; set; } = [];
+    private List<DriftRow> Drift { get; set; } = [];
+    private int StaleDays { get; set; } = 10;
+    private int StaleSoonDays { get; set; } = 7;
+    private string NowIso { get; set; } = "";
+    private string TodayIsoDate { get; set; } = "";
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnCacheChangedAsync;
-        Ai.SetContext("Context: Dashboard",
+        this._cache.Changed += OnCacheChangedAsync;
+        this._ai.SetContext("Context: Dashboard",
         [
             new AiAction("suggest-next-action", "Suggest Next Action"),
             new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
         Rebuild();
     }
 
@@ -58,25 +59,25 @@ public partial class Dashboard : IDisposable
     {
         var nowIso = DateTimeOffset.UtcNow.ToString("o");
         var todayIsoDate = nowIso[..10];
-        _nowIso = nowIso;
-        _todayIsoDate = todayIsoDate;
-        _staleDays = Cache.Settings?.StaleDays ?? 10;
-        _staleSoonDays = Math.Max(1, _staleDays - 3);
-        var staleDays = _staleDays;
-        var staleSoonDays = _staleSoonDays;
+        this.NowIso = nowIso;
+        this.TodayIsoDate = todayIsoDate;
+        this.StaleDays = this._cache.Settings?.StaleDays ?? 10;
+        this.StaleSoonDays = Math.Max(1, this.StaleDays - 3);
+        var staleDays = this.StaleDays;
+        var staleSoonDays = this.StaleSoonDays;
         const int dueSoonDays = 2;
 
         List<DashRow> needs = new();
         List<DashRow> watch = new();
 
-        foreach (AtlasTask t in Cache.Tasks)
+        foreach (AtlasTask t in this._cache.Tasks)
         {
             var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
             var isBlocked = t.Status == Models.TaskStatus.Blocked;
             var isHigh = t.Priority is Priority.High or Priority.Critical;
             var isStaleSoon = ageDays >= staleSoonDays && ageDays < staleDays;
             var isStale = ageDays >= staleDays;
-            Risk? linkedOpenRisk = TaskLinkedToOpenRisk(t.Risk);
+            Risk? linkedOpenRisk = this.TaskLinkedToOpenRisk(t.RiskId);
             var dueSoon = !string.IsNullOrEmpty(t.DueDate)
                           && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, dueSoonDays));
             var highAndDrifting = isHigh && (isStale || dueSoon || linkedOpenRisk is not null);
@@ -108,7 +109,7 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        foreach (Risk r in Cache.Risks)
+        foreach (Risk r in this._cache.Risks)
         {
             var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
             var baseRow = new DashRow(
@@ -128,7 +129,7 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        foreach (TeamMember m in Cache.Team)
+        foreach (TeamMember m in this._cache.Team)
         {
             var freshnessDays = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
             var missingBaseline = string.IsNullOrEmpty(m.ActivitySnapshot.LastUpdatedIso);
@@ -154,15 +155,15 @@ public partial class Dashboard : IDisposable
         }
 
         needs.Sort((a, b) => UrgencyRank(a).CompareTo(UrgencyRank(b)));
-        _needsAction = needs.Take(8).ToList();
-        _watchlist = watch.Take(8).ToList();
+        this.NeedsAction = needs.Take(8).ToList();
+        this.Watchlist = watch.Take(8).ToList();
 
-        var dueToday = Cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
-        var dueThisWeek = Cache.Tasks.Where(t =>
+        var dueToday = this._cache.Tasks.Where(t => t.DueDate == todayIsoDate).ToList();
+        var dueThisWeek = this._cache.Tasks.Where(t =>
             !string.IsNullOrEmpty(t.DueDate)
             && t.DueDate != todayIsoDate
             && IsIsoDateBetweenInclusive(t.DueDate!, todayIsoDate, IsoDateAddDays(todayIsoDate, 7))).ToList();
-        var noDue = Cache.Tasks.Where(t => string.IsNullOrEmpty(t.DueDate)).ToList();
+        var noDue = this._cache.Tasks.Where(t => string.IsNullOrEmpty(t.DueDate)).ToList();
         var touchedDesc = noDue.OrderByDescending(t => t.LastTouchedIso).ToList();
         List<AtlasTask> todayBucket = new();
         List<AtlasTask> weekBucket = new();
@@ -218,19 +219,19 @@ public partial class Dashboard : IDisposable
             weekBucket.Add(t);
         }
 
-        _commitmentToday = dueToday.Concat(todayBucket).Take(8).ToList();
-        _commitmentWeek = dueThisWeek.Concat(weekBucket).Take(10).ToList();
+        this.CommitmentToday = dueToday.Concat(todayBucket).Take(8).ToList();
+        this.CommitmentWeek = dueThisWeek.Concat(weekBucket).Take(10).ToList();
 
         Dictionary<string, int> statusRank = new(StringComparer.OrdinalIgnoreCase)
         {
             ["Red"] = 0, ["Yellow"] = 1, ["Green"] = 2
         };
-        _teamPulse = Cache.Team.OrderBy(m => statusRank.GetValueOrDefault(m.StatusDot, 9))
+        this.TeamPulse = this._cache.Team.OrderBy(m => statusRank.GetValueOrDefault(m.StatusDot, 9))
             .ThenByDescending(m => DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso) ?? 999)
             .ToList();
 
         List<DriftRow> drift = new();
-        foreach (AtlasTask t in Cache.Tasks)
+        foreach (AtlasTask t in this._cache.Tasks)
         {
             var ageDays = DisplayLabels.DaysBetween(t.LastTouchedIso, nowIso);
             if (ageDays >= staleDays)
@@ -245,7 +246,7 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        foreach (Risk r in Cache.Risks)
+        foreach (Risk r in this._cache.Risks)
         {
             var ageDays = DisplayLabels.DaysBetween(r.LastUpdatedIso, nowIso);
             if (r.Status == RiskStatus.Watching && ageDays >= 14)
@@ -259,7 +260,7 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        foreach (TeamMember m in Cache.Team)
+        foreach (TeamMember m in this._cache.Team)
         {
             var days = DisplayLabels.DaysSince(m.ActivitySnapshot.LastUpdatedIso);
             if (days is not null && days > 7)
@@ -273,7 +274,7 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        foreach (Project p in Cache.Projects)
+        foreach (Project p in this._cache.Projects)
         {
             if (p.Health is HealthSignal.Yellow or HealthSignal.Red)
             {
@@ -290,29 +291,17 @@ public partial class Dashboard : IDisposable
             }
         }
 
-        _drift = drift.Take(10).ToList();
+        this.Drift = drift.Take(10).ToList();
     }
 
-    private Risk? TaskLinkedToOpenRisk(string? taskRisk)
+    private Risk? TaskLinkedToOpenRisk(Guid? riskId)
     {
-        if (string.IsNullOrWhiteSpace(taskRisk))
+        if (riskId is not Guid id)
         {
             return null;
         }
 
-        var needle = taskRisk.Trim().ToLowerInvariant();
-        var open = Cache.Risks.Where(r => r.Status == RiskStatus.Open).ToList();
-        Risk? exact = open.FirstOrDefault(r => r.Title.Trim().ToLowerInvariant() == needle);
-        if (exact is not null)
-        {
-            return exact;
-        }
-
-        return open.FirstOrDefault(r =>
-        {
-            var title = r.Title.Trim().ToLowerInvariant();
-            return title.Contains(needle) || needle.Contains(title);
-        });
+        return this._cache.Risks.FirstOrDefault(r => r.Id == id && r.Status == RiskStatus.Open);
     }
 
     private static string TaskWhy(AtlasTask t)
@@ -378,26 +367,27 @@ public partial class Dashboard : IDisposable
 
     private string CommitmentTodayPill(AtlasTask t) =>
         !string.IsNullOrEmpty(t.DueDate)
-            ? $"due {(t.DueDate == _todayIsoDate ? "today" : t.DueDate)}"
-            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, _nowIso)}d";
+            ? $"due {(t.DueDate == this.TodayIsoDate ? "today" : t.DueDate)}"
+            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, this.NowIso)}d";
 
     private string CommitmentWeekPill(AtlasTask t) =>
         !string.IsNullOrEmpty(t.DueDate)
             ? $"due {t.DueDate}"
-            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, _nowIso)}d";
+            : $"{DisplayLabels.DaysBetween(t.LastTouchedIso, this.NowIso)}d";
 
-    private void AskAiAttention() => Ai.RunAction("suggest-next-action");
+    private void AskAiAttention() => this._ai.RunAction("suggest-next-action");
 
-    private void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
-    private void GoTeam(Guid id) => Nav.NavigateTo($"/team/{id}");
+    private void GoTask(Guid id) => this._nav.NavigateTo($"/tasks/{id}");
+    private void GoTeam(Guid id) => this._nav.NavigateTo($"/team/{id}");
 
     private void Go(string? to)
     {
         if (!string.IsNullOrEmpty(to))
         {
-            Nav.NavigateTo(to);
+            this._nav.NavigateTo(to);
         }
     }
 
-    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
+    public void Dispose() => this._cache.Changed -= OnCacheChangedAsync;
+}
 }

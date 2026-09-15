@@ -1,26 +1,28 @@
 using System.Collections.Concurrent;
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Risk mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class RiskService
+public sealed class RiskService : IRiskService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
     private readonly TimeSpan? _debounceDelay;
     private readonly ConcurrentDictionary<Guid, EntityAutosaveCoordinator<Risk>> _coordinators = new();
 
     public event Action<Guid>? SaveStateChanged;
 
-    public RiskService(IAtlasApiClient api, AppCacheService cache)
+    public RiskService(IAtlasApiClient api, IAppCacheService cache)
         : this(api, cache, debounceDelay: null)
     {
     }
 
-    internal RiskService(IAtlasApiClient api, AppCacheService cache, TimeSpan? debounceDelay)
+    internal RiskService(IAtlasApiClient api, IAppCacheService cache, TimeSpan? debounceDelay)
     {
         _api = api;
         _cache = cache;
@@ -124,4 +126,5 @@ public sealed class RiskService
         Risk risk = ApiMappers.MapRisk(dto, lookups);
         _cache.UpdateRisk(risk);
     }
+}
 }

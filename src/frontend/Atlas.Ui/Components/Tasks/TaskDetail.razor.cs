@@ -2,16 +2,17 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Tasks;
-
+namespace Atlas.Ui.Components.Tasks
+{
 public partial class TaskDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TaskService TaskService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITaskService _taskService { get; set; } = null!;
 
     [Parameter, EditorRequired] public AtlasTask? Task { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
@@ -22,32 +23,32 @@ public partial class TaskDetail : IDisposable
     [Parameter] public Guid? AutoEditId { get; set; }
     [Parameter] public EventCallback AutoEditCleared { get; set; }
 
-    private bool _editing;
-    private bool _deleting;
-    private string _addBlockerText = "";
-    private Guid? _trackedTaskId;
-    private EntitySaveState _saveState = EntitySaveState.Idle;
+    private bool Editing { get; set; }
+    private bool Deleting { get; set; }
+    private string AddBlockerText { get; set; } = "";
+    private Guid? TrackedTaskId { get; set; }
+    private EntitySaveState SaveState { get; set; } = EntitySaveState.Idle;
 
-    private int StaleDays => Cache.Settings?.StaleDays ?? 10;
+    private int StaleDays => this._cache.Settings?.StaleDays ?? 10;
 
     private IReadOnlyList<Project> ProjectOptions =>
-        Cache.Projects.OrderBy(p => p.Name, StringComparer.Ordinal).ToList();
+        this._cache.Projects.OrderBy(p => p.Name, StringComparer.Ordinal).ToList();
 
     private IReadOnlyList<Risk> RiskOptions =>
-        Cache.Risks.OrderBy(r => r.Title, StringComparer.Ordinal).ToList();
+        this._cache.Risks.OrderBy(r => r.Title, StringComparer.Ordinal).ToList();
 
     private IReadOnlyList<TeamMember> AssigneeOptions =>
-        Cache.Team.OrderBy(m => m.Name, StringComparer.Ordinal).ToList();
+        this._cache.Team.OrderBy(m => m.Name, StringComparer.Ordinal).ToList();
 
     private Dictionary<Guid, TeamMember> MemberById =>
-        Cache.Team.ToDictionary(m => m.Id);
+        this._cache.Team.ToDictionary(m => m.Id);
 
     private Dictionary<Guid, AtlasTask> TaskById =>
-        Cache.Tasks.ToDictionary(t => t.Id);
+        this._cache.Tasks.ToDictionary(t => t.Id);
 
     protected override void OnInitialized()
     {
-        TaskService.SaveStateChanged += OnSaveStateChangedAsync;
+        this._taskService.SaveStateChanged += OnSaveStateChangedAsync;
     }
 
     protected override void OnParametersSet()
@@ -58,20 +59,20 @@ public partial class TaskDetail : IDisposable
 
     private void SyncDetailUiForTask(Guid? taskId)
     {
-        if (_trackedTaskId == taskId)
+        if (this.TrackedTaskId == taskId)
         {
             if (taskId is not null && AutoEditId == taskId)
             {
-                _editing = true;
+                this.Editing = true;
             }
 
             return;
         }
 
-        _trackedTaskId = taskId;
-        _addBlockerText = "";
-        _editing = taskId is not null && AutoEditId == taskId;
-        _saveState = taskId is not null ? TaskService.GetSaveState(taskId.Value) : EntitySaveState.Idle;
+        this.TrackedTaskId = taskId;
+        this.AddBlockerText = "";
+        this.Editing = taskId is not null && AutoEditId == taskId;
+        this.SaveState = taskId is not null ? this._taskService.GetSaveState(taskId.Value) : EntitySaveState.Idle;
     }
 
     private async void OnSaveStateChangedAsync(Guid taskId)
@@ -85,7 +86,7 @@ public partial class TaskDetail : IDisposable
 
             await InvokeAsync(() =>
             {
-                _saveState = TaskService.GetSaveState(taskId);
+                this.SaveState = this._taskService.GetSaveState(taskId);
                 StateHasChanged();
             });
         }
@@ -109,8 +110,8 @@ public partial class TaskDetail : IDisposable
 
     private void ToggleEdit()
     {
-        _editing = !_editing;
-        if (!_editing && Task is not null && AutoEditId == Task.Id)
+        this.Editing = !this.Editing;
+        if (!this.Editing && Task is not null && AutoEditId == Task.Id)
         {
             ClearAutoEditFireAndForget();
         }
@@ -120,19 +121,19 @@ public partial class TaskDetail : IDisposable
 
     private void SyncDraftTarget()
     {
-        if (!_editing || Task is null)
+        if (!this.Editing || Task is null)
         {
-            Ai.RegisterDraftTarget(null);
+            this._ai.RegisterDraftTarget(null);
             return;
         }
 
         Guid taskId = Task.Id;
-        Ai.RegisterDraftTarget(new AiDraftTarget
+        this._ai.RegisterDraftTarget(new AiDraftTarget
         {
             Label = "task notes",
             Insert = async text =>
             {
-                AtlasTask? task = Cache.TryGetTask(taskId);
+                AtlasTask? task = this._cache.TryGetTask(taskId);
                 if (task is null)
                 {
                     return;
@@ -147,31 +148,31 @@ public partial class TaskDetail : IDisposable
 
     private async Task HandleDelete()
     {
-        if (Task is null || _deleting)
+        if (Task is null || this.Deleting)
         {
             return;
         }
 
         AtlasTask task = Task;
-        if (!await Dialogs.ConfirmAsync($"Delete task \"{task.Title}\"? This cannot be undone."))
+        if (!await this._dialogs.ConfirmAsync($"Delete task \"{task.Title}\"? This cannot be undone."))
         {
             return;
         }
 
-        _deleting = true;
+        this.Deleting = true;
         try
         {
-            await TaskService.DeleteAsync(task.Id);
-            _trackedTaskId = null;
+            await this._taskService.DeleteAsync(task.Id);
+            this.TrackedTaskId = null;
             await OnDeleted.InvokeAsync();
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to delete this task right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to delete this task right now. Please try again.");
         }
         finally
         {
-            _deleting = false;
+            this.Deleting = false;
         }
     }
 
@@ -233,7 +234,7 @@ public partial class TaskDetail : IDisposable
             projectId = parsed;
         }
 
-        string? projectName = projectId is null ? null : Cache.Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
+        string? projectName = projectId is null ? null : this._cache.Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
         await SaveTaskAsync(t => EntityClone.Task(
             t,
             projectId: projectId,
@@ -251,7 +252,7 @@ public partial class TaskDetail : IDisposable
             riskId = parsed;
         }
 
-        string? riskTitle = riskId is null ? null : Cache.Risks.FirstOrDefault(r => r.Id == riskId)?.Title;
+        string? riskTitle = riskId is null ? null : this._cache.Risks.FirstOrDefault(r => r.Id == riskId)?.Title;
         await SaveTaskAsync(t => EntityClone.Task(
             t,
             riskId: riskId,
@@ -266,7 +267,7 @@ public partial class TaskDetail : IDisposable
         await SaveTaskAsync(t => EntityClone.Task(t, dueDate: string.IsNullOrEmpty(v) ? null : v, setDueDate: true));
     }
 
-    private void OnAddBlockerInput(ChangeEventArgs e) => _addBlockerText = e.Value?.ToString() ?? "";
+    private void OnAddBlockerInput(ChangeEventArgs e) => this.AddBlockerText = e.Value?.ToString() ?? "";
 
     private async Task AddBlocker()
     {
@@ -275,9 +276,9 @@ public partial class TaskDetail : IDisposable
             return;
         }
 
-        AtlasTask latest = Cache.TryGetTask(Task.Id) ?? Task;
+        AtlasTask latest = this._cache.TryGetTask(Task.Id) ?? Task;
         IReadOnlyList<AtlasTask> candidates = GetBlockerCandidates(latest);
-        Guid? id = ResolveBlockerIdFromInput(_addBlockerText, candidates);
+        Guid? id = ResolveBlockerIdFromInput(this.AddBlockerText, candidates);
         if (id is null)
         {
             return;
@@ -290,7 +291,7 @@ public partial class TaskDetail : IDisposable
 
         IReadOnlyList<Guid> next = latest.DependencyTaskIds.Append(id.Value).Distinct().ToList();
         await SaveTaskAsync(t => EntityClone.Task(t, dependencyTaskIds: next));
-        _addBlockerText = "";
+        this.AddBlockerText = "";
     }
 
     private async Task RemoveBlocker(Guid blockerId)
@@ -325,13 +326,13 @@ public partial class TaskDetail : IDisposable
         Guid taskId = Task.Id;
         try
         {
-            await TaskService.UpdateAsync(taskId, edit, debounce);
-            _saveState = TaskService.GetSaveState(taskId);
+            await this._taskService.UpdateAsync(taskId, edit, debounce);
+            this.SaveState = this._taskService.GetSaveState(taskId);
         }
         catch (Exception)
         {
-            _saveState = TaskService.GetSaveState(taskId);
-            await Dialogs.AlertAsync("Unable to save task changes right now. Please try again.");
+            this.SaveState = this._taskService.GetSaveState(taskId);
+            await this._dialogs.AlertAsync("Unable to save task changes right now. Please try again.");
         }
     }
 
@@ -347,7 +348,7 @@ public partial class TaskDetail : IDisposable
             : assigneeId.Value.ToString();
     }
 
-    private string SaveStateLabel => _saveState switch
+    private string SaveStateLabel => this.SaveState switch
     {
         EntitySaveState.Saving => "Saving…",
         EntitySaveState.Saved => "Saved",
@@ -366,7 +367,7 @@ public partial class TaskDetail : IDisposable
     private IReadOnlyList<AtlasTask> GetBlockerCandidates(AtlasTask task)
     {
         var chosen = task.DependencyTaskIds.ToHashSet();
-        return Cache.Tasks
+        return this._cache.Tasks
             .Where(t => t.Id != task.Id)
             .Where(t => t.Status != Models.TaskStatus.Done)
             .Where(t => !chosen.Contains(t.Id))
@@ -377,7 +378,7 @@ public partial class TaskDetail : IDisposable
     private HashSet<Guid> GetTasksThatDependOnMe(Guid taskId)
     {
         var dependentsById = new Dictionary<Guid, List<Guid>>();
-        foreach (AtlasTask t in Cache.Tasks)
+        foreach (AtlasTask t in this._cache.Tasks)
         {
             foreach (Guid dep in t.DependencyTaskIds)
             {
@@ -445,5 +446,6 @@ public partial class TaskDetail : IDisposable
         return exactTitle?.Id;
     }
 
-    public void Dispose() => TaskService.SaveStateChanged -= OnSaveStateChangedAsync;
+    public void Dispose() => this._taskService.SaveStateChanged -= OnSaveStateChangedAsync;
+}
 }

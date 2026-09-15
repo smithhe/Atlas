@@ -2,51 +2,52 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class GrowthGoalDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private GrowthService GrowthService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IGrowthService _growthService { get; set; } = null!;
 
     private const string DefaultCheckInNote = "New check-in";
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? GoalId { get; set; }
 
-    private Guid? _selectedActionId;
-    private Guid? _selectedCheckInId;
-    private string? _routeMemberId;
-    private string? _routeGoalId;
-    private Guid _loadedGrowthMemberId;
-    private string _actionFilter = "All";
-    private string _actionSort = "DueDate";
-    private bool _editTimeframe;
-    private bool _editStatus;
-    private bool _editCategory;
-    private bool _editPriority;
-    private bool _editSummary;
-    private bool _editSuccessCriteria;
-    private GrowthLoadStatus _loadStatus;
-    private string? _loadError;
-    private bool _retrying;
-    private bool _disposed;
-    private bool _routeInitializing;
-    private string _goalValidationError = "";
-    private string _actionValidationError = "";
-    private string _checkInValidationError = "";
+    private Guid? SelectedActionId { get; set; }
+    private Guid? SelectedCheckInId { get; set; }
+    private string? RouteMemberId { get; set; }
+    private string? RouteGoalId { get; set; }
+    private Guid LoadedGrowthMemberId { get; set; }
+    private string ActionFilter { get; set; } = "All";
+    private string ActionSort { get; set; } = "DueDate";
+    private bool EditTimeframe { get; set; }
+    private bool EditStatus { get; set; }
+    private bool EditCategory { get; set; }
+    private bool EditPriority { get; set; }
+    private bool EditSummary { get; set; }
+    private bool EditSuccessCriteria { get; set; }
+    private GrowthLoadStatus LoadStatus { get; set; }
+    private string? LoadError { get; set; }
+    private bool Retrying { get; set; }
+    private bool Disposed { get; set; }
+    private bool RouteInitializing { get; set; }
+    private string GoalValidationError { get; set; } = "";
+    private string ActionValidationError { get; set; } = "";
+    private string CheckInValidationError { get; set; } = "";
 
-    private void BackToGrowth() => Nav.NavigateTo($"/team/{MemberId}/growth");
+    private void BackToGrowth() => this._nav.NavigateTo($"/team/{MemberId}/growth");
 
     private TeamMember? Member =>
-        Guid.TryParse(MemberId, out Guid id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? this._cache.Team.FirstOrDefault(m => m.Id == id) : null;
 
     private Growth? Growth =>
-        Guid.TryParse(MemberId, out Guid id) ? Cache.GetGrowth(id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? this._cache.GetGrowth(id) : null;
 
     private GrowthGoal? Goal
     {
@@ -62,10 +63,10 @@ public partial class GrowthGoalDetail : IDisposable
     }
 
     private GrowthGoalAction? SelectedAction =>
-        _selectedActionId is { } id ? Goal?.Actions.FirstOrDefault(a => a.Id == id) : null;
+        this.SelectedActionId is { } id ? Goal?.Actions.FirstOrDefault(a => a.Id == id) : null;
 
     private GrowthGoalCheckIn? SelectedCheckIn =>
-        _selectedCheckInId is { } id ? Goal?.CheckIns.FirstOrDefault(c => c.Id == id) : null;
+        this.SelectedCheckInId is { } id ? Goal?.CheckIns.FirstOrDefault(c => c.Id == id) : null;
 
     private int ProgressTotal => Goal?.Actions.Count ?? 0;
     private int ProgressDone => Goal?.Actions.Count(a => a.State == GrowthGoalActionState.Complete) ?? 0;
@@ -76,13 +77,13 @@ public partial class GrowthGoalDetail : IDisposable
         get
         {
             IReadOnlyList<GrowthGoalAction> actions = Goal?.Actions ?? Array.Empty<GrowthGoalAction>();
-            IEnumerable<GrowthGoalAction> filtered = _actionFilter == "All"
+            IEnumerable<GrowthGoalAction> filtered = this.ActionFilter == "All"
                 ? actions
-                : actions.Where(a => a.State.ToString() == _actionFilter);
+                : actions.Where(a => a.State.ToString() == this.ActionFilter);
             return filtered
                 .OrderBy(a =>
                 {
-                    if (_actionSort == "State")
+                    if (this.ActionSort == "State")
                     {
                         return a.State switch
                         {
@@ -102,16 +103,17 @@ public partial class GrowthGoalDetail : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        await Cache.EnsureHydratedAsync();
+        this._cache.Changed += OnChangedAsync;
+        this._growthService.PersistFailed += OnPersistFailed;
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        var routeChanged = !string.Equals(_routeMemberId, MemberId, StringComparison.Ordinal)
-                           || !string.Equals(_routeGoalId, GoalId, StringComparison.Ordinal);
-        _routeMemberId = MemberId;
-        _routeGoalId = GoalId;
+        var routeChanged = !string.Equals(this.RouteMemberId, MemberId, StringComparison.Ordinal)
+                           || !string.Equals(this.RouteGoalId, GoalId, StringComparison.Ordinal);
+        this.RouteMemberId = MemberId;
+        this.RouteGoalId = GoalId;
 
         if (routeChanged)
         {
@@ -120,26 +122,26 @@ public partial class GrowthGoalDetail : IDisposable
 
         if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
         {
-            Nav.NavigateTo("/team", replace: true);
+            this._nav.NavigateTo("/team", replace: true);
             return;
         }
 
         if (Guid.TryParse(MemberId, out Guid memberId))
         {
-            Selection.SelectTeamMember(memberId);
-            _loadStatus = Cache.GetGrowthLoadStatus(memberId);
-            _loadError = Cache.GetGrowthLoadError(memberId);
+            this._selection.SelectTeamMember(memberId);
+            this.LoadStatus = this._cache.GetGrowthLoadStatus(memberId);
+            this.LoadError = this._cache.GetGrowthLoadError(memberId);
 
-            if (memberId != _loadedGrowthMemberId)
+            if (memberId != this.LoadedGrowthMemberId)
             {
-                _loadedGrowthMemberId = memberId;
-                _routeInitializing = true;
-                await Cache.EnsureGrowthLoadedAsync(memberId);
+                this.LoadedGrowthMemberId = memberId;
+                this.RouteInitializing = true;
+                await this._cache.EnsureGrowthLoadedAsync(memberId);
             }
 
-            if (Cache.TeamReady && Member is null)
+            if (this._cache.TeamReady && Member is null)
             {
-                Nav.NavigateTo("/team", replace: true);
+                this._nav.NavigateTo("/team", replace: true);
             }
 
             UpdateRouteInitializingFromLoadStatus();
@@ -148,51 +150,51 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void UpdateRouteInitializingFromLoadStatus()
     {
-        if (_loadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
+        if (this.LoadStatus is GrowthLoadStatus.Succeeded or GrowthLoadStatus.Failed)
         {
-            _routeInitializing = false;
+            this.RouteInitializing = false;
         }
     }
 
     private void InvalidateRouteState()
     {
-        GrowthService.AbandonGoalPersists();
-        _goalValidationError = "";
-        _actionValidationError = "";
-        _checkInValidationError = "";
-        _retrying = false;
-        _selectedActionId = null;
-        _selectedCheckInId = null;
-        _editTimeframe = false;
-        _editStatus = false;
-        _editCategory = false;
-        _editPriority = false;
-        _editSummary = false;
-        _editSuccessCriteria = false;
-        _routeInitializing = true;
+        this._growthService.AbandonGoalPersists();
+        this.GoalValidationError = "";
+        this.ActionValidationError = "";
+        this.CheckInValidationError = "";
+        this.Retrying = false;
+        this.SelectedActionId = null;
+        this.SelectedCheckInId = null;
+        this.EditTimeframe = false;
+        this.EditStatus = false;
+        this.EditCategory = false;
+        this.EditPriority = false;
+        this.EditSummary = false;
+        this.EditSuccessCriteria = false;
+        this.RouteInitializing = true;
     }
 
     private void SelectAction(Guid id)
     {
-        _selectedActionId = id;
-        _selectedCheckInId = null;
-        _checkInValidationError = "";
-        _actionValidationError = SelectedAction is null
+        this.SelectedActionId = id;
+        this.SelectedCheckInId = null;
+        this.CheckInValidationError = "";
+        this.ActionValidationError = SelectedAction is null
             ? ""
             : GrowthUiHelpers.ValidateActionPersist(SelectedAction) ?? "";
     }
 
     private void SelectCheckIn(Guid id)
     {
-        _selectedCheckInId = id;
-        _selectedActionId = null;
-        _actionValidationError = "";
+        this.SelectedCheckInId = id;
+        this.SelectedActionId = null;
+        this.ActionValidationError = "";
         UpdateCheckInValidation();
     }
 
     private void UpdateCheckInValidation()
     {
-        _checkInValidationError = SelectedCheckIn is null
+        this.CheckInValidationError = SelectedCheckIn is null
             ? ""
             : GrowthUiHelpers.ValidateCheckInPersist(SelectedCheckIn) ?? "";
     }
@@ -204,18 +206,18 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        _retrying = true;
+        this.Retrying = true;
         await InvokeAsync(StateHasChanged);
         try
         {
-            await Cache.RetryGrowthLoadAsync(memberId);
+            await this._cache.RetryGrowthLoadAsync(memberId);
         }
         finally
         {
-            _retrying = false;
-            _loadStatus = Cache.GetGrowthLoadStatus(memberId);
-            _loadError = Cache.GetGrowthLoadError(memberId);
-            if (!_disposed)
+            this.Retrying = false;
+            this.LoadStatus = this._cache.GetGrowthLoadStatus(memberId);
+            this.LoadError = this._cache.GetGrowthLoadError(memberId);
+            if (!this.Disposed)
             {
                 await InvokeAsync(StateHasChanged);
             }
@@ -229,8 +231,8 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        GrowthService.AbandonGoalPersists();
-        await Cache.RetryGrowthLoadAsync(memberId);
+        this._growthService.AbandonGoalPersists();
+        await this._cache.RetryGrowthLoadAsync(memberId);
     }
 
     private bool TryGetRouteIds(out Guid memberId, out Guid goalId)
@@ -242,7 +244,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void ApplyGoalUpdate(Func<GrowthGoal, GrowthGoal> update)
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -252,17 +254,17 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        _goalValidationError = GrowthService.UpdateGoal(memberId, goalId, update) ?? "";
-        if (string.IsNullOrEmpty(_goalValidationError))
+        this.GoalValidationError = this._growthService.UpdateGoal(memberId, goalId, update) ?? "";
+        if (string.IsNullOrEmpty(this.GoalValidationError))
         {
-            _actionValidationError = "";
-            _checkInValidationError = "";
+            this.ActionValidationError = "";
+            this.CheckInValidationError = "";
         }
     }
 
     private void ApplyActionUpdate(Guid actionId, Action<GrowthGoalAction> patch)
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -272,17 +274,17 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        _actionValidationError = GrowthService.UpdateAction(memberId, goalId, actionId, patch) ?? "";
-        if (string.IsNullOrEmpty(_actionValidationError))
+        this.ActionValidationError = this._growthService.UpdateAction(memberId, goalId, actionId, patch) ?? "";
+        if (string.IsNullOrEmpty(this.ActionValidationError))
         {
-            _goalValidationError = "";
-            _checkInValidationError = "";
+            this.GoalValidationError = "";
+            this.CheckInValidationError = "";
         }
     }
 
     private void ApplyCheckInUpdate(Guid checkInId, Action<GrowthGoalCheckIn> patch)
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -292,11 +294,11 @@ public partial class GrowthGoalDetail : IDisposable
             return;
         }
 
-        _checkInValidationError = GrowthService.UpdateCheckIn(memberId, goalId, checkInId, patch) ?? "";
-        if (string.IsNullOrEmpty(_checkInValidationError))
+        this.CheckInValidationError = this._growthService.UpdateCheckIn(memberId, goalId, checkInId, patch) ?? "";
+        if (string.IsNullOrEmpty(this.CheckInValidationError))
         {
-            _goalValidationError = "";
-            _actionValidationError = "";
+            this.GoalValidationError = "";
+            this.ActionValidationError = "";
         }
     }
 
@@ -348,7 +350,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionTitleInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -358,7 +360,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionStateChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -368,7 +370,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionDueChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -379,7 +381,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionPriorityChange(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -389,7 +391,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionNotesInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -399,7 +401,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnActionLinksInput(ChangeEventArgs e)
     {
-        if (_selectedActionId is not { } id)
+        if (this.SelectedActionId is not { } id)
         {
             return;
         }
@@ -446,7 +448,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnCheckInDateChange(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not { } id)
+        if (this.SelectedCheckInId is not { } id)
         {
             return;
         }
@@ -456,7 +458,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnCheckInSignalChange(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not { } id)
+        if (this.SelectedCheckInId is not { } id)
         {
             return;
         }
@@ -466,7 +468,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private void OnCheckInNoteInput(ChangeEventArgs e)
     {
-        if (_selectedCheckInId is not { } id)
+        if (this.SelectedCheckInId is not { } id)
         {
             return;
         }
@@ -476,7 +478,7 @@ public partial class GrowthGoalDetail : IDisposable
 
     private async Task AddAction()
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -488,7 +490,7 @@ public partial class GrowthGoalDetail : IDisposable
 
         try
         {
-            GrowthGoalAction created = await GrowthService.AddActionAsync(memberId, Growth.Id, gid, new GrowthGoalAction
+            GrowthGoalAction created = await this._growthService.AddActionAsync(memberId, Growth.Id, gid, new GrowthGoalAction
             {
                 Title = "New action",
                 State = GrowthGoalActionState.Planned,
@@ -496,7 +498,7 @@ public partial class GrowthGoalDetail : IDisposable
                 Notes = "",
                 Links = Array.Empty<string>()
             });
-            if (_disposed)
+            if (this.Disposed)
             {
                 return;
             }
@@ -504,32 +506,32 @@ public partial class GrowthGoalDetail : IDisposable
             if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
             {
                 await ReloadGrowthAfterFailureAsync();
-                if (_disposed)
+                if (this.Disposed)
                 {
                     return;
                 }
 
-                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("action"));
+                await this._dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("action"));
                 return;
             }
 
-            _selectedActionId = created.Id;
-            _selectedCheckInId = null;
+            this.SelectedActionId = created.Id;
+            this.SelectedCheckInId = null;
         }
         catch (Exception ex)
         {
-            if (_disposed)
+            if (this.Disposed)
             {
                 return;
             }
 
-            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add action.", ex));
+            await this._dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add action.", ex));
         }
     }
 
     private async Task AddCheckIn()
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -542,13 +544,13 @@ public partial class GrowthGoalDetail : IDisposable
         var today = DisplayLabels.TodayIsoDateLocal();
         try
         {
-            GrowthGoalCheckIn created = await GrowthService.AddCheckInAsync(memberId, Growth.Id, gid, new GrowthGoalCheckIn
+            GrowthGoalCheckIn created = await this._growthService.AddCheckInAsync(memberId, Growth.Id, gid, new GrowthGoalCheckIn
             {
                 DateIso = today,
                 Signal = GrowthGoalCheckInSignal.Mixed,
                 Note = DefaultCheckInNote
             });
-            if (_disposed)
+            if (this.Disposed)
             {
                 return;
             }
@@ -556,33 +558,33 @@ public partial class GrowthGoalDetail : IDisposable
             if (!GrowthUiHelpers.IsValidCreatedId(created.Id))
             {
                 await ReloadGrowthAfterFailureAsync();
-                if (_disposed)
+                if (this.Disposed)
                 {
                     return;
                 }
 
-                await Dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("check-in"));
+                await this._dialogs.AlertAsync(GrowthUiHelpers.MissingCreatedIdMessage("check-in"));
                 return;
             }
 
-            _selectedCheckInId = created.Id;
-            _selectedActionId = null;
-            _checkInValidationError = "";
+            this.SelectedCheckInId = created.Id;
+            this.SelectedActionId = null;
+            this.CheckInValidationError = "";
         }
         catch (Exception ex)
         {
-            if (_disposed)
+            if (this.Disposed)
             {
                 return;
             }
 
-            await Dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add check-in.", ex));
+            await this._dialogs.AlertAsync(GrowthUiHelpers.FormatUserError("Unable to add check-in.", ex));
         }
     }
 
     private async void OnChangedAsync()
     {
-        if (_disposed)
+        if (this.Disposed)
         {
             return;
         }
@@ -593,8 +595,8 @@ public partial class GrowthGoalDetail : IDisposable
             {
                 if (Guid.TryParse(MemberId, out Guid id))
                 {
-                    _loadStatus = Cache.GetGrowthLoadStatus(id);
-                    _loadError = Cache.GetGrowthLoadError(id);
+                    this.LoadStatus = this._cache.GetGrowthLoadStatus(id);
+                    this.LoadError = this._cache.GetGrowthLoadError(id);
                     UpdateRouteInitializingFromLoadStatus();
                 }
 
@@ -607,10 +609,29 @@ public partial class GrowthGoalDetail : IDisposable
         }
     }
 
+    private async void OnPersistFailed(string message)
+    {
+        try
+        {
+            if (this.Disposed)
+            {
+                return;
+            }
+
+            await InvokeAsync(async () => await this._dialogs.AlertAsync(message));
+        }
+        catch (Exception ex)
+        {
+            await DispatchExceptionAsync(ex);
+        }
+    }
+
     public void Dispose()
     {
-        _disposed = true;
-        GrowthService.AbandonGoalPersists();
-        Cache.Changed -= OnChangedAsync;
+        this.Disposed = true;
+        this._growthService.PersistFailed -= OnPersistFailed;
+        this._growthService.AbandonGoalPersists();
+        this._cache.Changed -= OnChangedAsync;
     }
+}
 }

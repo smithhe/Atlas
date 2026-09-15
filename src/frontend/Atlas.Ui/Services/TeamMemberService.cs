@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Team member mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class TeamMemberService
+public sealed class TeamMemberService : ITeamMemberService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public TeamMemberService(IAtlasApiClient api, AppCacheService cache)
+    public TeamMemberService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -64,4 +66,5 @@ public sealed class TeamMemberService
                 await Task.WhenAll(tasks);
             });
     }
+}
 }

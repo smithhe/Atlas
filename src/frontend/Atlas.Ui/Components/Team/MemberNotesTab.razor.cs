@@ -3,68 +3,74 @@ using Microsoft.AspNetCore.Components.Web;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Team;
-
+namespace Atlas.Ui.Components.Team
+{
 public partial class MemberNotesTab : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITeamNoteService _teamNoteService { get; set; } = null!;
 
     [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
 
     private static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
 
-    private string _query = "";
-    private string _tagFilter = "All";
-    private string _sortBy = "Newest";
-    private string _quickFilter = "All";
-    private Guid? _expandedNoteId;
-    private Guid? _selectedNoteId;
-    private bool _isNewOpen;
-    private bool _isEditOpen;
-    private string _editTab = "Write";
-    private NoteTag _newTag = NoteTag.Quick;
-    private string _newTitle = "", _newText = "", _newAdo = "", _newPr = "";
-    private string _draftText = "", _draftAdo = "", _draftPr = "";
+    private string Query { get; set; } = "";
+    private string TagFilter { get; set; } = "All";
+    private string SortBy { get; set; } = "Newest";
+    private string QuickFilter { get; set; } = "All";
+    private Guid? ExpandedNoteId { get; set; }
+    private Guid? SelectedNoteId { get; set; }
+    private bool IsNewOpen { get; set; }
+    private bool IsEditOpen { get; set; }
+    private string EditTab { get; set; } = "Write";
+    private NoteTag NewTag { get; set; } = NoteTag.Quick;
+        private string NewTitle { get; set; } = "";
+    private string NewText { get; set; } = "";
+    private string NewAdo { get; set; } = "";
+    private string NewPr { get; set; } = "";
+        private string DraftText { get; set; } = "";
+    private string DraftAdo { get; set; } = "";
+    private string DraftPr { get; set; } = "";
 
     private TeamNote? SelectedNote =>
-        _selectedNoteId is { } id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
+        this.SelectedNoteId is { } id ? Member.Notes.FirstOrDefault(n => n.Id == id) : null;
 
     private List<TeamNote> FilteredSorted
     {
         get
         {
-            var q = _query.Trim().ToLowerInvariant();
+            var q = this.Query.Trim().ToLowerInvariant();
             DateTimeOffset now = DateTimeOffset.UtcNow;
             var weekMs = TimeSpan.FromDays(7);
 
             bool Matches(TeamNote n)
             {
-                if (_tagFilter != "All" && !string.Equals(n.Tag.ToString(), _tagFilter, StringComparison.OrdinalIgnoreCase))
+                if (this.TagFilter != "All" && !string.Equals(n.Tag.ToString(), this.TagFilter, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
 
-                if (_quickFilter == "ThisWeek")
+                if (this.QuickFilter == "ThisWeek")
                 {
                     if (!DateTimeOffset.TryParse(n.CreatedIso, out DateTimeOffset created) || now - created.ToUniversalTime() > weekMs)
                     {
                         return false;
                     }
                 }
-                else if (_quickFilter == "ActionItems" && !IsActionItemNote(n))
+                else if (this.QuickFilter == "ActionItems" && !IsActionItemNote(n))
                 {
                     return false;
                 }
-                else if (_quickFilter == "OneOnOne" && !IsOneOnOneNote(n))
+                else if (this.QuickFilter == "OneOnOne" && !IsOneOnOneNote(n))
                 {
                     return false;
                 }
-                else if (_quickFilter == "Risks" && !IsRiskNote(n))
+                else if (this.QuickFilter == "Risks" && !IsRiskNote(n))
                 {
                     return false;
                 }
@@ -83,7 +89,7 @@ public partial class MemberNotesTab : IDisposable
             {
                 var at = DateTimeOffset.TryParse(a.CreatedIso, out DateTimeOffset ad) ? ad.ToUnixTimeMilliseconds() : 0;
                 var bt = DateTimeOffset.TryParse(b.CreatedIso, out DateTimeOffset bd) ? bd.ToUnixTimeMilliseconds() : 0;
-                return _sortBy == "Newest" ? bt.CompareTo(at) : at.CompareTo(bt);
+                return this.SortBy == "Newest" ? bt.CompareTo(at) : at.CompareTo(bt);
             });
             return list;
         }
@@ -112,7 +118,7 @@ public partial class MemberNotesTab : IDisposable
         return t.Contains("risk") || t.Contains("mitigation") || t.Contains("watchout") || t.Contains("watch-outs");
     }
 
-    private void ToggleExpand(Guid id) => _expandedNoteId = _expandedNoteId == id ? null : id;
+    private void ToggleExpand(Guid id) => this.ExpandedNoteId = this.ExpandedNoteId == id ? null : id;
 
     private void ToggleExpandClick(MouseEventArgs _, Guid id) => ToggleExpand(id);
 
@@ -126,19 +132,19 @@ public partial class MemberNotesTab : IDisposable
 
     private void OpenNoteModal(MouseEventArgs _, Guid id)
     {
-        _selectedNoteId = id;
-        _isEditOpen = false;
-        _draftText = "";
-        _editTab = "Write";
+        this.SelectedNoteId = id;
+        this.IsEditOpen = false;
+        this.DraftText = "";
+        this.EditTab = "Write";
         SyncDraftTarget();
     }
 
     private void CloseNoteModal()
     {
-        _selectedNoteId = null;
-        _isEditOpen = false;
-        _draftText = _draftAdo = _draftPr = "";
-        _editTab = "Write";
+        this.SelectedNoteId = null;
+        this.IsEditOpen = false;
+        this.DraftText = this.DraftAdo = this.DraftPr = "";
+        this.EditTab = "Write";
         SyncDraftTarget();
     }
 
@@ -149,57 +155,57 @@ public partial class MemberNotesTab : IDisposable
             return;
         }
 
-        _isEditOpen = true;
-        _draftText = SelectedNote.Text;
-        _draftAdo = SelectedNote.AdoWorkItemId ?? "";
-        _draftPr = SelectedNote.PrUrl ?? "";
-        _editTab = "Write";
+        this.IsEditOpen = true;
+        this.DraftText = SelectedNote.Text;
+        this.DraftAdo = SelectedNote.AdoWorkItemId ?? "";
+        this.DraftPr = SelectedNote.PrUrl ?? "";
+        this.EditTab = "Write";
         SyncDraftTarget();
     }
 
     private void CancelNoteEdit()
     {
-        _isEditOpen = false;
-        _draftText = _draftAdo = _draftPr = "";
-        _editTab = "Write";
+        this.IsEditOpen = false;
+        this.DraftText = this.DraftAdo = this.DraftPr = "";
+        this.EditTab = "Write";
         SyncDraftTarget();
     }
 
     private void SyncDraftTarget()
     {
-        if (_isEditOpen)
+        if (this.IsEditOpen)
         {
-            Ai.RegisterDraftTarget(new AiDraftTarget
+            this._ai.RegisterDraftTarget(new AiDraftTarget
             {
                 Label = "note body",
                 Insert = text =>
                 {
-                    _draftText = string.IsNullOrWhiteSpace(_draftText)
+                    this.DraftText = string.IsNullOrWhiteSpace(this.DraftText)
                         ? text
-                        : $"{_draftText.TrimEnd()}\n\n{text}";
+                        : $"{this.DraftText.TrimEnd()}\n\n{text}";
                     return InvokeAsync(StateHasChanged);
                 },
             });
             return;
         }
 
-        if (_isNewOpen)
+        if (this.IsNewOpen)
         {
-            Ai.RegisterDraftTarget(new AiDraftTarget
+            this._ai.RegisterDraftTarget(new AiDraftTarget
             {
                 Label = "note body",
                 Insert = text =>
                 {
-                    _newText = string.IsNullOrWhiteSpace(_newText)
+                    this.NewText = string.IsNullOrWhiteSpace(this.NewText)
                         ? text
-                        : $"{_newText.TrimEnd()}\n\n{text}";
+                        : $"{this.NewText.TrimEnd()}\n\n{text}";
                     return InvokeAsync(StateHasChanged);
                 },
             });
             return;
         }
 
-        Ai.RegisterDraftTarget(null);
+        this._ai.RegisterDraftTarget(null);
     }
 
     private async Task SaveNoteEdit()
@@ -211,58 +217,58 @@ public partial class MemberNotesTab : IDisposable
 
         TeamNote note = SelectedNote;
         TeamNote updated = CloneNote(note);
-        updated.Text = _draftText;
-        updated.AdoWorkItemId = string.IsNullOrWhiteSpace(_draftAdo) ? null : _draftAdo.Trim();
-        updated.PrUrl = string.IsNullOrWhiteSpace(_draftPr) ? null : _draftPr.Trim();
+        updated.Text = this.DraftText;
+        updated.AdoWorkItemId = string.IsNullOrWhiteSpace(this.DraftAdo) ? null : this.DraftAdo.Trim();
+        updated.PrUrl = string.IsNullOrWhiteSpace(this.DraftPr) ? null : this.DraftPr.Trim();
         updated.LastModifiedIso = DateTimeOffset.UtcNow.ToString("o");
 
         try
         {
-            await TeamNoteService.UpdateAsync(Member.Id, updated);
-            _isEditOpen = false;
+            await this._teamNoteService.UpdateAsync(Member.Id, updated);
+            this.IsEditOpen = false;
             SyncDraftTarget();
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
+            await this._dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
         }
     }
 
-    private void OpenFull(Guid noteId) => Nav.NavigateTo($"/team/{Member.Id}/notes/{noteId}");
+    private void OpenFull(Guid noteId) => this._nav.NavigateTo($"/team/{Member.Id}/notes/{noteId}");
 
     private void OpenFullClick(MouseEventArgs _, Guid noteId) => OpenFull(noteId);
 
     private void OpenNew()
     {
-        _isNewOpen = true;
-        _newTag = NoteTag.Quick;
-        _newTitle = _newText = _newAdo = _newPr = "";
+        this.IsNewOpen = true;
+        this.NewTag = NoteTag.Quick;
+        this.NewTitle = this.NewText = this.NewAdo = this.NewPr = "";
         SyncDraftTarget();
     }
 
     private void CloseNew()
     {
-        _isNewOpen = false;
-        _newTitle = _newText = _newAdo = _newPr = "";
+        this.IsNewOpen = false;
+        this.NewTitle = this.NewText = this.NewAdo = this.NewPr = "";
         SyncDraftTarget();
     }
 
     private async Task CreateNote()
     {
-        if (string.IsNullOrWhiteSpace(_newText))
+        if (string.IsNullOrWhiteSpace(this.NewText))
         {
             return;
         }
 
-        var title = _newTitle.Trim();
-        var ado = _newAdo.Trim();
-        var pr = _newPr.Trim();
+        var title = this.NewTitle.Trim();
+        var ado = this.NewAdo.Trim();
+        var pr = this.NewPr.Trim();
         try
         {
-            TeamNote saved = await TeamNoteService.AddAsync(
+            TeamNote saved = await this._teamNoteService.AddAsync(
                 Member.Id,
-                _newTag,
-                _newText.Trim(),
+                this.NewTag,
+                this.NewText.Trim(),
                 string.IsNullOrEmpty(title) ? null : title,
                 string.IsNullOrEmpty(ado) ? null : ado,
                 string.IsNullOrEmpty(pr) ? null : pr);
@@ -270,7 +276,7 @@ public partial class MemberNotesTab : IDisposable
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to create note right now. Please try again.\n\n{ex.Message}");
+            await this._dialogs.AlertAsync($"Unable to create note right now. Please try again.\n\n{ex.Message}");
         }
     }
 
@@ -289,5 +295,6 @@ public partial class MemberNotesTab : IDisposable
     private static TeamMember CloneMemberWithNotes(TeamMember m, IReadOnlyList<TeamNote> notes) =>
         EntityClone.TeamMember(m, notes: notes);
 
-    public void Dispose() => Ai.RegisterDraftTarget(null);
+    public void Dispose() => this._ai.RegisterDraftTarget(null);
+}
 }

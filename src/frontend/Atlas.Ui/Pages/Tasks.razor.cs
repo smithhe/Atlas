@@ -2,48 +2,49 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Tasks : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TaskService TaskService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITaskService _taskService { get; set; } = null!;
 
     [Parameter] public string? TaskId { get; set; }
 
-    private bool _creating;
-    private Guid? _autoEditId;
+    private bool Creating { get; set; }
+    private Guid? AutoEditId { get; set; }
 
-    private string _projectFilter = "All";
-    private string _riskFilter = "All";
-    private string _statusFilter = "All";
-    private string _priorityFilter = "All";
-    private string _stalenessFilter = "All";
-    private string _durationFilter = "All";
-    private string _sortBy = "Priority";
-    private string _sortDir = "Desc";
+    private string ProjectFilter { get; set; } = "All";
+    private string RiskFilter { get; set; } = "All";
+    private string StatusFilter { get; set; } = "All";
+    private string PriorityFilter { get; set; } = "All";
+    private string StalenessFilter { get; set; } = "All";
+    private string DurationFilter { get; set; } = "All";
+    private string SortBy { get; set; } = "Priority";
+    private string SortDir { get; set; } = "Desc";
 
     private bool IsFocusMode => !string.IsNullOrEmpty(TaskId);
-    private bool ShowDetail => IsFocusMode || Selection.SelectedTaskId is not null;
-    private int StaleDays => Cache.Settings?.StaleDays ?? 10;
+    private bool ShowDetail => IsFocusMode || this._selection.SelectedTaskId is not null;
+    private int StaleDays => this._cache.Settings?.StaleDays ?? 10;
     private int WarnStart => Math.Max(1, StaleDays - 2);
 
-    private IReadOnlyList<string> ProjectOptions =>
-        Cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+    private IReadOnlyList<Project> ProjectOptions =>
+        this._cache.Projects.OrderBy(p => p.Name, StringComparer.Ordinal).ToList();
 
-    private IReadOnlyList<string> RiskOptions =>
-        Cache.Risks.Select(r => r.Title).OrderBy(t => t, StringComparer.Ordinal).ToList();
+    private IReadOnlyList<Risk> RiskOptions =>
+        this._cache.Risks.OrderBy(r => r.Title, StringComparer.Ordinal).ToList();
 
     private Dictionary<Guid, TeamMember> MemberById =>
-        Cache.Team.ToDictionary(m => m.Id);
+        this._cache.Team.ToDictionary(m => m.Id);
 
     private Dictionary<Guid, AtlasTask> TaskById =>
-        Cache.Tasks.ToDictionary(t => t.Id);
+        this._cache.Tasks.ToDictionary(t => t.Id);
 
     private AtlasTask? Selected
     {
@@ -51,13 +52,13 @@ public partial class Tasks : IDisposable
         {
             Guid? id = IsFocusMode && Guid.TryParse(TaskId, out Guid focusId)
                 ? focusId
-                : Selection.SelectedTaskId;
+                : this._selection.SelectedTaskId;
             if (id is null)
             {
                 return null;
             }
 
-            return Cache.Tasks.FirstOrDefault(t => t.Id == id);
+            return this._cache.Tasks.FirstOrDefault(t => t.Id == id);
         }
     }
 
@@ -65,25 +66,25 @@ public partial class Tasks : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Selection.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Tasks",
+        this._cache.Changed += OnChangedAsync;
+        this._selection.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Tasks",
         [
             new AiAction("suggest-next-task", "Suggest Next Task"),
             new AiAction("summarize-week", "Summarize Incomplete Work (week)"),
             new AiAction("reprioritize", "Reprioritize suggestions"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
         if (IsFocusMode && Guid.TryParse(TaskId, out Guid id))
         {
-            Selection.SelectTask(id);
-            if (Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+            this._selection.SelectTask(id);
+            if (this._cache.TasksReady && this._cache.Tasks.All(t => t.Id != id))
             {
-                Nav.NavigateTo("/tasks", replace: true);
+                this._nav.NavigateTo("/tasks", replace: true);
             }
         }
     }
@@ -94,9 +95,9 @@ public partial class Tasks : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (IsFocusMode && Guid.TryParse(TaskId, out Guid id) && Cache.TasksReady && Cache.Tasks.All(t => t.Id != id))
+                if (IsFocusMode && Guid.TryParse(TaskId, out Guid id) && this._cache.TasksReady && this._cache.Tasks.All(t => t.Id != id))
                 {
-                    Nav.NavigateTo("/tasks", replace: true);
+                    this._nav.NavigateTo("/tasks", replace: true);
                     return;
                 }
 
@@ -111,27 +112,27 @@ public partial class Tasks : IDisposable
 
     private void SelectFromList(Guid id)
     {
-        Selection.SelectTask(id);
+        this._selection.SelectTask(id);
     }
 
-    private void CloseDetail() => Selection.SelectTask(null);
+    private void CloseDetail() => this._selection.SelectTask(null);
 
-    private void ClearAutoEdit() => _autoEditId = null;
+    private void ClearAutoEdit() => this.AutoEditId = null;
 
     private async Task OnTaskDeleted()
     {
         if (IsFocusMode)
         {
-            Nav.NavigateTo("/tasks", replace: true);
+            this._nav.NavigateTo("/tasks", replace: true);
         }
 
-        if (Selected is not null && _autoEditId == Selected.Id)
+        if (Selected is not null && this.AutoEditId == Selected.Id)
         {
-            _autoEditId = null;
+            this.AutoEditId = null;
         }
     }
 
-    private void GoFocus(Guid id) => Nav.NavigateTo($"/tasks/{id}");
+    private void GoFocus(Guid id) => this._nav.NavigateTo($"/tasks/{id}");
 
     private void EnterFocus()
     {
@@ -140,19 +141,19 @@ public partial class Tasks : IDisposable
             return;
         }
 
-        Nav.NavigateTo($"/tasks/{Selected.Id}");
+        this._nav.NavigateTo($"/tasks/{Selected.Id}");
     }
 
-    private void ExitFocus() => Nav.NavigateTo("/tasks");
+    private void ExitFocus() => this._nav.NavigateTo("/tasks");
 
     private async Task HandleAddTask()
     {
-        if (_creating)
+        if (this.Creating)
         {
             return;
         }
 
-        _creating = true;
+        this.Creating = true;
         try
         {
             var draft = new AtlasTask
@@ -166,41 +167,41 @@ public partial class Tasks : IDisposable
                 DependencyTaskIds = Array.Empty<Guid>(),
                 LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            AtlasTask created = await TaskService.CreateAsync(draft);
+            AtlasTask created = await this._taskService.CreateAsync(draft);
             Guid id = created.Id;
-            _autoEditId = id;
-            Selection.SelectTask(id);
+            this.AutoEditId = id;
+            this._selection.SelectTask(id);
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to create task right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to create task right now. Please try again.");
         }
         finally
         {
-            _creating = false;
+            this.Creating = false;
         }
     }
 
-    private void OnProjectFilterChange(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "All";
-    private void OnRiskFilterChange(ChangeEventArgs e) => _riskFilter = e.Value?.ToString() ?? "All";
-    private void OnStatusFilterChange(ChangeEventArgs e) => _statusFilter = e.Value?.ToString() ?? "All";
-    private void OnPriorityFilterChange(ChangeEventArgs e) => _priorityFilter = e.Value?.ToString() ?? "All";
-    private void OnStalenessFilterChange(ChangeEventArgs e) => _stalenessFilter = e.Value?.ToString() ?? "All";
-    private void OnDurationFilterChange(ChangeEventArgs e) => _durationFilter = e.Value?.ToString() ?? "All";
+    private void OnProjectFilterChange(ChangeEventArgs e) => this.ProjectFilter = e.Value?.ToString() ?? "All";
+    private void OnRiskFilterChange(ChangeEventArgs e) => this.RiskFilter = e.Value?.ToString() ?? "All";
+    private void OnStatusFilterChange(ChangeEventArgs e) => this.StatusFilter = e.Value?.ToString() ?? "All";
+    private void OnPriorityFilterChange(ChangeEventArgs e) => this.PriorityFilter = e.Value?.ToString() ?? "All";
+    private void OnStalenessFilterChange(ChangeEventArgs e) => this.StalenessFilter = e.Value?.ToString() ?? "All";
+    private void OnDurationFilterChange(ChangeEventArgs e) => this.DurationFilter = e.Value?.ToString() ?? "All";
 
     private string SortButtonGlyph(string category) =>
-        _sortBy != category ? "↕" : _sortDir == "Asc" ? "▲" : "▼";
+        this.SortBy != category ? "↕" : this.SortDir == "Asc" ? "▲" : "▼";
 
     private void ToggleSort(string category)
     {
-        if (_sortBy == category)
+        if (this.SortBy == category)
         {
-            _sortDir = _sortDir == "Asc" ? "Desc" : "Asc";
+            this.SortDir = this.SortDir == "Asc" ? "Desc" : "Asc";
         }
         else
         {
-            _sortBy = category;
-            _sortDir = category is "Project" or "Risk" or "Title" ? "Asc" : "Desc";
+            this.SortBy = category;
+            this.SortDir = category is "Project" or "Risk" or "Title" ? "Asc" : "Desc";
         }
     }
 
@@ -219,8 +220,8 @@ public partial class Tasks : IDisposable
 
     private IReadOnlyList<AtlasTask> BuildFilteredSorted()
     {
-        var indexed = Cache.Tasks.Where(PassesFilters).Select((t, i) => (t, i)).ToList();
-        var dir = _sortDir == "Asc" ? 1 : -1;
+        var indexed = this._cache.Tasks.Where(PassesFilters).Select((t, i) => (t, i)).ToList();
+        var dir = this.SortDir == "Asc" ? 1 : -1;
         indexed.Sort((a, b) =>
         {
             var c = CompareTasks(a.t, b.t, dir);
@@ -231,68 +232,68 @@ public partial class Tasks : IDisposable
 
     private bool PassesFilters(AtlasTask t)
     {
-        if (_statusFilter != "All" && DisplayLabels.FormatTaskStatus(t.Status) != _statusFilter)
+        if (this.StatusFilter != "All" && DisplayLabels.FormatTaskStatus(t.Status) != this.StatusFilter)
         {
             return false;
         }
 
-        if (_priorityFilter != "All" && t.Priority.ToString() != _priorityFilter)
+        if (this.PriorityFilter != "All" && t.Priority.ToString() != this.PriorityFilter)
         {
             return false;
         }
 
-        if (_projectFilter != "All" && (t.Project ?? "") != _projectFilter)
+        if (!EntityIdMatching.MatchesIdFilter(t.ProjectId, this.ProjectFilter))
         {
             return false;
         }
 
-        if (_riskFilter != "All" && (t.Risk ?? "") != _riskFilter)
+        if (!EntityIdMatching.MatchesIdFilter(t.RiskId, this.RiskFilter))
         {
             return false;
         }
 
         var days = DisplayLabels.DaysSince(t.LastTouchedIso) ?? 0;
         var bucket = days >= StaleDays ? "Stale" : days >= WarnStart ? "Warning" : "Fresh";
-        if (_stalenessFilter != "All" && bucket != _stalenessFilter)
+        if (this.StalenessFilter != "All" && bucket != this.StalenessFilter)
         {
             return false;
         }
 
         Duration.ParsedDuration? parsed = Duration.ParseDurationText(t.EstimatedDurationText);
         var mins = parsed?.TotalMinutes;
-        if (_durationFilter == "Invalid")
+        if (this.DurationFilter == "Invalid")
         {
             return mins is null;
         }
 
-        if (_durationFilter != "All")
+        if (this.DurationFilter != "All")
         {
             if (mins is null)
             {
                 return false;
             }
 
-            if (_durationFilter == "<=30m" && mins > 30)
+            if (this.DurationFilter == "<=30m" && mins > 30)
             {
                 return false;
             }
 
-            if (_durationFilter == "<=2h" && mins > 120)
+            if (this.DurationFilter == "<=2h" && mins > 120)
             {
                 return false;
             }
 
-            if (_durationFilter == "<=4h" && mins > 240)
+            if (this.DurationFilter == "<=4h" && mins > 240)
             {
                 return false;
             }
 
-            if (_durationFilter == "<=1d" && mins > 1440)
+            if (this.DurationFilter == "<=1d" && mins > 1440)
             {
                 return false;
             }
 
-            if (_durationFilter == ">1d" && mins <= 1440)
+            if (this.DurationFilter == ">1d" && mins <= 1440)
             {
                 return false;
             }
@@ -303,27 +304,37 @@ public partial class Tasks : IDisposable
 
     private int CompareTasks(AtlasTask a, AtlasTask b, int dir)
     {
-        if (_sortBy == "Priority")
+        if (this.SortBy == "Priority")
         {
             return (PriorityRank(a.Priority) - PriorityRank(b.Priority)) * dir;
         }
 
-        if (_sortBy == "Project")
+        if (this.SortBy == "Project")
         {
-            return string.Compare(a.Project ?? "", b.Project ?? "", StringComparison.Ordinal) * dir;
+            return EntityIdMatching.CompareLinkedDisplay(
+                a.ProjectId,
+                b.ProjectId,
+                EntityIdMatching.DisplayNameById(a.ProjectId, this._cache.Projects, p => p.Id, p => p.Name),
+                EntityIdMatching.DisplayNameById(b.ProjectId, this._cache.Projects, p => p.Id, p => p.Name),
+                dir);
         }
 
-        if (_sortBy == "Risk")
+        if (this.SortBy == "Risk")
         {
-            return string.Compare(a.Risk ?? "", b.Risk ?? "", StringComparison.Ordinal) * dir;
+            return EntityIdMatching.CompareLinkedDisplay(
+                a.RiskId,
+                b.RiskId,
+                EntityIdMatching.DisplayNameById(a.RiskId, this._cache.Risks, r => r.Id, r => r.Title),
+                EntityIdMatching.DisplayNameById(b.RiskId, this._cache.Risks, r => r.Id, r => r.Title),
+                dir);
         }
 
-        if (_sortBy == "Title")
+        if (this.SortBy == "Title")
         {
             return string.Compare(a.Title, b.Title, StringComparison.Ordinal) * dir;
         }
 
-        if (_sortBy == "Estimated Duration")
+        if (this.SortBy == "Estimated Duration")
         {
             var am = Duration.ParseDurationText(a.EstimatedDurationText)?.TotalMinutes;
             var bm = Duration.ParseDurationText(b.EstimatedDurationText)?.TotalMinutes;
@@ -367,8 +378,9 @@ public partial class Tasks : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Selection.Changed -= OnChangedAsync;
-        Ai.RegisterDraftTarget(null);
+        this._cache.Changed -= OnChangedAsync;
+        this._selection.Changed -= OnChangedAsync;
+        this._ai.RegisterDraftTarget(null);
     }
+}
 }

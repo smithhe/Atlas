@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
+namespace Atlas.Ui.Shared
+{
 public partial class AtlasModal
 {
     [Parameter] public string Title { get; set; } = "";
@@ -12,21 +13,21 @@ public partial class AtlasModal
     [Parameter] public RenderFragment? Footer { get; set; }
 
     private readonly string _titleId = $"modal-title-{Guid.NewGuid():N}";
-    private ElementReference _panel;
-    private bool _wasOpen;
+    private ElementReference Panel { get; set; }
+    private bool WasOpen { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (IsOpen && !_wasOpen)
+        if (IsOpen && !this.WasOpen)
         {
-            _wasOpen = true;
-            try { await _panel.FocusAsync(); } catch { /* ignore */ }
+            this.WasOpen = true;
+            try { await this.Panel.FocusAsync(); } catch { /* ignore */ }
             return;
         }
 
         if (!IsOpen)
         {
-            _wasOpen = false;
+            this.WasOpen = false;
         }
     }
 
@@ -45,4 +46,5 @@ public partial class AtlasModal
             await OnClose.InvokeAsync();
         }
     }
+}
 }

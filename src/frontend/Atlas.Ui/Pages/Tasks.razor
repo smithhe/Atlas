@@ -4,25 +4,25 @@
 <PageTitle>Tasks — Atlas</PageTitle>
 
 <div class="page pageFill">
-    <PageTitleRow Title="Tasks" AddLabel="Add task" AddingLabel="Adding…" Adding="_creating" OnAdd="HandleAddTask" />
+    <PageTitleRow Title="Tasks" AddLabel="Add task" AddingLabel="Adding…" Adding="this.Creating" OnAdd="this.HandleAddTask" />
 
-    <div class="tasksStack @(IsFocusMode ? "tasksStackFocus" : null) @(!ShowDetail ? "tasksStackNoDetail" : null)">
-        @if (!IsFocusMode)
+    <div class="tasksStack @(this.IsFocusMode ? "tasksStackFocus" : null) @(!this.ShowDetail ? "tasksStackNoDetail" : null)">
+        @if (!this.IsFocusMode)
         {
             <section class="card tight tasksFiltersRow" aria-label="Task filters">
                 <label class="field">
                     <div class="fieldLabel">Project</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_projectFilter" @onchange="OnProjectFilterChange">
+                        <select class="select selectCompact" value="@this.ProjectFilter" @onchange="this.OnProjectFilterChange">
                             <option value="All">All</option>
                             <option value="">(None)</option>
-                            @foreach (string p in ProjectOptions)
+                            @foreach (Project p in this.ProjectOptions)
                             {
-                                <option value="@p">@p</option>
+                                <option value="@p.Id">@p.Name</option>
                             }
                         </select>
-                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Project" @onclick='() => ToggleSort("Project")'>
-                            @SortButtonGlyph("Project")
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Project" @onclick='() => this.ToggleSort("Project")'>
+                            @this.SortButtonGlyph("Project")
                         </button>
                     </div>
                 </label>
@@ -30,16 +30,16 @@
                 <label class="field">
                     <div class="fieldLabel">Risk</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_riskFilter" @onchange="OnRiskFilterChange">
+                        <select class="select selectCompact" value="@this.RiskFilter" @onchange="this.OnRiskFilterChange">
                             <option value="All">All</option>
                             <option value="">(None)</option>
-                            @foreach (string r in RiskOptions)
+                            @foreach (Risk r in this.RiskOptions)
                             {
-                                <option value="@r">@r</option>
+                                <option value="@r.Id">@r.Title</option>
                             }
                         </select>
-                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Risk" @onclick='() => ToggleSort("Risk")'>
-                            @SortButtonGlyph("Risk")
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Risk" @onclick='() => this.ToggleSort("Risk")'>
+                            @this.SortButtonGlyph("Risk")
                         </button>
                     </div>
                 </label>
@@ -47,15 +47,15 @@
                 <label class="field">
                     <div class="fieldLabel">Priority</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_priorityFilter" @onchange="OnPriorityFilterChange">
+                        <select class="select selectCompact" value="@this.PriorityFilter" @onchange="this.OnPriorityFilterChange">
                             <option value="All">All</option>
                             <option value="Low">Low</option>
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
                             <option value="Critical">Critical</option>
                         </select>
-                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Priority" @onclick='() => ToggleSort("Priority")'>
-                            @SortButtonGlyph("Priority")
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Priority" @onclick='() => this.ToggleSort("Priority")'>
+                            @this.SortButtonGlyph("Priority")
                         </button>
                     </div>
                 </label>
@@ -63,7 +63,7 @@
                 <label class="field">
                     <div class="fieldLabel">Status</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_statusFilter" @onchange="OnStatusFilterChange">
+                        <select class="select selectCompact" value="@this.StatusFilter" @onchange="this.OnStatusFilterChange">
                             <option value="All">All</option>
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
@@ -76,14 +76,14 @@
                 <label class="field">
                     <div class="fieldLabel">Staleness</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_stalenessFilter" @onchange="OnStalenessFilterChange">
+                        <select class="select selectCompact" value="@this.StalenessFilter" @onchange="this.OnStalenessFilterChange">
                             <option value="All">All</option>
                             <option value="Fresh">Fresh</option>
                             <option value="Warning">Getting close</option>
                             <option value="Stale">Stale</option>
                         </select>
-                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Staleness" @onclick='() => ToggleSort("Staleness")'>
-                            @SortButtonGlyph("Staleness")
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Staleness" @onclick='() => this.ToggleSort("Staleness")'>
+                            @this.SortButtonGlyph("Staleness")
                         </button>
                     </div>
                 </label>
@@ -91,7 +91,7 @@
                 <label class="field">
                     <div class="fieldLabel">Est. Duration</div>
                     <div class="fieldInline">
-                        <select class="select selectCompact" value="@_durationFilter" @onchange="OnDurationFilterChange">
+                        <select class="select selectCompact" value="@this.DurationFilter" @onchange="this.OnDurationFilterChange">
                             <option value="All">All</option>
                             <option value="&lt;=30m">≤ 30m</option>
                             <option value="&lt;=2h">≤ 2h</option>
@@ -100,28 +100,28 @@
                             <option value="&gt;1d">&gt; 1d</option>
                             <option value="Invalid">Invalid</option>
                         </select>
-                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Estimated Duration" @onclick='() => ToggleSort("Estimated Duration")'>
-                            @SortButtonGlyph("Estimated Duration")
+                        <button type="button" class="btn btnGhost btnIcon" title="Sort by Estimated Duration" @onclick='() => this.ToggleSort("Estimated Duration")'>
+                            @this.SortButtonGlyph("Estimated Duration")
                         </button>
                     </div>
                 </label>
             </section>
         }
 
-        @if (!IsFocusMode)
+        @if (!this.IsFocusMode)
         {
-            <section class="list listCard tasksListRow @(ShowDetail && FilteredSorted.Count > 5 ? "tasksListCapped" : null)"
+            <section class="list listCard tasksListRow @(this.ShowDetail && this.FilteredSorted.Count > 5 ? "tasksListCapped" : null)"
                      aria-label="Task list">
-                @foreach (AtlasTask t in FilteredSorted)
+                @foreach (AtlasTask t in this.FilteredSorted)
                 {
                     Guid taskId = t.Id;
                     string statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
                     int days = DisplayLabels.DaysSince(t.LastTouchedIso) ?? 0;
-                    string activity = ActivityColor(days);
+                    string activity = this.ActivityColor(days);
                     int depCount = BlockedByCount(t);
                     <button @key="taskId"
                             type="button"
-                            class="listRow listRowBtn tasksTaskRow @(taskId == Selection.SelectedTaskId ? "listRowActive" : null)"
+                            class="listRow listRowBtn tasksTaskRow @(taskId == this._selection.SelectedTaskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(taskId)"
                             @ondblclick="() => GoFocus(taskId)">
                         <div class="listMain">
@@ -140,23 +140,23 @@
                             <div class="pill @Tones.TaskStatusTone(t.Status)">@statusLabel</div>
                             <div class="pill @Tones.PriorityTone(t.Priority)">@t.Priority</div>
                             <span class="activityDot activityDot-@activity"
-                                  title="Activity: @days d ago (stale threshold @StaleDays d)"
+                                  title="Activity: @days d ago (stale threshold @this.StaleDays d)"
                                   aria-label="Activity: @days days ago"></span>
                         </div>
                     </button>
                 }
-                @if (FilteredSorted.Count == 0)
+                @if (this.FilteredSorted.Count == 0)
                 {
                     <div class="muted pad">No tasks match your filters.</div>
                 }
             </section>
         }
 
-        @if (ShowDetail)
+        @if (this.ShowDetail)
         {
-            <TaskDetail Task="Selected"
-                        IsFocusMode="IsFocusMode"
-                        AutoEditId="_autoEditId"
+            <TaskDetail Task="this.Selected"
+                        this.IsFocusMode="this.IsFocusMode"
+                        AutoEditId="this.AutoEditId"
                         AutoEditCleared="ClearAutoEdit"
                         OnClose="CloseDetail"
                         OnEnterFocus="EnterFocus"

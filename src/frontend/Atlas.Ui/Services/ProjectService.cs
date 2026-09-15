@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Project mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class ProjectService
+public sealed class ProjectService : IProjectService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public ProjectService(IAtlasApiClient api, AppCacheService cache)
+    public ProjectService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -46,4 +48,5 @@ public sealed class ProjectService
         await _api.AtlasApiEndpointsProjectsDeleteProjectEndpointAsync(projectId, cancellationToken);
         _cache.RemoveProject(projectId);
     }
+}
 }

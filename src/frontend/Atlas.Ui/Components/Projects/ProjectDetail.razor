@@ -6,7 +6,7 @@
                     <div class="projectTitle">@Project.Name</div>
                 </div>
                 <div class="projectHeaderRight">
-                    @if (!_editing)
+                    @if (!this.Editing)
                     {
                         <div class="pillRow projectHeaderPills" aria-label="Project status summary">
                             @if (Project.Status is not null)
@@ -30,9 +30,9 @@
                     <div class="rowTiny projectHeaderActions" aria-label="Project focus actions">
                         @if (EffectiveTab == "overview")
                         {
-                            @if (_editing)
+                            @if (this.Editing)
                             {
-                                <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@_saving">Save</button>
+                                <button class="btn btnSecondary" type="button" @onclick="SaveOverview" disabled="@this.Saving">Save</button>
                                 <button class="btn btnGhost" type="button" @onclick="CancelEdit">Cancel</button>
                             }
                             else
@@ -40,7 +40,7 @@
                                 <button class="btn btnGhost" type="button" @onclick="StartEdit">Edit</button>
                             }
                         }
-                        @if (IsFocusMode)
+                        @if (this.IsFocusMode)
                         {
                             <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
                         }
@@ -48,27 +48,27 @@
                         {
                             <button class="btn btnGhost" type="button" @onclick="OnEnterFocus">Focus</button>
                         }
-                        <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
-                            @(_deleting ? "Deleting…" : "Delete")
+                        <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                            @(this.Deleting ? "Deleting…" : "Delete")
                         </button>
                     </div>
                 </div>
             </div>
 
-            @if (!_editing)
+            @if (!this.Editing)
             {
                 <div class="tabsBar projectTabsBar" aria-label="Project tabs">
-                    <button class="tabBtn @(_tab == "overview" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("overview")'>Overview</button>
-                    <button class="tabBtn @(_tab == "tasks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("tasks")'>Tasks</button>
-                    <button class="tabBtn @(_tab == "risks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("risks")'>Risks</button>
+                    <button class="tabBtn @(this.Tab == "overview" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("overview")'>Overview</button>
+                    <button class="tabBtn @(this.Tab == "tasks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("tasks")'>Tasks</button>
+                    <button class="tabBtn @(this.Tab == "risks" ? "tabBtnActive" : null)" type="button" @onclick='() => SetTab("risks")'>Risks</button>
                 </div>
             }
 
             <div class="projectDetailScroll" aria-label="Project detail scroll region">
                 @if (EffectiveTab == "overview")
                 {
-                    <div class="projectOverviewGrid @(_editing ? "projectOverviewGridEditing" : null)" aria-label="Project overview">
-                        @if (_editing)
+                    <div class="projectOverviewGrid @(this.Editing ? "projectOverviewGridEditing" : null)" aria-label="Project overview">
+                        @if (this.Editing)
                         {
                             <section class="card subtle projectOverviewSection span2" aria-label="Edit overview">
                                 <div class="cardHeader"><div class="cardTitle">Edit Overview</div></div>
@@ -76,11 +76,11 @@
                                     <div class="fieldGrid2">
                                         <label class="field span2">
                                             <div class="fieldLabel">Name</div>
-                                            <input class="input" @bind="_draftName" @bind:event="oninput" />
+                                            <input class="input" @bind="this.DraftName" @bind:event="oninput" />
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Status</div>
-                                            <select class="select" @bind="_draftStatus">
+                                            <select class="select" @bind="this.DraftStatus">
                                                 <option value="Active">Active</option>
                                                 <option value="Paused">Paused</option>
                                                 <option value="Completed">Completed</option>
@@ -88,7 +88,7 @@
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Health</div>
-                                            <select class="select" @bind="_draftHealth">
+                                            <select class="select" @bind="this.DraftHealth">
                                                 <option value="Green">Green</option>
                                                 <option value="Yellow">Yellow</option>
                                                 <option value="Red">Red</option>
@@ -96,11 +96,11 @@
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Target</div>
-                                            <input class="input" type="date" value="@_draftTargetDateIso" @onchange="OnDraftTargetDateChange" />
+                                            <input class="input" type="date" value="@this.DraftTargetDateIso" @onchange="OnDraftTargetDateChange" />
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Priority</div>
-                                            <select class="select" value="@(_draftPriority ?? "Medium")" @onchange="OnDraftPriorityChange">
+                                            <select class="select" value="@(this.DraftPriority ?? "Medium")" @onchange="OnDraftPriorityChange">
                                                 <option value="Low">Low</option>
                                                 <option value="Medium">Medium</option>
                                                 <option value="High">High</option>
@@ -109,7 +109,7 @@
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Product Owner</div>
-                                            <select class="select" @bind="_draftProductOwnerId">
+                                            <select class="select" @bind="this.DraftProductOwnerId">
                                                 <option value="">(None)</option>
                                                 @foreach (ProductOwner po in SortedProductOwners)
                                                 {
@@ -119,31 +119,31 @@
                                         </label>
                                         <label class="field span2">
                                             <div class="fieldLabel">Tags (comma separated)</div>
-                                            <input class="input" placeholder="platform, reliability" @bind="_tagsText" @bind:event="oninput" />
+                                            <input class="input" placeholder="platform, reliability" @bind="this.TagsText" @bind:event="oninput" />
                                         </label>
                                         <label class="field span2">
                                             <div class="fieldLabel">Description</div>
-                                            <textarea class="textarea" @bind="_draftDescription" @bind:event="oninput"></textarea>
+                                            <textarea class="textarea" @bind="this.DraftDescription" @bind:event="oninput"></textarea>
                                         </label>
                                         <label class="field span2">
                                             <div class="fieldLabel">Summary</div>
-                                            <textarea class="textarea" @bind="_draftSummary" @bind:event="oninput"></textarea>
+                                            <textarea class="textarea" @bind="this.DraftSummary" @bind:event="oninput"></textarea>
                                         </label>
                                         <label class="field">
                                             <div class="fieldLabel">Latest check-in date</div>
-                                            <input class="input" type="date" value="@_draftCheckInDate" @onchange="OnDraftCheckInDateChange" />
+                                            <input class="input" type="date" value="@this.DraftCheckInDate" @onchange="OnDraftCheckInDateChange" />
                                         </label>
                                         <label class="field span2">
                                             <div class="fieldLabel">Latest check-in note</div>
-                                            <textarea class="textarea" @bind="_draftCheckInNote" @bind:event="oninput"></textarea>
+                                            <textarea class="textarea" @bind="this.DraftCheckInNote" @bind:event="oninput"></textarea>
                                         </label>
                                         <div class="field span2">
                                             <div class="fieldLabel">Links</div>
                                             <div style="display: flex; flex-direction: column; gap: 8px;">
-                                                @for (var i = 0; i < _draftLinks.Count; i++)
+                                                @for (var i = 0; i < this.DraftLinks.Count; i++)
                                                 {
                                                     int idx = i;
-                                                    ProjectLink link = _draftLinks[idx];
+                                                    ProjectLink link = this.DraftLinks[idx];
                                                     <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;">
                                                         <input class="input inputInline" placeholder="Label" value="@link.Label" @oninput="e => UpdateLinkLabel(idx, e.Value?.ToString())" />
                                                         <input class="input inputInline" placeholder="URL" value="@link.Url" @oninput="e => UpdateLinkUrl(idx, e.Value?.ToString())" />
@@ -271,18 +271,18 @@
                     </div>
                 }
 
-                @if (!_editing && _tab == "tasks")
+                @if (!this.Editing && this.Tab == "tasks")
                 {
                     <div class="projectTabBody" aria-label="Project tasks tab">
                         <section class="card subtle projectTabSection" aria-label="Task filters">
                             <div class="pad projectFiltersRow">
                                 <label class="field">
                                     <div class="fieldLabel">Search</div>
-                                    <input class="input" placeholder="Filter tasks…" @bind="_taskQuery" @bind:event="oninput" />
+                                    <input class="input" placeholder="Filter tasks…" @bind="this.TaskQuery" @bind:event="oninput" />
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Status</div>
-                                    <select class="select selectCompact" @bind="_taskStatusFilter">
+                                    <select class="select selectCompact" @bind="this.TaskStatusFilter">
                                         <option value="All">All</option>
                                         <option value="Not Started">Not Started</option>
                                         <option value="In Progress">In Progress</option>
@@ -292,7 +292,7 @@
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Priority</div>
-                                    <select class="select selectCompact" @bind="_taskPriorityFilter">
+                                    <select class="select selectCompact" @bind="this.TaskPriorityFilter">
                                         <option value="All">All</option>
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
@@ -302,7 +302,7 @@
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Assignee</div>
-                                    <select class="select selectCompact" @bind="_taskAssigneeFilter">
+                                    <select class="select selectCompact" @bind="this.TaskAssigneeFilter">
                                         <option value="All">All</option>
                                         @foreach (AssigneeOption o in TaskAssigneeOptions)
                                         {
@@ -312,7 +312,7 @@
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Due</div>
-                                    <select class="select selectCompact" @bind="_taskDueFilter">
+                                    <select class="select selectCompact" @bind="this.TaskDueFilter">
                                         <option value="All">All</option>
                                         <option value="Overdue">Overdue</option>
                                         <option value="Next 7 days">Next 7 days</option>
@@ -359,18 +359,18 @@
                     </div>
                 }
 
-                @if (!_editing && _tab == "risks")
+                @if (!this.Editing && this.Tab == "risks")
                 {
                     <div class="projectTabBody" aria-label="Project risks tab">
                         <section class="card subtle projectTabSection" aria-label="Risk filters">
                             <div class="pad projectFiltersRow projectFiltersRowRisks">
                                 <label class="field">
                                     <div class="fieldLabel">Search</div>
-                                    <input class="input" placeholder="Filter risks…" @bind="_riskQuery" @bind:event="oninput" />
+                                    <input class="input" placeholder="Filter risks…" @bind="this.RiskQuery" @bind:event="oninput" />
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Severity</div>
-                                    <select class="select selectCompact" @bind="_riskSeverityFilter">
+                                    <select class="select selectCompact" @bind="this.RiskSeverityFilter">
                                         <option value="All">All</option>
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
@@ -379,7 +379,7 @@
                                 </label>
                                 <label class="field">
                                     <div class="fieldLabel">Owner</div>
-                                    <select class="select selectCompact" @bind="_riskOwnerFilter">
+                                    <select class="select selectCompact" @bind="this.RiskOwnerFilter">
                                         <option value="All">All</option>
                                         @foreach (OwnerOption o in RiskOwnerOptions)
                                         {

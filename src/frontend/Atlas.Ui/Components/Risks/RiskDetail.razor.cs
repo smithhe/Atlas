@@ -2,15 +2,16 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Risks;
-
+namespace Atlas.Ui.Components.Risks
+{
 public partial class RiskDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private RiskService RiskService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IRiskService _riskService { get; set; } = null!;
 
     [Parameter, EditorRequired] public Risk? Risk { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
@@ -21,23 +22,23 @@ public partial class RiskDetail : IDisposable
     [Parameter] public Guid? AutoEditId { get; set; }
     [Parameter] public EventCallback AutoEditCleared { get; set; }
 
-    private bool _editing;
-    private bool _deleting;
-    private Guid? _trackedRiskId;
-    private EntitySaveState _saveState = EntitySaveState.Idle;
+    private bool Editing { get; set; }
+    private bool Deleting { get; set; }
+    private Guid? TrackedRiskId { get; set; }
+    private EntitySaveState SaveState { get; set; } = EntitySaveState.Idle;
 
-    private bool _isAddingNote;
-    private string _newNoteText = "";
-    private Guid? _selectedHistoryId;
-    private string _historyDraftText = "";
-    private string _historyEditTab = "Write";
+    private bool IsAddingNote { get; set; }
+    private string NewNoteText { get; set; } = "";
+    private Guid? SelectedHistoryId { get; set; }
+    private string HistoryDraftText { get; set; } = "";
+    private string HistoryEditTab { get; set; } = "Write";
 
     private IReadOnlyList<Project> ProjectOptions =>
-        Cache.Projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        this._cache.Projects.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
     protected override void OnInitialized()
     {
-        RiskService.SaveStateChanged += OnSaveStateChangedAsync;
+        this._riskService.SaveStateChanged += OnSaveStateChangedAsync;
     }
 
     protected override void OnParametersSet()
@@ -47,20 +48,20 @@ public partial class RiskDetail : IDisposable
 
     private void SyncDetailUiForRisk(Guid? riskId)
     {
-        if (_trackedRiskId == riskId)
+        if (this.TrackedRiskId == riskId)
         {
             if (riskId is not null && AutoEditId == riskId)
             {
-                _editing = true;
+                this.Editing = true;
             }
 
             return;
         }
 
-        _trackedRiskId = riskId;
+        this.TrackedRiskId = riskId;
         ResetDetailUiState();
-        _editing = riskId is not null && AutoEditId == riskId;
-        _saveState = riskId is not null ? RiskService.GetSaveState(riskId.Value) : EntitySaveState.Idle;
+        this.Editing = riskId is not null && AutoEditId == riskId;
+        this.SaveState = riskId is not null ? this._riskService.GetSaveState(riskId.Value) : EntitySaveState.Idle;
     }
 
     private async void OnSaveStateChangedAsync(Guid riskId)
@@ -74,7 +75,7 @@ public partial class RiskDetail : IDisposable
 
             await InvokeAsync(() =>
             {
-                _saveState = RiskService.GetSaveState(riskId);
+                this.SaveState = this._riskService.GetSaveState(riskId);
                 StateHasChanged();
             });
         }
@@ -86,19 +87,19 @@ public partial class RiskDetail : IDisposable
 
     private void ResetDetailUiState()
     {
-        _isAddingNote = false;
-        _newNoteText = "";
-        _selectedHistoryId = null;
-        _historyDraftText = "";
-        _historyEditTab = "Write";
+        this.IsAddingNote = false;
+        this.NewNoteText = "";
+        this.SelectedHistoryId = null;
+        this.HistoryDraftText = "";
+        this.HistoryEditTab = "Write";
     }
 
     private IReadOnlyList<AtlasTask> GetLinkedTasks(Risk risk) =>
-        Cache.Tasks.Where(t => t.RiskId == risk.Id).ToList();
+        this._cache.Tasks.Where(t => t.RiskId == risk.Id).ToList();
 
     private IReadOnlyList<TeamMember> GetLinkedMembers(Risk risk)
     {
-        var byId = Cache.Team.ToDictionary(m => m.Id);
+        var byId = this._cache.Team.ToDictionary(m => m.Id);
         return risk.LinkedTeamMemberIds
             .Select(id => byId.GetValueOrDefault(id))
             .Where(m => m is not null)
@@ -120,44 +121,44 @@ public partial class RiskDetail : IDisposable
 
     private void ToggleEdit()
     {
-        _editing = !_editing;
-        if (!_editing && Risk is not null && AutoEditId == Risk.Id)
+        this.Editing = !this.Editing;
+        if (!this.Editing && Risk is not null && AutoEditId == Risk.Id)
         {
             ClearAutoEditFireAndForget();
         }
     }
 
-    private void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
-    private void GoTeamMember(Guid id) => Nav.NavigateTo($"/team/{id}");
+    private void GoTask(Guid id) => this._nav.NavigateTo($"/tasks/{id}");
+    private void GoTeamMember(Guid id) => this._nav.NavigateTo($"/team/{id}");
 
     private async Task HandleDelete()
     {
-        if (Risk is null || _deleting)
+        if (Risk is null || this.Deleting)
         {
             return;
         }
 
         Risk risk = Risk;
-        if (!await Dialogs.ConfirmAsync($"Delete risk \"{risk.Title}\"? This cannot be undone."))
+        if (!await this._dialogs.ConfirmAsync($"Delete risk \"{risk.Title}\"? This cannot be undone."))
         {
             return;
         }
 
-        _deleting = true;
+        this.Deleting = true;
         try
         {
-            await RiskService.DeleteAsync(risk.Id);
-            _trackedRiskId = null;
+            await this._riskService.DeleteAsync(risk.Id);
+            this.TrackedRiskId = null;
             ResetDetailUiState();
             await OnDeleted.InvokeAsync();
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to delete this risk right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to delete this risk right now. Please try again.");
         }
         finally
         {
-            _deleting = false;
+            this.Deleting = false;
         }
     }
 
@@ -198,7 +199,7 @@ public partial class RiskDetail : IDisposable
             projectId = parsed;
         }
 
-        string? projectName = projectId is null ? null : Cache.Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
+        string? projectName = projectId is null ? null : this._cache.Projects.FirstOrDefault(p => p.Id == projectId)?.Name;
         await SaveRiskAsync(r => EntityClone.Risk(
             r,
             projectId: projectId,
@@ -216,7 +217,7 @@ public partial class RiskDetail : IDisposable
         }
 
         var linked = e.Value is bool b && b;
-        Risk latest = Cache.TryGetRisk(Risk.Id) ?? Risk;
+        Risk latest = this._cache.TryGetRisk(Risk.Id) ?? Risk;
         var current = new HashSet<Guid>(latest.LinkedTeamMemberIds);
         if (linked)
         {
@@ -230,8 +231,8 @@ public partial class RiskDetail : IDisposable
         await SaveTeamMembersAsync(current.ToList());
     }
 
-    private void ToggleAddingNote() => _isAddingNote = !_isAddingNote;
-    private void OnNewNoteInput(ChangeEventArgs e) => _newNoteText = e.Value?.ToString() ?? "";
+    private void ToggleAddingNote() => this.IsAddingNote = !this.IsAddingNote;
+    private void OnNewNoteInput(ChangeEventArgs e) => this.NewNoteText = e.Value?.ToString() ?? "";
 
     private async Task AddNote()
     {
@@ -240,7 +241,7 @@ public partial class RiskDetail : IDisposable
             return;
         }
 
-        var text = _newNoteText.Trim();
+        var text = this.NewNoteText.Trim();
         if (string.IsNullOrEmpty(text))
         {
             return;
@@ -254,47 +255,47 @@ public partial class RiskDetail : IDisposable
         };
         await SaveRiskAsync(r =>
         {
-            Risk latest = Cache.TryGetRisk(r.Id) ?? r;
+            Risk latest = this._cache.TryGetRisk(r.Id) ?? r;
             var nextHistory = new[] { entry }.Concat(latest.History).ToList();
             return EntityClone.Risk(latest, history: nextHistory, lastUpdatedIso: DateTimeOffset.UtcNow.ToString("o"));
         });
-        _newNoteText = "";
-        _isAddingNote = false;
+        this.NewNoteText = "";
+        this.IsAddingNote = false;
     }
 
     private void OpenHistoryNote(Guid historyId, string text)
     {
-        _selectedHistoryId = historyId;
-        _historyDraftText = text;
-        _historyEditTab = "Write";
+        this.SelectedHistoryId = historyId;
+        this.HistoryDraftText = text;
+        this.HistoryEditTab = "Write";
     }
 
     private void CloseHistoryNote()
     {
-        _selectedHistoryId = null;
-        _historyDraftText = "";
-        _historyEditTab = "Write";
+        this.SelectedHistoryId = null;
+        this.HistoryDraftText = "";
+        this.HistoryEditTab = "Write";
     }
 
-    private void OnHistoryDraftInput(ChangeEventArgs e) => _historyDraftText = e.Value?.ToString() ?? "";
+    private void OnHistoryDraftInput(ChangeEventArgs e) => this.HistoryDraftText = e.Value?.ToString() ?? "";
 
     private async Task SaveHistoryNote()
     {
-        if (Risk is null || _selectedHistoryId is null)
+        if (Risk is null || this.SelectedHistoryId is null)
         {
             return;
         }
 
-        var text = _historyDraftText.Trim();
+        var text = this.HistoryDraftText.Trim();
         if (string.IsNullOrEmpty(text))
         {
             return;
         }
 
-        Guid historyId = _selectedHistoryId.Value;
+        Guid historyId = this.SelectedHistoryId.Value;
         await SaveRiskAsync(r =>
         {
-            Risk latest = Cache.TryGetRisk(r.Id) ?? r;
+            Risk latest = this._cache.TryGetRisk(r.Id) ?? r;
             var nextHistory = latest.History
                 .Select(h => h.Id == historyId ? new RiskHistoryEntry { Id = h.Id, CreatedIso = h.CreatedIso, Text = text } : h)
                 .ToList();
@@ -313,13 +314,13 @@ public partial class RiskDetail : IDisposable
         Guid riskId = Risk.Id;
         try
         {
-            await RiskService.UpdateAsync(riskId, edit, debounce);
-            _saveState = RiskService.GetSaveState(riskId);
+            await this._riskService.UpdateAsync(riskId, edit, debounce);
+            this.SaveState = this._riskService.GetSaveState(riskId);
         }
         catch (Exception)
         {
-            _saveState = RiskService.GetSaveState(riskId);
-            await Dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
+            this.SaveState = this._riskService.GetSaveState(riskId);
+            await this._dialogs.AlertAsync("Unable to save risk changes right now. Please try again.");
         }
     }
 
@@ -332,16 +333,16 @@ public partial class RiskDetail : IDisposable
 
         try
         {
-            await RiskService.SetTeamMembersAsync(Risk.Id, memberIds);
+            await this._riskService.SetTeamMembersAsync(Risk.Id, memberIds);
         }
         catch (Exception)
         {
-            _saveState = EntitySaveState.Failed;
-            await Dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
+            this.SaveState = EntitySaveState.Failed;
+            await this._dialogs.AlertAsync("Unable to save team member links right now. Please try again.");
         }
     }
 
-    private string SaveStateLabel => _saveState switch
+    private string SaveStateLabel => this.SaveState switch
     {
         EntitySaveState.Saving => "Saving…",
         EntitySaveState.Saved => "Saved",
@@ -350,5 +351,6 @@ public partial class RiskDetail : IDisposable
         _ => ""
     };
 
-    public void Dispose() => RiskService.SaveStateChanged -= OnSaveStateChangedAsync;
+    public void Dispose() => this._riskService.SaveStateChanged -= OnSaveStateChangedAsync;
+}
 }

@@ -1,15 +1,15 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
-
+namespace Atlas.Ui.Services
+{
 /// <summary>Growth mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class GrowthService : IDisposable
+public sealed class GrowthService : IGrowthService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
-    private readonly BrowserDialogs _dialogs;
+    private readonly IAppCacheService _cache;
     private readonly KeyedDebounceGate _debounceGate;
     private readonly CancellationTokenSource _lifetimeCts = new();
     private CancellationTokenSource _persistCts;
@@ -18,11 +18,12 @@ public sealed class GrowthService : IDisposable
     private Guid? _persistGoalId;
     private long _routeGeneration;
 
-    public GrowthService(IAtlasApiClient api, AppCacheService cache, BrowserDialogs dialogs)
+    public event Action<string>? PersistFailed;
+
+    public GrowthService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
-        _dialogs = dialogs;
         _persistCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
         _debounceGate = new KeyedDebounceGate(_lifetimeCts.Token);
     }
@@ -402,7 +403,7 @@ public sealed class GrowthService : IDisposable
 
                     CancelInFlightPersists();
                     await _cache.RetryGrowthLoadAsync(memberId);
-                    await _dialogs.AlertAsync(GrowthUiHelpers.FormatUserError(failureMessage, ex));
+                    PersistFailed?.Invoke(GrowthUiHelpers.FormatUserError(failureMessage, ex));
                 }
             });
     }
@@ -482,4 +483,5 @@ public sealed class GrowthService : IDisposable
         EntityClone.Action(a, links: a.Links.ToList());
 
     private static GrowthGoalCheckIn CloneCheckIn(GrowthGoalCheckIn c) => EntityClone.CheckIn(c);
+}
 }

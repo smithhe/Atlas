@@ -4,15 +4,15 @@
 <PageTitle>Risks — Atlas</PageTitle>
 
 <div class="page pageFill">
-    <PageTitleRow Title="Risks & Mitigation" AddLabel="Add risk" AddingLabel="Adding…" Adding="_creating" OnAdd="HandleAddRisk" />
+    <PageTitleRow Title="Risks & Mitigation" AddLabel="Add risk" AddingLabel="Adding…" Adding="this.Creating" OnAdd="HandleAddRisk" />
 
-    <div class="risksStack @(IsFocusMode ? "risksStackFocus" : null) @(!ShowDetail ? "risksStackNoDetail" : null)">
-        @if (!IsFocusMode)
+    <div class="risksStack @(this.IsFocusMode ? "risksStackFocus" : null) @(!this.ShowDetail ? "risksStackNoDetail" : null)">
+        @if (!this.IsFocusMode)
         {
             <section class="card tight risksFiltersRow" aria-label="Risk filters">
                 <label class="field">
                     <div class="fieldLabel">Status</div>
-                    <select class="select selectCompact" value="@_statusFilter" @onchange="OnStatusFilterChange">
+                    <select class="select selectCompact" value="@this.StatusFilter" @onchange="this.OnStatusFilterChange">
                         <option value="All">All</option>
                         <option value="Open">Open</option>
                         <option value="Watching">Watching</option>
@@ -23,12 +23,12 @@
                 <label class="field">
                     <div class="fieldLabel">Project</div>
                     <input class="input"
-                           value="@_projectFilter"
+                           value="@this.ProjectFilter"
                            @oninput="OnProjectFilterInput"
                            list="riskProjectFilterOptions"
                            placeholder="Type to filter…" />
                     <datalist id="riskProjectFilterOptions">
-                        @foreach (string p in ProjectOptions)
+                        @foreach (string p in this.ProjectOptions)
                         {
                             <option value="@p"></option>
                         }
@@ -37,7 +37,7 @@
 
                 <label class="field">
                     <div class="fieldLabel">Severity</div>
-                    <select class="select selectCompact" value="@_severityFilter" @onchange="OnSeverityFilterChange">
+                    <select class="select selectCompact" value="@this.SeverityFilter" @onchange="OnSeverityFilterChange">
                         <option value="All">All</option>
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
@@ -47,9 +47,9 @@
             </section>
         }
 
-        @if (!IsFocusMode)
+        @if (!this.IsFocusMode)
         {
-            <section class="list listCard risksListRow @(ShowDetail && Filtered.Count > 5 ? "risksListCapped" : null)"
+            <section class="list listCard risksListRow @(this.ShowDetail && Filtered.Count > 5 ? "risksListCapped" : null)"
                      aria-label="Risk list">
                 @foreach (Risk r in Filtered)
                 {
@@ -57,7 +57,7 @@
                     int days = DisplayLabels.DaysSince(r.LastUpdatedIso) ?? 0;
                     <button @key="riskId"
                             type="button"
-                            class="listRow listRowBtn risksRiskRow @(riskId == Selection.SelectedRiskId ? "listRowActive" : null)"
+                            class="listRow listRowBtn risksRiskRow @(riskId == this._selection.SelectedRiskId ? "listRowActive" : null)"
                             @onclick="() => SelectFromList(riskId)"
                             @ondblclick="() => GoFocus(riskId)">
                         <span class="dot dot-@r.Severity.ToLowerInvariant()" aria-hidden="true"></span>
@@ -76,11 +76,11 @@
             </section>
         }
 
-        @if (ShowDetail)
+        @if (this.ShowDetail)
         {
-            <RiskDetail Risk="Selected"
-                        IsFocusMode="IsFocusMode"
-                        AutoEditId="_autoEditId"
+            <RiskDetail Risk="this.Selected"
+                        this.IsFocusMode="this.IsFocusMode"
+                        AutoEditId="this.AutoEditId"
                         AutoEditCleared="ClearAutoEdit"
                         OnClose="CloseDetail"
                         OnEnterFocus="EnterFocus"

@@ -2,26 +2,27 @@ using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class TeamMemberRiskDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TeamMemberRiskService TeamMemberRiskService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITeamMemberRiskService _teamMemberRiskService { get; set; } = null!;
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? TeamMemberRiskId { get; set; }
 
-    private bool _editing;
-    private TeamMemberRisk? _draft;
+    private bool Editing { get; set; }
+    private TeamMemberRisk? Draft { get; set; }
 
     private TeamMember? Member =>
-        Guid.TryParse(MemberId, out Guid id) ? Cache.Team.FirstOrDefault(m => m.Id == id) : null;
+        Guid.TryParse(MemberId, out Guid id) ? this._cache.Team.FirstOrDefault(m => m.Id == id) : null;
 
     private TeamMemberRisk? View
     {
@@ -32,7 +33,7 @@ public partial class TeamMemberRiskDetail : IDisposable
                 return null;
             }
 
-            TeamMemberRisk? r = Cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
+            TeamMemberRisk? r = this._cache.TeamMemberRisks.FirstOrDefault(x => x.Id == rid);
             if (r is null)
             {
                 return null;
@@ -48,16 +49,16 @@ public partial class TeamMemberRiskDetail : IDisposable
     }
 
     private Risk? LinkedGlobal =>
-        View?.LinkedRiskId is { } lid ? Cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
+        View?.LinkedRiskId is { } lid ? this._cache.Risks.FirstOrDefault(r => r.Id == lid) : null;
 
     private string LinkedRiskValue =>
-        (_editing && _draft is not null ? _draft.LinkedRiskId : View?.LinkedRiskId)?.ToString() ?? "";
+        (this.Editing && this.Draft is not null ? this.Draft.LinkedRiskId : View?.LinkedRiskId)?.ToString() ?? "";
 
     private string ReviewedLabel
     {
         get
         {
-            var days = DisplayLabels.DaysSince((_editing && _draft is not null ? _draft : View)?.LastReviewedIso);
+            var days = DisplayLabels.DaysSince((this.Editing && this.Draft is not null ? this.Draft : View)?.LastReviewedIso);
             if (days is null)
             {
                 return "—";
@@ -74,44 +75,44 @@ public partial class TeamMemberRiskDetail : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Team Member Risk Detail",
+        this._cache.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Team Member Risk Detail",
         [
             new AiAction("summarize-risk", "Summarize this risk"),
             new AiAction("suggest-mitigation", "Suggest mitigation experiments"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
         if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
         {
-            Nav.NavigateTo("/team", replace: true);
+            this._nav.NavigateTo("/team", replace: true);
             return;
         }
 
         if (Guid.TryParse(MemberId, out Guid id))
         {
-            Selection.SelectTeamMember(id);
-            if (Cache.TeamReady && Member is null)
+            this._selection.SelectTeamMember(id);
+            if (this._cache.TeamReady && Member is null)
             {
-                Nav.NavigateTo("/team", replace: true);
+                this._nav.NavigateTo("/team", replace: true);
             }
         }
     }
 
-    private void BackToRisks() => Nav.NavigateTo($"/team/{MemberId}/risks");
-    private void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+    private void BackToRisks() => this._nav.NavigateTo($"/team/{MemberId}/risks");
+    private void BackToMember() => this._nav.NavigateTo($"/team/{MemberId}");
 
     private void OnDraftFirstNoticed(ChangeEventArgs e)
     {
-        if (_draft is null)
+        if (this.Draft is null)
         {
             return;
         }
 
-        _draft.FirstNoticedDateIso = e.Value?.ToString() ?? "";
+        this.Draft.FirstNoticedDateIso = e.Value?.ToString() ?? "";
     }
 
     private void BeginEdit()
@@ -121,34 +122,34 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        _draft = EntityClone.TeamMemberRisk(View);
-        _editing = true;
+        this.Draft = EntityClone.TeamMemberRisk(View);
+        this.Editing = true;
     }
 
     private void CancelEdit()
     {
-        _editing = false;
-        _draft = null;
+        this.Editing = false;
+        this.Draft = null;
     }
 
     private void SaveEdit()
     {
-        if (_draft is null)
+        if (this.Draft is null)
         {
             return;
         }
 
-        PersistRisk(_draft);
-        _editing = false;
-        _draft = null;
+        PersistRisk(this.Draft);
+        this.Editing = false;
+        this.Draft = null;
     }
 
     private void OnLinkedRiskChange(ChangeEventArgs e)
     {
         Guid? next = Guid.TryParse(e.Value?.ToString(), out Guid id) ? id : null;
-        if (_editing && _draft is not null)
+        if (this.Editing && this.Draft is not null)
         {
-            _draft.LinkedRiskId = next;
+            this.Draft.LinkedRiskId = next;
             return;
         }
 
@@ -164,9 +165,9 @@ public partial class TeamMemberRiskDetail : IDisposable
     private void MarkReviewed()
     {
         var iso = DateTimeOffset.UtcNow.ToString("o");
-        if (_editing && _draft is not null)
+        if (this.Editing && this.Draft is not null)
         {
-            _draft.LastReviewedIso = iso;
+            this.Draft.LastReviewedIso = iso;
             return;
         }
 
@@ -186,8 +187,8 @@ public partial class TeamMemberRiskDetail : IDisposable
             return;
         }
 
-        Selection.SelectRisk(LinkedGlobal.Id);
-        Nav.NavigateTo("/risks");
+        this._selection.SelectRisk(LinkedGlobal.Id);
+        this._nav.NavigateTo("/risks");
     }
 
     private void PersistRisk(TeamMemberRisk next)
@@ -216,11 +217,11 @@ public partial class TeamMemberRiskDetail : IDisposable
     {
         try
         {
-            await TeamMemberRiskService.UpdateAsync(memberId, next);
+            await this._teamMemberRiskService.UpdateAsync(memberId, next);
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save team member risk right now. Please try again.\n\n{ex.Message}");
+            await this._dialogs.AlertAsync($"Unable to save team member risk right now. Please try again.\n\n{ex.Message}");
         }
     }
 
@@ -230,9 +231,9 @@ public partial class TeamMemberRiskDetail : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                if (Guid.TryParse(MemberId, out Guid id) && this._cache.TeamReady && this._cache.Team.All(m => m.Id != id))
                 {
-                    Nav.NavigateTo("/team", replace: true);
+                    this._nav.NavigateTo("/team", replace: true);
                     return;
                 }
 
@@ -245,5 +246,6 @@ public partial class TeamMemberRiskDetail : IDisposable
         }
     }
 
-    public void Dispose() => Cache.Changed -= OnChangedAsync;
+    public void Dispose() => this._cache.Changed -= OnChangedAsync;
+}
 }

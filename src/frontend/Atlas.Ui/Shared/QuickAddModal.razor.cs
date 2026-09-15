@@ -2,57 +2,58 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
+namespace Atlas.Ui.Shared
+{
 public partial class QuickAddModal
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private TaskService TaskService { get; set; } = null!;
-    [Inject] private RiskService RiskService { get; set; } = null!;
-    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private ITaskService _taskService { get; set; } = null!;
+    [Inject] private IRiskService _riskService { get; set; } = null!;
+    [Inject] private ITeamNoteService _teamNoteService { get; set; } = null!;
 
     private static readonly string[] NoteTags = ["Quick", "Standup", "Progress", "Praise", "Concern", "Blocker"];
 
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
-    private ElementReference _panel;
-    private string _kind = "task";
-    private bool _saving;
-    private string _taskTitle = "";
-    private string _riskTitle = "";
-    private string _memberId = "";
-    private string _noteTag = "Quick";
-    private string _noteTitle = "";
-    private string _noteText = "";
-    private string _noteAdo = "";
-    private string _notePr = "";
+    private ElementReference Panel { get; set; }
+    private string Kind { get; set; } = "task";
+    private bool Saving { get; set; }
+    private string TaskTitle { get; set; } = "";
+    private string RiskTitle { get; set; } = "";
+    private string MemberId { get; set; } = "";
+    private string NoteTag { get; set; } = "Quick";
+    private string NoteTitle { get; set; } = "";
+    private string NoteText { get; set; } = "";
+    private string NoteAdo { get; set; } = "";
+    private string NotePr { get; set; } = "";
 
     private bool CanCreate =>
-        _kind is "task" or "risk"
-        || (_kind == "note" && !string.IsNullOrWhiteSpace(_memberId) && !string.IsNullOrWhiteSpace(_noteText));
+        this.Kind is "task" or "risk"
+        || (this.Kind == "note" && !string.IsNullOrWhiteSpace(this.MemberId) && !string.IsNullOrWhiteSpace(this.NoteText));
 
     private void ResetForm()
     {
-        _kind = "task";
-        _taskTitle = "";
-        _riskTitle = "";
-        _memberId = "";
-        _noteTag = "Quick";
-        _noteTitle = "";
-        _noteText = "";
-        _noteAdo = "";
-        _notePr = "";
-        _saving = false;
+        this.Kind = "task";
+        this.TaskTitle = "";
+        this.RiskTitle = "";
+        this.MemberId = "";
+        this.NoteTag = "Quick";
+        this.NoteTitle = "";
+        this.NoteText = "";
+        this.NoteAdo = "";
+        this.NotePr = "";
+        this.Saving = false;
     }
 
     private async Task HandleClose()
     {
-        if (_saving)
+        if (this.Saving)
         {
             return;
         }
@@ -71,11 +72,11 @@ public partial class QuickAddModal
         }
     }
 
-    private void OnNoteTagChange(ChangeEventArgs e) => _noteTag = e.Value?.ToString() ?? "Quick";
+    private void OnNoteTagChange(ChangeEventArgs e) => this.NoteTag = e.Value?.ToString() ?? "Quick";
 
     private async Task OnTitleKey(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && CanCreate && !_saving)
+        if (e.Key == "Enter" && CanCreate && !this.Saving)
         {
             await HandleCreate();
         }
@@ -83,17 +84,17 @@ public partial class QuickAddModal
 
     private async Task HandleCreate()
     {
-        if (_saving || !CanCreate)
+        if (this.Saving || !CanCreate)
         {
             return;
         }
 
-        _saving = true;
+        this.Saving = true;
         try
         {
-            if (_kind == "task")
+            if (this.Kind == "task")
             {
-                var title = string.IsNullOrWhiteSpace(_taskTitle) ? "New task" : _taskTitle.Trim();
+                var title = string.IsNullOrWhiteSpace(this.TaskTitle) ? "New task" : this.TaskTitle.Trim();
                 var draft = new AtlasTask
                 {
                     Title = title,
@@ -105,17 +106,17 @@ public partial class QuickAddModal
                     DependencyTaskIds = Array.Empty<Guid>(),
                     LastTouchedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
-                AtlasTask created = await TaskService.CreateAsync(draft);
+                AtlasTask created = await this._taskService.CreateAsync(draft);
                 Guid id = created.Id;
                 ResetForm();
                 await OnClose.InvokeAsync();
-                Nav.NavigateTo($"/tasks/{id}");
+                this._nav.NavigateTo($"/tasks/{id}");
                 return;
             }
 
-            if (_kind == "risk")
+            if (this.Kind == "risk")
             {
-                var title = string.IsNullOrWhiteSpace(_riskTitle) ? "New risk" : _riskTitle.Trim();
+                var title = string.IsNullOrWhiteSpace(this.RiskTitle) ? "New risk" : this.RiskTitle.Trim();
                 var draft = new Risk
                 {
                     Title = title,
@@ -128,39 +129,39 @@ public partial class QuickAddModal
                     History = Array.Empty<RiskHistoryEntry>(),
                     LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
                 };
-                Risk created = await RiskService.CreateAsync(draft);
+                Risk created = await this._riskService.CreateAsync(draft);
                 Guid id = created.Id;
                 ResetForm();
                 await OnClose.InvokeAsync();
-                Nav.NavigateTo($"/risks/{id}");
+                this._nav.NavigateTo($"/risks/{id}");
                 return;
             }
 
-            if (!Guid.TryParse(_memberId, out Guid memberId))
+            if (!Guid.TryParse(this.MemberId, out Guid memberId))
             {
-                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                await this._dialogs.AlertAsync("Select a team member and enter note text before creating.");
                 return;
             }
 
-            var text = _noteText.Trim();
+            var text = this.NoteText.Trim();
             if (string.IsNullOrEmpty(text))
             {
-                await Dialogs.AlertAsync("Select a team member and enter note text before creating.");
+                await this._dialogs.AlertAsync("Select a team member and enter note text before creating.");
                 return;
             }
 
-            TeamMember? member = Cache.Team.FirstOrDefault(m => m.Id == memberId);
+            TeamMember? member = this._cache.Team.FirstOrDefault(m => m.Id == memberId);
             if (member is null)
             {
-                await Dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
+                await this._dialogs.AlertAsync("That team member is no longer available. Refresh and try again.");
                 return;
             }
 
-            Enum.TryParse(_noteTag, out NoteTag tag);
-            var titleOpt = _noteTitle.Trim();
-            var ado = _noteAdo.Trim();
-            var pr = _notePr.Trim();
-            TeamNote saved = await TeamNoteService.AddAsync(
+            Enum.TryParse(this.NoteTag, out NoteTag tag);
+            var titleOpt = this.NoteTitle.Trim();
+            var ado = this.NoteAdo.Trim();
+            var pr = this.NotePr.Trim();
+            TeamNote saved = await this._teamNoteService.AddAsync(
                 memberId,
                 tag,
                 text,
@@ -168,18 +169,19 @@ public partial class QuickAddModal
                 string.IsNullOrEmpty(ado) ? null : ado,
                 string.IsNullOrEmpty(pr) ? null : pr);
 
-            Selection.SelectTeamMember(memberId);
+            this._selection.SelectTeamMember(memberId);
             ResetForm();
             await OnClose.InvokeAsync();
-            Nav.NavigateTo($"/team/{memberId}/notes");
+            this._nav.NavigateTo($"/team/{memberId}/notes");
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync($"Unable to create {(_kind == "note" ? "note" : _kind)} right now. Please try again.");
+            await this._dialogs.AlertAsync($"Unable to create {(this.Kind == "note" ? "note" : this.Kind)} right now. Please try again.");
         }
         finally
         {
-            _saving = false;
+            this.Saving = false;
         }
     }
+}
 }

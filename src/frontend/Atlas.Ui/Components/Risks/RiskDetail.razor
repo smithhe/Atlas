@@ -8,13 +8,13 @@
         Risk risk = Risk;
         IReadOnlyList<AtlasTask> linkedTasks = GetLinkedTasks(risk);
         IReadOnlyList<TeamMember> linkedMembers = GetLinkedMembers(risk);
-        IReadOnlyList<TeamMember> teamMemberOptions = Cache.Team.OrderBy(m => m.Name).ToList();
+        IReadOnlyList<TeamMember> teamMemberOptions = this._cache.Team.OrderBy(m => m.Name).ToList();
         IReadOnlyList<RiskHistoryEntry> historyNewestFirst = risk.History
             .OrderByDescending(h => h.CreatedIso)
             .ToList();
-        RiskHistoryEntry? selectedHistory = _selectedHistoryId is null
+        RiskHistoryEntry? selectedHistory = this.SelectedHistoryId is null
             ? null
-            : risk.History.FirstOrDefault(h => h.Id == _selectedHistoryId);
+            : risk.History.FirstOrDefault(h => h.Id == this.SelectedHistoryId);
 
         <div class="card pad riskDetailCard">
             <div class="riskDetailHeader">
@@ -25,7 +25,7 @@
                         <div class="mutedSmall">@SaveStateLabel</div>
                     }
                     <div class="riskDetailHeaderRight">
-                        @if (!_editing)
+                        @if (!this.Editing)
                         {
                             <div class="pillRow">
                                 <span class="pill @Tones.RiskStatusTone(risk.Status)">@risk.Status</span>
@@ -33,11 +33,11 @@
                             </div>
                         }
                         <div class="rowTiny">
-                            <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(_editing ? "Done" : "Edit")</button>
-                            <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
-                                @(_deleting ? "Deleting…" : "Delete")
+                            <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
+                            <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                                @(this.Deleting ? "Deleting…" : "Delete")
                             </button>
-                            @if (IsFocusMode)
+                            @if (this.IsFocusMode)
                             {
                                 <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
                             }
@@ -53,7 +53,7 @@
             </div>
 
             <div class="fieldGrid2">
-                @if (_editing)
+                @if (this.Editing)
                 {
                     <label class="field span2">
                         <div class="fieldLabel">Title</div>
@@ -81,15 +81,15 @@
 
                 <div class="field">
                     <div class="fieldLabel">Project</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@(risk.ProjectId?.ToString() ?? "")" @onchange="OnProjectChange">
                             <option value="">(None)</option>
-                            @foreach (Project p in ProjectOptions)
+                            @foreach (Project p in this.ProjectOptions)
                             {
                                 <option value="@p.Id">@p.Name</option>
                             }
-                            @if (risk.ProjectId is not null && ProjectOptions.All(p => p.Id != risk.ProjectId))
+                            @if (risk.ProjectId is not null && this.ProjectOptions.All(p => p.Id != risk.ProjectId))
                             {
                                 <option value="@risk.ProjectId">@(risk.Project ?? risk.ProjectId.ToString())</option>
                             }
@@ -103,7 +103,7 @@
 
                 <div class="field span2">
                     <div class="fieldLabel">Description</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <textarea class="textarea" value="@risk.Description" @oninput="OnDescriptionInput"></textarea>
                     }
@@ -124,7 +124,7 @@
 
                 <div class="field span2">
                     <div class="fieldLabel">Evidence / Examples</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <textarea class="textarea" value="@risk.Evidence" @oninput="OnEvidenceInput"></textarea>
                     }
@@ -174,7 +174,7 @@
 
                         <div class="field">
                             <div class="fieldLabel">Linked Team Members</div>
-                            @if (_editing)
+                            @if (this.Editing)
                             {
                                 <div class="list listCard risksLinkedListCard">
                                     @if (teamMemberOptions.Count == 0)
@@ -238,18 +238,18 @@
                     <div class="fieldLabel">Notes / History</div>
                     <div class="row mt-sm">
                         <button class="btn btnSecondary" type="button" @onclick="ToggleAddingNote">
-                            @(_isAddingNote ? "Cancel" : "Add note")
+                            @(this.IsAddingNote ? "Cancel" : "Add note")
                         </button>
                     </div>
 
-                    @if (_isAddingNote)
+                    @if (this.IsAddingNote)
                     {
                         <div class="mt-sm">
                             <label class="field">
                                 <div class="fieldLabel">New note</div>
                                 <textarea class="textarea"
                                           placeholder="Write a note (Markdown supported)…"
-                                          value="@_newNoteText"
+                                          value="@this.NewNoteText"
                                           @oninput="OnNewNoteInput"></textarea>
                             </label>
                             <div class="row mt-sm">
@@ -302,27 +302,27 @@
                     <div class="noteEdit">
                         <div class="noteEditTabs">
                             <button type="button"
-                                    class="btn btnGhost @(_historyEditTab == "Write" ? "noteEditTabActive" : null)"
-                                    @onclick='() => _historyEditTab = "Write"'>
+                                    class="btn btnGhost @(this.HistoryEditTab == "Write" ? "noteEditTabActive" : null)"
+                                    @onclick='() => this.HistoryEditTab = "Write"'>
                                 Write
                             </button>
                             <button type="button"
-                                    class="btn btnGhost @(_historyEditTab == "Preview" ? "noteEditTabActive" : null)"
-                                    @onclick='() => _historyEditTab = "Preview"'>
+                                    class="btn btnGhost @(this.HistoryEditTab == "Preview" ? "noteEditTabActive" : null)"
+                                    @onclick='() => this.HistoryEditTab = "Preview"'>
                                 Preview
                             </button>
                         </div>
 
-                        @if (_historyEditTab == "Write")
+                        @if (this.HistoryEditTab == "Write")
                         {
                             <textarea class="textarea textareaAutoGrow noteEditTextarea"
-                                      value="@_historyDraftText"
+                                      value="@this.HistoryDraftText"
                                       @oninput="OnHistoryDraftInput"></textarea>
                         }
                         else
                         {
                             <div class="noteText noteBody">
-                                <MarkdownBlock Text="@_historyDraftText" />
+                                <MarkdownBlock Text="@this.HistoryDraftText" />
                             </div>
                         }
                     </div>

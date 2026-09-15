@@ -1,26 +1,30 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class TeamNoteDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TeamNoteService TeamNoteService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITeamNoteService _teamNoteService { get; set; } = null!;
 
     [Parameter] public string? MemberId { get; set; }
     [Parameter] public string? NoteId { get; set; }
 
     private static readonly NoteTag[] NoteTags = [NoteTag.Quick, NoteTag.Standup, NoteTag.Progress, NoteTag.Praise, NoteTag.Concern, NoteTag.Blocker];
 
-    private bool _editing;
-    private string _draftTitle = "", _draftText = "", _draftAdo = "", _draftPr = "";
-    private NoteTag _draftTag = NoteTag.Quick;
+    private bool Editing { get; set; }
+        private string DraftTitle { get; set; } = "";
+    private string DraftText { get; set; } = "";
+    private string DraftAdo { get; set; } = "";
+    private string DraftPr { get; set; } = "";
+    private NoteTag DraftTag { get; set; } = NoteTag.Quick;
 
     private TeamMember? Member
     {
@@ -31,7 +35,7 @@ public partial class TeamNoteDetail : IDisposable
                 return null;
             }
 
-            return Cache.Team.FirstOrDefault(m => m.Id == id);
+            return this._cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
 
@@ -50,25 +54,25 @@ public partial class TeamNoteDetail : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Team Note Detail", [new AiAction("summarize-note", "Summarize this note")]);
-        await Cache.EnsureHydratedAsync();
+        this._cache.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Team Note Detail", [new AiAction("summarize-note", "Summarize this note")]);
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
         if (!string.IsNullOrEmpty(MemberId) && !Guid.TryParse(MemberId, out _))
         {
-            Nav.NavigateTo("/team", replace: true);
+            this._nav.NavigateTo("/team", replace: true);
             return;
         }
 
         if (Guid.TryParse(MemberId, out Guid id))
         {
-            Selection.SelectTeamMember(id);
-            if (Cache.TeamReady && Member is null)
+            this._selection.SelectTeamMember(id);
+            if (this._cache.TeamReady && Member is null)
             {
-                Nav.NavigateTo("/team", replace: true);
+                this._nav.NavigateTo("/team", replace: true);
             }
         }
 
@@ -77,20 +81,20 @@ public partial class TeamNoteDetail : IDisposable
 
     private void SyncDraftsFromNote()
     {
-        if (Note is null || _editing)
+        if (Note is null || this.Editing)
         {
             return;
         }
 
-        _draftTitle = Note.Title ?? "";
-        _draftTag = Note.Tag;
-        _draftText = Note.Text;
-        _draftAdo = Note.AdoWorkItemId ?? "";
-        _draftPr = Note.PrUrl ?? "";
+        this.DraftTitle = Note.Title ?? "";
+        this.DraftTag = Note.Tag;
+        this.DraftText = Note.Text;
+        this.DraftAdo = Note.AdoWorkItemId ?? "";
+        this.DraftPr = Note.PrUrl ?? "";
     }
 
-    private void BackToNotes() => Nav.NavigateTo($"/team/{MemberId}/notes");
-    private void BackToMember() => Nav.NavigateTo($"/team/{MemberId}");
+    private void BackToNotes() => this._nav.NavigateTo($"/team/{MemberId}/notes");
+    private void BackToMember() => this._nav.NavigateTo($"/team/{MemberId}");
 
     private void BeginEdit()
     {
@@ -99,46 +103,46 @@ public partial class TeamNoteDetail : IDisposable
             return;
         }
 
-        _draftTitle = Note.Title ?? "";
-        _draftTag = Note.Tag;
-        _draftText = Note.Text;
-        _draftAdo = Note.AdoWorkItemId ?? "";
-        _draftPr = Note.PrUrl ?? "";
-        _editing = true;
+        this.DraftTitle = Note.Title ?? "";
+        this.DraftTag = Note.Tag;
+        this.DraftText = Note.Text;
+        this.DraftAdo = Note.AdoWorkItemId ?? "";
+        this.DraftPr = Note.PrUrl ?? "";
+        this.Editing = true;
         SyncDraftTarget();
     }
 
     private void CancelEdit()
     {
         SyncDraftsFromNote();
-        _editing = false;
+        this.Editing = false;
         if (Note is not null)
         {
-            _draftTitle = Note.Title ?? "";
-            _draftTag = Note.Tag;
-            _draftText = Note.Text;
-            _draftAdo = Note.AdoWorkItemId ?? "";
-            _draftPr = Note.PrUrl ?? "";
+            this.DraftTitle = Note.Title ?? "";
+            this.DraftTag = Note.Tag;
+            this.DraftText = Note.Text;
+            this.DraftAdo = Note.AdoWorkItemId ?? "";
+            this.DraftPr = Note.PrUrl ?? "";
         }
         SyncDraftTarget();
     }
 
     private void SyncDraftTarget()
     {
-        if (!_editing)
+        if (!this.Editing)
         {
-            Ai.RegisterDraftTarget(null);
+            this._ai.RegisterDraftTarget(null);
             return;
         }
 
-        Ai.RegisterDraftTarget(new AiDraftTarget
+        this._ai.RegisterDraftTarget(new AiDraftTarget
         {
             Label = "note body",
             Insert = text =>
             {
-                _draftText = string.IsNullOrWhiteSpace(_draftText)
+                this.DraftText = string.IsNullOrWhiteSpace(this.DraftText)
                     ? text
-                    : $"{_draftText.TrimEnd()}\n\n{text}";
+                    : $"{this.DraftText.TrimEnd()}\n\n{text}";
                 return InvokeAsync(StateHasChanged);
             },
         });
@@ -151,30 +155,30 @@ public partial class TeamNoteDetail : IDisposable
             return;
         }
 
-        var nextTitle = _draftTitle.Trim();
-        var ado = _draftAdo.Trim();
-        var pr = _draftPr.Trim();
+        var nextTitle = this.DraftTitle.Trim();
+        var ado = this.DraftAdo.Trim();
+        var pr = this.DraftPr.Trim();
         var updated = new TeamNote
         {
             Id = Note.Id,
             CreatedIso = Note.CreatedIso,
             LastModifiedIso = DateTimeOffset.UtcNow.ToString("o"),
-            Tag = _draftTag,
+            Tag = this.DraftTag,
             Title = string.IsNullOrEmpty(nextTitle) ? null : nextTitle,
-            Text = _draftText,
+            Text = this.DraftText,
             AdoWorkItemId = string.IsNullOrEmpty(ado) ? null : ado,
             PrUrl = string.IsNullOrEmpty(pr) ? null : pr
         };
 
         try
         {
-            await TeamNoteService.UpdateAsync(Member.Id, updated);
-            _editing = false;
+            await this._teamNoteService.UpdateAsync(Member.Id, updated);
+            this.Editing = false;
             SyncDraftTarget();
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
+            await this._dialogs.AlertAsync($"Unable to save note changes right now. Please try again.\n\n{ex.Message}");
         }
     }
 
@@ -184,9 +188,9 @@ public partial class TeamNoteDetail : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (Guid.TryParse(MemberId, out Guid id) && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                if (Guid.TryParse(MemberId, out Guid id) && this._cache.TeamReady && this._cache.Team.All(m => m.Id != id))
                 {
-                    Nav.NavigateTo("/team", replace: true);
+                    this._nav.NavigateTo("/team", replace: true);
                     return;
                 }
 
@@ -202,7 +206,8 @@ public partial class TeamNoteDetail : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Ai.RegisterDraftTarget(null);
+        this._cache.Changed -= OnChangedAsync;
+        this._ai.RegisterDraftTarget(null);
     }
+}
 }

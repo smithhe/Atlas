@@ -1,8 +1,10 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 public sealed record AiAction(string Id, string Label, string? Description = null);
 
@@ -18,11 +20,11 @@ public sealed class AiDraftTarget
 /// AI panel state mirroring React <c>AiState.tsx</c>: conversations via NSwag,
 /// session streaming via <see cref="AiSessionEventsClient"/> (EventSource).
 /// </summary>
-public sealed class AiStateService : IAsyncDisposable
+public sealed class AiStateService : IAiStateService
 {
     private readonly IAtlasApiClient _api;
     private readonly SelectionState _selection;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
     private readonly AiSessionEventsClient _events;
 
     private readonly List<AiTranscriptTurn> _turns = [];
@@ -41,7 +43,7 @@ public sealed class AiStateService : IAsyncDisposable
     public AiStateService(
         IAtlasApiClient api,
         SelectionState selection,
-        AppCacheService cache,
+        IAppCacheService cache,
         AiSessionEventsClient events)
     {
         _api = api;
@@ -603,4 +605,5 @@ public sealed class AiStateService : IAsyncDisposable
 
         await _events.DisposeAsync();
     }
+}
 }

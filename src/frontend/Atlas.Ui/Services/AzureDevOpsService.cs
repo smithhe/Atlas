@@ -1,11 +1,13 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Azure DevOps API calls. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class AzureDevOpsService
+public sealed class AzureDevOpsService : IAzureDevOpsService
 {
     private readonly IAtlasApiClient _api;
 
@@ -125,4 +127,5 @@ public sealed class AzureDevOpsService
             await _api.AtlasApiEndpointsAzureDevOpsRunAzureSyncEndpointAsync(cancellationToken);
         return ApiMappers.MapAzureSyncResult(dto);
     }
+}
 }

@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Team note mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class TeamNoteService
+public sealed class TeamNoteService : ITeamNoteService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public TeamNoteService(IAtlasApiClient api, AppCacheService cache)
+    public TeamNoteService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -86,4 +88,5 @@ public sealed class TeamNoteService
                 EntityRequestMappers.ToUpdateTeamNoteRequest(note),
                 cancellationToken));
     }
+}
 }

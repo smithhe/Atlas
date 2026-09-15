@@ -1,53 +1,25 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Atlas.Ui;
-using Atlas.Ui.Api.Generated;
-using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-var builder = WebAssemblyHostBuilder.CreateDefault(args);
+WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-var apiBaseUrl = (builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5012").TrimEnd('/');
-
-builder.Services.AddScoped(_ => new HttpClient
-{
-    BaseAddress = new Uri(apiBaseUrl + "/")
-});
-
-builder.Services.AddScoped<IAtlasApiClient>(sp =>
-{
-    HttpClient http = sp.GetRequiredService<HttpClient>();
-    return new AtlasApiClient(apiBaseUrl, http);
-});
-
-builder.Services.AddScoped<SelectionState>();
-builder.Services.AddScoped<LocalSettings>();
-builder.Services.AddScoped<BrowserDialogs>();
-builder.Services.AddScoped<AppCacheService>();
-builder.Services.AddScoped<MarkdownRenderer>();
-builder.Services.AddScoped<AiSessionEventsClient>();
-builder.Services.AddScoped<AiStateService>();
-builder.Services.AddScoped<TaskService>();
-builder.Services.AddScoped<ProjectService>();
-builder.Services.AddScoped<RiskService>();
-builder.Services.AddScoped<TeamMemberService>();
-builder.Services.AddScoped<TeamNoteService>();
-builder.Services.AddScoped<TeamMemberRiskService>();
-builder.Services.AddScoped<GrowthService>();
-builder.Services.AddScoped<SettingsService>();
-builder.Services.AddScoped<AzureDevOpsService>();
-builder.Services.AddScoped<AzureWorkItemService>();
+builder.Services.AddAtlasUiServices(builder.Configuration);
 
 WebAssemblyHost host = builder.Build();
 
-// Kick off hydration topology (settings/projects/productOwners/team → risks → tasks).
-AppCacheService cache = host.Services.GetRequiredService<AppCacheService>();
+// Single startup hydration path. Fire-and-forget is intentional: EnsureHydratedAsync
+// latches one in-flight task, and pages still await it in OnInitializedAsync.
+// ShellLayout must not start a second background hydrate.
+IAppCacheService cache = host.Services.GetRequiredService<IAppCacheService>();
 _ = HydrateInBackgroundAsync(cache);
 
 await host.RunAsync();
 
-static async Task HydrateInBackgroundAsync(AppCacheService cache)
+static async Task HydrateInBackgroundAsync(IAppCacheService cache)
 {
     try
     {

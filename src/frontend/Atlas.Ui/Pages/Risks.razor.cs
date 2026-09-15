@@ -1,34 +1,35 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Risks : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private RiskService RiskService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private IRiskService _riskService { get; set; } = null!;
 
     [Parameter] public string? RiskId { get; set; }
 
-    private bool _creating;
-    private Guid? _autoEditId;
+    private bool Creating { get; set; }
+    private Guid? AutoEditId { get; set; }
 
-    private string _statusFilter = "All";
-    private string _projectFilter = "";
-    private string _severityFilter = "All";
+    private string StatusFilter { get; set; } = "All";
+    private string ProjectFilter { get; set; } = "";
+    private string SeverityFilter { get; set; } = "All";
 
     private bool IsFocusMode => !string.IsNullOrEmpty(RiskId);
-    private bool ShowDetail => IsFocusMode || Selection.SelectedRiskId is not null;
+    private bool ShowDetail => IsFocusMode || this._selection.SelectedRiskId is not null;
 
     private IReadOnlyList<string> ProjectOptions =>
-        Cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+        this._cache.Projects.Select(p => p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
 
-    private IReadOnlyList<Risk> Filtered => Cache.Risks.Where(MatchesFilters).ToList();
+    private IReadOnlyList<Risk> Filtered => this._cache.Risks.Where(MatchesFilters).ToList();
 
     private Risk? Selected
     {
@@ -36,37 +37,37 @@ public partial class Risks : IDisposable
         {
             Guid? id = IsFocusMode && Guid.TryParse(RiskId, out Guid focusId)
                 ? focusId
-                : Selection.SelectedRiskId;
+                : this._selection.SelectedRiskId;
             if (id is null)
             {
                 return null;
             }
 
-            return Cache.Risks.FirstOrDefault(r => r.Id == id);
+            return this._cache.Risks.FirstOrDefault(r => r.Id == id);
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Selection.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Risks",
+        this._cache.Changed += OnChangedAsync;
+        this._selection.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Risks",
         [
             new AiAction("summarize-impact", "Summarize impact"),
             new AiAction("suggest-mitigations", "Suggest mitigations"),
             new AiAction("why-matters", "Explain “why this matters”"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
         if (IsFocusMode && Guid.TryParse(RiskId, out Guid id))
         {
-            Selection.SelectRisk(id);
-            if (Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+            this._selection.SelectRisk(id);
+            if (this._cache.RisksReady && this._cache.Risks.All(r => r.Id != id))
             {
-                Nav.NavigateTo("/risks", replace: true);
+                this._nav.NavigateTo("/risks", replace: true);
             }
         }
     }
@@ -77,9 +78,9 @@ public partial class Risks : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (IsFocusMode && Guid.TryParse(RiskId, out Guid id) && Cache.RisksReady && Cache.Risks.All(r => r.Id != id))
+                if (IsFocusMode && Guid.TryParse(RiskId, out Guid id) && this._cache.RisksReady && this._cache.Risks.All(r => r.Id != id))
                 {
-                    Nav.NavigateTo("/risks", replace: true);
+                    this._nav.NavigateTo("/risks", replace: true);
                     return;
                 }
 
@@ -94,18 +95,18 @@ public partial class Risks : IDisposable
 
     private bool MatchesFilters(Risk r)
     {
-        if (_statusFilter != "All" && r.Status.ToString() != _statusFilter)
+        if (this.StatusFilter != "All" && r.Status.ToString() != this.StatusFilter)
         {
             return false;
         }
 
-        if (_severityFilter != "All" && r.Severity != _severityFilter)
+        if (this.SeverityFilter != "All" && r.Severity != this.SeverityFilter)
         {
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(_projectFilter)
-            && !(r.Project ?? "").Contains(_projectFilter.Trim(), StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(this.ProjectFilter)
+            && !(r.Project ?? "").Contains(this.ProjectFilter.Trim(), StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -113,30 +114,30 @@ public partial class Risks : IDisposable
         return true;
     }
 
-    private void OnStatusFilterChange(ChangeEventArgs e) => _statusFilter = e.Value?.ToString() ?? "All";
-    private void OnSeverityFilterChange(ChangeEventArgs e) => _severityFilter = e.Value?.ToString() ?? "All";
-    private void OnProjectFilterInput(ChangeEventArgs e) => _projectFilter = e.Value?.ToString() ?? "";
+    private void OnStatusFilterChange(ChangeEventArgs e) => this.StatusFilter = e.Value?.ToString() ?? "All";
+    private void OnSeverityFilterChange(ChangeEventArgs e) => this.SeverityFilter = e.Value?.ToString() ?? "All";
+    private void OnProjectFilterInput(ChangeEventArgs e) => this.ProjectFilter = e.Value?.ToString() ?? "";
 
-    private void SelectFromList(Guid id) => Selection.SelectRisk(id);
+    private void SelectFromList(Guid id) => this._selection.SelectRisk(id);
 
-    private void CloseDetail() => Selection.SelectRisk(null);
+    private void CloseDetail() => this._selection.SelectRisk(null);
 
-    private void ClearAutoEdit() => _autoEditId = null;
+    private void ClearAutoEdit() => this.AutoEditId = null;
 
     private async Task OnRiskDeleted()
     {
         if (IsFocusMode)
         {
-            Nav.NavigateTo("/risks", replace: true);
+            this._nav.NavigateTo("/risks", replace: true);
         }
 
-        if (_autoEditId is not null)
+        if (this.AutoEditId is not null)
         {
-            _autoEditId = null;
+            this.AutoEditId = null;
         }
     }
 
-    private void GoFocus(Guid id) => Nav.NavigateTo($"/risks/{id}");
+    private void GoFocus(Guid id) => this._nav.NavigateTo($"/risks/{id}");
 
     private void EnterFocus()
     {
@@ -145,19 +146,19 @@ public partial class Risks : IDisposable
             return;
         }
 
-        Nav.NavigateTo($"/risks/{Selected.Id}");
+        this._nav.NavigateTo($"/risks/{Selected.Id}");
     }
 
-    private void ExitFocus() => Nav.NavigateTo("/risks");
+    private void ExitFocus() => this._nav.NavigateTo("/risks");
 
     private async Task HandleAddRisk()
     {
-        if (_creating)
+        if (this.Creating)
         {
             return;
         }
 
-        _creating = true;
+        this.Creating = true;
         try
         {
             var draft = new Risk
@@ -172,24 +173,25 @@ public partial class Risks : IDisposable
                 History = Array.Empty<RiskHistoryEntry>(),
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            Risk created = await RiskService.CreateAsync(draft);
+            Risk created = await this._riskService.CreateAsync(draft);
             Guid id = created.Id;
-            _autoEditId = id;
-            Selection.SelectRisk(id);
+            this.AutoEditId = id;
+            this._selection.SelectRisk(id);
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to create risk right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to create risk right now. Please try again.");
         }
         finally
         {
-            _creating = false;
+            this.Creating = false;
         }
     }
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Selection.Changed -= OnChangedAsync;
+        this._cache.Changed -= OnChangedAsync;
+        this._selection.Changed -= OnChangedAsync;
     }
+}
 }

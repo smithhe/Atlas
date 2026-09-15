@@ -1,17 +1,17 @@
 <section class="growthShell" aria-label="Growth tab">
     <div class="growthTitle">Growth Overview</div>
 
-    @if (_memberInitializing || _loadStatus == GrowthLoadStatus.Loading || (_loadStatus == GrowthLoadStatus.Idle && Growth is null))
+    @if (this.MemberInitializing || this.LoadStatus == GrowthLoadStatus.Loading || (this.LoadStatus == GrowthLoadStatus.Idle && Growth is null))
     {
         <div class="card subtle"><div class="pad muted">Loading growth data…</div></div>
     }
-    else if (_loadStatus == GrowthLoadStatus.Failed)
+    else if (this.LoadStatus == GrowthLoadStatus.Failed)
     {
         <div class="card subtle">
             <div class="pad">
-                <div class="muted">@(_loadError ?? "Unable to load growth data.")</div>
+                <div class="muted">@(this.LoadError ?? "Unable to load growth data.")</div>
                 <div class="row" style="margin-top: 8px">
-                    <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@_retrying">@(_retrying ? "Retrying…" : "Retry")</button>
+                    <button class="btn btnSecondary" type="button" @onclick="RetryLoad" disabled="@this.Retrying">@(this.Retrying ? "Retrying…" : "Retry")</button>
                 </div>
             </div>
         </div>
@@ -137,20 +137,20 @@
     }
 </section>
 
-<AtlasModal Title="Add growth goal" IsOpen="_goalOpen" OnClose="CloseGoalModal">
+<AtlasModal Title="Add growth goal" IsOpen="this.GoalOpen" OnClose="CloseGoalModal">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Title</div>
-                <input class="input" @bind="_goalTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalTitle" placeholder="What are they working to improve?" />
+                <input class="input" @bind="this.GoalTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalTitle" placeholder="What are they working to improve?" />
             </label>
             <label class="field" style="grid-column: 1 / -1">
                 <div class="fieldLabel">Description</div>
-                <textarea class="textarea" @bind="_goalDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Context, why it matters, what ‘good’ looks like…"></textarea>
+                <textarea class="textarea" @bind="this.GoalDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalDescription" placeholder="Context, why it matters, what ‘good’ looks like…"></textarea>
             </label>
             <label class="field">
                 <div class="fieldLabel">Status</div>
-                <select class="select" value="@_goalStatus" @onchange="e => _goalStatus = Enum.Parse<GrowthGoalStatus>((string)e.Value!)">
+                <select class="select" value="@this.GoalStatus" @onchange="e => this.GoalStatus = Enum.Parse<GrowthGoalStatus>((string)e.Value!)">
                     <option value="OnTrack">On Track</option>
                     <option value="NeedsAttention">Needs Attention</option>
                     <option value="Completed">Completed</option>
@@ -158,7 +158,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Priority</div>
-                <select class="select" @bind="_goalPriority">
+                <select class="select" @bind="this.GoalPriority">
                     <option value="">(None)</option>
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
@@ -168,15 +168,15 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Category</div>
-                <input class="input" @bind="_goalCategory" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g., Tech, Leadership" />
+                <input class="input" @bind="this.GoalCategory" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxGoalCategory" placeholder="e.g., Tech, Leadership" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Start date</div>
-                <input class="input" type="date" value="@_goalStart" @onchange="OnGoalStartChange" />
+                <input class="input" type="date" value="@this.GoalStart" @onchange="OnGoalStartChange" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Target date</div>
-                <input class="input" type="date" value="@_goalTarget" @onchange="OnGoalTargetChange" />
+                <input class="input" type="date" value="@this.GoalTarget" @onchange="OnGoalTargetChange" />
             </label>
             @if (!string.IsNullOrEmpty(GoalValidationMessage))
             {
@@ -192,12 +192,12 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="@(_skillIndex is null ? "Add Skill" : "Edit Skill")" IsOpen="_skillOpen" OnClose="CloseSkillModal">
+<AtlasModal Title="@(this.SkillIndex is null ? "Add Skill" : "Edit Skill")" IsOpen="this.SkillOpen" OnClose="CloseSkillModal">
     <ChildContent>
         <div class="fieldGrid2">
             <label class="field span2">
                 <div class="fieldLabel">Skill</div>
-                <input class="input" @bind="_skillLabel" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxSkillLength" placeholder="e.g., System Design" />
+                <input class="input" @bind="this.SkillLabel" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxSkillLength" placeholder="e.g., System Design" />
             </label>
             @if (!string.IsNullOrEmpty(SkillValidationMessage))
             {
@@ -205,14 +205,14 @@
             }
             <label class="field">
                 <div class="fieldLabel">Current level</div>
-                <select class="select" @bind="_skillFrom">
+                <select class="select" @bind="this.SkillFrom">
                     <option value="">(Select)</option>
                     @foreach (string x in SkillLevels) { <option value="@x">@x</option> }
                 </select>
             </label>
             <label class="field">
                 <div class="fieldLabel">Target level</div>
-                <select class="select" @bind="_skillTo">
+                <select class="select" @bind="this.SkillTo">
                     <option value="">(Select)</option>
                     @foreach (string x in SkillLevels) { <option value="@x">@x</option> }
                 </select>
@@ -222,7 +222,7 @@
     <Footer>
         <div class="row" style="margin-top: 0">
             <button class="btn btnSecondary" type="button" @onclick="SaveSkill" disabled="@(!CanSaveSkill)">Save</button>
-            @if (_skillIndex is not null)
+            @if (this.SkillIndex is not null)
             {
                 <button class="btn btnGhost" type="button" title="Remove skill" @onclick="DeleteSkill">Delete</button>
             }
@@ -230,20 +230,20 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="@(_themeIsNew ? "Add Feedback Theme" : "Edit Feedback Theme")" IsOpen="_themeOpen" OnClose="CloseThemeModal">
+<AtlasModal Title="@(this.ThemeIsNew ? "Add Feedback Theme" : "Edit Feedback Theme")" IsOpen="this.ThemeOpen" OnClose="CloseThemeModal">
     <ChildContent>
         <div class="fieldGrid2">
             <label class="field span2">
                 <div class="fieldLabel">Title</div>
-                <input class="input" @bind="_themeTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeTitle" placeholder="Short label" />
+                <input class="input" @bind="this.ThemeTitle" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeTitle" placeholder="Short label" />
             </label>
             <label class="field span2">
                 <div class="fieldLabel">Description</div>
-                <textarea class="textarea" @bind="_themeDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeDescription" placeholder="What’s the repeated pattern?"></textarea>
+                <textarea class="textarea" @bind="this.ThemeDesc" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeDescription" placeholder="What’s the repeated pattern?"></textarea>
             </label>
             <label class="field">
                 <div class="fieldLabel">Observed since (optional)</div>
-                <input class="input" @bind="_themeObserved" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeObservedLabel" placeholder="e.g., Q4" />
+                <input class="input" @bind="this.ThemeObserved" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxThemeObservedLabel" placeholder="e.g., Q4" />
             </label>
             @if (!string.IsNullOrEmpty(ThemeValidationMessage))
             {
@@ -254,7 +254,7 @@
     <Footer>
         <div class="row" style="margin-top: 0">
             <button class="btn btnSecondary" type="button" @onclick="SaveTheme" disabled="@(!CanSaveTheme)">Save</button>
-            @if (!_themeIsNew)
+            @if (!this.ThemeIsNew)
             {
                 <button class="btn btnGhost" type="button" @onclick="DeleteTheme">Delete</button>
             }
@@ -262,12 +262,12 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="Edit Focus Areas" IsOpen="_focusOpen" OnClose="() => _focusOpen = false">
+<AtlasModal Title="Edit Focus Areas" IsOpen="this.FocusOpen" OnClose="() => this.FocusOpen = false">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Markdown</div>
-                <textarea class="textarea" @bind="_focusDraft" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxFocusMarkdown"
+                <textarea class="textarea" @bind="this.FocusDraft" @bind:event="oninput" maxlength="@GrowthUiHelpers.MaxFocusMarkdown"
                           placeholder="Example:&#10;- Reduce surprises by raising risks earlier&#10;- Focus on leading design discussions&#10;- Delegate WIP"></textarea>
             </label>
             @if (!string.IsNullOrEmpty(FocusValidationMessage))

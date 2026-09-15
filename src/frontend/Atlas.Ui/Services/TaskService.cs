@@ -1,20 +1,22 @@
 using System.Collections.Concurrent;
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Task mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class TaskService
+public sealed class TaskService : ITaskService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
     private readonly ConcurrentDictionary<Guid, EntityAutosaveCoordinator<AtlasTask>> _coordinators = new();
 
     public event Action<Guid>? SaveStateChanged;
 
-    public TaskService(IAtlasApiClient api, AppCacheService cache)
+    public TaskService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -74,4 +76,5 @@ public sealed class TaskService
             EntityRequestMappers.ToUpdateTaskRequest(task),
             cancellationToken);
     }
+}
 }

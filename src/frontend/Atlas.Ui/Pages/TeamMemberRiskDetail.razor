@@ -36,7 +36,7 @@
 
     @if (Member is null)
     {
-        <div class="card pad"><div class="muted">@(Cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
+        <div class="card pad"><div class="muted">@(this._cache.TeamReady ? "Select a team member." : "Loading…")</div></div>
     }
     else if (View is null)
     {
@@ -47,11 +47,11 @@
         <div class="card pad tmRiskCard">
             <div class="tmRiskTopRow">
                 <div class="tmRiskTitleBlock">
-                    @if (_editing && _draft is not null)
+                    @if (this.Editing && this.Draft is not null)
                     {
                         <label class="field" style="margin: 0">
                             <div class="srOnly">Title</div>
-                            <input class="input tmRiskTitleInput" @bind="_draft.Title" @bind:event="oninput" />
+                            <input class="input tmRiskTitleInput" @bind="this.Draft.Title" @bind:event="oninput" />
                         </label>
                     }
                     else
@@ -61,11 +61,11 @@
                     <div class="tmRiskSubtitle">Team Member Risk @(string.IsNullOrEmpty(Member.Role) ? "" : $"• {Member.Role}")</div>
                 </div>
                 <div class="tmRiskTopActions">
-                    @if (!_editing)
+                    @if (!this.Editing)
                     {
                         <div class="tmRiskSeverityPill tmRiskSeverity-@View.Severity.ToLowerInvariant()">@View.Severity Severity</div>
                     }
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <div class="row" style="margin-top: 0">
                             <button class="btn btnSecondary" type="button" @onclick="SaveEdit">Save</button>
@@ -79,7 +79,7 @@
                 </div>
             </div>
 
-            @if (!_editing)
+            @if (!this.Editing)
             {
                 <div class="tmRiskSummaryGrid" aria-label="Risk summary metrics">
                     <div class="tmRiskMetricCard"><div class="tmRiskMetricLabel">RISK TYPE</div><div class="tmRiskMetricValue">@View.RiskType</div></div>
@@ -95,47 +95,47 @@
                     <div class="tmRiskSectionBody">@View.CurrentAction</div>
                 </div>
             }
-            else if (_draft is not null)
+            else if (this.Draft is not null)
             {
                 <div class="tmRiskEditForm" aria-label="Edit risk form">
                     <div class="fieldGrid2" style="margin-top: 14px">
                         <label class="field">
                             <div class="fieldLabel">Severity</div>
-                            <select class="select" @bind="_draft.Severity">
+                            <select class="select" @bind="this.Draft.Severity">
                                 <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option>
                             </select>
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Risk type</div>
-                            <input class="input" @bind="_draft.RiskType" @bind:event="oninput" />
+                            <input class="input" @bind="this.Draft.RiskType" @bind:event="oninput" />
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Status</div>
-                            <select class="select" @bind="_draft.Status">
+                            <select class="select" @bind="this.Draft.Status">
                                 <option value="Open">Open</option><option value="Mitigating">Mitigating</option><option value="Resolved">Resolved</option>
                             </select>
                         </label>
                         <label class="field">
                             <div class="fieldLabel">Trend</div>
-                            <select class="select" @bind="_draft.Trend">
+                            <select class="select" @bind="this.Draft.Trend">
                                 <option value="Improving">Improving</option><option value="Stable">Stable</option><option value="Worsening">Worsening</option>
                             </select>
                         </label>
                         <label class="field">
                             <div class="fieldLabel">First noticed</div>
-                            <input class="input" type="date" value="@(_draft.FirstNoticedDateIso)" @onchange="OnDraftFirstNoticed" />
+                            <input class="input" type="date" value="@(this.Draft.FirstNoticedDateIso)" @onchange="OnDraftFirstNoticed" />
                         </label>
                         <label class="field span2">
                             <div class="fieldLabel">Impact area</div>
-                            <input class="input" @bind="_draft.ImpactArea" @bind:event="oninput" />
+                            <input class="input" @bind="this.Draft.ImpactArea" @bind:event="oninput" />
                         </label>
                         <label class="field span2">
                             <div class="fieldLabel">Description</div>
-                            <textarea class="textarea" @bind="_draft.Description" @bind:event="oninput"></textarea>
+                            <textarea class="textarea" @bind="this.Draft.Description" @bind:event="oninput"></textarea>
                         </label>
                         <label class="field span2">
                             <div class="fieldLabel">Current action / experiment</div>
-                            <textarea class="textarea" @bind="_draft.CurrentAction" @bind:event="oninput"></textarea>
+                            <textarea class="textarea" @bind="this.Draft.CurrentAction" @bind:event="oninput"></textarea>
                         </label>
                     </div>
                 </div>
@@ -148,7 +148,7 @@
                         <div class="fieldInline">
                             <select class="select selectCompact" value="@LinkedRiskValue" @onchange="OnLinkedRiskChange">
                                 <option value="">(None)</option>
-                                @foreach (Risk r in Cache.Risks.OrderBy(x => x.Title))
+                                @foreach (Risk r in this._cache.Risks.OrderBy(x => x.Title))
                                 {
                                     <option value="@r.Id">@r.Title</option>
                                 }

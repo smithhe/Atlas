@@ -4,34 +4,34 @@
            aria-label="Search"
            aria-autocomplete="list"
            aria-haspopup="listbox"
-           aria-expanded="@(_open && HasQuery ? "true" : "false")"
-           aria-controls="@(_open && HasQuery ? "atlas-search-results" : null)"
-           aria-activedescendant="@(_open && HasQuery && _results.Count > 0 ? $"atlas-search-results-{_active}" : null)"
+           aria-expanded="@(this.Open && HasQuery ? "true" : "false")"
+           aria-controls="@(this.Open && HasQuery ? "atlas-search-results" : null)"
+           aria-activedescendant="@(this.Open && HasQuery && this.Results.Count > 0 ? $"atlas-search-results-{this.Active}" : null)"
            placeholder="Search tasks, risks, people, projects…"
-           disabled="@Cache.IsHydrating"
-           value="@_query"
+           disabled="@this._cache.IsHydrating"
+           value="@this.Query"
            @oninput="OnQueryInput"
-           @onfocus="() => _open = true"
+           @onfocus="() => this.Open = true"
            @onkeydown="OnKeyDown" />
-    @if (_open && HasQuery)
+    @if (this.Open && HasQuery)
     {
         <div class="searchResults list listCard" id="atlas-search-results" role="listbox" aria-label="Search results">
-            @if (_results.Count == 0)
+            @if (this.Results.Count == 0)
             {
                 <div class="searchResultsEmpty muted">No matches</div>
             }
             else
             {
-                @for (var i = 0; i < _results.Count; i++)
+                @for (var i = 0; i < this.Results.Count; i++)
                 {
                     int idx = i;
-                    SearchResult result = _results[i];
+                    SearchResult result = this.Results[i];
                     <button type="button"
                             id="@($"atlas-search-results-{idx}")"
                             role="option"
-                            aria-selected="@(idx == _active)"
-                            class="listRow listRowBtn searchResultRow @(idx == _active ? "listRowActive" : null)"
-                            @onmouseenter="() => _active = idx"
+                            aria-selected="@(idx == this.Active)"
+                            class="listRow listRowBtn searchResultRow @(idx == this.Active ? "listRowActive" : null)"
+                            @onmouseenter="() => this.Active = idx"
                             @onclick="() => SelectResult(result)">
                         <div class="listMain">
                             <div class="listTitle">@result.Title</div>

@@ -4,7 +4,7 @@
 <PageTitle>Azure Setup — Atlas</PageTitle>
 
 <div class="entryShell">
-    <header class="entryHeader" @ref="_headerRef">
+    <header class="entryHeader" @ref="this.HeaderRef">
         <div class="entryHeaderInner">
             <div class="pageHeader">
                 <div class="pageHeaderLeft">
@@ -18,7 +18,7 @@
                     <span class="pill toneInfo">
                         <span class="btnContent">
                             @StepLabel
-                            @if (_step == SetupStep.Saving)
+                            @if (this.Step == SetupStep.Saving)
                             {
                                 <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving Azure connection"></span>
                             }
@@ -35,7 +35,7 @@
                 <label class="field span2">
                     <div class="fieldLabel setupOrgLabel">Organization (required)</div>
                     <input class="input"
-                           value="@_organization"
+                           value="@this.Organization"
                            @oninput="OnOrganizationInput"
                            placeholder="e.g. contoso"
                            autocapitalize="none"
@@ -48,10 +48,10 @@
             <div class="rowTiny" style="margin-top: 12px; align-items: center">
                 <button class="btn btnWide"
                         type="button"
-                        disabled="@(_loading || string.IsNullOrWhiteSpace(_organization))"
+                        disabled="@(this.Loading || string.IsNullOrWhiteSpace(this.Organization))"
                         @onclick="OnLoadProjects">
                     <span class="btnContent">
-                        @if (_loading && _step == SetupStep.Project)
+                        @if (this.Loading && this.Step == SetupStep.Project)
                         {
                             <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Loading projects"></span>
                         }
@@ -59,7 +59,7 @@
                     </span>
                 </button>
                 <div class="mutedSmall">
-                    @if (string.IsNullOrWhiteSpace(_organization))
+                    @if (string.IsNullOrWhiteSpace(this.Organization))
                     {
                         <text>Enter an organization to continue.</text>
                     }
@@ -71,43 +71,43 @@
             </div>
         </div>
 
-        @if (!string.IsNullOrEmpty(_error))
+        @if (!string.IsNullOrEmpty(this.Error))
         {
-            <div class="card pad" style="margin-bottom: 12px">Error: @_error</div>
+            <div class="card pad" style="margin-bottom: 12px">Error: @this.Error</div>
         }
 
-        @if (_projects.Count > 0)
+        @if (this.Projects.Count > 0)
         {
-            <div class="card pad scrollCard" @ref="_projectsCardRef" style="margin-bottom: 16px">
-                <div class="loadingOverlayWrap @(_loading && _step == SetupStep.Project ? "loadingOverlayWrapActive" : null)">
+            <div class="card pad scrollCard" @ref="this.ProjectsCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(this.Loading && this.Step == SetupStep.Project ? "loadingOverlayWrapActive" : null)">
                     <div class="loadingOverlayBody">
                         <h3>Select project</h3>
                         <label class="field" style="margin-top: 8px">
                             <div class="fieldLabel">Search</div>
                             <input class="input"
-                                   value="@_projectQuery"
+                                   value="@this.ProjectQuery"
                                    @oninput="OnProjectQueryInput"
                                    placeholder="Filter projects…" />
                         </label>
                         <div class="mutedSmall" style="margin-top: 8px">
-                            @(string.IsNullOrEmpty(_selectedProjectId) ? "Choose one project." : "Project selected.") • @FilteredProjects.Count shown
+                            @(string.IsNullOrEmpty(this.SelectedProjectId) ? "Choose one project." : "Project selected.") • @FilteredProjects.Count shown
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 260px; overflow: auto">
                             @foreach (AzureProject p in FilteredProjects)
                             {
                                 string projectId = p.Id;
-                                bool selected = projectId == _selectedProjectId;
+                                bool selected = projectId == this.SelectedProjectId;
                                 <button @key="projectId"
                                         type="button"
                                         class="listRow listRowBtn @(selected ? "listRowActive" : null)"
-                                        disabled="@_loading"
+                                        disabled="@this.Loading"
                                         @onclick="() => OnSelectProject(projectId)">
                                     <div class="listMain">
                                         <div class="listTitle">@p.Name</div>
                                     </div>
                                     @if (selected)
                                     {
-                                        <span class="pill toneInfo">Selected</span>
+                                        <span class="pill toneInfo">this.Selected</span>
                                     }
                                 </button>
                             }
@@ -117,7 +117,7 @@
                             }
                         </div>
                     </div>
-                    @if (_loading && _step == SetupStep.Project)
+                    @if (this.Loading && this.Step == SetupStep.Project)
                     {
                         <div class="loadingOverlay" role="presentation">
                             <span class="spinner spinner-md" role="status" aria-label="Loading projects"></span>
@@ -127,39 +127,39 @@
             </div>
         }
 
-        @if (_teams.Count > 0)
+        @if (this.Teams.Count > 0)
         {
-            <div class="card pad scrollCard" @ref="_teamsCardRef" style="margin-bottom: 16px">
-                <div class="loadingOverlayWrap @(_loading && _step == SetupStep.Team ? "loadingOverlayWrapActive" : null)">
+            <div class="card pad scrollCard" @ref="this.TeamsCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(this.Loading && this.Step == SetupStep.Team ? "loadingOverlayWrapActive" : null)">
                     <div class="loadingOverlayBody">
                         <h3>Select team</h3>
                         <label class="field" style="margin-top: 8px">
                             <div class="fieldLabel">Search</div>
                             <input class="input"
-                                   value="@_teamQuery"
+                                   value="@this.TeamQuery"
                                    @oninput="OnTeamQueryInput"
                                    placeholder="Filter teams…" />
                         </label>
                         <div class="mutedSmall" style="margin-top: 8px">
-                            @(string.IsNullOrEmpty(_selectedTeamId) ? "Choose one team." : "Team selected.") • @FilteredTeams.Count shown
+                            @(string.IsNullOrEmpty(this.SelectedTeamId) ? "Choose one team." : "Team selected.") • @FilteredTeams.Count shown
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 320px; overflow: auto">
                             @foreach (AzureTeam t in FilteredTeams)
                             {
                                 string teamId = t.Id ?? "";
                                 string teamName = t.Name ?? "";
-                                bool selected = teamId == _selectedTeamId;
+                                bool selected = teamId == this.SelectedTeamId;
                                 <button @key="teamId"
                                         type="button"
                                         class="listRow listRowBtn @(selected ? "listRowActive" : null)"
-                                        disabled="@_loading"
+                                        disabled="@this.Loading"
                                         @onclick="() => OnSelectTeam(teamId, teamName)">
                                     <div class="listMain">
                                         <div class="listTitle">@t.Name</div>
                                     </div>
                                     @if (selected)
                                     {
-                                        <span class="pill toneInfo">Selected</span>
+                                        <span class="pill toneInfo">this.Selected</span>
                                     }
                                 </button>
                             }
@@ -169,7 +169,7 @@
                             }
                         </div>
                     </div>
-                    @if (_loading && _step == SetupStep.Team)
+                    @if (this.Loading && this.Step == SetupStep.Team)
                     {
                         <div class="loadingOverlay" role="presentation">
                             <span class="spinner spinner-md" role="status" aria-label="Loading teams"></span>
@@ -179,30 +179,30 @@
             </div>
         }
 
-        @if (!string.IsNullOrEmpty(_selectedTeamId))
+        @if (!string.IsNullOrEmpty(this.SelectedTeamId))
         {
-            <div class="card pad scrollCard" @ref="_areaPathCardRef" style="margin-bottom: 16px">
-                <div class="loadingOverlayWrap @(_areaPathLoading ? "loadingOverlayWrapActive" : null)">
+            <div class="card pad scrollCard" @ref="this.AreaPathCardRef" style="margin-bottom: 16px">
+                <div class="loadingOverlayWrap @(this.AreaPathLoading ? "loadingOverlayWrapActive" : null)">
                     <div class="loadingOverlayBody">
                         <h3>Default area path</h3>
                         <label class="field" style="margin-top: 8px">
                             <div class="fieldLabel">Resolved from team settings</div>
                             <input class="input inputReadonly"
-                                   value="@_areaPath"
+                                   value="@this.AreaPath"
                                    readonly
                                    placeholder="(not available)"
                                    title="Read-only (resolved from team settings)" />
                             <div class="mutedSmall">
                                 This is the team’s default Area Path and will be saved with the connection.
-                                @if (!string.IsNullOrEmpty(_areaPathError))
+                                @if (!string.IsNullOrEmpty(this.AreaPathError))
                                 {
-                                    <text> (Could not load default: @_areaPathError)</text>
+                                    <text> (Could not load default: @this.AreaPathError)</text>
                                 }
                                 You can override it later in Settings.
                             </div>
                         </label>
                     </div>
-                    @if (_areaPathLoading)
+                    @if (this.AreaPathLoading)
                     {
                         <div class="loadingOverlay" role="presentation">
                             <span class="spinner spinner-sm" role="status" aria-label="Loading area path"></span>
@@ -212,16 +212,16 @@
             </div>
         }
 
-        @if (_users.Count > 0)
+        @if (this.Users.Count > 0)
         {
-            <div class="card pad scrollCard" @ref="_membersCardRef">
-                <div class="loadingOverlayWrap @(_step == SetupStep.Saving ? "loadingOverlayWrapActive" : null)">
+            <div class="card pad scrollCard" @ref="this.MembersCardRef">
+                <div class="loadingOverlayWrap @(this.Step == SetupStep.Saving ? "loadingOverlayWrapActive" : null)">
                     <div class="loadingOverlayBody">
                         <h3>Select members to import</h3>
                         <label class="field" style="margin-top: 8px">
                             <div class="fieldLabel">Search</div>
                             <input class="input"
-                                   value="@_memberQuery"
+                                   value="@this.MemberQuery"
                                    @oninput="OnMemberQueryInput"
                                    placeholder="Filter members…" />
                         </label>
@@ -234,19 +234,19 @@
                             </button>
                             <button type="button"
                                     class="btn btnGhost"
-                                    disabled="@(_selectedUsers.Count == 0)"
+                                    disabled="@(this.SelectedUsers.Count == 0)"
                                     @onclick="ClearSelectedUsers">
                                 Clear
                             </button>
                             <span class="mutedSmall" style="margin-left: auto">
-                                @_selectedUsers.Count selected • @FilteredUsers.Count shown
+                                @this.SelectedUsers.Count selected • @FilteredUsers.Count shown
                             </span>
                         </div>
                         <div class="list listCard" style="margin-top: 10px; max-height: 360px; overflow: auto">
                             @foreach (AzureUser u in FilteredUsers)
                             {
                                 string unique = u.UniqueName ?? "";
-                                bool selected = _selectedUsers.Contains(unique);
+                                bool selected = this.SelectedUsers.Contains(unique);
                                 <label class="listRow listRowBtn @(selected ? "listRowActive" : null)" style="cursor: pointer">
                                     <input type="checkbox"
                                            checked="@selected"
@@ -269,10 +269,10 @@
                         <div class="row" style="margin-top: 12px">
                             <button class="btn"
                                     type="button"
-                                    disabled="@_loading"
+                                    disabled="@this.Loading"
                                     @onclick="OnSave">
                                 <span class="btnContent">
-                                    @if (_step == SetupStep.Saving)
+                                    @if (this.Step == SetupStep.Saving)
                                     {
                                         <span class="spinner spinner-sm spinnerInline" role="status" aria-label="Saving connection"></span>
                                     }
@@ -281,7 +281,7 @@
                             </button>
                         </div>
                     </div>
-                    @if (_step == SetupStep.Saving)
+                    @if (this.Step == SetupStep.Saving)
                     {
                         <div class="loadingOverlay" role="presentation">
                             <span class="spinner spinner-md" role="status" aria-label="Saving connection"></span>

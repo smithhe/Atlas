@@ -1,18 +1,19 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Team;
-
+namespace Atlas.Ui.Components.Team
+{
 public partial class MemberWorkItemsTab
 {
-    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
 
     [Parameter, EditorRequired] public TeamMember Member { get; set; } = null!;
 
-    private string _query = "";
-    private string _quickFilter = "All";
-    private string _statusFilter = "All";
+    private string Query { get; set; } = "";
+    private string QuickFilter { get; set; } = "All";
+    private string StatusFilter { get; set; } = "All";
 
     private List<string> StatusOptions =>
         new[] { "All" }.Concat(Member.AzureItems.Select(a => a.Status).Where(s => !string.IsNullOrEmpty(s)).Distinct().OrderBy(s => s)).ToList();
@@ -21,17 +22,17 @@ public partial class MemberWorkItemsTab
     {
         get
         {
-            var q = _query.Trim().ToLowerInvariant();
+            var q = this.Query.Trim().ToLowerInvariant();
             IEnumerable<AzureItem> items = Member.AzureItems;
-            if (_quickFilter == "Current")
+            if (this.QuickFilter == "Current")
             {
                 items = items.Where(a => TeamLogic.IsCurrentTicketStatus(a.Status));
             }
-            else if (_quickFilter == "Blocked")
+            else if (this.QuickFilter == "Blocked")
             {
                 items = items.Where(a => a.Status.Contains("blocked", StringComparison.OrdinalIgnoreCase));
             }
-            else if (_quickFilter == "InReview")
+            else if (this.QuickFilter == "InReview")
             {
                 items = items.Where(a =>
                 {
@@ -40,9 +41,9 @@ public partial class MemberWorkItemsTab
                 });
             }
 
-            if (_statusFilter != "All")
+            if (this.StatusFilter != "All")
             {
-                items = items.Where(a => a.Status == _statusFilter);
+                items = items.Where(a => a.Status == this.StatusFilter);
             }
 
             if (!string.IsNullOrEmpty(q))
@@ -54,5 +55,6 @@ public partial class MemberWorkItemsTab
         }
     }
 
-    private void OpenItem(string id) => Nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
+    private void OpenItem(string id) => this._nav.NavigateTo($"/team/{Member.Id}/work-items/{id}");
+}
 }

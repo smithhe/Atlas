@@ -1,22 +1,23 @@
 using Microsoft.AspNetCore.Components;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Projects : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private ProjectService ProjectService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private IProjectService _projectService { get; set; } = null!;
 
     [Parameter] public string? ProjectId { get; set; }
 
-    private bool _creating;
-    private Guid? _autoEditId;
+    private bool Creating { get; set; }
+    private Guid? AutoEditId { get; set; }
 
     private bool IsFocusMode => !string.IsNullOrEmpty(ProjectId);
 
@@ -26,36 +27,36 @@ public partial class Projects : IDisposable
         {
             Guid? id = IsFocusMode && Guid.TryParse(ProjectId, out Guid focusId)
                 ? focusId
-                : Selection.SelectedProjectId;
+                : this._selection.SelectedProjectId;
             if (id is null)
             {
                 return null;
             }
 
-            return Cache.Projects.FirstOrDefault(p => p.Id == id);
+            return this._cache.Projects.FirstOrDefault(p => p.Id == id);
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Selection.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Projects",
+        this._cache.Changed += OnChangedAsync;
+        this._selection.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Projects",
         [
             new AiAction("project-summary", "Summarize project status"),
             new AiAction("identify-risks", "Identify risks"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
     {
         if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id))
         {
-            Selection.SelectProject(id);
-            if (Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+            this._selection.SelectProject(id);
+            if (this._cache.ProjectsReady && this._cache.Projects.All(p => p.Id != id))
             {
-                Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
+                this._nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
             }
         }
     }
@@ -66,9 +67,9 @@ public partial class Projects : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && Cache.ProjectsReady && Cache.Projects.All(p => p.Id != id))
+                if (IsFocusMode && Guid.TryParse(ProjectId, out Guid id) && this._cache.ProjectsReady && this._cache.Projects.All(p => p.Id != id))
                 {
-                    Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
+                    this._nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
                     return;
                 }
 
@@ -81,30 +82,30 @@ public partial class Projects : IDisposable
         }
     }
 
-    private void SelectFromList(Guid id) => Selection.SelectProject(id);
+    private void SelectFromList(Guid id) => this._selection.SelectProject(id);
 
-    private void ClearAutoEdit() => _autoEditId = null;
+    private void ClearAutoEdit() => this.AutoEditId = null;
 
     private async Task OnProjectDeleted()
     {
         if (IsFocusMode)
         {
-            Nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
+            this._nav.NavigateTo($"/projects{CurrentSearch}", replace: true);
         }
 
-        if (_autoEditId is not null)
+        if (this.AutoEditId is not null)
         {
-            _autoEditId = null;
+            this.AutoEditId = null;
         }
     }
 
-    private void GoFocus(Guid id) => Nav.NavigateTo($"/projects/{id}");
+    private void GoFocus(Guid id) => this._nav.NavigateTo($"/projects/{id}");
 
     private string CurrentSearch
     {
         get
         {
-            var uri = Nav.Uri;
+            var uri = this._nav.Uri;
             var qIndex = uri.IndexOf('?', StringComparison.Ordinal);
             if (qIndex < 0)
             {
@@ -124,26 +125,26 @@ public partial class Projects : IDisposable
             return;
         }
 
-        Nav.NavigateTo($"/projects/{Selected.Id}{CurrentSearch}");
+        this._nav.NavigateTo($"/projects/{Selected.Id}{CurrentSearch}");
     }
 
-    private void ExitFocus() => Nav.NavigateTo($"/projects{CurrentSearch}");
+    private void ExitFocus() => this._nav.NavigateTo($"/projects{CurrentSearch}");
 
     private async Task HandleAddProject()
     {
-        if (_creating)
+        if (this.Creating)
         {
             return;
         }
 
-        var requested = await Dialogs.PromptAsync("Project name", "New project");
+        var requested = await this._dialogs.PromptAsync("Project name", "New project");
         if (requested is null)
         {
             return;
         }
 
         var name = string.IsNullOrWhiteSpace(requested) ? "New project" : requested.Trim();
-        _creating = true;
+        this.Creating = true;
         try
         {
             var draft = new Project
@@ -160,24 +161,25 @@ public partial class Projects : IDisposable
                 TeamMemberIds = Array.Empty<Guid>(),
                 LastUpdatedIso = DateTimeOffset.UtcNow.ToString("o")
             };
-            Project created = await ProjectService.CreateAsync(draft);
+            Project created = await this._projectService.CreateAsync(draft);
             Guid id = created.Id;
-            _autoEditId = id;
+            this.AutoEditId = id;
             SelectFromList(id);
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to create project right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to create project right now. Please try again.");
         }
         finally
         {
-            _creating = false;
+            this.Creating = false;
         }
     }
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Selection.Changed -= OnChangedAsync;
+        this._cache.Changed -= OnChangedAsync;
+        this._selection.Changed -= OnChangedAsync;
     }
+}
 }

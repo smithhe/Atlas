@@ -1,16 +1,17 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
-
+namespace Atlas.Ui.Services
+{
 /// <summary>
 /// App-wide cache / hydration mirroring React TanStack query topology.
 /// Parallel roots: settings, projects, productOwners, team.
 /// Chain: projects → risks → tasks.
 /// Mutations prefer refetch-after-mutation; optimistic patches keep UI snappy for autosave.
 /// </summary>
-public sealed class AppCacheService
+public sealed class AppCacheService : IAppCacheService
 {
     private readonly IAtlasApiClient _api;
     private readonly LocalSettings _localSettings;
@@ -933,4 +934,5 @@ public sealed class AppCacheService
         Ready,
         Failed
     }
+}
 }

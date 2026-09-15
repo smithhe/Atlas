@@ -2,29 +2,30 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Team : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private TeamMemberService TeamMemberService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private ITeamMemberService _teamMemberService { get; set; } = null!;
 
     public enum MemberTab { Overview, Notes, WorkItems, Risks, Growth }
 
     [Parameter] public string? MemberId { get; set; }
 
-    private MemberTab _localTab = MemberTab.Overview;
+    private MemberTab LocalTab { get; set; } = MemberTab.Overview;
 
     private bool IsFocusMode => !string.IsNullOrEmpty(MemberId);
 
     private Guid? MemberIdParsed => Guid.TryParse(MemberId, out Guid id) ? id : null;
 
-    private MemberTab ActiveTab => IsFocusMode ? GetRouteTab() : _localTab;
+    private MemberTab ActiveTab => IsFocusMode ? GetRouteTab() : this.LocalTab;
 
     private TeamMember? Member
     {
@@ -35,7 +36,7 @@ public partial class Team : IDisposable
                 return null;
             }
 
-            return Cache.Team.FirstOrDefault(m => m.Id == id);
+            return this._cache.Team.FirstOrDefault(m => m.Id == id);
         }
     }
 
@@ -48,9 +49,9 @@ public partial class Team : IDisposable
                 return Member;
             }
 
-            if (Selection.SelectedTeamMemberId is { } sid)
+            if (this._selection.SelectedTeamMemberId is { } sid)
             {
-                return Cache.Team.FirstOrDefault(m => m.Id == sid);
+                return this._cache.Team.FirstOrDefault(m => m.Id == sid);
             }
 
             return null;
@@ -59,15 +60,15 @@ public partial class Team : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Nav.LocationChanged += OnLocationChangedAsync;
-        Ai.SetContext("Context: Team",
+        this._cache.Changed += OnChangedAsync;
+        this._nav.LocationChanged += OnLocationChangedAsync;
+        this._ai.SetContext("Context: Team",
         [
             new AiAction("summarize-patterns", "Summarize patterns (frequent blockers)"),
             new AiAction("growth-areas", "Highlight growth areas"),
             new AiAction("cite-notes", "Cite specific notes"),
         ]);
-        await Cache.EnsureHydratedAsync();
+        await this._cache.EnsureHydratedAsync();
     }
 
     protected override void OnParametersSet()
@@ -75,16 +76,16 @@ public partial class Team : IDisposable
         // Non-GUID focus ids must bounce to list (not stuck on “Redirecting…”).
         if (!string.IsNullOrEmpty(MemberId) && MemberIdParsed is null)
         {
-            Nav.NavigateTo("/team", replace: true);
+            this._nav.NavigateTo("/team", replace: true);
             return;
         }
 
         if (MemberIdParsed is { } id)
         {
-            Selection.SelectTeamMember(id);
-            if (Cache.TeamReady && Member is null)
+            this._selection.SelectTeamMember(id);
+            if (this._cache.TeamReady && Member is null)
             {
-                Nav.NavigateTo("/team", replace: true);
+                this._nav.NavigateTo("/team", replace: true);
             }
         }
     }
@@ -103,7 +104,7 @@ public partial class Team : IDisposable
 
     private MemberTab GetRouteTab()
     {
-        var path = new Uri(Nav.Uri).AbsolutePath;
+        var path = new Uri(this._nav.Uri).AbsolutePath;
         if (path.Contains("/notes", StringComparison.OrdinalIgnoreCase))
         {
             return MemberTab.Notes;
@@ -145,9 +146,9 @@ public partial class Team : IDisposable
         _ => $"/team/{memberId}"
     };
 
-    private void SelectFromList(Guid id) => Selection.SelectTeamMember(id);
+    private void SelectFromList(Guid id) => this._selection.SelectTeamMember(id);
 
-    private void GoFocus(Guid id) => Nav.NavigateTo(MemberTabPath(id, _localTab));
+    private void GoFocus(Guid id) => this._nav.NavigateTo(MemberTabPath(id, this.LocalTab));
 
     private void EnterFocus()
     {
@@ -156,13 +157,13 @@ public partial class Team : IDisposable
             return;
         }
 
-        Nav.NavigateTo(MemberTabPath(Selected.Id, ActiveTab));
+        this._nav.NavigateTo(MemberTabPath(Selected.Id, ActiveTab));
     }
 
     private void ExitFocus()
     {
-        _localTab = GetRouteTab();
-        Nav.NavigateTo("/team");
+        this.LocalTab = GetRouteTab();
+        this._nav.NavigateTo("/team");
     }
 
     private void GoNotes()
@@ -174,11 +175,11 @@ public partial class Team : IDisposable
 
         if (IsFocusMode)
         {
-            Nav.NavigateTo($"/team/{Selected.Id}/notes");
+            this._nav.NavigateTo($"/team/{Selected.Id}/notes");
         }
         else
         {
-            _localTab = MemberTab.Notes;
+            this.LocalTab = MemberTab.Notes;
         }
     }
 
@@ -189,12 +190,12 @@ public partial class Team : IDisposable
             return;
         }
 
-        Nav.NavigateTo($"/team/{Selected.Id}/work-items/{workItemId}");
+        this._nav.NavigateTo($"/team/{Selected.Id}/work-items/{workItemId}");
     }
 
     private async Task HandleMemberUpdate(TeamMember next)
     {
-        TeamMember? previous = Cache.Team.FirstOrDefault(m => m.Id == next.Id);
+        TeamMember? previous = this._cache.Team.FirstOrDefault(m => m.Id == next.Id);
         if (previous is null)
         {
             return;
@@ -202,11 +203,11 @@ public partial class Team : IDisposable
 
         try
         {
-            await TeamMemberService.UpdateAsync(previous, next);
+            await this._teamMemberService.UpdateAsync(previous, next);
         }
         catch (Exception ex)
         {
-            await Dialogs.AlertAsync($"Unable to save team member changes right now. Please try again.\n\n{ex.Message}");
+            await this._dialogs.AlertAsync($"Unable to save team member changes right now. Please try again.\n\n{ex.Message}");
         }
     }
 
@@ -216,9 +217,9 @@ public partial class Team : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (MemberIdParsed is { } id && Cache.TeamReady && Cache.Team.All(m => m.Id != id))
+                if (MemberIdParsed is { } id && this._cache.TeamReady && this._cache.Team.All(m => m.Id != id))
                 {
-                    Nav.NavigateTo("/team", replace: true);
+                    this._nav.NavigateTo("/team", replace: true);
                     return;
                 }
 
@@ -233,7 +234,8 @@ public partial class Team : IDisposable
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Nav.LocationChanged -= OnLocationChangedAsync;
+        this._cache.Changed -= OnChangedAsync;
+        this._nav.LocationChanged -= OnLocationChangedAsync;
     }
+}
 }

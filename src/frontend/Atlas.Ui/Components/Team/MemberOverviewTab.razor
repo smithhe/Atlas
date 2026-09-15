@@ -143,20 +143,20 @@
     </section>
 </div>
 
-<AtlasModal Title="Edit profile" IsOpen="_profileOpen" OnClose="CloseProfileModal">
+<AtlasModal Title="Edit profile" IsOpen="this.ProfileOpen" OnClose="CloseProfileModal">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Name</div>
-                <input class="input" @bind="_profileName" @bind:event="oninput" placeholder="Full name" />
+                <input class="input" @bind="this.ProfileName" @bind:event="oninput" placeholder="Full name" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Role / Level</div>
-                <input class="input" @bind="_profileRole" @bind:event="oninput" placeholder="e.g., Senior Engineer" />
+                <input class="input" @bind="this.ProfileRole" @bind:event="oninput" placeholder="e.g., Senior Engineer" />
             </label>
             <label class="field">
                 <div class="fieldLabel">Time zone</div>
-                <select class="select" @bind="_profileTz">
+                <select class="select" @bind="this.ProfileTz">
                     <option value="">(Select)</option>
                     @foreach ((string Value, string Label) tz in TimeZones)
                     {
@@ -166,7 +166,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Typical hours</div>
-                <input class="input" @bind="_profileHours" @bind:event="oninput" placeholder="e.g., 9–5" />
+                <input class="input" @bind="this.ProfileHours" @bind:event="oninput" placeholder="e.g., 9–5" />
             </label>
         </div>
     </ChildContent>
@@ -178,12 +178,12 @@
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="Edit signals" IsOpen="_signalsOpen" OnClose="() => _signalsOpen = false">
+<AtlasModal Title="Edit signals" IsOpen="this.SignalsOpen" OnClose="() => this.SignalsOpen = false">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Load</div>
-                <select class="select" value="@_draftLoad" @onchange="e => _draftLoad = Enum.Parse<LoadSignal>((string)e.Value!)">
+                <select class="select" value="@this.DraftLoad" @onchange="e => this.DraftLoad = Enum.Parse<LoadSignal>((string)e.Value!)">
                     @foreach (LoadSignal x in LoadOptions)
                     {
                         <option value="@x">@x</option>
@@ -192,7 +192,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Delivery</div>
-                <select class="select" value="@_draftDelivery" @onchange="e => _draftDelivery = Enum.Parse<DeliverySignal>((string)e.Value!)">
+                <select class="select" value="@this.DraftDelivery" @onchange="e => this.DraftDelivery = Enum.Parse<DeliverySignal>((string)e.Value!)">
                     @foreach (DeliverySignal x in DeliveryOptions)
                     {
                         <option value="@x">@(x == DeliverySignal.OnTrack ? "On Track" : x == DeliverySignal.AtRisk ? "At Risk" : x.ToString())</option>
@@ -201,7 +201,7 @@
             </label>
             <label class="field">
                 <div class="fieldLabel">Support needed</div>
-                <select class="select" value="@_draftSupport" @onchange="e => _draftSupport = Enum.Parse<SupportNeededSignal>((string)e.Value!)">
+                <select class="select" value="@this.DraftSupport" @onchange="e => this.DraftSupport = Enum.Parse<SupportNeededSignal>((string)e.Value!)">
                     @foreach (SupportNeededSignal x in SupportOptions)
                     {
                         <option value="@x">@x</option>
@@ -213,17 +213,17 @@
     <Footer>
         <div class="row" style="margin-top: 0">
             <button class="btn btnSecondary" type="button" @onclick="SaveSignals">Save</button>
-            <button class="btn btnGhost" type="button" @onclick="() => _signalsOpen = false">Cancel</button>
+            <button class="btn btnGhost" type="button" @onclick="() => this.SignalsOpen = false">Cancel</button>
         </div>
     </Footer>
 </AtlasModal>
 
-<AtlasModal Title="Edit focus right now" IsOpen="_focusOpen" OnClose="CloseFocusModal">
+<AtlasModal Title="Edit focus right now" IsOpen="this.FocusOpen" OnClose="CloseFocusModal">
     <ChildContent>
         <div class="fieldGrid">
             <label class="field">
                 <div class="fieldLabel">Current focus</div>
-                <textarea class="textarea" @bind="_focusDraft" @bind:event="oninput" placeholder="What is this person focused on right now?"></textarea>
+                <textarea class="textarea" @bind="this.FocusDraft" @bind:event="oninput" placeholder="What is this person focused on right now?"></textarea>
             </label>
         </div>
     </ChildContent>

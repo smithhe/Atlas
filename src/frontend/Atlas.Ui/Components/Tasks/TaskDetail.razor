@@ -7,7 +7,7 @@
     {
         AtlasTask task = Task;
         string statusLabel = DisplayLabels.FormatTaskStatus(task.Status);
-        bool stale = (DisplayLabels.DaysSince(task.LastTouchedIso) ?? 0) >= StaleDays;
+        bool stale = (DisplayLabels.DaysSince(task.LastTouchedIso) ?? 0) >= this.StaleDays;
         string? assigneeName = AssigneeName(task.AssigneeId);
         Duration.ParsedDuration? estimateParsed = Duration.ParseDurationText(task.EstimatedDurationText);
         string estimatePreview = estimateParsed is null ? "Invalid" : Duration.FormatDurationFromMinutes(estimateParsed.TotalMinutes);
@@ -19,7 +19,7 @@
         IReadOnlyList<AtlasTask> blockerCandidates = GetBlockerCandidates(task);
         HashSet<Guid> tasksThatDependOnMe = GetTasksThatDependOnMe(task.Id);
         bool hasCycle = task.DependencyTaskIds.Any(id => tasksThatDependOnMe.Contains(id));
-        Guid? resolvedBlockerId = ResolveBlockerIdFromInput(_addBlockerText, blockerCandidates);
+        Guid? resolvedBlockerId = ResolveBlockerIdFromInput(this.AddBlockerText, blockerCandidates);
 
         <div class="card pad">
             <div class="detailHeader">
@@ -34,7 +34,7 @@
                     </div>
                 </div>
                 <div class="rowTiny">
-                    @if (!_editing)
+                    @if (!this.Editing)
                     {
                         <div class="pillRow">
                             <span class="pill @Tones.TaskStatusTone(task.Status)">@statusLabel</span>
@@ -45,11 +45,11 @@
                             }
                         </div>
                     }
-                    <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(_editing ? "Done" : "Edit")</button>
-                    <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@_deleting">
-                        @(_deleting ? "Deleting…" : "Delete")
+                    <button class="btn btnGhost" type="button" @onclick="ToggleEdit">@(this.Editing ? "Done" : "Edit")</button>
+                    <button class="btn btnGhost textBad" type="button" @onclick="HandleDelete" disabled="@this.Deleting">
+                        @(this.Deleting ? "Deleting…" : "Delete")
                     </button>
-                    @if (IsFocusMode)
+                    @if (this.IsFocusMode)
                     {
                         <button class="btn btnGhost" type="button" @onclick="OnExitFocus">Exit focus</button>
                     }
@@ -62,7 +62,7 @@
             </div>
 
             <div class="fieldGrid2">
-                @if (_editing)
+                @if (this.Editing)
                 {
                     <label class="field span2">
                         <div class="fieldLabel">Title</div>
@@ -79,7 +79,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Status</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@statusLabel" @onchange="OnStatusChange">
                             <option value="Not Started">Not Started</option>
@@ -98,7 +98,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Priority (required)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@task.Priority.ToString()" @onchange="OnPriorityChange">
                             <option value="Low">Low</option>
@@ -115,7 +115,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Assignee (optional)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@(task.AssigneeId?.ToString() ?? "")" @onchange="OnAssigneeChange">
                             <option value="">(None)</option>
@@ -137,7 +137,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Estimated Duration (required)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <input class="input" placeholder="e.g., 1d, 2h30m" value="@task.EstimatedDurationText" @oninput="OnEstimateInput" />
                         <div class="mutedSmall @(estimateParsed is null ? "textBad" : null)">Estimated: @estimatePreview</div>
@@ -151,7 +151,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Confidence</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@task.EstimateConfidence.ToString()" @onchange="OnConfidenceChange">
                             <option value="Low">Low</option>
@@ -167,15 +167,15 @@
 
                 <div class="field">
                     <div class="fieldLabel">Project (optional)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@(task.ProjectId?.ToString() ?? "")" @onchange="OnProjectChange">
                             <option value="">(None)</option>
-                            @foreach (Project p in ProjectOptions)
+                            @foreach (Project p in this.ProjectOptions)
                             {
                                 <option value="@p.Id">@p.Name</option>
                             }
-                            @if (task.ProjectId is not null && ProjectOptions.All(p => p.Id != task.ProjectId))
+                            @if (task.ProjectId is not null && this.ProjectOptions.All(p => p.Id != task.ProjectId))
                             {
                                 <option value="@task.ProjectId">@(task.Project ?? task.ProjectId.ToString())</option>
                             }
@@ -189,15 +189,15 @@
 
                 <div class="field">
                     <div class="fieldLabel">Risk (optional)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <select class="select" value="@(task.RiskId?.ToString() ?? "")" @onchange="OnRiskChange">
                             <option value="">(None)</option>
-                            @foreach (Risk r in RiskOptions)
+                            @foreach (Risk r in this.RiskOptions)
                             {
                                 <option value="@r.Id">@r.Title</option>
                             }
-                            @if (task.RiskId is not null && RiskOptions.All(r => r.Id != task.RiskId))
+                            @if (task.RiskId is not null && this.RiskOptions.All(r => r.Id != task.RiskId))
                             {
                                 <option value="@task.RiskId">@(task.Risk ?? task.RiskId.ToString())</option>
                             }
@@ -211,7 +211,7 @@
 
                 <div class="field">
                     <div class="fieldLabel">Due date (optional)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <input class="input" type="date" value="@(task.DueDate ?? "")" @onchange="OnDueDateChange" />
                     }
@@ -223,7 +223,7 @@
 
                 <div class="field span2">
                     <div class="fieldLabel">Actual Duration (optional)</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <input class="input" placeholder="e.g., 1d2h, 45m" value="@(task.ActualDurationText ?? "")" @oninput="OnActualInput" />
                         <div class="mutedSmall @(task.ActualDurationText is not null && !string.IsNullOrWhiteSpace(task.ActualDurationText) && actualParsed is null ? "textBad" : null)">Actual: @actualPreview</div>
@@ -238,13 +238,13 @@
                 <div class="field span2">
                     <div class="fieldLabel">Blockers (optional)</div>
                     <div class="card tight blockersCard">
-                        @if (_editing)
+                        @if (this.Editing)
                         {
                             <div class="blockersAddRow">
                                 <input class="input blockersAddSelect"
                                        list="blockerCandidatesList"
                                        placeholder="Add blocker…"
-                                       value="@_addBlockerText"
+                                       value="@this.AddBlockerText"
                                        @oninput="OnAddBlockerInput" />
                                 <datalist id="blockerCandidatesList">
                                     @foreach (AtlasTask candidate in blockerCandidates)
@@ -279,7 +279,7 @@
                                     </div>
                                     <div class="blockersItemRight">
                                         <span class="pill @Tones.TaskStatusTone(blocker.Status)">@blockerStatus</span>
-                                        @if (_editing)
+                                        @if (this.Editing)
                                         {
                                             <button type="button"
                                                     class="btn btnGhost blockersRemoveBtn"
@@ -297,7 +297,7 @@
                     {
                         <div class="mutedSmall textBad">One or more selected dependencies would create a cycle; please remove them.</div>
                     }
-                    @if (_editing && task.DependencyTaskIds.Count > 0)
+                    @if (this.Editing && task.DependencyTaskIds.Count > 0)
                     {
                         <div class="rowTiny">
                             <button type="button" class="btn btnGhost" @onclick="ClearDependencies">Clear dependencies</button>
@@ -307,7 +307,7 @@
 
                 <div class="field span2">
                     <div class="fieldLabel">Notes</div>
-                    @if (_editing)
+                    @if (this.Editing)
                     {
                         <textarea class="textarea textareaAutoGrow"
                                   value="@task.Notes"

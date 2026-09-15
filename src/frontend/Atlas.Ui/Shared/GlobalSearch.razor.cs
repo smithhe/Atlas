@@ -3,30 +3,31 @@ using Microsoft.AspNetCore.Components.Web;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
+namespace Atlas.Ui.Shared
+{
 public partial class GlobalSearch : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private SelectionState Selection { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private SelectionState _selection { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
 
     private sealed record SearchResult(string Id, string Kind, string Title, string Meta, string To, Guid EntityId);
 
     private static readonly string[] KindOrder = ["Task", "Risk", "Person", "Project"];
     private const int MaxResults = 12;
 
-    private string _query = "";
-    private bool _open;
-    private int _active;
-    private List<SearchResult> _results = [];
+    private string Query { get; set; } = "";
+    private bool Open { get; set; }
+    private int Active { get; set; }
+    private List<SearchResult> Results { get; set; } = [];
 
-    private bool HasQuery => !string.IsNullOrWhiteSpace(_query);
+    private bool HasQuery => !string.IsNullOrWhiteSpace(this.Query);
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnCacheChangedAsync;
+        this._cache.Changed += OnCacheChangedAsync;
     }
 
     private async void OnCacheChangedAsync()
@@ -47,24 +48,24 @@ public partial class GlobalSearch : IDisposable
 
     private void OnQueryInput(ChangeEventArgs e)
     {
-        _query = e.Value?.ToString() ?? "";
-        _open = true;
-        _active = 0;
+        this.Query = e.Value?.ToString() ?? "";
+        this.Open = true;
+        this.Active = 0;
         Rebuild();
     }
 
     private void Rebuild()
     {
-        var q = _query.Trim().ToLowerInvariant();
+        var q = this.Query.Trim().ToLowerInvariant();
         if (q.Length == 0)
         {
-            _results = [];
+            this.Results = [];
             return;
         }
 
         List<SearchResult> results = new();
 
-        foreach (AtlasTask task in Cache.Tasks)
+        foreach (AtlasTask task in this._cache.Tasks)
         {
             var haystack = string.Join(' ', new[]
             {
@@ -85,7 +86,7 @@ public partial class GlobalSearch : IDisposable
                 task.Id));
         }
 
-        foreach (Risk risk in Cache.Risks)
+        foreach (Risk risk in this._cache.Risks)
         {
             var haystack = string.Join(' ', new[]
             {
@@ -105,7 +106,7 @@ public partial class GlobalSearch : IDisposable
                 risk.Id));
         }
 
-        foreach (TeamMember member in Cache.Team)
+        foreach (TeamMember member in this._cache.Team)
         {
             var haystack = string.Join(' ', new[] { member.Name, member.Role, member.CurrentFocus }.Where(s => !string.IsNullOrEmpty(s)));
             if (!haystack.Contains(q, StringComparison.OrdinalIgnoreCase))
@@ -122,7 +123,7 @@ public partial class GlobalSearch : IDisposable
                 member.Id));
         }
 
-        foreach (Project project in Cache.Projects)
+        foreach (Project project in this._cache.Projects)
         {
             var haystack = string.Join(' ', new[]
             {
@@ -148,10 +149,10 @@ public partial class GlobalSearch : IDisposable
             return kindDiff != 0 ? kindDiff : string.Compare(a.Title, b.Title, StringComparison.OrdinalIgnoreCase);
         });
 
-        _results = results.Take(MaxResults).ToList();
-        if (_active >= _results.Count)
+        this.Results = results.Take(MaxResults).ToList();
+        if (this.Active >= this.Results.Count)
         {
-            _active = 0;
+            this.Active = 0;
         }
     }
 
@@ -159,68 +160,69 @@ public partial class GlobalSearch : IDisposable
     {
         if (result.Kind == "Task")
         {
-            Selection.SelectTask(result.EntityId);
+            this._selection.SelectTask(result.EntityId);
         }
 
         if (result.Kind == "Risk")
         {
-            Selection.SelectRisk(result.EntityId);
+            this._selection.SelectRisk(result.EntityId);
         }
 
         if (result.Kind == "Person")
         {
-            Selection.SelectTeamMember(result.EntityId);
+            this._selection.SelectTeamMember(result.EntityId);
         }
 
         if (result.Kind == "Project")
         {
-            Selection.SelectProject(result.EntityId);
+            this._selection.SelectProject(result.EntityId);
         }
 
-        Nav.NavigateTo(result.To);
-        _query = "";
-        _open = false;
-        _active = 0;
-        _results = [];
+        this._nav.NavigateTo(result.To);
+        this.Query = "";
+        this.Open = false;
+        this.Active = 0;
+        this.Results = [];
     }
 
     private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Escape")
         {
-            if (_open && HasQuery)
+            if (this.Open && HasQuery)
             {
-                _open = false;
-                _active = 0;
+                this.Open = false;
+                this.Active = 0;
             }
             else if (HasQuery)
             {
-                _query = "";
-                _results = [];
+                this.Query = "";
+                this.Results = [];
             }
             return;
         }
 
-        if (!_open || !HasQuery || _results.Count == 0)
+        if (!this.Open || !HasQuery || this.Results.Count == 0)
         {
             return;
         }
 
         if (e.Key == "ArrowDown")
         {
-            _active = (_active + 1) % _results.Count;
+            this.Active = (this.Active + 1) % this.Results.Count;
         }
         else if (e.Key == "ArrowUp")
         {
-            _active = (_active - 1 + _results.Count) % _results.Count;
+            this.Active = (this.Active - 1 + this.Results.Count) % this.Results.Count;
         }
         else if (e.Key == "Enter")
         {
-            SelectResult(_results[_active]);
+            SelectResult(this.Results[this.Active]);
         }
     }
 
     private void OnRootKeyDown(KeyboardEventArgs e) { }
 
-    public void Dispose() => Cache.Changed -= OnCacheChangedAsync;
+    public void Dispose() => this._cache.Changed -= OnCacheChangedAsync;
+}
 }

@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Per-member risk mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class TeamMemberRiskService
+public sealed class TeamMemberRiskService : ITeamMemberRiskService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public TeamMemberRiskService(IAtlasApiClient api, AppCacheService cache)
+    public TeamMemberRiskService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -52,4 +54,5 @@ public sealed class TeamMemberRiskService
                 EntityRequestMappers.ToUpdateTeamMemberRiskRequest(next),
                 cancellationToken));
     }
+}
 }

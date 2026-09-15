@@ -1,10 +1,10 @@
 @implements IAsyncDisposable
 
-@if (Ai.IsOpen)
+@if (this._ai.IsOpen)
 {
     <aside class="aiPanel" aria-label="AI panel">
         <div class="aiPanelHeader">
-            <div class="aiPanelTitle">@Ai.ContextTitle</div>
+            <div class="aiPanelTitle">@this._ai.ContextTitle</div>
             <div class="aiPanelHeaderActions">
                 <button class="btn btnSecondary"
                         type="button"
@@ -13,30 +13,30 @@
                         @onclick="HandleInsertDraft">
                     Insert Draft
                 </button>
-                <button class="btn btnGhost" type="button" disabled="@Ai.IsRunning" @onclick="StartNewSessionAsync">
+                <button class="btn btnGhost" type="button" disabled="@this._ai.IsRunning" @onclick="StartNewSessionAsync">
                     New session
                 </button>
-                <button class="btn btnGhost" type="button" @onclick="Ai.ClearOutput">Clear</button>
-                <button class="btn btnGhost" type="button" @onclick="() => Ai.SetIsOpen(false)">Close</button>
+                <button class="btn btnGhost" type="button" @onclick="this._ai.ClearOutput">Clear</button>
+                <button class="btn btnGhost" type="button" @onclick="() => this._ai.SetIsOpen(false)">Close</button>
             </div>
         </div>
 
         <div class="aiPanelBody">
             <div class="aiPanelMeta">
                 <div class="mutedSmall">
-                    Status: @Ai.Status@(Ai.IsRunning ? " (running)" : "")@(Ai.ActiveConversationId is not null ? " · In conversation" : "")
+                    Status: @this._ai.Status@(this._ai.IsRunning ? " (running)" : "")@(this._ai.ActiveConversationId is not null ? " · In conversation" : "")
                 </div>
-                @if (Ai.ContextSupportMessage is not null)
+                @if (this._ai.ContextSupportMessage is not null)
                 {
-                    <div class="mutedSmall">@Ai.ContextSupportMessage</div>
+                    <div class="mutedSmall">@this._ai.ContextSupportMessage</div>
                 }
-                @if (!Ai.HasDraftTarget)
+                @if (!this._ai.HasDraftTarget)
                 {
                     <div class="mutedSmall">Insert Draft: edit a task note or note body first</div>
                 }
-                @if (!string.IsNullOrEmpty(Ai.Notice))
+                @if (!string.IsNullOrEmpty(this._ai.Notice))
                 {
-                    <div class="aiPanelNotice">@Ai.Notice</div>
+                    <div class="aiPanelNotice">@this._ai.Notice</div>
                 }
             </div>
 
@@ -56,18 +56,18 @@
                 </div>
             }
 
-            <div @ref="_scrollRef" class="aiPanelScroll" role="log" aria-label="AI conversation" aria-live="polite">
-                @if (Ai.Turns.Count == 0)
+            <div @ref="this.ScrollRef" class="aiPanelScroll" role="log" aria-label="AI conversation" aria-live="polite">
+                @if (this._ai.Turns.Count == 0)
                 {
                     <div class="aiPanelEmpty muted">Ask a question or choose an action to get started.</div>
                 }
                 else
                 {
-                    @for (var i = 0; i < Ai.Turns.Count; i++)
+                    @for (var i = 0; i < this._ai.Turns.Count; i++)
                     {
-                        AiTranscriptTurn turn = Ai.Turns[i];
-                        bool isLast = i == Ai.Turns.Count - 1;
-                        bool isThinking = isLast && Ai.IsRunning && string.IsNullOrWhiteSpace(turn.Response);
+                        AiTranscriptTurn turn = this._ai.Turns[i];
+                        bool isLast = i == this._ai.Turns.Count - 1;
+                        bool isThinking = isLast && this._ai.IsRunning && string.IsNullOrWhiteSpace(turn.Response);
                         <article class="aiPanelTurn" @key="turn.Id">
                             <div class="aiPanelTurnPrompt">@turn.Prompt</div>
                             <div class="aiPanelTurnResponse">
@@ -79,9 +79,9 @@
                                 {
                                     <MarkdownBlock Text="@turn.Response" />
                                     <button type="button"
-                                            class="btn btnGhost btnIcon aiPanelCopyBtn@(_copiedTurnId == turn.Id ? " aiPanelCopyBtnCopied" : null)"
-                                            title="@(_copiedTurnId == turn.Id ? "Copied" : "Copy response")"
-                                            aria-label="@(_copiedTurnId == turn.Id ? "Copied" : "Copy response")"
+                                            class="btn btnGhost btnIcon aiPanelCopyBtn@(this.CopiedTurnId == turn.Id ? " aiPanelCopyBtnCopied" : null)"
+                                            title="@(this.CopiedTurnId == turn.Id ? "Copied" : "Copy response")"
+                                            aria-label="@(this.CopiedTurnId == turn.Id ? "Copied" : "Copy response")"
                                             @onclick="() => CopyTurnResponse(turn)">
                                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                                             <rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5" />
@@ -95,16 +95,16 @@
                 }
             </div>
 
-            @if (Ai.Actions.Count > 0)
+            @if (this._ai.Actions.Count > 0)
             {
                 <div class="aiPanelQuickActions">
-                    @foreach (AiAction action in Ai.Actions)
+                    @foreach (AiAction action in this._ai.Actions)
                     {
                         <button @key="action.Id"
                                 class="btn btnSecondary"
                                 type="button"
-                                disabled="@(Ai.IsRunning || !Ai.IsContextSupported)"
-                                @onclick="() => Ai.RunAction(action.Id)">
+                                disabled="@(this._ai.IsRunning || !this._ai.IsContextSupported)"
+                                @onclick="() => this._ai.RunAction(action.Id)">
                             @action.Label
                         </button>
                     }
@@ -113,30 +113,30 @@
 
             <div class="aiPanelComposer">
                 <textarea class="textarea aiPanelPrompt"
-                          value="@Ai.PromptDraft"
+                          value="@this._ai.PromptDraft"
                           @oninput="OnPromptInput"
                           placeholder="Ask AI about this context..."
                           rows="3"></textarea>
                 <button class="btn aiPanelSend"
                         type="button"
-                        disabled="@(Ai.IsRunning || !Ai.IsContextSupported || string.IsNullOrWhiteSpace(Ai.PromptDraft))"
+                        disabled="@(this._ai.IsRunning || !this._ai.IsContextSupported || string.IsNullOrWhiteSpace(this._ai.PromptDraft))"
                         @onclick="SendPrompt">
                     Send Prompt
                 </button>
             </div>
 
-            @if (Ai.Conversations.Count > 0)
+            @if (this._ai.Conversations.Count > 0)
             {
                 <div class="aiPanelHistory">
                     <label class="aiPanelHistoryLabel mutedSmall" for="ai-conversation-select">Conversations</label>
                     <div class="aiPanelHistoryRow">
                         <select id="ai-conversation-select"
                                 class="input aiPanelHistorySelect"
-                                value="@(Ai.ActiveConversationId?.ToString() ?? "")"
-                                disabled="@(Ai.IsLoadingHistory || Ai.IsRunning)"
+                                value="@(this._ai.ActiveConversationId?.ToString() ?? "")"
+                                disabled="@(this._ai.IsLoadingHistory || this._ai.IsRunning)"
                                 @onchange="OnConversationChange">
                             <option value="">Recent conversations…</option>
-                            @foreach (AiConversationListItem conversation in Ai.Conversations)
+                            @foreach (AiConversationListItem conversation in this._ai.Conversations)
                             {
                                 string id = conversation.ConversationId.ToString();
                                 string updated = conversation.UpdatedAtUtc?.LocalDateTime.ToString() ?? "";
@@ -146,8 +146,8 @@
                         </select>
                         <button class="btn btnSecondary aiPanelHistoryRefresh"
                                 type="button"
-                                disabled="@Ai.IsLoadingHistory"
-                                @onclick="Ai.LoadConversations">
+                                disabled="@this._ai.IsLoadingHistory"
+                                @onclick="this._ai.LoadConversations">
                             Refresh
                         </button>
                     </div>

@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Azure work-item local notes. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class AzureWorkItemService
+public sealed class AzureWorkItemService : IAzureWorkItemService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public AzureWorkItemService(IAtlasApiClient api, AppCacheService cache)
+    public AzureWorkItemService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -97,4 +99,5 @@ public sealed class AzureWorkItemService
                 EntityRequestMappers.ToSetAzureWorkItemProjectRequest(projectId),
                 cancellationToken));
     }
+}
 }

@@ -1,16 +1,18 @@
 using Atlas.Ui.Api.Generated;
+using Atlas.Ui.Contracts;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 
-namespace Atlas.Ui.Services;
+namespace Atlas.Ui.Services
+{
 
 /// <summary>Settings mutations. Pages talk to this instead of <see cref="IAtlasApiClient"/>.</summary>
-public sealed class SettingsService
+public sealed class SettingsService : ISettingsService
 {
     private readonly IAtlasApiClient _api;
-    private readonly AppCacheService _cache;
+    private readonly IAppCacheService _cache;
 
-    public SettingsService(IAtlasApiClient api, AppCacheService cache)
+    public SettingsService(IAtlasApiClient api, IAppCacheService cache)
     {
         _api = api;
         _cache = cache;
@@ -34,4 +36,5 @@ public sealed class SettingsService
             AzureDevOpsBaseUrl = settings.AzureDevOpsBaseUrl
         });
     }
+}
 }

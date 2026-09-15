@@ -5,7 +5,7 @@
         <div class="topBarLeft">
             <div class="appTitleRow">
                 <div class="appTitle">Atlas</div>
-                @if (Cache.IsHydrating)
+                @if (this._cache.IsHydrating)
                 {
                     <span class="spinner spinner-sm spinnerInline topBarSpinner" role="status" aria-label="Loading data"></span>
                 }
@@ -30,9 +30,9 @@
 
         <main class="mainContent" aria-label="Main content">
             <div class="srOnly" aria-hidden="true">@ContextTitle</div>
-            <div class="loadingOverlayWrap @(Cache.IsHydrating ? "loadingOverlayWrapActive" : null)">
-                <div class="loadingOverlayBody" aria-hidden="@(Cache.IsHydrating ? "true" : null)">
-                    <ErrorBoundary @ref="_errorBoundary">
+            <div class="loadingOverlayWrap @(this._cache.IsHydrating ? "loadingOverlayWrapActive" : null)">
+                <div class="loadingOverlayBody" aria-hidden="@(this._cache.IsHydrating ? "true" : null)">
+                    <ErrorBoundary @ref="this.ErrorBoundaryRef">
                         <ChildContent>
                             @Body
                         </ChildContent>
@@ -44,7 +44,7 @@
                         </ErrorContent>
                     </ErrorBoundary>
                 </div>
-                @if (Cache.IsHydrating)
+                @if (this._cache.IsHydrating)
                 {
                     <div class="loadingOverlay" role="presentation">
                         <span class="spinner spinner-md" role="status" aria-label="Loading app data"></span>
@@ -53,9 +53,9 @@
             </div>
         </main>
 
-        @if (Ai.IsOpen)
+        @if (this._ai.IsOpen)
         {
-            <div @ref="_resizerRef"
+            <div @ref="this.ResizerRef"
                  class="aiResizer"
                  role="separator"
                  aria-orientation="vertical"
@@ -68,5 +68,5 @@
         }
     </div>
 
-    <QuickAddModal IsOpen="_quickAddOpen" OnClose="CloseQuickAdd" />
+    <QuickAddModal IsOpen="this.QuickAddOpen" OnClose="CloseQuickAdd" />
 </div>

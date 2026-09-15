@@ -3,15 +3,16 @@ using Microsoft.AspNetCore.Components.Routing;
 using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Components.Projects;
-
+namespace Atlas.Ui.Components.Projects
+{
 public partial class ProjectDetail : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private BrowserDialogs Dialogs { get; set; } = null!;
-    [Inject] private ProjectService ProjectService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private BrowserDialogs _dialogs { get; set; } = null!;
+    [Inject] private IProjectService _projectService { get; set; } = null!;
 
     [Parameter, EditorRequired] public Project? Project { get; set; }
     [Parameter] public bool IsFocusMode { get; set; }
@@ -26,65 +27,65 @@ public partial class ProjectDetail : IDisposable
         "done", "closed", "completed", "resolved", "removed"
     };
 
-    private bool _deleting;
-    private bool _editing;
-    private bool _saving;
-    private Guid? _lastSelectedId;
-    private string _tab = "overview";
+    private bool Deleting { get; set; }
+    private bool Editing { get; set; }
+    private bool Saving { get; set; }
+    private Guid? LastSelectedId { get; set; }
+    private string Tab { get; set; } = "overview";
 
-    private string _draftName = "";
-    private string _draftSummary = "";
-    private string _draftDescription = "";
-    private string _draftStatus = "Active";
-    private string _draftHealth = "Green";
-    private string _draftTargetDateIso = "";
-    private string? _draftPriority;
-    private bool _draftPriorityTouched;
-    private string _draftProductOwnerId = "";
-    private string _tagsText = "";
-    private string _draftCheckInDate = "";
-    private string _draftCheckInNote = "";
-    private List<ProjectLink> _draftLinks = [];
+    private string DraftName { get; set; } = "";
+    private string DraftSummary { get; set; } = "";
+    private string DraftDescription { get; set; } = "";
+    private string DraftStatus { get; set; } = "Active";
+    private string DraftHealth { get; set; } = "Green";
+    private string DraftTargetDateIso { get; set; } = "";
+    private string? DraftPriority { get; set; }
+    private bool DraftPriorityTouched { get; set; }
+    private string DraftProductOwnerId { get; set; } = "";
+    private string TagsText { get; set; } = "";
+    private string DraftCheckInDate { get; set; } = "";
+    private string DraftCheckInNote { get; set; } = "";
+    private List<ProjectLink> DraftLinks { get; set; } = [];
 
-    private string _taskQuery = "";
-    private string _taskStatusFilter = "All";
-    private string _taskPriorityFilter = "All";
-    private string _taskAssigneeFilter = "All";
-    private string _taskDueFilter = "All";
+    private string TaskQuery { get; set; } = "";
+    private string TaskStatusFilter { get; set; } = "All";
+    private string TaskPriorityFilter { get; set; } = "All";
+    private string TaskAssigneeFilter { get; set; } = "All";
+    private string TaskDueFilter { get; set; } = "All";
 
-    private string _riskQuery = "";
-    private string _riskSeverityFilter = "All";
-    private string _riskOwnerFilter = "All";
+    private string RiskQuery { get; set; } = "";
+    private string RiskSeverityFilter { get; set; } = "All";
+    private string RiskOwnerFilter { get; set; } = "All";
 
-    private string EffectiveTab => _editing ? "overview" : _tab;
+    private string EffectiveTab => this.Editing ? "overview" : this.Tab;
 
     private IReadOnlyList<ProductOwner> SortedProductOwners =>
-        Cache.ProductOwners.OrderBy(po => po.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        this._cache.ProductOwners.OrderBy(po => po.Name, StringComparer.OrdinalIgnoreCase).ToList();
 
     private Dictionary<Guid, TeamMember> MemberById =>
-        Cache.Team.ToDictionary(m => m.Id);
+        this._cache.Team.ToDictionary(m => m.Id);
 
     private ProductOwner? ProductOwner =>
         Project?.ProductOwnerId is { } poId
-            ? Cache.ProductOwners.FirstOrDefault(po => po.Id == poId)
+            ? this._cache.ProductOwners.FirstOrDefault(po => po.Id == poId)
             : null;
 
     private IReadOnlyList<TeamMember> TeamMembers =>
         Project is null
             ? Array.Empty<TeamMember>()
-            : Cache.Team.Where(m => Project.TeamMemberIds.Contains(m.Id)).ToList();
+            : this._cache.Team.Where(m => Project.TeamMemberIds.Contains(m.Id)).ToList();
 
     private IReadOnlyList<AtlasTask> LinkedTasks =>
         Project is null
             ? Array.Empty<AtlasTask>()
-            : Cache.Tasks.Where(t =>
+            : this._cache.Tasks.Where(t =>
                 Project.LinkedTaskIds.Contains(t.Id) ||
                 t.ProjectId == Project.Id).ToList();
 
     private IReadOnlyList<Risk> LinkedRisks =>
         Project is null
             ? Array.Empty<Risk>()
-            : Cache.Risks.Where(r =>
+            : this._cache.Risks.Where(r =>
                 Project.LinkedRiskIds.Contains(r.Id) ||
                 r.ProjectId == Project.Id).ToList();
 
@@ -99,7 +100,7 @@ public partial class ProjectDetail : IDisposable
 
             var projectId = Project.Id.ToString();
             var byId = new Dictionary<string, AzureItem>(StringComparer.Ordinal);
-            foreach (TeamMember member in Cache.Team)
+            foreach (TeamMember member in this._cache.Team)
             {
                 foreach (AzureItem item in member.AzureItems)
                 {
@@ -120,28 +121,28 @@ public partial class ProjectDetail : IDisposable
     {
         get
         {
-            var q = _taskQuery.Trim();
+            var q = this.TaskQuery.Trim();
             var todayIso = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
             return LinkedTasks.Where(t =>
             {
                 var statusLabel = DisplayLabels.FormatTaskStatus(t.Status);
-                if (_taskStatusFilter != "All" && statusLabel != _taskStatusFilter)
+                if (this.TaskStatusFilter != "All" && statusLabel != this.TaskStatusFilter)
                 {
                     return false;
                 }
 
-                if (_taskPriorityFilter != "All" && t.Priority.ToString() != _taskPriorityFilter)
+                if (this.TaskPriorityFilter != "All" && t.Priority.ToString() != this.TaskPriorityFilter)
                 {
                     return false;
                 }
 
-                if (_taskAssigneeFilter != "All" && (t.AssigneeId?.ToString() ?? "") != _taskAssigneeFilter)
+                if (this.TaskAssigneeFilter != "All" && (t.AssigneeId?.ToString() ?? "") != this.TaskAssigneeFilter)
                 {
                     return false;
                 }
 
-                if (_taskDueFilter != "All" && GetDueBucket(t.DueDate, todayIso) != _taskDueFilter)
+                if (this.TaskDueFilter != "All" && GetDueBucket(t.DueDate, todayIso) != this.TaskDueFilter)
                 {
                     return false;
                 }
@@ -160,15 +161,15 @@ public partial class ProjectDetail : IDisposable
     {
         get
         {
-            var q = _riskQuery.Trim();
+            var q = this.RiskQuery.Trim();
             return LinkedRisks.Where(r =>
             {
-                if (_riskSeverityFilter != "All" && r.Severity != _riskSeverityFilter)
+                if (this.RiskSeverityFilter != "All" && r.Severity != this.RiskSeverityFilter)
                 {
                     return false;
                 }
 
-                if (_riskOwnerFilter != "All" && (r.OwnerId?.ToString() ?? "") != _riskOwnerFilter)
+                if (this.RiskOwnerFilter != "All" && (r.OwnerId?.ToString() ?? "") != this.RiskOwnerFilter)
                 {
                     return false;
                 }
@@ -251,8 +252,8 @@ public partial class ProjectDetail : IDisposable
 
     protected override void OnInitialized()
     {
-        Cache.Changed += OnChangedAsync;
-        Nav.LocationChanged += OnLocationChangedAsync;
+        this._cache.Changed += OnChangedAsync;
+        this._nav.LocationChanged += OnLocationChangedAsync;
         SyncTabFromUri();
     }
 
@@ -262,21 +263,21 @@ public partial class ProjectDetail : IDisposable
 
         if (Project is not null)
         {
-            var projectChanged = _lastSelectedId != Project.Id;
+            var projectChanged = this.LastSelectedId != Project.Id;
             if (projectChanged)
             {
-                _lastSelectedId = Project.Id;
+                this.LastSelectedId = Project.Id;
                 var autoEdit = AutoEditId == Project.Id;
                 ResetDraftFromProject(Project, autoEdit);
             }
-            else if (AutoEditId == Project.Id && !_editing)
+            else if (AutoEditId == Project.Id && !this.Editing)
             {
                 StartEdit();
             }
         }
         else
         {
-            _lastSelectedId = null;
+            this.LastSelectedId = null;
         }
     }
 
@@ -298,24 +299,24 @@ public partial class ProjectDetail : IDisposable
 
     private void SyncTabFromUri()
     {
-        if (_editing)
+        if (this.Editing)
         {
-            _tab = "overview";
+            this.Tab = "overview";
             return;
         }
 
         var tab = ReadTabFromUri();
         if (tab != "overview")
         {
-            _editing = false;
+            this.Editing = false;
         }
 
-        _tab = tab;
+        this.Tab = tab;
     }
 
     private string ReadTabFromUri()
     {
-        var raw = GetQueryParam(Nav.Uri, "tab")?.ToLowerInvariant();
+        var raw = GetQueryParam(this._nav.Uri, "tab")?.ToLowerInvariant();
         return raw is "tasks" or "risks" ? raw : "overview";
     }
 
@@ -352,14 +353,14 @@ public partial class ProjectDetail : IDisposable
     private void SetTab(string tab)
     {
         var next = tab is "tasks" or "risks" ? tab : "overview";
-        _tab = next;
+        this.Tab = next;
         if (next != "overview")
         {
-            _editing = false;
+            this.Editing = false;
         }
 
-        var uri = Nav.GetUriWithQueryParameter("tab", next);
-        Nav.NavigateTo(uri, forceLoad: false, replace: true);
+        var uri = this._nav.GetUriWithQueryParameter("tab", next);
+        this._nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     private async void OnChangedAsync()
@@ -368,7 +369,7 @@ public partial class ProjectDetail : IDisposable
         {
             await InvokeAsync(() =>
             {
-                if (Project is not null && AutoEditId == Project.Id && !_editing)
+                if (Project is not null && AutoEditId == Project.Id && !this.Editing)
                 {
                     StartEdit();
                 }
@@ -384,25 +385,25 @@ public partial class ProjectDetail : IDisposable
 
     private void ResetDraftFromProject(Project project, bool autoEdit)
     {
-        _editing = autoEdit;
+        this.Editing = autoEdit;
         LoadDraftFrom(project);
     }
 
     private void LoadDraftFrom(Project project)
     {
-        _draftName = project.Name;
-        _draftSummary = project.Summary;
-        _draftDescription = project.Description ?? "";
-        _draftStatus = project.Status?.ToString() ?? "Active";
-        _draftHealth = project.Health?.ToString() ?? "Green";
-        _draftTargetDateIso = project.TargetDateIso ?? "";
-        _draftPriority = project.Priority?.ToString();
-        _draftPriorityTouched = false;
-        _draftProductOwnerId = project.ProductOwnerId?.ToString() ?? "";
-        _tagsText = string.Join(", ", project.Tags);
-        _draftCheckInDate = project.LatestCheckIn?.DateIso ?? "";
-        _draftCheckInNote = project.LatestCheckIn?.Note ?? "";
-        _draftLinks = project.Links.Select(l => new ProjectLink { Label = l.Label, Url = l.Url }).ToList();
+        this.DraftName = project.Name;
+        this.DraftSummary = project.Summary;
+        this.DraftDescription = project.Description ?? "";
+        this.DraftStatus = project.Status?.ToString() ?? "Active";
+        this.DraftHealth = project.Health?.ToString() ?? "Green";
+        this.DraftTargetDateIso = project.TargetDateIso ?? "";
+        this.DraftPriority = project.Priority?.ToString();
+        this.DraftPriorityTouched = false;
+        this.DraftProductOwnerId = project.ProductOwnerId?.ToString() ?? "";
+        this.TagsText = string.Join(", ", project.Tags);
+        this.DraftCheckInDate = project.LatestCheckIn?.DateIso ?? "";
+        this.DraftCheckInNote = project.LatestCheckIn?.Note ?? "";
+        this.DraftLinks = project.Links.Select(l => new ProjectLink { Label = l.Label, Url = l.Url }).ToList();
     }
 
     private void StartEdit()
@@ -412,16 +413,16 @@ public partial class ProjectDetail : IDisposable
             return;
         }
 
-        if (_tab != "overview")
+        if (this.Tab != "overview")
         {
             SetTab("overview");
         }
 
         LoadDraftFrom(Project);
-        _tab = "overview";
-        _editing = true;
-        var uri = Nav.GetUriWithQueryParameter("tab", "overview");
-        Nav.NavigateTo(uri, forceLoad: false, replace: true);
+        this.Tab = "overview";
+        this.Editing = true;
+        var uri = this._nav.GetUriWithQueryParameter("tab", "overview");
+        this._nav.NavigateTo(uri, forceLoad: false, replace: true);
     }
 
     private async void ClearAutoEditFireAndForget()
@@ -443,7 +444,7 @@ public partial class ProjectDetail : IDisposable
             LoadDraftFrom(Project);
         }
 
-        _editing = false;
+        this.Editing = false;
         if (Project is not null && AutoEditId == Project.Id)
         {
             ClearAutoEditFireAndForget();
@@ -451,63 +452,63 @@ public partial class ProjectDetail : IDisposable
     }
 
     private void OnDraftTargetDateChange(ChangeEventArgs e) =>
-        _draftTargetDateIso = e.Value?.ToString() ?? "";
+        this.DraftTargetDateIso = e.Value?.ToString() ?? "";
 
     private void OnDraftCheckInDateChange(ChangeEventArgs e) =>
-        _draftCheckInDate = e.Value?.ToString() ?? "";
+        this.DraftCheckInDate = e.Value?.ToString() ?? "";
 
     private void OnDraftPriorityChange(ChangeEventArgs e)
     {
-        _draftPriority = e.Value?.ToString();
-        _draftPriorityTouched = true;
+        this.DraftPriority = e.Value?.ToString();
+        this.DraftPriorityTouched = true;
     }
 
     private void UpdateLinkLabel(int idx, string? value)
     {
-        if (idx < 0 || idx >= _draftLinks.Count)
+        if (idx < 0 || idx >= this.DraftLinks.Count)
         {
             return;
         }
 
-        _draftLinks[idx].Label = value ?? "";
+        this.DraftLinks[idx].Label = value ?? "";
     }
 
     private void UpdateLinkUrl(int idx, string? value)
     {
-        if (idx < 0 || idx >= _draftLinks.Count)
+        if (idx < 0 || idx >= this.DraftLinks.Count)
         {
             return;
         }
 
-        _draftLinks[idx].Url = value ?? "";
+        this.DraftLinks[idx].Url = value ?? "";
     }
 
     private void RemoveLink(int idx)
     {
-        if (idx < 0 || idx >= _draftLinks.Count)
+        if (idx < 0 || idx >= this.DraftLinks.Count)
         {
             return;
         }
 
-        _draftLinks.RemoveAt(idx);
+        this.DraftLinks.RemoveAt(idx);
     }
 
-    private void AddLink() => _draftLinks.Add(new ProjectLink());
+    private void AddLink() => this.DraftLinks.Add(new ProjectLink());
 
     private Project NormalizeDraftForSave()
     {
-        var tags = _tagsText
+        var tags = this.TagsText
             .Split(',')
             .Select(t => t.Trim())
             .Where(t => t.Length > 0)
             .ToList();
-        var links = _draftLinks
+        var links = this.DraftLinks
             .Select(l => new ProjectLink { Label = l.Label.Trim(), Url = l.Url.Trim() })
             .Where(l => l.Label.Length > 0 && l.Url.Length > 0)
             .ToList();
 
-        var checkInDate = _draftCheckInDate.Trim();
-        var checkInNote = _draftCheckInNote.Trim();
+        var checkInDate = this.DraftCheckInDate.Trim();
+        var checkInNote = this.DraftCheckInNote.Trim();
         ProjectCheckIn? latestCheckIn = null;
         if (checkInDate.Length > 0 || checkInNote.Length > 0)
         {
@@ -518,26 +519,26 @@ public partial class ProjectDetail : IDisposable
             };
         }
 
-        Enum.TryParse(_draftStatus, out ProjectStatus status);
-        Enum.TryParse(_draftHealth, out HealthSignal health);
-        var persistPriority = Project!.Priority is not null || _draftPriorityTouched;
+        Enum.TryParse(this.DraftStatus, out ProjectStatus status);
+        Enum.TryParse(this.DraftHealth, out HealthSignal health);
+        var persistPriority = Project!.Priority is not null || this.DraftPriorityTouched;
         Priority? priority = null;
-        if (persistPriority && Enum.TryParse(_draftPriority ?? "Medium", out Priority parsedPriority))
+        if (persistPriority && Enum.TryParse(this.DraftPriority ?? "Medium", out Priority parsedPriority))
         {
             priority = parsedPriority;
         }
 
-        Guid? productOwnerId = string.IsNullOrEmpty(_draftProductOwnerId) ? null : Guid.Parse(_draftProductOwnerId);
+        Guid? productOwnerId = string.IsNullOrEmpty(this.DraftProductOwnerId) ? null : Guid.Parse(this.DraftProductOwnerId);
 
         return EntityClone.Project(
             Project!,
-            name: string.IsNullOrWhiteSpace(_draftName) ? Project!.Name : _draftName.Trim(),
-            summary: _draftSummary,
-            description: _draftDescription,
+            name: string.IsNullOrWhiteSpace(this.DraftName) ? Project!.Name : this.DraftName.Trim(),
+            summary: this.DraftSummary,
+            description: this.DraftDescription,
             setDescription: true,
             status: status,
             health: health,
-            targetDateIso: string.IsNullOrWhiteSpace(_draftTargetDateIso) ? null : _draftTargetDateIso,
+            targetDateIso: string.IsNullOrWhiteSpace(this.DraftTargetDateIso) ? null : this.DraftTargetDateIso,
             setTarget: true,
             priority: priority,
             setPriority: persistPriority,
@@ -552,17 +553,17 @@ public partial class ProjectDetail : IDisposable
 
     private async Task SaveOverview()
     {
-        if (Project is null || _saving)
+        if (Project is null || this.Saving)
         {
             return;
         }
 
-        _saving = true;
+        this.Saving = true;
         try
         {
             Project next = NormalizeDraftForSave();
-            await ProjectService.UpdateAsync(next);
-            _editing = false;
+            await this._projectService.UpdateAsync(next);
+            this.Editing = false;
             if (AutoEditId == next.Id)
             {
                 ClearAutoEditFireAndForget();
@@ -570,11 +571,11 @@ public partial class ProjectDetail : IDisposable
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to save project changes right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to save project changes right now. Please try again.");
         }
         finally
         {
-            _saving = false;
+            this.Saving = false;
         }
     }
 
@@ -622,42 +623,42 @@ public partial class ProjectDetail : IDisposable
         return "All";
     }
 
-    private void GoTask(Guid id) => Nav.NavigateTo($"/tasks/{id}");
-    private void GoRisk(Guid id) => Nav.NavigateTo($"/risks/{id}");
+    private void GoTask(Guid id) => this._nav.NavigateTo($"/tasks/{id}");
+    private void GoRisk(Guid id) => this._nav.NavigateTo($"/risks/{id}");
 
     private async Task HandleDelete()
     {
-        if (Project is null || _deleting)
+        if (Project is null || this.Deleting)
         {
             return;
         }
 
         Project project = Project;
-        if (!await Dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone."))
+        if (!await this._dialogs.ConfirmAsync($"Delete project \"{project.Name}\"? This cannot be undone."))
         {
             return;
         }
 
-        _deleting = true;
+        this.Deleting = true;
         try
         {
-            await ProjectService.DeleteAsync(project.Id);
+            await this._projectService.DeleteAsync(project.Id);
             await OnDeleted.InvokeAsync();
         }
         catch (Exception)
         {
-            await Dialogs.AlertAsync("Unable to delete this project right now. Please try again.");
+            await this._dialogs.AlertAsync("Unable to delete this project right now. Please try again.");
         }
         finally
         {
-            _deleting = false;
+            this.Deleting = false;
         }
     }
 
     public void Dispose()
     {
-        Cache.Changed -= OnChangedAsync;
-        Nav.LocationChanged -= OnLocationChangedAsync;
+        this._cache.Changed -= OnChangedAsync;
+        this._nav.LocationChanged -= OnLocationChangedAsync;
     }
 
     private sealed record AssigneeOption(Guid Id, string Name);
@@ -678,4 +679,5 @@ public partial class ProjectDetail : IDisposable
         int HighPriorityOpenTasks,
         int OpenRisks,
         int AtRiskCount);
+}
 }

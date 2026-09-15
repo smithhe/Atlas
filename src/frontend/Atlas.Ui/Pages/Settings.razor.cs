@@ -3,56 +3,57 @@ using Atlas.Ui.Mapping;
 using Atlas.Ui.Models;
 using AtlasSettings = Atlas.Ui.Models.Settings;
 using Atlas.Ui.Services;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Pages;
-
+namespace Atlas.Ui.Pages
+{
 public partial class Settings : IDisposable
 {
-    [Inject] private AppCacheService Cache { get; set; } = null!;
-    [Inject] private LocalSettings Local { get; set; } = null!;
-    [Inject] private AiStateService Ai { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private SettingsService SettingsService { get; set; } = null!;
-    [Inject] private AzureDevOpsService AzureDevOpsService { get; set; } = null!;
+    [Inject] private IAppCacheService _cache { get; set; } = null!;
+    [Inject] private LocalSettings _local { get; set; } = null!;
+    [Inject] private IAiStateService _ai { get; set; } = null!;
+    [Inject] private NavigationManager _nav { get; set; } = null!;
+    [Inject] private ISettingsService _settingsService { get; set; } = null!;
+    [Inject] private IAzureDevOpsService _azureDevOpsService { get; set; } = null!;
 
-    private int _staleDays = 10;
-    private string _azureBaseUrl = "";
-    private bool _aiPanelOpen;
-    private bool _saving;
-    private string? _settingsError;
+    private int StaleDays { get; set; } = 10;
+    private string AzureBaseUrl { get; set; } = "";
+    private bool AiPanelOpen { get; set; }
+    private bool Saving { get; set; }
+    private string? SettingsError { get; set; }
 
-    private bool _azureLoading = true;
-    private bool _azureLoaded;
-    private bool _azureSaving;
-    private string? _azureError;
-    private string? _azureSyncMessage;
-    private string _org = "";
-    private string _project = "";
-    private string _areaPath = "";
-    private string _teamName = "";
-    private string _projectId = "";
-    private string _teamId = "";
-    private string _enabledYesNo = "yes";
+    private bool AzureLoading { get; set; } = true;
+    private bool AzureLoaded { get; set; }
+    private bool AzureSaving { get; set; }
+    private string? AzureError { get; set; }
+    private string? AzureSyncMessage { get; set; }
+    private string Org { get; set; } = "";
+    private string Project { get; set; } = "";
+    private string AreaPath { get; set; } = "";
+    private string TeamName { get; set; } = "";
+    private string ProjectId { get; set; } = "";
+    private string TeamId { get; set; } = "";
+    private string EnabledYesNo { get; set; } = "yes";
 
-    private AzureSyncState? _syncState;
-    private bool _syncRunning;
-    private bool _syncStateLoading;
+    private AzureSyncState? SyncState { get; set; }
+    private bool SyncRunning { get; set; }
+    private bool SyncStateLoading { get; set; }
 
-    private bool SyncInProgress => _syncRunning || string.Equals(_syncState?.LastRunStatus, "Running", StringComparison.Ordinal);
+    private bool SyncInProgress => this.SyncRunning || string.Equals(this.SyncState?.LastRunStatus, "Running", StringComparison.Ordinal);
 
-    private string LastCompletedLabel => _syncState?.LastCompletedAtUtc is not null
-        ? DisplayLabels.FormatReadableDateTime(_syncState.LastCompletedAtUtc.Value.ToString("o"))
+    private string LastCompletedLabel => this.SyncState?.LastCompletedAtUtc is not null
+        ? DisplayLabels.FormatReadableDateTime(this.SyncState.LastCompletedAtUtc.Value.ToString("o"))
         : "Never";
 
-    private string? LastAttemptedLabel => _syncState?.LastAttemptedAtUtc is not null
-        ? DisplayLabels.FormatReadableDateTime(_syncState.LastAttemptedAtUtc.Value.ToString("o"))
+    private string? LastAttemptedLabel => this.SyncState?.LastAttemptedAtUtc is not null
+        ? DisplayLabels.FormatReadableDateTime(this.SyncState.LastAttemptedAtUtc.Value.ToString("o"))
         : null;
 
     protected override async Task OnInitializedAsync()
     {
-        Cache.Changed += OnChangedAsync;
-        Ai.SetContext("Context: Settings", [new AiAction("settings-help", "Explain settings")]);
-        await Cache.EnsureHydratedAsync();
+        this._cache.Changed += OnChangedAsync;
+        this._ai.SetContext("Context: Settings", [new AiAction("settings-help", "Explain settings")]);
+        await this._cache.EnsureHydratedAsync();
         SyncFromCache();
         await LoadAzureAsync();
         await LoadSyncStateAsync();
@@ -76,14 +77,14 @@ public partial class Settings : IDisposable
 
     private void SyncFromCache()
     {
-        if (Cache.Settings is null)
+        if (this._cache.Settings is null)
         {
             return;
         }
 
-        _staleDays = Cache.Settings.StaleDays;
-        _azureBaseUrl = Cache.Settings.AzureDevOpsBaseUrl ?? "";
-        _aiPanelOpen = Cache.Settings.DefaultAiPanelOpen;
+        this.StaleDays = this._cache.Settings.StaleDays;
+        this.AzureBaseUrl = this._cache.Settings.AzureDevOpsBaseUrl ?? "";
+        this.AiPanelOpen = this._cache.Settings.DefaultAiPanelOpen;
     }
 
     private void OnStaleDaysInput(ChangeEventArgs e)
@@ -93,90 +94,90 @@ public partial class Settings : IDisposable
             return;
         }
 
-        _staleDays = Math.Clamp(v, 1, 365);
-        if (Cache.Settings is not null)
+        this.StaleDays = Math.Clamp(v, 1, 365);
+        if (this._cache.Settings is not null)
         {
-            SettingsService.PatchLocal(new AtlasSettings
+            this._settingsService.PatchLocal(new AtlasSettings
             {
-                StaleDays = _staleDays,
-                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
-                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
-                Theme = Cache.Settings.Theme,
-                AzureDevOpsBaseUrl = Cache.Settings.AzureDevOpsBaseUrl
+                StaleDays = this.StaleDays,
+                DefaultAiManualOnly = this._cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = this._cache.Settings.DefaultAiPanelOpen,
+                Theme = this._cache.Settings.Theme,
+                AzureDevOpsBaseUrl = this._cache.Settings.AzureDevOpsBaseUrl
             });
         }
     }
 
     private void OnAzureBaseUrlInput(ChangeEventArgs e)
     {
-        _azureBaseUrl = e.Value?.ToString() ?? "";
-        if (Cache.Settings is not null)
+        this.AzureBaseUrl = e.Value?.ToString() ?? "";
+        if (this._cache.Settings is not null)
         {
-            SettingsService.PatchLocal(new AtlasSettings
+            this._settingsService.PatchLocal(new AtlasSettings
             {
-                StaleDays = Cache.Settings.StaleDays,
-                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
-                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
-                Theme = Cache.Settings.Theme,
-                AzureDevOpsBaseUrl = _azureBaseUrl
+                StaleDays = this._cache.Settings.StaleDays,
+                DefaultAiManualOnly = this._cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = this._cache.Settings.DefaultAiPanelOpen,
+                Theme = this._cache.Settings.Theme,
+                AzureDevOpsBaseUrl = this.AzureBaseUrl
             });
         }
     }
 
     private async Task OnAiPanelChange(ChangeEventArgs e)
     {
-        _aiPanelOpen = e.Value?.ToString() == "on";
-        await Local.SaveDefaultAiPanelOpenAsync(_aiPanelOpen);
-        if (Cache.Settings is not null)
+        this.AiPanelOpen = e.Value?.ToString() == "on";
+        await this._local.SaveDefaultAiPanelOpenAsync(this.AiPanelOpen);
+        if (this._cache.Settings is not null)
         {
-            SettingsService.PatchLocal(new AtlasSettings
+            this._settingsService.PatchLocal(new AtlasSettings
             {
-                StaleDays = Cache.Settings.StaleDays,
-                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
-                DefaultAiPanelOpen = _aiPanelOpen,
-                Theme = Cache.Settings.Theme,
-                AzureDevOpsBaseUrl = Cache.Settings.AzureDevOpsBaseUrl
+                StaleDays = this._cache.Settings.StaleDays,
+                DefaultAiManualOnly = this._cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = this.AiPanelOpen,
+                Theme = this._cache.Settings.Theme,
+                AzureDevOpsBaseUrl = this._cache.Settings.AzureDevOpsBaseUrl
             });
         }
     }
 
     private async Task SaveSettings()
     {
-        if (Cache.Settings is null || _saving)
+        if (this._cache.Settings is null || this.Saving)
         {
             return;
         }
 
-        _saving = true;
-        _settingsError = null;
+        this.Saving = true;
+        this.SettingsError = null;
         try
         {
-            await SettingsService.UpdateAsync(new AtlasSettings
+            await this._settingsService.UpdateAsync(new AtlasSettings
             {
-                StaleDays = _staleDays,
-                DefaultAiManualOnly = Cache.Settings.DefaultAiManualOnly,
-                DefaultAiPanelOpen = Cache.Settings.DefaultAiPanelOpen,
-                Theme = Cache.Settings.Theme,
-                AzureDevOpsBaseUrl = string.IsNullOrWhiteSpace(_azureBaseUrl) ? null : _azureBaseUrl
+                StaleDays = this.StaleDays,
+                DefaultAiManualOnly = this._cache.Settings.DefaultAiManualOnly,
+                DefaultAiPanelOpen = this._cache.Settings.DefaultAiPanelOpen,
+                Theme = this._cache.Settings.Theme,
+                AzureDevOpsBaseUrl = string.IsNullOrWhiteSpace(this.AzureBaseUrl) ? null : this.AzureBaseUrl
             });
             SyncFromCache();
         }
         catch (Exception ex)
         {
-            _settingsError = ex.Message;
+            this.SettingsError = ex.Message;
         }
         finally
         {
-            _saving = false;
+            this.Saving = false;
         }
     }
 
     private async Task LoadAzureAsync()
     {
-        _azureLoading = true;
+        this.AzureLoading = true;
         try
         {
-            AzureConnection? conn = await AzureDevOpsService.TryGetConnectionAsync();
+            AzureConnection? conn = await this._azureDevOpsService.TryGetConnectionAsync();
             if (conn is null)
             {
                 // Unconfigured Azure — empty form is expected in CI smoke.
@@ -187,84 +188,84 @@ public partial class Settings : IDisposable
         }
         catch (Exception ex)
         {
-            _azureError = ex.Message;
+            this.AzureError = ex.Message;
         }
         finally
         {
-            _azureLoaded = true;
-            _azureLoading = false;
+            this.AzureLoaded = true;
+            this.AzureLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
 
     private async Task LoadSyncStateAsync()
     {
-        _syncStateLoading = true;
+        this.SyncStateLoading = true;
         try
         {
-            _syncState = await AzureDevOpsService.GetSyncStateAsync();
+            this.SyncState = await this._azureDevOpsService.GetSyncStateAsync();
         }
         catch
         {
-            _syncState = null;
+            this.SyncState = null;
         }
         finally
         {
-            _syncStateLoading = false;
+            this.SyncStateLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
 
     private void ApplyConn(AzureConnection conn)
     {
-        _org = conn.Organization ?? "";
-        _project = conn.Project ?? "";
-        _areaPath = conn.AreaPath ?? "";
-        _teamName = conn.TeamName ?? "";
-        _projectId = conn.ProjectId ?? "";
-        _teamId = conn.TeamId ?? "";
-        _enabledYesNo = conn.IsEnabled ? "yes" : "no";
+        this.Org = conn.Organization ?? "";
+        this.Project = conn.Project ?? "";
+        this.AreaPath = conn.AreaPath ?? "";
+        this.TeamName = conn.TeamName ?? "";
+        this.ProjectId = conn.ProjectId ?? "";
+        this.TeamId = conn.TeamId ?? "";
+        this.EnabledYesNo = conn.IsEnabled ? "yes" : "no";
     }
 
-    private void OpenAzureImport() => Nav.NavigateTo("/settings/azure-import");
+    private void OpenAzureImport() => this._nav.NavigateTo("/settings/azure-import");
 
     private async Task SaveAzureConnection()
     {
-        if (_azureSaving)
+        if (this.AzureSaving)
         {
             return;
         }
 
-        _azureError = null;
-        _azureSyncMessage = null;
-        if (string.IsNullOrWhiteSpace(_projectId) || string.IsNullOrWhiteSpace(_teamId))
+        this.AzureError = null;
+        this.AzureSyncMessage = null;
+        if (string.IsNullOrWhiteSpace(this.ProjectId) || string.IsNullOrWhiteSpace(this.TeamId))
         {
-            _azureError = "Project ID and Team ID are required. Use Azure Setup to select a project and team.";
+            this.AzureError = "Project ID and Team ID are required. Use Azure Setup to select a project and team.";
             return;
         }
 
-        _azureSaving = true;
+        this.AzureSaving = true;
         try
         {
-            await AzureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
+            await this._azureDevOpsService.UpdateConnectionAsync(new AzureUpdateConnection
             {
-                Organization = _org,
-                Project = _project,
-                AreaPath = _areaPath,
-                TeamName = string.IsNullOrWhiteSpace(_teamName) ? null : _teamName,
-                ProjectId = _projectId,
-                TeamId = _teamId,
-                IsEnabled = _enabledYesNo == "yes"
+                Organization = this.Org,
+                Project = this.Project,
+                AreaPath = this.AreaPath,
+                TeamName = string.IsNullOrWhiteSpace(this.TeamName) ? null : this.TeamName,
+                ProjectId = this.ProjectId,
+                TeamId = this.TeamId,
+                IsEnabled = this.EnabledYesNo == "yes"
             });
-            _azureLoaded = true;
+            this.AzureLoaded = true;
         }
         catch (Exception ex)
         {
-            _azureError = ex.Message;
+            this.AzureError = ex.Message;
         }
         finally
         {
-            _azureSaving = false;
+            this.AzureSaving = false;
         }
     }
 
@@ -275,44 +276,44 @@ public partial class Settings : IDisposable
             return;
         }
 
-        _azureError = null;
-        _azureSyncMessage = null;
+        this.AzureError = null;
+        this.AzureSyncMessage = null;
 
-        if (string.IsNullOrWhiteSpace(_org) || string.IsNullOrWhiteSpace(_projectId))
+        if (string.IsNullOrWhiteSpace(this.Org) || string.IsNullOrWhiteSpace(this.ProjectId))
         {
-            _azureError = "Azure sync needs Organization and Project ID first. Use Azure Setup or fill them in Settings.";
+            this.AzureError = "Azure sync needs Organization and Project ID first. Use Azure Setup or fill them in Settings.";
             return;
         }
 
-        _syncRunning = true;
+        this.SyncRunning = true;
         try
         {
-            AzureSyncResult result = await AzureDevOpsService.RunSyncAsync();
+            AzureSyncResult result = await this._azureDevOpsService.RunSyncAsync();
             if (!result.Succeeded)
             {
-                _azureError = !string.IsNullOrWhiteSpace(result.Error)
+                this.AzureError = !string.IsNullOrWhiteSpace(result.Error)
                     ? result.Error
                     : "Azure sync failed. Check AzureDevopsToken (user-secrets, appsettings, or environment) and connection settings.";
             }
             else if (!string.IsNullOrWhiteSpace(result.Error))
             {
-                _azureError = result.Error;
+                this.AzureError = result.Error;
             }
             else
             {
                 var count = result.ItemsUpserted ?? 0;
-                _azureSyncMessage = count == 1
+                this.AzureSyncMessage = count == 1
                     ? "Sync succeeded · 1 work item upserted"
                     : $"Sync succeeded · {count} work items upserted";
             }
 
-            await Cache.RefetchTeamAsync();
+            await this._cache.RefetchTeamAsync();
 
-            _syncStateLoading = true;
+            this.SyncStateLoading = true;
             StateHasChanged();
             try
             {
-                _syncState = await AzureDevOpsService.GetSyncStateAsync();
+                this.SyncState = await this._azureDevOpsService.GetSyncStateAsync();
             }
             catch
             {
@@ -321,12 +322,12 @@ public partial class Settings : IDisposable
         }
         catch (Exception ex)
         {
-            _azureError = ex.Message;
+            this.AzureError = ex.Message;
         }
         finally
         {
-            _syncRunning = false;
-            _syncStateLoading = false;
+            this.SyncRunning = false;
+            this.SyncStateLoading = false;
         }
     }
 
@@ -338,5 +339,6 @@ public partial class Settings : IDisposable
         _ => ""
     };
 
-    public void Dispose() => Cache.Changed -= OnChangedAsync;
+    public void Dispose() => this._cache.Changed -= OnChangedAsync;
+}
 }

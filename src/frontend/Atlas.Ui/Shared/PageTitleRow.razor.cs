@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Components;
+using Atlas.Ui.Contracts;
 
-namespace Atlas.Ui.Shared;
-
+namespace Atlas.Ui.Shared
+{
 public partial class PageTitleRow
 {
     [Parameter] public string Title { get; set; } = "";
@@ -9,4 +10,5 @@ public partial class PageTitleRow
     [Parameter] public string AddingLabel { get; set; } = "Adding…";
     [Parameter] public bool Adding { get; set; }
     [Parameter] public EventCallback OnAdd { get; set; }
+}
 }
